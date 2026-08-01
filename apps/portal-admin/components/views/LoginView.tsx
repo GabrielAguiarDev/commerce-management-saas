@@ -1,10 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { useAdmin } from "@/components/AdminProvider";
 import { css } from "@/lib/css";
 import { MarcaIcone } from "@/lib/icons";
 import { ROTAS } from "@/lib/rotas";
+import { createClient } from "@/lib/supabase/client";
 
 /** 0 = unusable, 3 = strong. Length, mixed classes, then length-or-symbol. */
 function forcaSenha(v: string): number {
@@ -37,7 +39,100 @@ export function LoginView() {
   const { s, a } = useAdmin();
   const { L } = a;
   const router = useRouter();
+  const params = useSearchParams();
   const nf = forcaSenha(s.senha1);
+  const pt = s.idioma === "pt";
+
+  // Estado do próprio formulário de acesso: não é sessão do painel, então não
+  // vale a pena guardar no estado global.
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(
+    // O middleware manda para cá quem está logado mas não é admin da plataforma.
+    params.get("erro") === "nao-admin"
+      ? pt
+        ? "Esta conta não é de administrador da plataforma."
+        : "This account is not a platform administrator."
+      : null,
+  );
+
+  /**
+   * Entra com e-mail e senha.
+   *
+   * Segurança: roda no NAVEGADOR, então usa o cliente público (anon). É o
+   * suficiente — o Supabase valida a credencial e devolve a sessão em cookie.
+   * A `service_role` não tem nada a ver com login e não aparece aqui.
+   */
+  const entrar = async () => {
+    const email = s.loginEmail.trim();
+    if (!email || !s.loginSenha) {
+      setErro(pt ? "Informe e-mail e senha." : "Enter your email and password.");
+      return;
+    }
+
+    setErro(null);
+    setCarregando(true);
+    const supabase = createClient();
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: s.loginSenha,
+    });
+
+    if (error || !data.user) {
+      // Mensagem única para e-mail inexistente e senha errada: dizer qual dos
+      // dois falhou entregaria a um estranho quais e-mails têm conta aqui.
+      setErro(pt ? "E-mail ou senha inválidos." : "Invalid email or password.");
+      setCarregando(false);
+      return;
+    }
+
+    // Este painel é só do admin da plataforma. A checagem definitiva está no
+    // middleware (que roda em toda requisição); esta aqui existe para explicar
+    // o problema na hora, em vez de deixar a pessoa ser expulsa sem entender.
+    const { data: perfil } = await supabase
+      .from("profiles")
+      .select("is_platform_admin")
+      .eq("id", data.user.id)
+      .single();
+
+    if (!perfil?.is_platform_admin) {
+      await supabase.auth.signOut();
+      setErro(
+        pt
+          ? "Esta conta não tem acesso ao painel administrativo."
+          : "This account cannot access the admin panel.",
+      );
+      setCarregando(false);
+      return;
+    }
+
+    a.set({ loginSenha: "" });
+    // `refresh` para o layout reler os clientes já com a sessão nova.
+    router.refresh();
+    router.push(ROTAS.visao);
+  };
+
+  /** Envia o link de redefinição para o e-mail informado. */
+  const enviarLinkRecuperacao = async () => {
+    const email = s.emailRec.trim();
+    if (!email) {
+      setErro(pt ? "Informe o e-mail." : "Enter your email.");
+      return;
+    }
+
+    setErro(null);
+    setCarregando(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}${ROTAS.login}`,
+    });
+    setCarregando(false);
+
+    // Confirmamos o envio mesmo quando o e-mail não existe: responder
+    // "não encontrado" revelaria quem tem conta.
+    if (error) console.error("[login] resetPasswordForEmail:", error.message);
+    a.set({ authView: "enviado" });
+  };
 
   const titulo =
     s.authView === "esqueci" || s.authView === "enviado" ? L.esqueciTitulo : L.redefinirTitulo;
@@ -48,11 +143,30 @@ export function LoginView() {
         ? L.linkEnviado
         : L.redefinirSub;
 
-  const salvarNovaSenha = () => {
+  /**
+   * Grava a senha nova. Só funciona depois de abrir o link enviado por e-mail:
+   * é ele que cria a sessão de recuperação que autoriza esta troca.
+   */
+  const salvarNovaSenha = async () => {
     if (!s.senha1 || s.senha1 !== s.senha2) {
       a.toast(L.toastErroSenha, "erro");
       return;
     }
+
+    setErro(null);
+    setCarregando(true);
+    const { error } = await createClient().auth.updateUser({ password: s.senha1 });
+    setCarregando(false);
+
+    if (error) {
+      setErro(
+        pt
+          ? "Não foi possível trocar a senha. Abra novamente o link enviado por e-mail."
+          : "Could not change the password. Open the emailed link again.",
+      );
+      return;
+    }
+
     a.set({ authView: "login", senha1: "", senha2: "" });
     a.toast(L.toastSenha);
   };
@@ -122,9 +236,15 @@ export function LoginView() {
               <label style={css("display:flex;flex-direction:column;gap:6px")}>
                 <span style={css(ROTULO)}>{L.email}</span>
                 <input
+                  type="email"
+                  autoComplete="email"
                   value={s.loginEmail}
-                  onChange={(e) => a.set({ loginEmail: e.target.value })}
-                  placeholder="rafael@aguiarone.com.br"
+                  onChange={(e) => {
+                    setErro(null);
+                    a.set({ loginEmail: e.target.value });
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && void entrar()}
+                  placeholder="nome@aguiarone.com.br"
                   style={css(CAMPO)}
                 />
               </label>
@@ -133,22 +253,45 @@ export function LoginView() {
                 <span style={css(ROTULO)}>{L.senha}</span>
                 <input
                   type="password"
+                  autoComplete="current-password"
                   value={s.loginSenha}
-                  onChange={(e) => a.set({ loginSenha: e.target.value })}
+                  onChange={(e) => {
+                    setErro(null);
+                    a.set({ loginSenha: e.target.value });
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && void entrar()}
                   placeholder="••••••••"
                   style={css(CAMPO)}
                 />
               </label>
 
+              {erro && (
+                <span
+                  role="alert"
+                  style={css(
+                    "font-size:12px;color:var(--bad);background:var(--badBg);" +
+                      "border:1px solid var(--badLine);border-radius:8px;padding:9px 11px",
+                  )}
+                >
+                  {erro}
+                </span>
+              )}
+
               <button
-                onClick={() => router.push(ROTAS.visao)}
+                onClick={() => void entrar()}
+                disabled={carregando}
                 className="hv-bright"
-                style={css(PRIMARIO + ";margin-top:2px")}
+                style={css(
+                  PRIMARIO + ";margin-top:2px" + (carregando ? ";opacity:.6;cursor:progress" : ""),
+                )}
               >
-                {L.entrar}
+                {carregando ? (pt ? "Entrando…" : "Signing in…") : L.entrar}
               </button>
               <button
-                onClick={() => a.set({ authView: "esqueci", senha1: "", senha2: "" })}
+                onClick={() => {
+                  setErro(null);
+                  a.set({ authView: "esqueci", senha1: "", senha2: "" });
+                }}
                 className="hv-acc-hi"
                 style={css(
                   "align-self:center;background:none;border:none;color:var(--acc);" +
@@ -242,10 +385,19 @@ export function LoginView() {
               />
             </label>
 
+            {erro && (
+              <span role="alert" style={css("font-size:12px;color:var(--bad)")}>
+                {erro}
+              </span>
+            )}
+
             <button
-              onClick={salvarNovaSenha}
+              onClick={() => void salvarNovaSenha()}
+              disabled={carregando}
               className="hv-bright"
-              style={css(PRIMARIO + ";margin-top:2px")}
+              style={css(
+                PRIMARIO + ";margin-top:2px" + (carregando ? ";opacity:.6;cursor:progress" : ""),
+              )}
             >
               {L.salvarSenha}
             </button>
@@ -272,10 +424,17 @@ export function LoginView() {
               />
             </label>
 
+            {erro && (
+              <span role="alert" style={css("font-size:12px;color:var(--bad)")}>
+                {erro}
+              </span>
+            )}
+
             <button
-              onClick={() => a.set({ authView: "enviado" })}
+              onClick={() => void enviarLinkRecuperacao()}
+              disabled={carregando}
               className="hv-bright"
-              style={css(PRIMARIO)}
+              style={css(PRIMARIO + (carregando ? ";opacity:.6;cursor:progress" : ""))}
             >
               {L.enviarLink}
             </button>

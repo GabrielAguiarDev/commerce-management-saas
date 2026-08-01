@@ -137,11 +137,8 @@ export function CampoBusca({
 }) {
   return (
     <div
-      style={css(
-        "display:flex;align-items:center;gap:8px;background:var(--field);" +
-          "border:1px solid var(--line);border-radius:9px;padding:0 11px;" +
-          estiloCaixa,
-      )}
+      className="campo-caixa"
+      style={css("display:flex;align-items:center;gap:8px;padding:0 11px;" + estiloCaixa)}
     >
       <span style={css("font-size:13px;color:var(--tx3)")}>⌕</span>
       <input
@@ -150,7 +147,7 @@ export function CampoBusca({
         placeholder={placeholder}
         style={css(
           "flex:1;border:none;background:none;outline:none;color:var(--tx);" +
-            (compacto ? "padding:9px 0;font-size:12.5px" : "padding:10px 0;font-size:13px"),
+            (compacto ? "padding:9px 0;font-size:12.5px" : "padding:10px 0;font-size:13.5px"),
         )}
       />
     </div>

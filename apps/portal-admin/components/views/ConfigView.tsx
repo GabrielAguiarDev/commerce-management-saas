@@ -1,6 +1,7 @@
 "use client";
 
 import { useAdmin } from "@/components/AdminProvider";
+import { Campo, Selecao } from "@/components/campos";
 import { css, MONO } from "@/lib/css";
 import { EditarIcone } from "@/lib/icons";
 import { chip } from "@/lib/styleKit";
@@ -84,36 +85,26 @@ export function ConfigView() {
                   )}
                 >
                   {cfg.tipo === "select" && (
-                    <select
+                    <Selecao
                       value={String(rasc)}
                       onChange={(e) => a.set({ cfgRascunho: e.target.value })}
                       aria-label={cfg.rotulo[id] || cfg.rotulo.pt}
-                      style={css(
-                        "border:1px solid var(--line);background:var(--field);color:var(--tx);" +
-                          "border-radius:8px;padding:8px 10px;font-size:12.5px;cursor:pointer",
-                      )}
                     >
                       {(cfg.opcoes || []).map(([v, rotulo]) => (
                         <option key={v} value={v}>
                           {rotulo[id] || rotulo.pt}
                         </option>
                       ))}
-                    </select>
+                    </Selecao>
                   )}
 
                   {cfg.tipo === "numero" && (
-                    <input
+                    <Campo
                       type="number"
                       value={String(rasc)}
-                      onChange={(e) =>
-                        a.set({ cfgRascunho: parseInt(e.target.value, 10) || 0 })
-                      }
+                      onChange={(e) => a.set({ cfgRascunho: parseInt(e.target.value, 10) || 0 })}
                       aria-label={cfg.rotulo[id] || cfg.rotulo.pt}
-                      style={css(
-                        `width:84px;font-family:${MONO};border:1px solid var(--line);` +
-                          "background:var(--field);color:var(--tx);border-radius:8px;" +
-                          "padding:8px 10px;font-size:12.5px;outline:none",
-                      )}
+                      estilo={`width:96px;font-family:`}
                     />
                   )}
 

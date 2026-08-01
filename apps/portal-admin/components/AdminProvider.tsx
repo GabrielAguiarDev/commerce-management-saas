@@ -14,10 +14,12 @@ import { DIC } from "@/lib/dictionary";
 import { HOJE } from "@/lib/mock/data";
 import { ROTAS } from "@/lib/rotas";
 import { ESTADO_INICIAL, estaSujo } from "@/lib/state";
+import { createClient } from "@/lib/supabase/client";
 import type {
   AdminActions,
   AdminOpcoes,
   AdminState,
+  Cliente,
   Pagamento,
   Patch,
   Rascunho,
@@ -47,16 +49,60 @@ const Ctx = createContext<ViewProps | null>(null);
  */
 export function AdminProvider({
   children,
+  clientesIniciais = [],
+  erroClientes = null,
   ...overrides
-}: { children: ReactNode } & Partial<AdminOpcoes>) {
+}: {
+  children: ReactNode;
+  /** Clientes lidos do Supabase pelo layout (server component). */
+  clientesIniciais?: Cliente[];
+  erroClientes?: string | null;
+} & Partial<AdminOpcoes>) {
   const router = useRouter();
-  const [state, setState] = useState<AdminState>(ESTADO_INICIAL);
+  const [state, setState] = useState<AdminState>(() => ({
+    ...ESTADO_INICIAL,
+    clientes: clientesIniciais,
+    erroClientes,
+  }));
   const opts: AdminOpcoes = { ...PADROES, ...overrides };
+
+  // ───────────────────────────────────────────────────────────────────
+  // O servidor é a fonte da verdade dos clientes. Depois de um cadastro, de um
+  // `router.refresh()` ou de um `revalidatePath`, o layout relê a tabela
+  // `tenants` e manda a lista nova para cá — o estado local acompanha em vez de
+  // seguir mostrando o que estava em memória.
+  //
+  // O ajuste acontece DURANTE o render, não num efeito: é o padrão do React
+  // para estado derivado de props (react.dev/learn/you-might-not-need-an-effect).
+  // Um efeito renderizaria uma vez com a lista velha antes de corrigir.
+  //
+  // A comparação é por assinatura, e não pela identidade do array: a lista
+  // chega como um array novo a cada render, e só os campos abaixo mudam por
+  // fora. Sem isso, todo render reescreveria o estado.
+  // ───────────────────────────────────────────────────────────────────
+  const assinatura =
+    clientesIniciais
+      .map((c) => `${c.id}:${c.status}:${c.plano}:${c.valor}:${c.mods.join(",")}`)
+      .join("|") + `#${erroClientes ?? ""}`;
+  const [assinaturaAplicada, setAssinaturaAplicada] = useState(assinatura);
+
+  if (assinatura !== assinaturaAplicada) {
+    setAssinaturaAplicada(assinatura);
+    setState((prev) => ({ ...prev, clientes: clientesIniciais, erroClientes }));
+  }
 
   const set = useCallback((patch: Patch) => {
     setState((prev) => {
       const p = typeof patch === "function" ? patch(prev) : patch;
-      return p ? { ...prev, ...p } : prev;
+      if (!p) return prev;
+
+      // Sai fora quando o patch não muda nada de fato. Sem isto, gravar um
+      // valor igual ao que já estava ainda assim devolveria um objeto novo,
+      // o React re-renderizaria, e um efeito que escreve o estado a cada
+      // render entraria em loop — que foi exatamente o que aconteceu com o
+      // sinalizador de formulário sujo da tela de cadastro.
+      const mudou = (Object.keys(p) as (keyof AdminState)[]).some((k) => prev[k] !== p[k]);
+      return mudou ? { ...prev, ...p } : prev;
     });
   }, []);
 
@@ -141,7 +187,7 @@ export function AdminProvider({
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   }, []);
 
-  const novoRascunho = (id: number): Rascunho | null => {
+  const novoRascunho = (id: string): Rascunho | null => {
     const x = state.clientes.find((y) => y.id === id);
     return x ? { id: x.id, plano: x.plano, mods: x.mods.slice(), valor: x.valor } : null;
   };
@@ -153,23 +199,46 @@ export function AdminProvider({
    * waiting when you come back.
    */
   const ir = (href: string) => {
-    if (estaSujo(state)) {
+    // Vale para os dois formulários longos do painel: a ficha do cliente e o
+    // cadastro de um novo.
+    if (estaSujo(state) || state.novoClienteSujo) {
       abrirModal("descartar", null, href);
       return;
     }
-    set({ menuLinha: null, menuPag: null, dica: null, rascunho: null, notifAberta: false });
+    set({
+      menuLinha: null,
+      menuPag: null,
+      dica: null,
+      rascunho: null,
+      novoClienteSujo: false,
+      notifAberta: false,
+    });
     router.push(href);
   };
 
-  const abrirCliente = (id: number) => {
+  const abrirCliente = (id: string) => {
     set({ menuLinha: null, dica: null, notifAberta: false, rascunho: novoRascunho(id) });
     router.push(`${ROTAS.clientes}/${id}`);
   };
 
-  const garantirRascunho = (id: number) => {
-    if (state.rascunho?.id === id) return;
-    set({ rascunho: novoRascunho(id) });
-  };
+  /**
+   * Memoizado de propósito: a tela de detalhe chama isto de dentro de um
+   * efeito, então precisa de uma referência estável — senão o efeito
+   * dispararia a cada render. Lê o estado pelo próprio updater, não pelo
+   * closure, o que também o mantém correto sem depender de `state`.
+   */
+  const garantirRascunho = useCallback(
+    (id: string) => {
+      set((s) => {
+        if (s.rascunho?.id === id) return null;
+        const x = s.clientes.find((y) => y.id === id);
+        return x
+          ? { rascunho: { id: x.id, plano: x.plano, mods: x.mods.slice(), valor: x.valor } }
+          : null;
+      });
+    },
+    [set],
+  );
 
   const descartarRascunho = () => {
     if (state.rascunho) set({ rascunho: novoRascunho(state.rascunho.id) });
@@ -309,7 +378,7 @@ export function AdminProvider({
     );
   };
 
-  const registrarPagamento = (clienteId: number) => {
+  const registrarPagamento = (clienteId: string) => {
     const x = state.clientes.find((y) => y.id === clienteId);
     if (!x) return;
     const p: Pick<Pagamento, "vencimento" | "hist"> = state.pagamentos[clienteId] ?? {
@@ -340,7 +409,7 @@ export function AdminProvider({
     toast(L.toastPago);
   };
 
-  const reverterPagamento = (clienteId: number) => {
+  const reverterPagamento = (clienteId: string) => {
     const p = state.pagamentos[clienteId];
     if (!p) return;
     const hist = (p.hist || []).slice(1);
@@ -367,10 +436,23 @@ export function AdminProvider({
     switch (m.tipo) {
       case "sair":
         set({ modal: null, rascunho: null });
-        router.push(ROTAS.login);
+        // Encerra a sessão de verdade: sem isto o middleware veria o cookie
+        // ainda válido e devolveria o usuário ao painel.
+        void createClient()
+          .auth.signOut()
+          .then(() => {
+            router.push(ROTAS.login);
+            router.refresh();
+          });
         return;
       case "descartar":
-        set({ modal: null, rascunho: null, menuLinha: null, notifAberta: false });
+        set({
+          modal: null,
+          rascunho: null,
+          novoClienteSujo: false,
+          menuLinha: null,
+          notifAberta: false,
+        });
         router.push(m.destino || ROTAS.clientes);
         return;
       case "modOff":
@@ -485,7 +567,7 @@ export function AdminProvider({
 
   // Reloading or closing the tab is outside the router's reach; the browser's
   // own prompt is the only thing that can guard unsaved edits there.
-  const sujo = estaSujo(state);
+  const sujo = estaSujo(state) || state.novoClienteSujo;
   useEffect(() => {
     if (!sujo) return;
     const aviso = (e: BeforeUnloadEvent) => e.preventDefault();

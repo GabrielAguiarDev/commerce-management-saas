@@ -226,3 +226,18 @@ export function AcessoIcone() {
     </svg>
   );
 }
+
+/** Seta do select. Herda a cor de quem a contém, então acompanha o tema. */
+export function ChevronBaixoIcone({ size = 13 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 7 9 11.5 13.5 7"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

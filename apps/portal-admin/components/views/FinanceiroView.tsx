@@ -89,7 +89,7 @@ export function FinanceiroView() {
   const linhas = cs.filter((x) => {
     if (qp && !x.nome.toLowerCase().includes(qp)) return false;
     if (s.filtroPag === "todos") return true;
-    return x.plano !== "Gratuito" && infoPag(s.pagamentos, x.id).status === s.filtroPag;
+    return x.plano !== "free" && infoPag(s.pagamentos, x.id).status === s.filtroPag;
   });
 
   const exportar = () => {
@@ -103,7 +103,7 @@ export function FinanceiroView() {
     ].join(";");
     const corpo = linhas.map((x) => {
       const p = infoPag(s.pagamentos, x.id);
-      const grat = x.plano === "Gratuito";
+      const grat = x.plano === "free";
       return [
         x.nome,
         nomePlano(s.planos, x.plano, id),
@@ -125,7 +125,7 @@ export function FinanceiroView() {
   const rotuloCampo =
     "font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);font-weight:600";
 
-  const botaoMenu = (clienteId: number) => (
+  const botaoMenu = (clienteId: string) => (
     <button
       onClick={() => a.set((st) => ({ menuPag: st.menuPag === clienteId ? null : clienteId }))}
       aria-label={L.acoes}
@@ -139,7 +139,7 @@ export function FinanceiroView() {
     </button>
   );
 
-  const menuPagamento = (clienteId: number, pago: boolean) => (
+  const menuPagamento = (clienteId: string, pago: boolean) => (
     <div
       style={css(
         "position:absolute;top:36px;right:0;z-index:9;background:var(--panel);" +
@@ -312,7 +312,7 @@ export function FinanceiroView() {
 
         {(vazio ? [] : linhas).map((x) => {
           const p = infoPag(s.pagamentos, x.id);
-          const grat = x.plano === "Gratuito";
+          const grat = x.plano === "free";
           const pago = p.status === "emdia";
           const menuAberto = s.menuPag === x.id;
 

@@ -4,25 +4,31 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
-import { TagAcesso } from "@/components/shared";
+import { BarraAcoes } from "@/components/BarraAcoes";
+import { GradeModulos, ModuloCard } from "@/components/ModuloCard";
 import { ROTAS } from "@/lib/rotas";
 import { clientePorId, estaSujo } from "@/lib/state";
-import { iconeMod, iniciais, nomePlano, planoBadge, statusBadge } from "@/lib/styleKit";
+import { iniciais, nomePlano, planoBadge, statusBadge } from "@/lib/styleKit";
 
-const ORDEM_PLANOS = ["Gratuito", "Pago", "Customizado"];
+// Chaves do banco (tabela `tenants`, coluna `plan`), na ordem em que o botão
+// "mudar plano" cicla entre elas.
+const ORDEM_PLANOS = ["free", "paid", "custom"];
 
-export function DetalheView({ clienteId }: { clienteId: number }) {
+export function DetalheView({ clienteId }: { clienteId: string }) {
   const { s, a, opts } = useAdmin();
   const { L } = a;
   const router = useRouter();
   const id = s.idioma;
   const c = clientePorId(s, clienteId);
+  const existe = !!c;
 
   // Opening the record — or arriving back on it via the browser — must find a
   // draft to edit. `garantirRascunho` keeps an existing one for this customer.
+  // Depende só de referências estáveis: `garantirRascunho` é memoizado.
+  const garantirRascunho = a.garantirRascunho;
   useEffect(() => {
-    if (c) a.garantirRascunho(clienteId);
-  });
+    if (existe) garantirRascunho(clienteId);
+  }, [existe, clienteId, garantirRascunho]);
 
   // A deleted customer leaves a dead URL; send it back to the list.
   useEffect(() => {
@@ -38,7 +44,7 @@ export function DetalheView({ clienteId }: { clienteId: number }) {
       ? s.rascunho
       : { plano: c.plano, mods: c.mods, valor: c.valor };
   const sujo = estaSujo(s);
-  const custom = r.plano === "Customizado";
+  const custom = r.plano === "custom";
 
   const rotuloCampo =
     "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);font-weight:600";
@@ -50,9 +56,9 @@ export function DetalheView({ clienteId }: { clienteId: number }) {
         ...d,
         plano: novo,
         valor:
-          novo === "Gratuito"
+          novo === "free"
             ? "—"
-            : novo === "Pago"
+            : novo === "paid"
               ? "R$ 89,00"
               : c.valor !== "—"
                 ? c.valor
@@ -123,10 +129,6 @@ export function DetalheView({ clienteId }: { clienteId: number }) {
               <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--tx)`)}>
                 {c.data}
               </span>
-            </div>
-            <div style={css("display:flex;flex-direction:column;gap:3px")}>
-              <span style={css(rotuloCampo)}>{L.cidade}</span>
-              <span style={css("font-size:13px;color:var(--tx)")}>{c.cidade}</span>
             </div>
 
             {opts.mostrarValorMensal && (
@@ -238,84 +240,30 @@ export function DetalheView({ clienteId }: { clienteId: number }) {
           </div>
         </div>
 
-        <div
-          style={css(
-            "display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px;" +
-              "padding:20px 24px;max-width:" +
-              Math.min(4, Math.max(2, opts.colunasModulos)) * 400 +
-              "px",
-          )}
-        >
+        <GradeModulos colunas={opts.colunasModulos}>
           {s.modulos.map((m) => {
             const on = r.mods.includes(m.k);
             return (
-              <div
+              <ModuloCard
                 key={m.k}
-                onClick={() =>
+                sigla={m.sigla}
+                nome={m.nome[id]}
+                descricao={m.desc[id]}
+                ligado={on}
+                estado={on ? L.ativoPara : L.desativado}
+                acesso={m.tipo === "acesso"}
+                tagAcesso={L.tagAcesso}
+                ajudaAcesso={L.acessoAjuda}
+                // Desligar pede confirmação; ligar é reversível, então vai direto.
+                alternar={() =>
                   on
                     ? a.abrirModal("modOff", null, null, m.k)
                     : a.editarRascunho((d) => ({ ...d, mods: [...d.mods, m.k] }))
                 }
-                style={css(
-                  "display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:11px;" +
-                    "cursor:pointer;transition:border-color .12s,background .12s;" +
-                    (on
-                      ? "border:1px solid var(--accLine);background:var(--accSoft);"
-                      : "border:1px solid var(--lineSoft);background:var(--panel);"),
-                )}
-              >
-                <div
-                  style={css(
-                    "display:flex;align-items:flex-start;justify-content:space-between;gap:14px",
-                  )}
-                >
-                  <div style={css("display:flex;align-items:center;gap:11px;min-width:0")}>
-                    <div style={css(iconeMod(on))}>{m.sigla}</div>
-                    <div style={css("display:flex;flex-direction:column;gap:3px;min-width:0")}>
-                      <span style={css("display:flex;align-items:center;gap:7px;min-width:0")}>
-                        <span style={css("font-size:14px;font-weight:600;color:var(--tx)")}>
-                          {m.nome[id]}
-                        </span>
-                        {m.tipo === "acesso" && (
-                          <TagAcesso rotulo={L.tagAcesso} ajuda={L.acessoAjuda} />
-                        )}
-                      </span>
-                      <span
-                        style={css(
-                          "font-size:11px;font-weight:500;white-space:nowrap;color:" +
-                            (on ? "var(--ok)" : "var(--tx3)"),
-                        )}
-                      >
-                        {on ? L.ativoPara : L.desativado}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div
-                    style={css(
-                      "width:44px;height:24px;flex:none;border-radius:99px;padding:3px;display:flex;" +
-                        "transition:background .15s;background:" +
-                        (on ? "var(--acc)" : "var(--neuLine)"),
-                    )}
-                  >
-                    <div
-                      style={css(
-                        "width:18px;height:18px;border-radius:99px;background:#fff;" +
-                          "box-shadow:0 1px 2px rgba(0,0,0,.28);transition:transform .15s;" +
-                          "transform:translateX(" +
-                          (on ? "20px" : "0") +
-                          ")",
-                      )}
-                    />
-                  </div>
-                </div>
-                <p style={css("margin:0;font-size:12px;color:var(--tx2);line-height:1.5")}>
-                  {m.desc[id]}
-                </p>
-              </div>
+              />
             );
           })}
-        </div>
+        </GradeModulos>
 
         <div
           style={css(
@@ -328,58 +276,12 @@ export function DetalheView({ clienteId }: { clienteId: number }) {
         </div>
       </section>
 
-      <div
-        style={css(
-          "position:sticky;bottom:0;z-index:7;display:flex;align-items:center;" +
-            "justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 20px;" +
-            "border-radius:12px;border:1px solid " +
-            (sujo ? "var(--warnLine)" : "var(--line)") +
-            ";background:var(--panel);box-shadow:0 -2px 16px rgba(6,20,26,.1)",
-        )}
-      >
-        <span
-          style={css(
-            "display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:" +
-              (sujo ? "var(--warn)" : "var(--tx3)"),
-          )}
-        >
-          <span
-            style={css(
-              "width:7px;height:7px;flex:none;border-radius:99px;background:" +
-                (sujo ? "var(--warn)" : "var(--neuLine)"),
-            )}
-          />
-          {sujo ? L.naoSalvo : L.tudoSalvo}
-        </span>
-
-        <div style={css("display:flex;align-items:center;gap:9px")}>
-          <button
-            onClick={a.descartarRascunho}
-            disabled={!sujo}
-            style={css(
-              "font-size:13px;font-weight:500;padding:10px 16px;border-radius:9px;" +
-                "border:1px solid var(--line);background:var(--panel);color:" +
-                (sujo ? "var(--tx2)" : "var(--tx3)") +
-                ";cursor:" +
-                (sujo ? "pointer" : "not-allowed"),
-            )}
-          >
-            {L.descartar}
-          </button>
-          <button
-            onClick={a.salvarRascunho}
-            disabled={!sujo}
-            style={css(
-              "font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px;" +
-                (sujo
-                  ? "border:1px solid var(--acc);background:var(--acc);color:var(--accTx);cursor:pointer;"
-                  : "border:1px solid var(--line);background:var(--neu);color:var(--tx3);cursor:not-allowed;"),
-            )}
-          >
-            {L.salvar}
-          </button>
-        </div>
-      </div>
+      <BarraAcoes
+        estado={sujo ? L.naoSalvo : L.tudoSalvo}
+        tom={sujo ? "alerta" : "neutro"}
+        secundario={{ rotulo: L.descartar, onClick: a.descartarRascunho, desabilitado: !sujo }}
+        primario={{ rotulo: L.salvar, onClick: a.salvarRascunho, desabilitado: !sujo }}
+      />
     </div>
   );
 }

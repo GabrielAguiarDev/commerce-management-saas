@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { ehPlanoValido, MENSALIDADE_PADRAO, modulosDoPlano, type Plano } from "@/lib/planos";
-import { ROTAS } from "@/lib/rotas";
 
 /**
  * Dados do cliente recém-criado, para a interface inserir na lista sem
@@ -216,7 +215,10 @@ export async function criarCliente(
   // =====================================================================
   // PASSO 8 — Sucesso.
   // =====================================================================
-  revalidatePath(ROTAS.clientes);
+  // O layout é quem lê `tenants` (ver lib/clientes.ts), e ele fica acima de
+  // todas as rotas — revalidar só /clientes deixaria visão e financeiro com a
+  // lista antiga.
+  revalidatePath("/", "layout");
 
   return {
     status: "sucesso",

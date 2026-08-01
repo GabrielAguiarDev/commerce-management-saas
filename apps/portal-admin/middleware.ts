@@ -1,12 +1,20 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const LOGIN = "/login";
+
 /**
- * Mantém a sessão do admin viva entre requisições.
+ * Mantém a sessão do admin viva entre requisições E barra a entrada de quem
+ * não é admin da plataforma.
  *
  * Server Components não escrevem cookies, então é aqui que o token é renovado.
  * Sem isto, a Server Action de cadastro veria `getUser()` vazio depois de um
  * tempo e recusaria a operação, mesmo com o admin logado.
+ *
+ * A proteção fica aqui porque este é o único lugar que enxerga o caminho pedido
+ * antes de qualquer tela renderizar — nenhuma página do painel chega a existir
+ * para quem não passou por esta checagem. Ela não substitui o RLS nem a
+ * autorização das Server Actions: é a primeira camada, não a única.
  *
  * Segurança: usa apenas a chave pública. A `service_role` não entra no
  * middleware — ele roda em toda requisição, inclusive de quem não está logado.
@@ -40,9 +48,46 @@ export async function middleware(request: NextRequest) {
   });
 
   // Renova o token. NÃO coloque lógica entre criar o cliente e esta chamada.
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  return response;
+  const emLogin = request.nextUrl.pathname === LOGIN;
+
+  /**
+   * Redireciona preservando os cookies que o `setAll` acabou de gravar em
+   * `response`. Um `NextResponse.redirect` novo nasce sem eles — e perder o
+   * token recém-renovado jogaria o usuário num laço de logins.
+   */
+  const redirecionar = (destino: string, erro?: string) => {
+    const url = request.nextUrl.clone();
+    url.pathname = destino;
+    url.search = erro ? `erro=${erro}` : "";
+    const saida = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((c) => saida.cookies.set(c));
+    return saida;
+  };
+
+  if (!user) {
+    return emLogin ? response : redirecionar(LOGIN);
+  }
+
+  // Logado — falta saber se é o admin da plataforma. A consulta passa pelo RLS
+  // com a sessão do próprio usuário, que enxerga apenas o seu perfil.
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("is_platform_admin")
+    .eq("id", user.id)
+    .single();
+
+  if (!perfil?.is_platform_admin) {
+    // Dono de comércio logando no painel errado: fica na tela de login, que
+    // explica o motivo, em vez de ver o painel vazio por conta do RLS.
+    return emLogin ? response : redirecionar(LOGIN, "nao-admin");
+  }
+
+  // Admin já logado não precisa da tela de login.
+  return emLogin ? redirecionar("/") : response;
 }
 
 export const config = {

@@ -1,17 +1,20 @@
-import type {
-  Chamado,
-  Cliente,
-  ConfigItem,
-  Modulo,
-  Pagamento,
-  Plano,
-  ReceitaMes,
-} from "@/types/types";
+import type { Chamado, ConfigItem, Pagamento, ReceitaMes } from "@/types/types";
 
 /**
- * Seed data for the console. This is the demo dataset that shipped with the
- * design — swap these exports for API calls when the backend lands; nothing
- * else in the console reads from the network.
+ * Dados de exemplo do protótipo — o que AINDA não tem tabela no Supabase.
+ *
+ * Já saíram daqui, substituídos por dados reais:
+ *   * `CLIENTES`  → tabela `tenants`, lida em `lib/clientes.ts`;
+ *   * `MODULOS` e `PLANOS` → catálogo real em `lib/planos.ts`, adaptado para as
+ *     telas em `lib/catalogo.ts`.
+ *
+ * O que sobra abaixo sustenta as telas de Financeiro, Suporte e Configurações,
+ * que ainda não têm tabela correspondente. Não apague sem antes ligar a tela.
+ *
+ * ATENÇÃO aos ids: `PAGAMENTOS` e `CHAMADOS` são chaveados por id de cliente,
+ * e os clientes reais têm UUID. Nenhuma dessas chaves ("1", "2"…) casa com um
+ * cliente do banco — de propósito, porque esse dado não existe lá. As telas
+ * degradam para "sem pagamento" / nome genérico em vez de quebrar.
  */
 
 export const RECEITA: ReceitaMes[] = [
@@ -24,8 +27,8 @@ export const RECEITA: ReceitaMes[] = [
 ];
 
 /** Keyed by customer id. Customers absent here have never been billed. */
-export const PAGAMENTOS: Record<number, Pagamento> = {
-  1: {
+export const PAGAMENTOS: Record<string, Pagamento> = {
+  "1": {
     status: "emdia",
     ultimo: "05/07/2026",
     vencimento: "05/08/2026",
@@ -35,7 +38,7 @@ export const PAGAMENTOS: Record<number, Pagamento> = {
       ["05/05/2026", "R$ 89,00"],
     ],
   },
-  2: {
+  "2": {
     status: "atrasado",
     ultimo: "04/06/2026",
     vencimento: "04/07/2026",
@@ -44,7 +47,7 @@ export const PAGAMENTOS: Record<number, Pagamento> = {
       ["04/05/2026", "R$ 149,00"],
     ],
   },
-  4: {
+  "4": {
     status: "emdia",
     ultimo: "18/07/2026",
     vencimento: "18/08/2026",
@@ -53,13 +56,13 @@ export const PAGAMENTOS: Record<number, Pagamento> = {
       ["18/06/2026", "R$ 89,00"],
     ],
   },
-  6: {
+  "6": {
     status: "pendente",
     ultimo: "02/07/2026",
     vencimento: "02/08/2026",
     hist: [["02/07/2026", "R$ 89,00"]],
   },
-  9: {
+  "9": {
     status: "emdia",
     ultimo: "15/07/2026",
     vencimento: "15/08/2026",
@@ -69,116 +72,6 @@ export const PAGAMENTOS: Record<number, Pagamento> = {
     ],
   },
 };
-
-export const MODULOS: Modulo[] = [
-  {
-    k: "vendas",
-    nome: { pt: "Vendas", en: "Sales" },
-    sigla: "VD",
-    desc: {
-      pt: "Registro de vendas no balcão e por delivery, com histórico diário.",
-      en: "Counter and delivery sales logging with a daily history.",
-    },
-    planos: ["Gratuito", "Pago", "Customizado"],
-  },
-  {
-    k: "produtos",
-    nome: { pt: "Produtos", en: "Products" },
-    sigla: "PR",
-    desc: {
-      pt: "Catálogo com preços, variações e categorias do comércio.",
-      en: "Catalog with prices, variants and store categories.",
-    },
-    planos: ["Gratuito", "Pago", "Customizado"],
-  },
-  {
-    k: "custos",
-    nome: { pt: "Custos", en: "Costs" },
-    sigla: "CT",
-    desc: {
-      pt: "Lançamento de despesas fixas e variáveis, com margem por produto.",
-      en: "Fixed and variable expenses with per-product margin.",
-    },
-    planos: ["Pago", "Customizado"],
-  },
-  {
-    k: "relatorios",
-    nome: { pt: "Relatórios", en: "Reports" },
-    sigla: "RL",
-    desc: {
-      pt: "Fechamento por período, ranking de produtos e exportação em PDF.",
-      en: "Period closing, product ranking and PDF export.",
-    },
-    planos: ["Pago", "Customizado"],
-  },
-  {
-    k: "estoque",
-    nome: { pt: "Estoque", en: "Inventory" },
-    sigla: "ES",
-    desc: {
-      pt: "Controle de entradas, saídas e alerta de estoque mínimo.",
-      en: "Inbound, outbound and low-stock alerts.",
-    },
-    planos: ["Pago", "Customizado"],
-  },
-  {
-    k: "caixa",
-    nome: { pt: "Caixa", en: "Register" },
-    sigla: "CX",
-    desc: {
-      pt: "Abertura e fechamento de caixa com conferência de valores.",
-      en: "Open and close the register with amount reconciliation.",
-    },
-    planos: ["Gratuito", "Pago", "Customizado"],
-  },
-  {
-    k: "app",
-    tipo: "acesso",
-    nome: { pt: "App", en: "App" },
-    sigla: "AP",
-    desc: {
-      pt: "Libera o acesso ao aplicativo mobile: o cliente instala o app, faz login e registra vendas mesmo sem internet, sincronizando depois.",
-      en: "Unlocks access to the mobile app: the customer installs it, signs in and records sales offline, syncing later.",
-    },
-    planos: ["Pago", "Customizado"],
-  },
-];
-
-export const PLANOS: Plano[] = [
-  {
-    k: "Gratuito",
-    nome: { pt: "Gratuito", en: "Free" },
-    tipo: "fixo",
-    preco: "R$ 0",
-    desc: {
-      pt: "Entrada para comércios pequenos: vendas, catálogo de produtos e caixa simples. Sem relatórios nem estoque.",
-      en: "Entry tier for small shops: sales, product catalog and a simple register. No reports or inventory.",
-    },
-    mods: ["vendas", "produtos", "caixa"],
-  },
-  {
-    k: "Pago",
-    nome: { pt: "Pago", en: "Paid" },
-    tipo: "fixo",
-    preco: "R$ 89",
-    desc: {
-      pt: "Todos os módulos liberados, relatórios exportáveis, controle de custos e estoque com alerta mínimo.",
-      en: "All modules unlocked, exportable reports, cost control and inventory with low-stock alerts.",
-    },
-    mods: ["vendas", "produtos", "custos", "relatorios", "estoque", "caixa", "app"],
-  },
-  {
-    k: "Customizado",
-    nome: { pt: "Customizado", en: "Custom" },
-    tipo: "custom",
-    preco: null,
-    desc: {
-      pt: "Para redes e operações maiores: todos os módulos, suporte prioritário e mensalidade negociada caso a caso na ficha do cliente.",
-      en: "For chains and larger operations: all modules, priority support and a monthly fee negotiated per customer in their record.",
-    },
-    mods: ["vendas", "produtos", "custos", "relatorios", "estoque", "caixa", "app"],
-  },
-];
 
 export const CONFIGS: ConfigItem[] = [
   {
@@ -219,133 +112,10 @@ export const CONFIGS: ConfigItem[] = [
   },
 ];
 
-export const CLIENTES: Cliente[] = [
-  {
-    id: 1,
-    nome: "Acarajé da Bahia",
-    segmento: { pt: "Alimentação · Ambulante", en: "Food · Street vendor" },
-    plano: "Pago",
-    status: "ativo",
-    data: "12/03/2026",
-    cidade: "Salvador, BA",
-    resp: "Neide Souza",
-    valor: "R$ 89,00",
-    mods: ["vendas", "produtos", "caixa", "custos", "app"],
-  },
-  {
-    id: 2,
-    nome: "Petshop Amigo Fiel",
-    segmento: { pt: "Petshop", en: "Pet shop" },
-    plano: "Customizado",
-    status: "ativo",
-    data: "04/02/2026",
-    cidade: "Recife, PE",
-    resp: "Marcos Vieira",
-    valor: "R$ 149,00",
-    mods: ["vendas", "produtos", "estoque", "relatorios", "caixa", "app"],
-  },
-  {
-    id: 3,
-    nome: "Mercadinho São Jorge",
-    segmento: { pt: "Mercearia", en: "Grocery" },
-    plano: "Gratuito",
-    status: "ativo",
-    data: "21/05/2026",
-    cidade: "Feira de Santana, BA",
-    resp: "Jorge Lima",
-    valor: "—",
-    mods: ["vendas", "produtos"],
-  },
-  {
-    id: 4,
-    nome: "Salão Beleza Rara",
-    segmento: { pt: "Beleza e estética", en: "Beauty salon" },
-    plano: "Pago",
-    status: "ativo",
-    data: "18/01/2026",
-    cidade: "Aracaju, SE",
-    resp: "Cláudia Menezes",
-    valor: "R$ 89,00",
-    mods: ["vendas", "caixa", "relatorios"],
-  },
-  {
-    id: 5,
-    nome: "Bike Service Recife",
-    segmento: { pt: "Oficina", en: "Bike workshop" },
-    plano: "Gratuito",
-    status: "inativo",
-    data: "09/11/2025",
-    cidade: "Recife, PE",
-    resp: "Tiago Alencar",
-    valor: "—",
-    mods: ["vendas"],
-  },
-  {
-    id: 6,
-    nome: "Doceria Dona Zilda",
-    segmento: { pt: "Confeitaria", en: "Bakery" },
-    plano: "Pago",
-    status: "ativo",
-    data: "02/07/2026",
-    cidade: "Maceió, AL",
-    resp: "Zilda Ferreira",
-    valor: "R$ 89,00",
-    mods: ["vendas", "produtos", "custos", "caixa"],
-  },
-  {
-    id: 7,
-    nome: "Barbearia Nova Era",
-    segmento: { pt: "Barbearia", en: "Barber shop" },
-    plano: "Gratuito",
-    status: "ativo",
-    data: "27/06/2026",
-    cidade: "Salvador, BA",
-    resp: "Ed Carvalho",
-    valor: "—",
-    mods: ["vendas", "caixa"],
-  },
-  {
-    id: 8,
-    nome: "Hortifruti Vale Verde",
-    segmento: { pt: "Hortifrúti", en: "Greengrocer" },
-    plano: "Gratuito",
-    status: "inativo",
-    data: "30/04/2026",
-    cidade: "Lauro de Freitas, BA",
-    resp: "Ana Paula Reis",
-    valor: "—",
-    mods: ["vendas", "estoque"],
-  },
-  {
-    id: 9,
-    nome: "Lava-Jato Cristal",
-    segmento: { pt: "Serviços automotivos", en: "Car wash" },
-    plano: "Customizado",
-    status: "ativo",
-    data: "15/06/2026",
-    cidade: "Camaçari, BA",
-    resp: "Ivan Nogueira",
-    valor: "R$ 149,00",
-    mods: ["vendas", "caixa", "custos", "relatorios"],
-  },
-  {
-    id: 10,
-    nome: "Costura & Cia",
-    segmento: { pt: "Ateliê", en: "Tailoring" },
-    plano: "Gratuito",
-    status: "ativo",
-    data: "08/07/2026",
-    cidade: "Ilhéus, BA",
-    resp: "Rita Barros",
-    valor: "—",
-    mods: ["vendas", "produtos"],
-  },
-];
-
 export const CHAMADOS: Chamado[] = [
   {
     id: "t1",
-    clienteId: 1,
+    clienteId: "1",
     assunto: {
       pt: "Não consigo fechar o caixa do dia",
       en: "Cannot close the daily cash register",
@@ -382,7 +152,7 @@ export const CHAMADOS: Chamado[] = [
   },
   {
     id: "t2",
-    clienteId: 2,
+    clienteId: "2",
     assunto: {
       pt: "Relatório mensal com produto duplicado",
       en: "Monthly report shows a duplicated product",
@@ -411,7 +181,7 @@ export const CHAMADOS: Chamado[] = [
   },
   {
     id: "t3",
-    clienteId: 3,
+    clienteId: "3",
     assunto: {
       pt: "Como ativar o módulo Estoque?",
       en: "How do I enable the Inventory module?",
@@ -432,7 +202,7 @@ export const CHAMADOS: Chamado[] = [
   },
   {
     id: "t4",
-    clienteId: 4,
+    clienteId: "4",
     assunto: {
       pt: "Erro ao cadastrar preço com desconto",
       en: "Error when saving a discounted price",
@@ -461,7 +231,7 @@ export const CHAMADOS: Chamado[] = [
   },
   {
     id: "t5",
-    clienteId: 6,
+    clienteId: "6",
     assunto: { pt: "Pedido de nota fiscal do plano", en: "Invoice request for the plan" },
     status: "resolvido",
     prioridade: "baixa",
@@ -487,7 +257,7 @@ export const CHAMADOS: Chamado[] = [
   },
   {
     id: "t6",
-    clienteId: 9,
+    clienteId: "9",
     assunto: {
       pt: "Adicionar segundo usuário na conta",
       en: "Add a second user to the account",

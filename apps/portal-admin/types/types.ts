@@ -31,16 +31,28 @@ export interface Plano {
   mods: string[];
 }
 
+/**
+ * Um cliente (tenant) da plataforma, já traduzido da linha do banco para o
+ * vocabulário da interface. Ver `lib/clientes.ts` para o mapeamento.
+ *
+ * `id` é o UUID do tenant — não um número. `segmento` guarda o mesmo texto nos
+ * dois idiomas porque o banco tem uma coluna só; a forma `Loc` fica para o dia
+ * em que houver tradução de verdade.
+ */
 export interface Cliente {
-  id: number;
+  id: string;
   nome: string;
   segmento: Loc;
+  /** Chave do plano no banco: "free" | "paid" | "custom". */
   plano: string;
   status: StatusCliente;
+  /** Data de cadastro em dd/mm/aaaa, formatada no servidor. */
   data: string;
-  cidade: string;
+  /** Nome do dono do comércio, vindo de `profiles.full_name`. */
   resp: string;
+  /** Mensalidade formatada ("R$ 89,00"), ou "—" quando não há cobrança. */
   valor: string;
+  /** Chaves dos módulos ativos, as mesmas da tabela `modules`. */
   mods: string[];
 }
 
@@ -53,7 +65,8 @@ export interface Mensagem {
 
 export interface Chamado {
   id: string;
-  clienteId: number;
+  /** Id do cliente. Os chamados ainda são dados de exemplo (não há tabela). */
+  clienteId: string;
   assunto: Loc;
   status: StatusChamado;
   prioridade: Prioridade;
@@ -83,7 +96,7 @@ export interface ReceitaMes {
 
 /** Pending edits on a customer record, applied only on "Salvar alterações". */
 export interface Rascunho {
-  id: number;
+  id: string;
   plano: string;
   mods: string[];
   valor: string;
@@ -106,7 +119,7 @@ export type ModalTipo =
 
 export interface ModalEstado {
   tipo: ModalTipo;
-  alvo?: number | null;
+  alvo?: string | null;
   /** Where to go once a "discard changes" prompt is confirmed — an href. */
   destino?: string | null;
   mod?: string | null;
@@ -152,12 +165,12 @@ export interface AdminOpcoes {
  * filters, drafts, theme, language and the records being edited.
  */
 export interface AdminState {
-  /** Modal de cadastro de cliente aberto. */
-  novoClienteAberto: boolean;
+  /** Formulário de novo cliente com algo preenchido — usado pelo guard de saída. */
+  novoClienteSujo: boolean;
   busca: string;
   plano: string;
   status: string;
-  menuLinha: number | null;
+  menuLinha: string | null;
   tema: Tema;
   idioma: Idioma;
   colapsada: boolean;
@@ -172,7 +185,7 @@ export interface AdminState {
   cfgRascunho: string | number | string[] | null;
   filtroPag: string;
   buscaPag: string;
-  menuPag: number | null;
+  menuPag: string | null;
   larguraTela: number;
   toasts: ToastEstado[];
   authView: AuthView;
@@ -180,7 +193,7 @@ export interface AdminState {
   senha2: string;
   emailRec: string;
   receita: ReceitaMes[];
-  pagamentos: Record<number, Pagamento>;
+  pagamentos: Record<string, Pagamento>;
   modulos: Modulo[];
   planos: Plano[];
   config: ConfigItem[];
@@ -192,6 +205,8 @@ export interface AdminState {
   loginSenha: string;
   ultimaAcao: string | null;
   clientes: Cliente[];
+  /** Falha ao ler os clientes no Supabase, para a lista poder explicar o vazio. */
+  erroClientes: string | null;
   chamados: Chamado[];
 }
 
@@ -204,7 +219,7 @@ export interface AdminActions {
   toast: (msg: string, tipo?: ToastEstado["tipo"]) => void;
   abrirModal: (
     tipo: ModalTipo,
-    alvo?: number | null,
+    alvo?: string | null,
     destino?: string | null,
     mod?: string | null,
   ) => void;
@@ -212,9 +227,9 @@ export interface AdminActions {
   confirmarModal: () => void;
   /** Navigate, prompting first when a customer record has unsaved edits. */
   ir: (href: string) => void;
-  abrirCliente: (id: number) => void;
+  abrirCliente: (id: string) => void;
   /** Makes sure a draft exists for the customer the detail route is showing. */
-  garantirRascunho: (id: number) => void;
+  garantirRascunho: (id: string) => void;
   editarRascunho: (fn: (r: Rascunho) => Rascunho) => void;
   descartarRascunho: () => void;
   salvarRascunho: () => void;

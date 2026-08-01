@@ -27,6 +27,7 @@ export interface ModuloCatalogo {
   nome: string;
   /** Duas letras mostradas no ícone. */
   sigla: string;
+  descricao: string;
   /**
    * Módulo de ACESSO: libera um canal (o app mobile), não uma seção do
    * sistema. Entra num plano como qualquer outro, mas é rotulado à parte.
@@ -35,14 +36,56 @@ export interface ModuloCatalogo {
 }
 
 export const CATALOGO_MODULOS: ModuloCatalogo[] = [
-  { chave: "sales", nome: "Vendas", sigla: "VD" },
-  { chave: "products", nome: "Produtos", sigla: "PR" },
-  { chave: "stock", nome: "Estoque", sigla: "ES" },
-  { chave: "cash", nome: "Caixa", sigla: "CX" },
-  { chave: "costs", nome: "Custos", sigla: "CT" },
-  { chave: "reports", nome: "Relatórios", sigla: "RL" },
-  { chave: "support", nome: "Suporte", sigla: "SP" },
-  { chave: "app", nome: "App mobile", sigla: "AP", acesso: true },
+  {
+    chave: "sales",
+    nome: "Vendas",
+    sigla: "VD",
+    descricao: "Registro de vendas no balcão e por delivery, com histórico diário.",
+  },
+  {
+    chave: "products",
+    nome: "Produtos",
+    sigla: "PR",
+    descricao: "Catálogo com preços, variações e categorias do comércio.",
+  },
+  {
+    chave: "stock",
+    nome: "Estoque",
+    sigla: "ES",
+    descricao: "Controle de entradas, saídas e alerta de estoque mínimo.",
+  },
+  {
+    chave: "cash",
+    nome: "Caixa",
+    sigla: "CX",
+    descricao: "Abertura e fechamento de caixa com conferência de valores.",
+  },
+  {
+    chave: "costs",
+    nome: "Custos",
+    sigla: "CT",
+    descricao: "Lançamento de despesas fixas e variáveis, com margem por produto.",
+  },
+  {
+    chave: "reports",
+    nome: "Relatórios",
+    sigla: "RL",
+    descricao: "Fechamento por período, ranking de produtos e exportação em PDF.",
+  },
+  {
+    chave: "support",
+    nome: "Suporte",
+    sigla: "SP",
+    descricao: "Canal de chamados do cliente direto com a equipe Aguiar One.",
+  },
+  {
+    chave: "app",
+    nome: "App mobile",
+    sigla: "AP",
+    acesso: true,
+    descricao:
+      "Libera o acesso ao aplicativo mobile: o cliente instala o app, faz login e registra vendas mesmo sem internet, sincronizando depois.",
+  },
 ];
 
 export const TOTAL_MODULOS = CATALOGO_MODULOS.length;

@@ -1,16 +1,9 @@
-import {
-  CHAMADOS,
-  CLIENTES,
-  CONFIGS,
-  MODULOS,
-  PAGAMENTOS,
-  PLANOS,
-  RECEITA,
-} from "@/lib/mock/data";
+import { MODULOS_CATALOGO, PLANOS_CATALOGO } from "@/lib/catalogo";
+import { CHAMADOS, CONFIGS, PAGAMENTOS, RECEITA } from "@/lib/mock/data";
 import type { AdminState, Chamado, Cliente } from "@/types/types";
 
 export const ESTADO_INICIAL: AdminState = {
-  novoClienteAberto: false,
+  novoClienteSujo: false,
   busca: "",
   plano: "todos",
   status: "todos",
@@ -40,17 +33,20 @@ export const ESTADO_INICIAL: AdminState = {
   emailRec: "",
   receita: RECEITA,
   pagamentos: PAGAMENTOS,
-  modulos: MODULOS,
-  planos: PLANOS,
+  modulos: MODULOS_CATALOGO,
+  planos: PLANOS_CATALOGO,
   config: CONFIGS,
   chamadoSel: "t1",
   filtroChamado: "todos",
   buscaChamado: "",
   resposta: "",
-  loginEmail: "rafael@aguiarone.com.br",
-  loginSenha: "••••••••",
+  loginEmail: "",
+  loginSenha: "",
   ultimaAcao: null,
-  clientes: CLIENTES,
+  // Os clientes vêm do Supabase pelo layout (server component) e entram aqui
+  // via `clientesIniciais` no <AdminProvider>. Nunca há semente local.
+  clientes: [],
+  erroClientes: null,
   chamados: CHAMADOS,
 };
 
@@ -68,7 +64,7 @@ export function estaSujo(s: AdminState): boolean {
   );
 }
 
-export function clientePorId(s: AdminState, id: number): Cliente | undefined {
+export function clientePorId(s: AdminState, id: string): Cliente | undefined {
   return s.clientes.find((c) => c.id === id);
 }
 

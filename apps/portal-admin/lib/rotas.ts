@@ -5,6 +5,7 @@
 export const ROTAS = {
   visao: "/",
   clientes: "/clientes",
+  novoCliente: "/clientes/novo",
   financeiro: "/financeiro",
   suporte: "/suporte",
   planos: "/planos",
@@ -13,14 +14,20 @@ export const ROTAS = {
   login: "/login",
 } as const;
 
-export function clienteHref(id: number): string {
+export function clienteHref(id: string): string {
   return `${ROTAS.clientes}/${id}`;
 }
 
-/** Customer id when the path is a customer record, otherwise null. */
-export function clienteIdDaRota(pathname: string): number | null {
-  const m = /^\/clientes\/(\d+)\/?$/.exec(pathname);
-  return m ? Number(m[1]) : null;
+/**
+ * Customer id when the path is a customer record, otherwise null.
+ *
+ * O id é o UUID do tenant. O segmento "novo" é a rota de cadastro, não um id,
+ * então fica de fora.
+ */
+export function clienteIdDaRota(pathname: string): string | null {
+  const m = /^\/clientes\/([^/]+)\/?$/.exec(pathname);
+  if (!m || m[1] === "novo") return null;
+  return decodeURIComponent(m[1]);
 }
 
 /**

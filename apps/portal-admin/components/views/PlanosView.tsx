@@ -35,13 +35,13 @@ export function PlanosView() {
           const n = cs.filter((x) => x.plano === p.k).length;
           const fixo = p.tipo === "fixo";
           const cor =
-            p.k === "Gratuito"
+            p.k === "free"
               ? "var(--line)"
-              : p.k === "Pago"
+              : p.k === "paid"
                 ? "var(--okLine)"
                 : "var(--accLine)";
           const tag =
-            p.k === "Pago" ? badgeOk() : p.k === "Gratuito" ? badgeNeutro() : badgeAcc();
+            p.k === "paid" ? badgeOk() : p.k === "free" ? badgeNeutro() : badgeAcc();
 
           return (
             <section

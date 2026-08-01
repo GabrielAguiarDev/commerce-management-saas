@@ -2,6 +2,7 @@
 
 import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
+import { AreaTexto } from "@/components/campos";
 import { CampoBusca } from "@/components/shared";
 import { chamadoAtual } from "@/lib/state";
 import { badgeChamado, chip, prioridadeBadge } from "@/lib/styleKit";
@@ -290,16 +291,12 @@ export function SuporteView() {
               "align-items:flex-end;background:var(--panel)",
           )}
         >
-          <textarea
+          <AreaTexto
             value={s.resposta}
             onChange={(e) => a.set({ resposta: e.target.value })}
             placeholder={L.escrevaResposta}
             aria-label={L.escrevaResposta}
-            style={css(
-              "flex:1;resize:none;min-height:64px;border:1px solid var(--line);" +
-                "background:var(--field);color:var(--tx);border-radius:10px;padding:11px 13px;" +
-                "font-size:13px;line-height:1.5;outline:none",
-            )}
+            estilo="flex:1;resize:none;min-height:64px;line-height:1.5"
           />
           <button
             onClick={enviarResposta}

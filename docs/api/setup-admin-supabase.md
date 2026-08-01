@@ -1,16 +1,15 @@
-# Configuração do Portal do Cliente (Next.js) com o Supabase — Aguiar One
 
-Guia para ligar o **portal do cliente** (Next.js, App Router) ao projeto
-Supabase `Commerce Management`. Siga na ordem.
+# Configuração do Admin (Next.js) com o Supabase — Aguiar One
 
-> **Diferença em relação ao admin:** o portal é usado pelo DONO do comércio
-> (e, no futuro, funcionários). Ele **nunca** faz operações privilegiadas —
-> só lê e escreve os dados do próprio tenant, protegido pelo RLS. Por isso o
-> portal **não usa a chave secreta (service_role)**. Ela não entra aqui.
+Guia para ligar o painel **admin** (Next.js, App Router) ao projeto Supabase
+`Commerce Management` que você já criou. Siga na ordem. Cada passo tem um
+"por quê" curto para você entender, não só copiar.
 
-> **Contexto de segurança:** a chave **anon/publishable** é pública e pode ir
-> no navegador — quem protege os dados é o RLS. O portal usa **só** essa chave
-> pública. A `service_role` fica exclusivamente no projeto do admin.
+> **Contexto de segurança (leia antes):** o Supabase te dá duas chaves.
+> A **anon/publishable** é pública e pode ir no navegador — quem protege os
+> dados é o RLS que você já configurou. A **service_role** é secreta, fura o
+> RLS e **só pode viver no servidor** (nunca exposta ao navegador). Este guia
+> mantém as duas no lugar certo.
 
 ---
 
@@ -19,19 +18,21 @@ Supabase `Commerce Management`. Siga na ordem.
 No painel do Supabase, com o projeto `Commerce Management` aberto:
 
 1. Vá em **Settings → API** (ou **Project Settings → API Keys**).
-2. Anote **dois** valores (o portal não precisa da service_role):
+2. Anote três valores:
    - **Project URL** — algo como `https://xxxxxxxx.supabase.co`
    - **anon / publishable key** — chave pública (começa com `eyJ...`)
+   - **service_role key** — chave secreta (também `eyJ...`). **Trate como
+     senha.** Nunca cole em código versionado nem no lado do cliente.
 
 > O painel pode chamar a chave pública de `anon` (legado) ou `publishable`
-> (nova). As duas funcionam com a mesma variável de ambiente. Use a que
-> aparecer.
+> (nova). As duas funcionam com a mesma variável de ambiente durante a
+> transição. Use a que aparecer.
 
 ---
 
 ## 2. Instalar os pacotes
 
-No terminal, na raiz do projeto do portal:
+No terminal, na raiz do projeto admin:
 
 ```bash
 npm install @supabase/supabase-js @supabase/ssr
@@ -39,25 +40,26 @@ npm install @supabase/supabase-js @supabase/ssr
 
 - `@supabase/supabase-js` — o SDK principal (fala com o banco e o Auth).
 - `@supabase/ssr` — o helper que faz o Auth funcionar com cookies no
-  App Router (server components, middleware).
+  App Router (server components, middleware). É o pacote atual e recomendado.
 
 ---
 
 ## 3. Variáveis de ambiente
 
-Crie um arquivo **`.env.local`** na raiz do projeto. **Só duas linhas** — sem
-a chave secreta:
+Crie um arquivo **`.env.local`** na raiz do projeto:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-aqui
+SUPABASE_SERVICE_ROLE_KEY=sua-chave-service-role-aqui
 ```
 
-- Ambas têm o prefixo **`NEXT_PUBLIC_`** — o Next.js as expõe ao navegador.
-  É intencional e seguro (são públicas; o RLS protege os dados).
-- **Não** adicione a `SUPABASE_SERVICE_ROLE_KEY` aqui. O portal não faz nada
-  que precise dela, e mantê-la fora deste projeto elimina qualquer risco de
-  vazar a chave secreta por aqui.
+Repare na diferença **crucial**:
+
+- As duas primeiras têm o prefixo **`NEXT_PUBLIC_`** — isso significa que o
+  Next.js as expõe ao navegador. É intencional e seguro (são públicas).
+- A terceira **NÃO** tem o prefixo — ela fica só no servidor. Se você colocar
+  `NEXT_PUBLIC_` nela por engano, vaza a chave secreta. **Não faça isso.**
 
 > **Garanta que `.env.local` está no `.gitignore`** (o Next.js já coloca por
 > padrão, mas confira). Ele nunca deve ir para o Git.
@@ -66,8 +68,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon-aqui
 
 ## 4. Criar os clientes Supabase
 
-O portal precisa de **dois** clientes (o admin precisava de três — aqui não há
-o cliente de service_role). Crie a pasta `lib/supabase/` e os arquivos abaixo.
+O App Router precisa de **três** clientes diferentes, porque o código roda em
+lugares diferentes (navegador, servidor, middleware). Crie a pasta
+`lib/supabase/` (ou `utils/supabase/`) e os arquivos abaixo.
 
 ### 4a. Cliente do navegador — `lib/supabase/client.ts`
 
@@ -120,9 +123,31 @@ export async function createClient() {
 }
 ```
 
-> **Não existe `admin.ts` no portal.** Se você se pegar precisando da
-> service_role no portal, pare e repense — provavelmente essa operação
-> pertence ao admin ou a uma Edge Function, não ao portal do cliente.
+### 4c. Cliente admin (service_role) — `lib/supabase/admin.ts`
+
+**Só para operações privilegiadas do admin** (criar cliente, convidar usuário,
+ver dados de todos os tenants). Este usa a chave secreta e **fura o RLS**, então
+só pode ser importado em código de servidor (Server Actions, Route Handlers) —
+**nunca** em Client Components.
+
+```typescript
+import { createClient } from '@supabase/supabase-js'
+
+// ATENÇÃO: este cliente ignora o RLS. Use apenas no servidor,
+// em operações administrativas conscientes.
+export function createAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+    }
+  )
+}
+```
+
+> Regra de ouro: se um arquivo importa `admin.ts`, ele **não** pode ter
+> `'use client'` no topo. A chave secreta nunca vai para o navegador.
 
 ---
 
@@ -175,12 +200,15 @@ export const config = {
 }
 ```
 
+Sem esse middleware, o usuário é "deslogado" sozinho quando o token expira.
+Com ele, a sessão se renova de forma transparente.
+
 ---
 
 ## 6. Teste de conexão
 
 Antes de construir telas, prove que a conexão funciona. Crie uma página
-temporária `app/teste/page.tsx`:
+temporária de teste — por exemplo `app/teste/page.tsx`:
 
 ```typescript
 import { createClient } from '@/lib/supabase/server'
@@ -188,6 +216,9 @@ import { createClient } from '@/lib/supabase/server'
 export default async function TestePage() {
   const supabase = await createClient()
 
+  // Lê o catálogo de módulos (é público para autenticados; sem login
+  // ainda, pode vir vazio por causa do RLS — o importante é NÃO dar erro
+  // de conexão).
   const { data, error } = await supabase.from('modules').select('*')
 
   return (
@@ -201,150 +232,66 @@ export default async function TestePage() {
 }
 ```
 
-Rode `npm run dev`, acesse `/teste`. Se aparecer "Conexão OK", está ligado.
-Se der erro de credencial, revise o `.env.local` e reinicie o `npm run dev`
-(variáveis de ambiente só recarregam ao reiniciar). Depois, **apague a página
-de teste**.
+Rode `npm run dev` e acesse `/teste`. O que esperar:
+
+- **"Conexão OK"** com a lista de módulos → tudo certo (a tabela `modules`
+  é legível por qualquer autenticado; dependendo da config pode aparecer sem
+  login).
+- **Erro de credencial/URL** → revise o `.env.local` e reinicie o
+  `npm run dev` (variáveis de ambiente só recarregam ao reiniciar).
+
+Depois de confirmar, **apague a página de teste**.
 
 ---
 
-## 7. Login do portal (o dono do comércio)
+## 7. Ordem recomendada dos próximos passos
 
-O portal tem login próprio. Diferença em relação ao admin:
+Com a conexão de pé, construa nesta sequência:
 
-- No **admin**, verifica-se `is_platform_admin = true` (é você, o dono da
-  plataforma).
-- No **portal**, o usuário deve ter um **`tenant_id`** (pertence a um negócio)
-  e **NÃO** ser admin de plataforma.
-
-Exemplo de login (Client Component):
-
-```typescript
-'use client'
-import { createClient } from '@/lib/supabase/client'
-
-async function entrar(email: string, senha: string) {
-  const supabase = createClient()
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password: senha,
-  })
-  if (error) {
-    // mostrar "e-mail ou senha inválidos"
-    return
-  }
-  // logado — redirecionar para o dashboard do portal
-}
-```
-
-Depois do login, ao proteger as rotas do portal, verifique o perfil:
-
-```typescript
-// Server Component / Server Action — checa se o usuário pode usar o portal.
-import { createClient } from '@/lib/supabase/server'
-
-const supabase = await createClient()
-const { data: { user } } = await supabase.auth.getUser()
-
-if (!user) {
-  // não logado → manda para o login
-}
-
-const { data: perfil } = await supabase
-  .from('profiles')
-  .select('tenant_id, is_platform_admin')
-  .eq('id', user!.id)
-  .single()
-
-// Regras do portal:
-// - precisa ter tenant_id (pertence a um negócio)
-// - não pode ser admin de plataforma (esse usa o painel admin, não o portal)
-if (!perfil?.tenant_id || perfil.is_platform_admin) {
-  // barrar acesso ao portal
-}
-```
-
-> Quando o sistema de funcionários/papéis existir (pós-v1), aqui também se
-> checa o papel do usuário para restringir o que ele acessa. Por enquanto,
-> basta: logado + tem tenant + não é admin de plataforma.
+1. **Login do admin** — tela de login usando o cliente do navegador
+   (`supabase.auth.signInWithPassword`). O admin é você; crie seu usuário
+   admin manualmente (ver passo 8).
+2. **Proteção de rotas** — usar o middleware/server client para barrar acesso
+   ao painel sem login, e verificar que o usuário é `is_platform_admin`.
+3. **Lista de clientes (tenants)** — primeira tela com dado real, lendo a
+   tabela `tenants`.
+4. **Criar cliente + convidar usuário** — aqui entra o cliente admin
+   (service_role) numa **Server Action** ou **Route Handler**, porque criar
+   usuário no Auth é operação privilegiada.
 
 ---
 
-## 8. Menu dinâmico — módulos ativos do cliente
+## 8. Criar seu usuário admin (uma vez)
 
-Esta é a parte específica do portal: o menu se monta conforme os módulos que
-o cliente tem ativos. Use a view `v_active_modules` e a função `has_module`
-que já existem no banco. O RLS já filtra pelo tenant do usuário logado — você
-**não** passa tenant_id.
+Você é o admin da plataforma. Para o login funcionar, crie seu usuário e
+marque-o como admin:
 
-### 8a. Buscar todos os módulos ativos (montar o menu)
+1. No Supabase, vá em **Authentication → Users → Add user**, e crie com seu
+   e-mail e senha.
+2. Copie o **UID** do usuário criado.
+3. No **SQL Editor**, rode (troque o UID e o e-mail):
 
-```typescript
-import { createClient } from '@/lib/supabase/server'
-
-const supabase = await createClient()
-
-const { data: modulos } = await supabase
-  .from('v_active_modules')
-  .select('key, name, is_access')
-
-// 'modulos' traz só os módulos ativos do tenant logado.
-// Monte o menu a partir dessa lista: para cada módulo (exceto os de
-// acesso, is_access = true, como o 'app'), mostre o item correspondente.
-// Ex: se não vier 'stock' na lista, o menu não mostra "Estoque".
+```sql
+-- Cria o perfil do admin da plataforma.
+-- Admin NÃO pertence a um tenant (tenant_id fica nulo).
+insert into public.profiles (id, full_name, is_platform_admin, tenant_id)
+values ('COLE_O_UID_AQUI', 'Seu Nome', true, null);
 ```
 
-Mapeie cada `key` para o item de menu correspondente no seu código:
-`dashboard`, `sales`, `products`, `stock`, `cash`, `costs`, `reports`,
-`support`. Só aparecem os que vierem na lista.
-
-### 8b. Checar um módulo específico (checagem pontual)
-
-Quando precisar decidir sobre um módulo só (mostrar um botão, liberar uma
-seção), chame a função `has_module` via `.rpc()`:
-
-```typescript
-const { data: temEstoque } = await supabase.rpc('has_module', {
-  p_module_key: 'stock',
-})
-// temEstoque === true → o cliente tem o módulo Estoque ativo
-```
-
-### 8c. (Referência) checagem de acesso ao app mobile
-
-O módulo `'app'` é de acesso (`is_access = true`). No aplicativo mobile, a
-tela de bloqueio usa a mesma função:
-
-```typescript
-const { data: temApp } = await supabase.rpc('has_module', {
-  p_module_key: 'app',
-})
-// temApp === false → mostrar a tela "seu plano não inclui o app"
-```
+Pronto — esse usuário agora passa em `is_platform_admin()` e enxerga todos os
+tenants pelas políticas de RLS.
 
 ---
 
-## 9. Ordem recomendada dos próximos passos
-
-1. **Conexão** (passos 1–6) e confirmar o teste.
-2. **Login do portal** (passo 7) — o dono loga e é validado.
-3. **Layout com menu dinâmico** (passo 8) — o menu se monta pelos módulos
-   ativos. A partir daqui o portal já "sabe" o que mostrar por cliente.
-4. **Dashboard** — primeira tela com dado real, usando as views de leitura
-   (`v_daily_sales`, `v_monthly_result`, `v_stock_alerts`).
-5. **Módulos um a um** — Vendas, Produtos, etc., cada um lendo/escrevendo
-   suas tabelas (o RLS já isola tudo por tenant).
-
----
-
-## 10. Checklist de segurança
+## 9. Checklist de segurança (antes de ir para produção)
 
 - [ ] `.env.local` está no `.gitignore` e nunca foi commitado.
-- [ ] O `.env.local` do portal tem **apenas** URL + anon key (SEM service_role).
-- [ ] **Não** existe `admin.ts` neste projeto.
+- [ ] A chave `service_role` **não** tem prefixo `NEXT_PUBLIC_`.
+- [ ] Nenhum arquivo com `'use client'` importa `admin.ts`.
+- [ ] Todas as tabelas com dados têm RLS **habilitado** (você já fez, mas
+      confirme que nenhuma tabela nova ficou sem).
 - [ ] O middleware está ativo (sessão se mantém entre reloads).
-- [ ] O login valida: usuário tem `tenant_id` e não é admin de plataforma.
-- [ ] O menu só mostra módulos que vêm de `v_active_modules`.
+- [ ] Você testou o login e a leitura de dados com um usuário real.
 
 ---
 
@@ -352,7 +299,7 @@ const { data: temApp } = await supabase.rpc('has_module', {
 
 - Server-Side Auth (Next.js): https://supabase.com/docs/guides/auth/server-side/nextjs
 - Criar clientes SSR: https://supabase.com/docs/guides/auth/server-side/creating-a-client
-- Chamar funções do banco (RPC): consulte "Database Functions" na doc do Supabase
+- Tipos de chave de API: consulte "API Keys" na doc do Supabase
 
 > Práticas de integração Supabase + Next.js mudam com alguma frequência. Se
 > algo divergir, a fonte da verdade é a documentação oficial acima.

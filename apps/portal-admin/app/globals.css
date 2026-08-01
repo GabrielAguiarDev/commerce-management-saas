@@ -108,6 +108,85 @@ a:hover {
 }
 
 /* ---------------------------------------------------------------------------
+   Campos de formulário.
+
+   Input, select e textarea compartilham esta classe para ficarem da mesma
+   família — mesma borda, mesmo raio, mesma altura e os mesmos estados. Um
+   select novo em qualquer tela só precisa da classe (ou do componente
+   `Selecao`) para já nascer padronizado.
+--------------------------------------------------------------------------- */
+
+.campo {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--tx);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.3;
+  outline: none;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+
+.campo:hover:not(:disabled) {
+  border-color: var(--accLine);
+}
+
+.campo:focus-visible {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--accSoft);
+}
+
+.campo:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Campo obrigatório em falta — o realce vem do atributo, não de estilo inline. */
+.campo[aria-invalid="true"] {
+  border-color: var(--bad);
+}
+
+/* O select perde a aparência nativa; o chevron é desenhado pelo componente
+   `Selecao`, e este espaço à direita é a folga reservada para ele. */
+select.campo {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+  cursor: pointer;
+}
+
+select.campo:disabled {
+  cursor: not-allowed;
+}
+
+/* Caixa de busca: um input sem borda dentro de um invólucro com o ícone de
+   lupa. O invólucro é que veste a borda, então recebe os mesmos estados —
+   é isso que a deixa da mesma família dos selects ao lado, na lista de
+   clientes. */
+.campo-caixa {
+  border: 1px solid var(--line);
+  background: var(--field);
+  border-radius: 9px;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+
+.campo-caixa:hover {
+  border-color: var(--accLine);
+}
+
+.campo-caixa:focus-within {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--accSoft);
+}
+
+/* ---------------------------------------------------------------------------
    Hover states. Every interactive surface in the console carries its base look
    as an inline style, so these rules need !important to win the cascade — the
    same trick the design runtime uses for its `style-hover` attribute.

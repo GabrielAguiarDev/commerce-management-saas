@@ -53,6 +53,16 @@ export function AdminShell({ children }: { children: ReactNode }) {
     [ROTAS.financeiro]: [L.tituloFinanceiro[0], L.tituloFinanceiro[1]],
   };
 
+  // /clientes/novo tem cabeçalho próprio; o segmento "novo" não é um id.
+  if (pathname === ROTAS.novoCliente) {
+    titulos[pathname] = [
+      s.idioma === "pt" ? "Novo cliente" : "New customer",
+      s.idioma === "pt"
+        ? "Cadastre um novo comércio na plataforma"
+        : "Register a new business on the platform",
+    ];
+  }
+
   // A customer record is titled with the business it belongs to.
   const clienteId = clienteIdDaRota(pathname);
   const cliente = clienteId != null ? clientePorId(s, clienteId) : undefined;

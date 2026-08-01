@@ -3,8 +3,9 @@
 import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
 import { BaixarIcone, ClientesNovoIcone } from "@/lib/icons";
+import { Selecao } from "@/components/campos";
 import { CampoBusca, CelulaNegocio } from "@/components/shared";
-import { NovoClienteModal } from "@/components/NovoClienteModal";
+import { ROTAS } from "@/lib/rotas";
 import { nomePlano, planoBadge, statusBadge } from "@/lib/styleKit";
 
 const GRADE =
@@ -42,10 +43,6 @@ export function ClientesView() {
     a.baixarCsv(linhas, "aguiar-one-clientes.csv");
   };
 
-  const seletor =
-    "border:1px solid var(--line);background:var(--panel);color:var(--tx2);border-radius:9px;" +
-    "padding:9px 11px;font-size:12.5px;cursor:pointer";
-
   return (
     <section
       style={css(
@@ -65,28 +62,27 @@ export function ClientesView() {
           estiloCaixa="flex:1;min-width:220px;max-width:330px;"
         />
 
-        <select
+        <Selecao
           value={s.plano}
           onChange={(e) => a.set({ plano: e.target.value })}
           aria-label={L.plano}
-          style={css(seletor)}
         >
           <option value="todos">{L.todosPlanos}</option>
-          <option value="Pago">{L.pago}</option>
-          <option value="Customizado">{L.customizado}</option>
-          <option value="Gratuito">{L.gratuito}</option>
-        </select>
+          {/* Os valores são as chaves do banco (`tenants.plan`). */}
+          <option value="paid">{L.pago}</option>
+          <option value="custom">{L.customizado}</option>
+          <option value="free">{L.gratuito}</option>
+        </Selecao>
 
-        <select
+        <Selecao
           value={s.status}
           onChange={(e) => a.set({ status: e.target.value })}
           aria-label={L.status}
-          style={css(seletor)}
         >
           <option value="todos">{L.todosStatus}</option>
           <option value="ativo">{L.ativos}</option>
           <option value="inativo">{L.inativos}</option>
-        </select>
+        </Selecao>
 
         <div style={css("margin-left:auto;display:flex;align-items:center;gap:12px")}>
           <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--tx3)`)}>
@@ -106,7 +102,7 @@ export function ClientesView() {
             {L.exportarCsv}
           </button>
           <button
-            onClick={() => a.set({ novoClienteAberto: true })}
+            onClick={() => a.ir(ROTAS.novoCliente)}
             className="hv-bright"
             style={css(
               "display:flex;align-items:center;gap:7px;background:var(--acc);" +
@@ -119,6 +115,18 @@ export function ClientesView() {
           </button>
         </div>
       </div>
+
+      {s.erroClientes && (
+        <div
+          role="alert"
+          style={css(
+            "padding:12px 20px;border-bottom:1px solid var(--lineSoft);background:var(--badBg);" +
+              "color:var(--bad);font-size:12.5px;min-width:812px",
+          )}
+        >
+          {s.erroClientes}
+        </div>
+      )}
 
       <div
         style={css(
@@ -257,7 +265,7 @@ export function ClientesView() {
             {L.vazioClientesTexto}
           </span>
           <button
-            onClick={() => a.set({ novoClienteAberto: true })}
+            onClick={() => a.ir(ROTAS.novoCliente)}
             className="hv-bright"
             style={css(
               "margin-top:4px;display:flex;align-items:center;gap:7px;background:var(--acc);" +
@@ -270,11 +278,6 @@ export function ClientesView() {
           </button>
         </div>
       )}
-
-      <NovoClienteModal
-        aberto={s.novoClienteAberto}
-        fechar={() => a.set({ novoClienteAberto: false })}
-      />
     </section>
   );
 }

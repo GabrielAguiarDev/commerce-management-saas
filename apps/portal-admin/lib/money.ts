@@ -13,9 +13,12 @@ export function fmtDin(v: number): string {
   return "R$ " + Math.round(v).toLocaleString("pt-BR");
 }
 
-/** Customers on a paid plan — the ones that contribute revenue. */
+/**
+ * Customers on a paid plan — the ones that contribute revenue.
+ * `plano` guarda a chave do banco, então o gratuito é "free".
+ */
 export function cobraveis(cs: Cliente[]): Cliente[] {
-  return cs.filter((x) => x.plano !== "Gratuito");
+  return cs.filter((x) => x.plano !== "free");
 }
 
 export function calcMrr(cs: Cliente[]): number {
@@ -36,13 +39,13 @@ const SEM_PAGAMENTO: Pagamento = {
 };
 
 /** Payment record for a customer, defaulting to "never billed". */
-export function infoPag(pagamentos: Record<number, Pagamento>, id: number): Pagamento {
+export function infoPag(pagamentos: Record<string, Pagamento>, id: string): Pagamento {
   return pagamentos[id] ?? SEM_PAGAMENTO;
 }
 
 export function somaPorStatus(
   cs: Cliente[],
-  pagamentos: Record<number, Pagamento>,
+  pagamentos: Record<string, Pagamento>,
   status: StatusPagamento,
 ): number {
   return cobraveis(cs)
@@ -52,7 +55,7 @@ export function somaPorStatus(
 
 export function contaPorStatus(
   cs: Cliente[],
-  pagamentos: Record<number, Pagamento>,
+  pagamentos: Record<string, Pagamento>,
   status: StatusPagamento,
 ): number {
   return cobraveis(cs).filter((x) => infoPag(pagamentos, x.id).status === status).length;

@@ -26,8 +26,8 @@ export const badgeBad = () => badge("var(--badBg)", "var(--bad)", "var(--badLine
 export const badgeNeutro = () => badge("var(--neu)", "var(--neuTx)", "var(--neuLine)");
 
 export function planoBadge(plano: string): string {
-  if (plano === "Pago") return badgeOk();
-  if (plano === "Customizado") return badgeAcc();
+  if (plano === "paid") return badgeOk();
+  if (plano === "custom") return badgeAcc();
   return badgeNeutro();
 }
 
@@ -51,7 +51,7 @@ export function avatar(plano: string): string {
   return (
     "width:34px;height:34px;flex:none;border-radius:9px;display:flex;align-items:center;" +
     "justify-content:center;font-size:11.5px;font-weight:600;" +
-    (plano === "Gratuito"
+    (plano === "free"
       ? "background:var(--neu);color:var(--neuTx);"
       : "background:var(--accSoft);color:var(--acc);")
   );
