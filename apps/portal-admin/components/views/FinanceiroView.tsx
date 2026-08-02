@@ -14,6 +14,7 @@ import {
   somaPorStatus,
 } from "@/lib/money";
 import { planoPorChave } from "@/lib/planos";
+import { ITEM_MENU, MenuAcoes } from "@/components/MenuAcoes";
 import { CampoBusca, MetricasGrid, type Metrica } from "@/components/shared";
 import {
   avatar,
@@ -133,49 +134,30 @@ export function FinanceiroView() {
   const rotuloCampo =
     "font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);font-weight:600";
 
-  const botaoMenu = (clienteId: string) => (
-    <button
-      onClick={() => a.set((st) => ({ menuPag: st.menuPag === clienteId ? null : clienteId }))}
-      aria-label={L.acoes}
-      className="hv-tx"
-      style={css(
-        "border:1px solid var(--line);background:var(--panel);color:var(--tx3);font-size:13px;" +
-          "line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer",
-      )}
-    >
-      ⋯
-    </button>
-  );
-
   const menuPagamento = (clienteId: string, pago: boolean) => (
-    <div
-      style={css(
-        "position:absolute;top:36px;right:0;z-index:9;background:var(--panel);" +
-          "border:1px solid var(--line);border-radius:9px;box-shadow:0 10px 24px rgba(9,26,33,.18);" +
-          "padding:5px;display:flex;flex-direction:column;min-width:184px",
-      )}
+    <MenuAcoes
+      aberto={s.menuPag === clienteId}
+      onAbertoChange={(v) => a.set({ menuPag: v ? clienteId : null })}
+      rotulo={L.acoes}
+      larguraMin={184}
     >
       <button
         onClick={() => a.abrirModal(pago ? "reverter" : "pagar", clienteId)}
+        role="menuitem"
         className="hv-menu"
-        style={css(
-          "text-align:left;background:none;border:none;color:var(--tx2);font-size:12.5px;" +
-            "padding:8px 10px;border-radius:6px;cursor:pointer",
-        )}
+        style={css(ITEM_MENU + "color:var(--tx2)")}
       >
         {pago ? L.reverterPagamento : L.marcarPago}
       </button>
       <button
         onClick={() => a.abrirModal("historico", clienteId)}
+        role="menuitem"
         className="hv-menu"
-        style={css(
-          "text-align:left;background:none;border:none;color:var(--tx2);font-size:12.5px;" +
-            "padding:8px 10px;border-radius:6px;cursor:pointer",
-        )}
+        style={css(ITEM_MENU + "color:var(--tx2)")}
       >
         {L.verHistorico}
       </button>
-    </div>
+    </MenuAcoes>
   );
 
   return (
@@ -323,7 +305,6 @@ export function FinanceiroView() {
           // "Gratuito" é não ter mensalidade — não é a chave do plano.
           const grat = !ehCobravel(x);
           const pago = p.status === "emdia";
-          const menuAberto = s.menuPag === x.id;
 
           const statusTexto = grat
             ? L.semCobranca
@@ -371,9 +352,8 @@ export function FinanceiroView() {
                   {x.nome}
                 </span>
                 {compacto && (
-                  <div style={css("margin-left:auto;position:relative;display:flex")}>
-                    {botaoMenu(x.id)}
-                    {menuAberto && menuPagamento(x.id, pago)}
+                  <div style={css("margin-left:auto;display:flex")}>
+                    {menuPagamento(x.id, pago)}
                   </div>
                 )}
               </div>
@@ -389,10 +369,9 @@ export function FinanceiroView() {
                     {grat ? "—" : p.ultimo}
                   </span>
                   <span style={css(vencEstilo)}>{grat ? "—" : p.vencimento}</span>
-                  <div style={css("display:flex;justify-content:flex-end;position:relative")}>
+                  <div style={css("display:flex;justify-content:flex-end")}>
                     {/* Free customers are never billed, so they have no actions. */}
-                    {!grat && botaoMenu(x.id)}
-                    {menuAberto && menuPagamento(x.id, pago)}
+                    {!grat && menuPagamento(x.id, pago)}
                   </div>
                 </>
               )}

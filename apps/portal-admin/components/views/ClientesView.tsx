@@ -4,7 +4,7 @@ import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
 import { BaixarIcone, ClientesNovoIcone } from "@/lib/icons";
 import { Selecao } from "@/components/campos";
-import { MenuAcoes } from "@/components/MenuAcoes";
+import { ITEM_MENU, MenuAcoes } from "@/components/MenuAcoes";
 import { CampoBusca, CelulaNegocio } from "@/components/shared";
 import { planoPorChave } from "@/lib/planos";
 import { ROTAS } from "@/lib/rotas";
@@ -14,15 +14,10 @@ const GRADE =
   "display:grid;grid-template-columns:minmax(200px,2fr) minmax(130px,1.05fr) 92px 92px 100px 168px;" +
   "gap:12px;min-width:812px;";
 
-const ITEM_MENU =
-  "text-align:left;background:none;border:none;font-size:12.5px;" +
-  "padding:8px 10px;border-radius:6px;cursor:pointer;";
-
 export function ClientesView() {
   const { s, a, cs, vazio, opts } = useAdmin();
   const { L } = a;
   const id = s.idioma;
-  const fecharMenu = () => a.set({ menuLinha: null });
 
   const q = s.busca.trim().toLowerCase();
   const filtrados = cs.filter(
@@ -196,8 +191,7 @@ export function ClientesView() {
 
             <MenuAcoes
               aberto={s.menuLinha === c.id}
-              onAlternar={() => a.set((st) => ({ menuLinha: st.menuLinha === c.id ? null : c.id }))}
-              onFechar={fecharMenu}
+              onAbertoChange={(v) => a.set({ menuLinha: v ? c.id : null })}
               rotulo={L.acoes}
             >
               <button

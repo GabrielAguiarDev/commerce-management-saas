@@ -46,6 +46,13 @@ function formatarData(iso: string | null): string {
   return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`;
 }
 
+/** mm/aaaa a partir do `reference_month` (aaaa-mm-dd). */
+function formatarMes(iso: string | null): string {
+  if (!iso) return "—";
+  const [ano, mes] = iso.split("-");
+  return ano && mes ? `${mes}/${ano}` : "—";
+}
+
 function formatarValor(v: number): string {
   return "R$ " + v.toFixed(2).replace(".", ",");
 }
@@ -107,6 +114,11 @@ export async function listarFinanceiro(): Promise<ResultadoFinanceiro> {
 
   for (const linha of linhas) {
     const valor = formatarValor(paraNumero(linha.amount));
+    const parcela = {
+      pago: formatarData(linha.paid_at),
+      mes: formatarMes(linha.reference_month),
+      valor,
+    };
     const atual = pagamentos[linha.tenant_id];
 
     if (!atual) {
@@ -114,7 +126,7 @@ export async function listarFinanceiro(): Promise<ResultadoFinanceiro> {
         status: paraStatus(linha, hoje),
         ultimo: linha.paid_at ? formatarData(linha.paid_at) : "—",
         vencimento: formatarData(linha.due_date),
-        hist: linha.paid_at ? [[formatarData(linha.paid_at), valor]] : [],
+        hist: linha.paid_at ? [parcela] : [],
       };
       continue;
     }
@@ -122,7 +134,7 @@ export async function listarFinanceiro(): Promise<ResultadoFinanceiro> {
     // Histórico é só do que foi efetivamente pago — uma cobrança em aberto não
     // é um pagamento e não pode entrar na lista de recibos.
     if (linha.paid_at) {
-      atual.hist.push([formatarData(linha.paid_at), valor]);
+      atual.hist.push(parcela);
       // O "último pagamento" pode estar numa linha anterior, se o mês corrente
       // ainda estiver em aberto.
       if (atual.ultimo === "—") atual.ultimo = formatarData(linha.paid_at);

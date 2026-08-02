@@ -85,11 +85,21 @@ export interface Chamado {
   msgs: Mensagem[];
 }
 
+/** Uma parcela efetivamente paga, como aparece no histórico do cliente. */
+export interface PagamentoHist {
+  /** Data do pagamento em dd/mm/aaaa. */
+  pago: string;
+  /** Mês de competência da cobrança em mm/aaaa. */
+  mes: string;
+  /** Valor pago formatado ("R$ 89,00"). */
+  valor: string;
+}
+
 export interface Pagamento {
   status: StatusPagamento;
   ultimo: string;
   vencimento: string;
-  hist: [string, string][];
+  hist: PagamentoHist[];
 }
 
 export interface ConfigItem {
