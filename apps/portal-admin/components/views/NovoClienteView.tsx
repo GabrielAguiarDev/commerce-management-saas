@@ -9,12 +9,10 @@ import { GradeModulos, ModuloCard } from "@/components/ModuloCard";
 import { Campo, Selecao } from "@/components/campos";
 import { css, MONO } from "@/lib/css";
 import {
-  CATALOGO_MODULOS,
   ehPlanoFixo,
   modulosDoPlano,
   ROTULO_PLANO,
   SUGESTAO_CUSTOM,
-  TOTAL_MODULOS,
   type Plano,
 } from "@/lib/planos";
 import { clienteHref, ROTAS } from "@/lib/rotas";
@@ -334,7 +332,7 @@ export function NovoClienteView() {
                   `font-family:${MONO};font-size:20px;font-weight:600;color:var(--acc);line-height:1`,
                 )}
               >
-                {ativos.length}/{TOTAL_MODULOS}
+                {ativos.length}/{s.modulos.length}
               </span>
               <span style={css("font-size:11px;color:var(--tx3)")}>{L.modulosAtivos}</span>
             </div>
@@ -344,7 +342,7 @@ export function NovoClienteView() {
               <div style={css("display:flex;gap:6px")}>
                 <button
                   type="button"
-                  onClick={() => setEscolhidos(CATALOGO_MODULOS.map((m) => m.chave))}
+                  onClick={() => setEscolhidos(s.modulos.map((m) => m.k))}
                   className="hv-acc-line"
                   style={css(
                     "border:1px solid var(--line);background:var(--panel);color:var(--tx2);" +
@@ -370,14 +368,15 @@ export function NovoClienteView() {
         </div>
 
         <GradeModulos colunas={opts.colunasModulos}>
-          {CATALOGO_MODULOS.map((m) => {
-            const ligado = ativos.includes(m.chave);
+          {/* Catálogo real, vindo da tabela `modules` pelo provider. */}
+          {s.modulos.map((m) => {
+            const ligado = ativos.includes(m.k);
             return (
               <ModuloCard
-                key={m.chave}
+                key={m.k}
                 sigla={m.sigla}
-                nome={m.nome}
-                descricao={m.descricao}
+                nome={m.nome[id] || m.nome.pt}
+                descricao={m.desc[id] || m.desc.pt}
                 ligado={ligado}
                 // Ainda não há cliente: o texto fala do pacote, não de acesso concedido.
                 estado={
@@ -389,11 +388,11 @@ export function NovoClienteView() {
                       ? "Não incluído"
                       : "Not included"
                 }
-                acesso={m.acesso}
+                acesso={m.tipo === "acesso"}
                 tagAcesso={L.tagAcesso}
                 ajudaAcesso={L.acessoAjuda}
                 bloqueado={planoFixo || enviando}
-                alternar={() => alternarModulo(m.chave)}
+                alternar={() => alternarModulo(m.k)}
               />
             );
           })}

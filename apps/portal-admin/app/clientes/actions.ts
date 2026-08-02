@@ -234,3 +234,185 @@ export async function criarCliente(
     },
   };
 }
+
+// =====================================================================
+// MUTAÇÕES DE UM CLIENTE JÁ EXISTENTE
+//
+// Todas seguem a mesma forma: confirmar no servidor que quem pediu é admin da
+// plataforma, chamar a função do banco que faz o trabalho em transação, e
+// revalidar o layout — que é quem relê `tenants` (ver lib/clientes.ts).
+//
+// POR QUE O CLIENTE DE SESSÃO E NÃO A `service_role`: as funções
+// `admin_update_tenant` e `admin_delete_tenant` conferem `is_platform_admin()`
+// lá dentro, e isso só funciona se `auth.uid()` existir — o que exige a
+// sessão. É uma segunda tranca, independente da checagem daqui.
+// =====================================================================
+
+export type ResultadoCliente = { ok: true } | { ok: false; mensagem: string };
+
+/** Confirma que quem chamou é admin da plataforma. */
+async function exigirAdmin(): Promise<
+  { ok: true; supabase: Awaited<ReturnType<typeof createClient>> } | ResultadoCliente
+> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return { ok: false, mensagem: "Supabase não configurado neste ambiente." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false, mensagem: "Sessão expirada. Entre novamente para continuar." };
+
+  const { data: perfil, error } = await supabase
+    .from("profiles")
+    .select("is_platform_admin")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !perfil?.is_platform_admin) {
+    return { ok: false, mensagem: "Você não tem permissão para alterar clientes." };
+  }
+
+  return { ok: true, supabase };
+}
+
+/** "R$ 149,00" → 149. A interface guarda o valor já formatado. */
+function paraNumero(valor: string): number {
+  const n = Number(
+    String(valor)
+      .replace(/[^\d,.-]/g, "")
+      .replace(/\.(?=\d{3}\b)/g, "")
+      .replace(",", "."),
+  );
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * Salva plano, mensalidade e módulos de um cliente.
+ *
+ * A mensalidade só é aceita do formulário no plano customizado; nos planos de
+ * pacote fechado vale o preço tabelado, pelo mesmo motivo que os módulos são
+ * recalculados por `modulosDoPlano` — uma requisição forjada não compra plano
+ * mais barato nem módulo extra.
+ */
+export async function atualizarCliente(
+  clienteId: string,
+  plano: string,
+  valorFormatado: string,
+  modulosEscolhidos: string[],
+): Promise<ResultadoCliente> {
+  const auth = await exigirAdmin();
+  if (!("supabase" in auth)) return auth;
+
+  if (!ehPlanoValido(plano)) return { ok: false, mensagem: "Plano inválido." };
+
+  const modulos = modulosDoPlano(plano, modulosEscolhidos);
+  if (modulos.length === 0) {
+    return { ok: false, mensagem: "Selecione ao menos um módulo para este cliente." };
+  }
+
+  const mensalidade =
+    plano === "custom" ? paraNumero(valorFormatado) : (MENSALIDADE_PADRAO[plano] ?? 0);
+
+  if (plano === "custom" && mensalidade <= 0) {
+    return { ok: false, mensagem: "Informe a mensalidade do plano customizado." };
+  }
+
+  const { error } = await auth.supabase.rpc("admin_update_tenant", {
+    p_tenant_id: clienteId,
+    p_plan: plano,
+    p_monthly_fee: mensalidade,
+    p_module_keys: modulos,
+  });
+
+  if (error) {
+    console.error("[atualizarCliente] falha:", error.message);
+    return { ok: false, mensagem: `Não foi possível salvar: ${error.message}` };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Desativa ou reativa um cliente. É um `update` de uma coluna só. */
+export async function mudarStatusCliente(
+  clienteId: string,
+  ativo: boolean,
+): Promise<ResultadoCliente> {
+  const auth = await exigirAdmin();
+  if (!("supabase" in auth)) return auth;
+
+  const { error } = await auth.supabase
+    .from("tenants")
+    // `lib/clientes.ts` lê exatamente este par: 'active' é ativo, o resto é inativo.
+    .update({ status: ativo ? "active" : "inactive" })
+    .eq("id", clienteId);
+
+  if (error) {
+    console.error("[mudarStatusCliente] falha:", error.message);
+    return { ok: false, mensagem: `Não foi possível alterar o cliente: ${error.message}` };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Exclui um cliente e tudo que pertence a ele. NÃO TEM VOLTA.
+ *
+ * Dois passos, nesta ordem de propósito:
+ *   1. `admin_delete_tenant` apaga as treze tabelas em transação e devolve os
+ *      usuários do Auth que pertenciam ao cliente;
+ *   2. a `service_role` apaga esses usuários — o Auth vive fora do alcance da
+ *      transação, e é a única parte que exige a chave privilegiada.
+ *
+ * Se o passo 2 falhar, o cliente já sumiu do banco e sobra um usuário órfão no
+ * Auth. Registramos o id no log para remoção manual, como faz `criarCliente`,
+ * em vez de fingir que a exclusão inteira falhou — ela não falhou.
+ */
+export async function excluirCliente(
+  clienteId: string,
+  nomeConfirmado: string,
+): Promise<ResultadoCliente> {
+  const auth = await exigirAdmin();
+  if (!("supabase" in auth)) return auth;
+
+  // A tela já exige digitar o nome; conferir de novo aqui é o que impede uma
+  // chamada direta à Server Action de apagar um cliente sem essa barreira.
+  const { data: cliente, error: erroLeitura } = await auth.supabase
+    .from("tenants")
+    .select("name")
+    .eq("id", clienteId)
+    .single();
+
+  if (erroLeitura || !cliente) return { ok: false, mensagem: "Cliente não encontrado." };
+
+  if ((cliente.name ?? "").trim() !== nomeConfirmado.trim()) {
+    return { ok: false, mensagem: "O nome digitado não confere com o do cliente." };
+  }
+
+  const { data: usuarios, error } = await auth.supabase.rpc("admin_delete_tenant", {
+    p_tenant_id: clienteId,
+  });
+
+  if (error) {
+    console.error("[excluirCliente] falha:", error.message);
+    return { ok: false, mensagem: `Não foi possível excluir: ${error.message}` };
+  }
+
+  const admin = createAdminClient();
+  for (const usuarioId of (usuarios as string[] | null) ?? []) {
+    const { error: erroAuth } = await admin.auth.admin.deleteUser(usuarioId);
+    if (erroAuth) {
+      console.error(
+        `[excluirCliente] usuário órfão no Auth: ${usuarioId}. ` +
+          `Remova manualmente. Causa: ${erroAuth.message}`,
+      );
+    }
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}

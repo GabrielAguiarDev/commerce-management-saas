@@ -1,4 +1,4 @@
-import { MODULOS_CATALOGO, PLANOS_CATALOGO } from "@/lib/catalogo";
+import { PLANOS_CATALOGO } from "@/lib/catalogo";
 import { CONFIGS, PAGAMENTOS, RECEITA } from "@/lib/mock/data";
 import type { AdminState, Chamado, Cliente } from "@/types/types";
 
@@ -36,7 +36,10 @@ export const ESTADO_INICIAL: AdminState = {
   receita: RECEITA,
   pagamentos: PAGAMENTOS,
   config: CONFIGS,
-  modulos: MODULOS_CATALOGO,
+  // O catálogo de módulos vem da tabela `modules` pelo layout, via
+  // `modulosIniciais` no <AdminProvider>. Sem semente local.
+  modulos: [],
+  erroModulos: null,
   planos: PLANOS_CATALOGO,
   filtroChamado: "todos",
   buscaChamado: "",
@@ -47,6 +50,7 @@ export const ESTADO_INICIAL: AdminState = {
   // Clientes e chamados vêm do Supabase pelo layout (server component) e entram
   // aqui via `clientesIniciais` / `chamadosIniciais` no <AdminProvider>. Nunca
   // há semente local — `chamadoSel` também é definido lá, a partir da lista.
+  adminNome: null,
   clientes: [],
   erroClientes: null,
   chamados: [],

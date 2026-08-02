@@ -19,78 +19,25 @@ export const ROTULO_PLANO: Record<Plano, string> = {
 };
 
 // =====================================================================
-// CATÁLOGO DE MÓDULOS
+// APRESENTAÇÃO DOS MÓDULOS
+//
+// O catálogo em si (chave, nome, descrição, se é módulo de acesso) vive na
+// tabela `modules` e é lido por `lib/modulos.ts`. O que sobra aqui é o que o
+// banco não guarda: as duas letras do ícone, que são decisão de interface.
+//
+// As chaves são as mesmas da tabela `modules`.
 // =====================================================================
 
-export interface ModuloCatalogo {
-  chave: string;
-  nome: string;
-  /** Duas letras mostradas no ícone. */
-  sigla: string;
-  descricao: string;
-  /**
-   * Módulo de ACESSO: libera um canal (o app mobile), não uma seção do
-   * sistema. Entra num plano como qualquer outro, mas é rotulado à parte.
-   */
-  acesso?: boolean;
-}
-
-export const CATALOGO_MODULOS: ModuloCatalogo[] = [
-  {
-    chave: "sales",
-    nome: "Vendas",
-    sigla: "VD",
-    descricao: "Registro de vendas no balcão e por delivery, com histórico diário.",
-  },
-  {
-    chave: "products",
-    nome: "Produtos",
-    sigla: "PR",
-    descricao: "Catálogo com preços, variações e categorias do comércio.",
-  },
-  {
-    chave: "stock",
-    nome: "Estoque",
-    sigla: "ES",
-    descricao: "Controle de entradas, saídas e alerta de estoque mínimo.",
-  },
-  {
-    chave: "cash",
-    nome: "Caixa",
-    sigla: "CX",
-    descricao: "Abertura e fechamento de caixa com conferência de valores.",
-  },
-  {
-    chave: "costs",
-    nome: "Custos",
-    sigla: "CT",
-    descricao: "Lançamento de despesas fixas e variáveis, com margem por produto.",
-  },
-  {
-    chave: "reports",
-    nome: "Relatórios",
-    sigla: "RL",
-    descricao: "Fechamento por período, ranking de produtos e exportação em PDF.",
-  },
-  {
-    chave: "support",
-    nome: "Suporte",
-    sigla: "SP",
-    descricao: "Canal de chamados do cliente direto com a equipe Aguiar One.",
-  },
-  {
-    chave: "app",
-    nome: "App mobile",
-    sigla: "AP",
-    acesso: true,
-    descricao:
-      "Libera o acesso ao aplicativo mobile: o cliente instala o app, faz login e registra vendas mesmo sem internet, sincronizando depois.",
-  },
-];
-
-export const TOTAL_MODULOS = CATALOGO_MODULOS.length;
-
-const CHAVES_VALIDAS = new Set(CATALOGO_MODULOS.map((m) => m.chave));
+export const SIGLA_MODULO: Record<string, string> = {
+  sales: "VD",
+  products: "PR",
+  stock: "ES",
+  cash: "CX",
+  costs: "CT",
+  reports: "RL",
+  support: "SP",
+  app: "AP",
+};
 
 // =====================================================================
 // PACOTES POR PLANO
@@ -125,11 +72,17 @@ export function ehPlanoFixo(plano: Plano): plano is "free" | "paid" {
  *
  * Num plano fixo, `escolhidos` é ignorado de propósito: mesmo que alguém
  * forjasse a requisição marcando módulos extras, o pacote do plano prevalece.
+ *
+ * Não filtra mais contra uma lista de chaves em código: o catálogo agora vem
+ * da tabela `modules`, e é o banco que rejeita uma chave inválida — tanto na
+ * `admin_create_tenant` quanto na `admin_update_tenant`, que conferem cada
+ * chave contra `modules` e falham a transação inteira se alguma não existir.
+ * Duplicar a lista aqui só recriaria a divergência que acabamos de eliminar.
  */
 export function modulosDoPlano(plano: Plano, escolhidos: readonly string[] = []): string[] {
   if (ehPlanoFixo(plano)) return [...PACOTES_FIXOS[plano]];
-  // Customizado: só o que foi marcado, filtrado contra o catálogo e sem repetição.
-  return [...new Set(escolhidos.filter((k) => CHAVES_VALIDAS.has(k)))];
+  // Customizado: só o que foi marcado, sem repetição.
+  return [...new Set(escolhidos)];
 }
 
 // =====================================================================

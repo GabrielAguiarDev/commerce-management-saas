@@ -7,9 +7,16 @@ import {
   useContext,
   useEffect,
   useState,
+  useTransition,
   type ReactNode,
   type SyntheticEvent,
 } from "react";
+import {
+  atualizarCliente,
+  excluirCliente,
+  mudarStatusCliente,
+} from "@/app/clientes/actions";
+import { planosComCatalogo } from "@/lib/catalogo";
 import { DIC } from "@/lib/dictionary";
 import { hojeCurto } from "@/lib/datas";
 import { ROTAS } from "@/lib/rotas";
@@ -21,6 +28,7 @@ import type {
   AdminState,
   Chamado,
   Cliente,
+  Modulo,
   Pagamento,
   Patch,
   Rascunho,
@@ -54,6 +62,9 @@ export function AdminProvider({
   erroClientes = null,
   chamadosIniciais = [],
   erroChamados = null,
+  modulosIniciais = [],
+  erroModulos = null,
+  adminNome = null,
   ...overrides
 }: {
   children: ReactNode;
@@ -63,14 +74,28 @@ export function AdminProvider({
   /** Chamados de suporte lidos do Supabase pelo layout (server component). */
   chamadosIniciais?: Chamado[];
   erroChamados?: string | null;
+  /** Catálogo de módulos lido da tabela `modules` pelo layout. */
+  modulosIniciais?: Modulo[];
+  erroModulos?: string | null;
+  /** Nome do admin logado, de `profiles.full_name`. */
+  adminNome?: string | null;
 } & Partial<AdminOpcoes>) {
   const router = useRouter();
+  // As mutações de cliente passam por Server Actions. `useTransition` segura a
+  // interface responsiva enquanto a gravação acontece, sem um estado de
+  // "salvando" inventado à mão.
+  const [, iniciarAcao] = useTransition();
   const [state, setState] = useState<AdminState>(() => ({
     ...ESTADO_INICIAL,
     clientes: clientesIniciais,
     erroClientes,
     chamados: chamadosIniciais,
     erroChamados,
+    modulos: modulosIniciais,
+    erroModulos,
+    adminNome,
+    // O plano customizado inclui "todos os módulos", e só o banco sabe quais.
+    planos: planosComCatalogo(ESTADO_INICIAL.planos, modulosIniciais.map((m) => m.k)),
     // Sem semente: o chamado selecionado é o primeiro que veio do banco.
     chamadoSel: chamadosIniciais[0]?.id ?? "",
   }));
@@ -98,7 +123,10 @@ export function AdminProvider({
     `#${erroClientes ?? ""}` +
     "@" +
     chamadosIniciais.map((t) => `${t.id}:${t.status}:${t.msgs.length}`).join("|") +
-    `#${erroChamados ?? ""}`;
+    `#${erroChamados ?? ""}` +
+    "@" +
+    modulosIniciais.map((m) => m.k).join("|") +
+    `#${erroModulos ?? ""}#${adminNome ?? ""}`;
   const [assinaturaAplicada, setAssinaturaAplicada] = useState(assinatura);
 
   if (assinatura !== assinaturaAplicada) {
@@ -109,6 +137,13 @@ export function AdminProvider({
       erroClientes,
       chamados: chamadosIniciais,
       erroChamados,
+      modulos: modulosIniciais,
+      erroModulos,
+      adminNome,
+      planos: planosComCatalogo(
+        ESTADO_INICIAL.planos,
+        modulosIniciais.map((m) => m.k),
+      ),
       // O chamado aberto pode ter deixado de existir; nesse caso volta para o
       // primeiro da lista em vez de deixar a tela sem conversa nenhuma.
       chamadoSel: chamadosIniciais.some((t) => t.id === prev.chamadoSel)
@@ -270,16 +305,25 @@ export function AdminProvider({
     if (state.rascunho) set({ rascunho: novoRascunho(state.rascunho.id) });
   };
 
+  /**
+   * Grava plano, mensalidade e módulos no banco.
+   *
+   * Não mexe mais em `state.clientes`: quem manda é o servidor. Depois do
+   * `revalidatePath` na action, o `router.refresh()` traz a lista relida, e o
+   * bloco de sincronização lá em cima aplica. Como o rascunho passa a bater com
+   * o cliente salvo, `estaSujo` volta a ser falso sozinho — sem "limpar" o
+   * formulário na mão e correr o risco de ele parecer salvo sem ter sido.
+   */
   const salvarRascunho = () => {
     const r = state.rascunho;
     if (!r || !estaSujo(state)) return;
-    set((st) => ({
-      clientes: st.clientes.map((x) =>
-        x.id === r.id ? { ...x, plano: r.plano, mods: r.mods.slice(), valor: r.valor } : x,
-      ),
-      ultimaAcao: L.salvoAgora,
-    }));
-    toast(L.toastSalvo);
+    iniciarAcao(async () => {
+      const res = await atualizarCliente(r.id, r.plano, r.valor, r.mods);
+      if (!res.ok) return toast(res.mensagem, "erro");
+      set({ ultimaAcao: L.salvoAgora });
+      toast(L.toastSalvo);
+      router.refresh();
+    });
   };
 
   const abrirFormPlano = (k: string | null) => {
@@ -333,6 +377,16 @@ export function AdminProvider({
     });
   };
 
+  /**
+   * TODO: conectar ao Supabase.
+   *
+   * Editar plano ou módulo grava só na memória, e um `router.refresh()` desfaz.
+   * Para PLANOS falta tabela — a oferta hoje é regra em `lib/planos.ts`, e a
+   * decisão pendente é se planos viram dado ou se estes botões saem da tela.
+   * Para MÓDULOS a tabela existe (`modules`), mas editar o catálogo do produto
+   * é operação de plataforma, não de painel: fica para quando houver a decisão
+   * acima, junto.
+   */
   const salvarForm = () => {
     const f = state.form;
     if (!f || !f.nome.trim()) return;
@@ -525,41 +579,52 @@ export function AdminProvider({
       return;
     }
 
+    const alvoId = alvo.id;
+
     if (m.tipo === "excluir") {
       // Guarded by the typed-name confirmation; ignore a premature click.
       if (state.confirmacao.trim() !== alvo.nome) return;
-      const noDetalhe = state.rascunho?.id === m.alvo;
-      set((st) => ({
-        modal: null,
-        confirmacao: "",
-        clientes: st.clientes.filter((y) => y.id !== m.alvo),
-        rascunho: noDetalhe ? null : st.rascunho,
-        ultimaAcao: (id === "pt" ? "Cliente excluído: " : "Customer deleted: ") + alvo.nome,
-      }));
-      toast(L.toastExcluido, "erro");
-      // The record we were looking at is gone, so the list is where to land.
-      if (noDetalhe) router.push(ROTAS.clientes);
+      const noDetalhe = state.rascunho?.id === alvoId;
+      // Fecha o diálogo já: a exclusão pode demorar (são treze tabelas mais o
+      // Auth), e deixar o modal aberto convidaria a um segundo clique.
+      set({ modal: null, confirmacao: "" });
+      iniciarAcao(async () => {
+        const res = await excluirCliente(alvoId, alvo.nome);
+        if (!res.ok) return toast(res.mensagem, "erro");
+        set({
+          rascunho: noDetalhe ? null : state.rascunho,
+          ultimaAcao: (id === "pt" ? "Cliente excluído: " : "Customer deleted: ") + alvo.nome,
+        });
+        toast(L.toastExcluido, "erro");
+        // O registro que estávamos vendo sumiu; a lista é onde aterrissar.
+        if (noDetalhe) router.push(ROTAS.clientes);
+        router.refresh();
+      });
       return;
     }
 
     const novo: StatusCliente = m.tipo === "desativar" ? "inativo" : "ativo";
-    set((st) => ({
-      modal: null,
-      clientes: st.clientes.map((y) => (y.id === m.alvo ? { ...y, status: novo } : y)),
-      ultimaAcao:
-        alvo.nome +
-        (novo === "inativo"
-          ? id === "pt"
-            ? " foi desativado."
-            : " was deactivated."
-          : id === "pt"
-            ? " foi reativado."
-            : " was reactivated."),
-    }));
-    toast(
-      novo === "inativo" ? L.toastDesativado : L.toastReativado,
-      novo === "inativo" ? "alerta" : "ok",
-    );
+    set({ modal: null });
+    iniciarAcao(async () => {
+      const res = await mudarStatusCliente(alvoId, novo === "ativo");
+      if (!res.ok) return toast(res.mensagem, "erro");
+      set({
+        ultimaAcao:
+          alvo.nome +
+          (novo === "inativo"
+            ? id === "pt"
+              ? " foi desativado."
+              : " was deactivated."
+            : id === "pt"
+              ? " foi reativado."
+              : " was reactivated."),
+      });
+      toast(
+        novo === "inativo" ? L.toastDesativado : L.toastReativado,
+        novo === "inativo" ? "alerta" : "ok",
+      );
+      router.refresh();
+    });
   };
 
   const mostrarDica = (e: SyntheticEvent<HTMLElement>) => {

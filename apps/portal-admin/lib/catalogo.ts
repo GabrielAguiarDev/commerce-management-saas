@@ -1,5 +1,4 @@
 import {
-  CATALOGO_MODULOS,
   ehPlanoFixo,
   MENSALIDADE_PADRAO,
   PACOTES_FIXOS,
@@ -7,40 +6,22 @@ import {
   ROTULO_PLANO,
   type Plano as ChavePlano,
 } from "@/lib/planos";
-import type { Modulo, Plano } from "@/types/types";
+import type { Plano } from "@/types/types";
 
 /**
- * Ponte entre a regra comercial (`lib/planos.ts`) e as formas que a interface
- * já consumia dos dados de exemplo.
+ * Ponte entre a regra comercial (`lib/planos.ts`) e a forma que a interface
+ * consome.
  *
- * Antes, `MODULOS` e `PLANOS` viviam em `lib/mock/data.ts` com chaves em
- * português ("vendas", "Gratuito"). O banco usa as chaves em inglês da tabela
- * `modules` e os planos "free" | "paid" | "custom" — e os módulos de um cliente
- * vêm de lá. Manter dois vocabulários faria a ficha do cliente nunca casar um
- * módulo com o outro, então o catálogo passou a sair daqui.
+ * Só sobrou o catálogo de PLANOS. Os módulos saíram daqui: agora vêm da tabela
+ * `modules`, lidos por `lib/modulos.ts` e entregues às telas pelo provider.
+ * Planos continuam em código porque não há tabela de planos — a oferta é regra
+ * comercial, não dado editável (ver o levantamento em lib/mock/data.ts).
  *
- * Os textos existem só em português: o banco tem uma coluna por campo. A forma
- * `Loc` fica de pé para quando houver tradução real, repetindo o mesmo texto
- * nos dois idiomas enquanto isso.
+ * Os textos existem só em português; a forma `Loc` fica de pé para quando
+ * houver tradução real, repetindo o mesmo texto nos dois idiomas enquanto isso.
  */
 
 const umTexto = (t: string) => ({ pt: t, en: t });
-
-/** Planos que incluem um módulo. O customizado monta qualquer combinação. */
-function planosComModulo(chave: string): string[] {
-  const fixos = (["free", "paid"] as const).filter((p) => PACOTES_FIXOS[p].includes(chave));
-  return [...fixos, "custom"];
-}
-
-/** Catálogo de módulos no formato das telas (Módulos e ficha do cliente). */
-export const MODULOS_CATALOGO: Modulo[] = CATALOGO_MODULOS.map((m) => ({
-  k: m.chave,
-  ...(m.acesso ? { tipo: "acesso" as const } : {}),
-  nome: umTexto(m.nome),
-  sigla: m.sigla,
-  desc: umTexto(m.descricao),
-  planos: planosComModulo(m.chave),
-}));
 
 const DESCRICAO_PLANO: Record<ChavePlano, string> = {
   free: "Entrada para comércios pequenos: vendas, catálogo de produtos e custos.",
@@ -50,7 +31,13 @@ const DESCRICAO_PLANO: Record<ChavePlano, string> = {
     "negociada caso a caso no cadastro do cliente.",
 };
 
-/** Catálogo de planos no formato das telas. */
+/**
+ * Catálogo de planos no formato das telas.
+ *
+ * `mods` do plano customizado fica vazio de propósito: "todos os módulos" só se
+ * sabe depois de ler o banco, e a tela preenche isso a partir de `s.modulos`
+ * (ver `planosComCatalogo`).
+ */
 export const PLANOS_CATALOGO: Plano[] = CHAVES_PLANO.map((k) => {
   const mensalidade = MENSALIDADE_PADRAO[k];
   return {
@@ -60,6 +47,15 @@ export const PLANOS_CATALOGO: Plano[] = CHAVES_PLANO.map((k) => {
     // `null` marca o preço negociado: a tela mostra "sob consulta" em vez de um valor.
     preco: mensalidade === null ? null : "R$ " + mensalidade,
     desc: umTexto(DESCRICAO_PLANO[k]),
-    mods: ehPlanoFixo(k) ? [...PACOTES_FIXOS[k]] : CATALOGO_MODULOS.map((m) => m.chave),
+    mods: ehPlanoFixo(k) ? [...PACOTES_FIXOS[k]] : [],
   };
 });
+
+/**
+ * Completa o plano customizado com todos os módulos do catálogo real. Chamado
+ * onde o catálogo já está disponível, para não deixar o cartão do customizado
+ * anunciando "0 módulos inclusos".
+ */
+export function planosComCatalogo(planos: Plano[], chavesDoBanco: string[]): Plano[] {
+  return planos.map((p) => (p.tipo === "custom" ? { ...p, mods: chavesDoBanco } : p));
+}

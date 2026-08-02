@@ -202,6 +202,8 @@ export interface AdminState {
   receita: ReceitaMes[];
   pagamentos: Record<string, Pagamento>;
   modulos: Modulo[];
+  /** Falha ao ler o catálogo de módulos no Supabase. */
+  erroModulos: string | null;
   planos: Plano[];
   config: ConfigItem[];
   chamadoSel: string;
@@ -211,6 +213,8 @@ export interface AdminState {
   loginEmail: string;
   loginSenha: string;
   ultimaAcao: string | null;
+  /** Nome do admin logado (`profiles.full_name`), para a barra lateral. */
+  adminNome: string | null;
   clientes: Cliente[];
   /** Falha ao ler os clientes no Supabase, para a lista poder explicar o vazio. */
   erroClientes: string | null;

@@ -238,7 +238,9 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
                   "overflow:hidden;text-overflow:ellipsis",
               )}
             >
-              Rafael Aguiar
+              {/* `profiles.full_name` do usuário logado; cai no e-mail, e
+                  depois no rótulo genérico, se o perfil não tiver nome. */}
+              {s.adminNome || L.admin}
             </span>
             <span style={css("font-size:10.5px;color:var(--sideTx2)")}>{L.admin}</span>
           </div>

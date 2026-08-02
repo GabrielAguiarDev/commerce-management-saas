@@ -4,6 +4,8 @@ import { AdminProvider } from "@/components/AdminProvider";
 import { AdminShell } from "@/components/AdminShell";
 import { listarChamados } from "@/lib/chamados";
 import { listarClientes } from "@/lib/clientes";
+import { listarModulos } from "@/lib/modulos";
+import { perfilAtual } from "@/lib/perfil";
 import "./globals.css";
 
 const plexSans = IBM_Plex_Sans({
@@ -45,10 +47,12 @@ export default async function RootLayout({
   // `await` seguidos somaria os dois tempos de ida e volta à espera de todo
   // render. Os chamados alimentam a tela de Suporte, o contador da Visão e as
   // notificações do topo.
-  const [{ clientes, erro }, { chamados, erro: erroChamados }] = await Promise.all([
-    listarClientes(),
-    listarChamados(),
-  ]);
+  const [
+    { clientes, erro },
+    { chamados, erro: erroChamados },
+    { modulos, erro: erroModulos },
+    perfil,
+  ] = await Promise.all([listarClientes(), listarChamados(), listarModulos(), perfilAtual()]);
 
   return (
     <html
@@ -65,6 +69,9 @@ export default async function RootLayout({
           erroClientes={erro}
           chamadosIniciais={chamados}
           erroChamados={erroChamados}
+          modulosIniciais={modulos}
+          erroModulos={erroModulos}
+          adminNome={perfil?.nome ?? perfil?.email ?? null}
         >
           <AdminShell>{children}</AdminShell>
         </AdminProvider>
