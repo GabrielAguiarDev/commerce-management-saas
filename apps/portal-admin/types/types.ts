@@ -52,6 +52,10 @@ export interface Cliente {
   resp: string;
   /** Mensalidade formatada ("R$ 89,00"), ou "—" quando não há cobrança. */
   valor: string;
+  /** Cidade / UF informada no cadastro (`tenants.city`). */
+  cidade: string;
+  /** Telefone de contato (`tenants.phone`). */
+  telefone: string;
   /** Chaves dos módulos ativos, as mesmas da tabela `modules`. */
   mods: string[];
 }

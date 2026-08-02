@@ -34,14 +34,16 @@ export function PlanosView() {
         {s.planos.map((p) => {
           const n = cs.filter((x) => x.plano === p.k).length;
           const fixo = p.tipo === "fixo";
+          // Cores derivadas do plano, não da chave: um plano criado aqui mesmo
+          // ganha identidade visual sem precisar entrar numa lista em código.
+          const cobrado = p.tipo === "custom" || !!p.preco?.match(/[1-9]/);
           const cor =
-            p.k === "free"
-              ? "var(--line)"
-              : p.k === "paid"
+            p.tipo === "custom"
+              ? "var(--accLine)"
+              : cobrado
                 ? "var(--okLine)"
-                : "var(--accLine)";
-          const tag =
-            p.k === "paid" ? badgeOk() : p.k === "free" ? badgeNeutro() : badgeAcc();
+                : "var(--line)";
+          const tag = p.tipo === "custom" ? badgeAcc() : cobrado ? badgeOk() : badgeNeutro();
 
           return (
             <section

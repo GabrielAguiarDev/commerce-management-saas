@@ -25,10 +25,17 @@ export const badgeWarn = () => badge("var(--warnBg)", "var(--warn)", "var(--warn
 export const badgeBad = () => badge("var(--badBg)", "var(--bad)", "var(--badLine)");
 export const badgeNeutro = () => badge("var(--neu)", "var(--neuTx)", "var(--neuLine)");
 
-export function planoBadge(plano: string): string {
-  if (plano === "paid") return badgeOk();
-  if (plano === "custom") return badgeAcc();
-  return badgeNeutro();
+/**
+ * Cor do selo do plano, derivada do PLANO e não da sua chave.
+ *
+ * Antes era `k === "paid"` / `k === "custom"`, o que deixava qualquer plano
+ * criado na tela de Planos sem identidade visual. Agora: sob medida usa o
+ * destaque, plano sem cobrança fica neutro, e plano pago usa o verde.
+ */
+export function planoBadge(plano: Plano | undefined): string {
+  if (!plano) return badgeNeutro();
+  if (plano.tipo === "custom") return badgeAcc();
+  return plano.preco && /[1-9]/.test(plano.preco) ? badgeOk() : badgeNeutro();
 }
 
 export function statusBadge(status: StatusCliente): string {
@@ -47,13 +54,15 @@ export function prioridadeBadge(p: Prioridade): string {
   return badgeNeutro();
 }
 
-export function avatar(plano: string): string {
+/** Mesma lógica do selo: quem não é cobrado fica neutro, o resto em destaque. */
+export function avatar(plano: Plano | undefined): string {
+  const cobrado = !plano || plano.tipo === "custom" || !!plano.preco?.match(/[1-9]/);
   return (
     "width:34px;height:34px;flex:none;border-radius:9px;display:flex;align-items:center;" +
     "justify-content:center;font-size:11.5px;font-weight:600;" +
-    (plano === "free"
-      ? "background:var(--neu);color:var(--neuTx);"
-      : "background:var(--accSoft);color:var(--acc);")
+    (cobrado
+      ? "background:var(--accSoft);color:var(--acc);"
+      : "background:var(--neu);color:var(--neuTx);")
   );
 }
 

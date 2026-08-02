@@ -29,13 +29,19 @@ const SELECT = "key, name, description, price, is_custom, module_keys";
 
 const umTexto = (t: string) => ({ pt: t, en: t });
 
-/** "R$ 89" — o formato que as telas já consumiam. `null` vira "sob consulta". */
+/**
+ * "R$ 89,00". `null` vira "sob consulta" na tela.
+ *
+ * OS CENTAVOS SÃO OBRIGATÓRIOS, mesmo em valor redondo: `lib/money.ts` lê
+ * dinheiro tirando os não-dígitos e dividindo por 100, então "R$ 89" viraria
+ * R$ 0,89. É o mesmo formato de `Cliente.valor`, e os dois se cruzam quando a
+ * ficha do cliente troca de plano.
+ */
 function formatarPreco(preco: number | string | null): string | null {
   if (preco === null || preco === undefined) return null;
   const n = typeof preco === "string" ? Number(preco) : preco;
   if (!Number.isFinite(n)) return null;
-  // Sem centavos quando o valor é redondo, que é o caso de toda a tabela hoje.
-  return "R$ " + (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(".", ","));
+  return "R$ " + n.toFixed(2).replace(".", ",");
 }
 
 export function paraPlano(linha: LinhaPlano): Plano {

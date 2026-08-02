@@ -3,7 +3,7 @@
 import { css, MONO } from "@/lib/css";
 import { AcessoIcone } from "@/lib/icons";
 import { avatar, CARD_METRICA, iniciais } from "@/lib/styleKit";
-import type { Cliente, Idioma } from "@/types/types";
+import type { Cliente, Idioma, Plano } from "@/types/types";
 
 export interface Metrica {
   rotulo: string;
@@ -67,16 +67,19 @@ export function MetricasGrid({ metricas }: { metricas: Metrica[] }) {
 /** Avatar + business name + module count, the leading cell of every list. */
 export function CelulaNegocio({
   cliente,
+  plano,
   totalMods,
   id,
 }: {
   cliente: Cliente;
+  /** O plano do cliente, para a cor do avatar. Vem de `plans`. */
+  plano?: Plano;
   totalMods: number;
   id: Idioma;
 }) {
   return (
     <div style={css("display:flex;align-items:center;gap:11px;min-width:0")}>
-      <div style={css(avatar(cliente.plano))}>{iniciais(cliente.nome)}</div>
+      <div style={css(avatar(plano))}>{iniciais(cliente.nome)}</div>
       <div style={css("display:flex;flex-direction:column;gap:2px;min-width:0")}>
         <span
           style={css(

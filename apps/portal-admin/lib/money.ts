@@ -14,11 +14,20 @@ export function fmtDin(v: number): string {
 }
 
 /**
- * Customers on a paid plan — the ones that contribute revenue.
- * `plano` guarda a chave do banco, então o gratuito é "free".
+ * Um cliente é cobrável quando tem mensalidade, e ponto.
+ *
+ * Antes isto era `plano !== "free"` — uma regra que só funcionava enquanto os
+ * planos eram três chaves fixas em código. Com a oferta vindo de `plans`, um
+ * plano novo com preço zero seria contado como receita, e um "free" pago (um
+ * cliente legado com valor negociado) sumiria da conta. O valor é o fato.
  */
+export function ehCobravel(c: Cliente): boolean {
+  return num(c.valor) > 0;
+}
+
+/** Clientes que contribuem com receita. */
 export function cobraveis(cs: Cliente[]): Cliente[] {
-  return cs.filter((x) => x.plano !== "free");
+  return cs.filter(ehCobravel);
 }
 
 export function calcMrr(cs: Cliente[]): number {

@@ -4,7 +4,9 @@ import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
 import { BaixarIcone, ClientesNovoIcone } from "@/lib/icons";
 import { Selecao } from "@/components/campos";
+import { MenuAcoes } from "@/components/MenuAcoes";
 import { CampoBusca, CelulaNegocio } from "@/components/shared";
+import { planoPorChave } from "@/lib/planos";
 import { ROTAS } from "@/lib/rotas";
 import { nomePlano, planoBadge, statusBadge } from "@/lib/styleKit";
 
@@ -12,10 +14,15 @@ const GRADE =
   "display:grid;grid-template-columns:minmax(200px,2fr) minmax(130px,1.05fr) 92px 92px 100px 168px;" +
   "gap:12px;min-width:812px;";
 
+const ITEM_MENU =
+  "text-align:left;background:none;border:none;font-size:12.5px;" +
+  "padding:8px 10px;border-radius:6px;cursor:pointer;";
+
 export function ClientesView() {
   const { s, a, cs, vazio, opts } = useAdmin();
   const { L } = a;
   const id = s.idioma;
+  const fecharMenu = () => a.set({ menuLinha: null });
 
   const q = s.busca.trim().toLowerCase();
   const filtrados = cs.filter(
@@ -68,10 +75,13 @@ export function ClientesView() {
           aria-label={L.plano}
         >
           <option value="todos">{L.todosPlanos}</option>
-          {/* Os valores são as chaves do banco (`tenants.plan`). */}
-          <option value="paid">{L.pago}</option>
-          <option value="custom">{L.customizado}</option>
-          <option value="free">{L.gratuito}</option>
+          {/* Opções vindas de `plans` — um plano criado na tela de Planos
+              aparece aqui sozinho, sem ninguém lembrar de editar esta lista. */}
+          {s.planos.map((p) => (
+            <option key={p.k} value={p.k}>
+              {p.nome[id] || p.nome.pt}
+            </option>
+          ))}
         </Selecao>
 
         <Selecao
@@ -153,9 +163,14 @@ export function ClientesView() {
               (c.status === "inativo" && opts.destacarInativos ? "background:var(--panel2);" : ""),
           )}
         >
-          <CelulaNegocio cliente={c} totalMods={s.modulos.length} id={id} />
+          <CelulaNegocio
+            cliente={c}
+            plano={planoPorChave(s.planos, c.plano)}
+            totalMods={s.modulos.length}
+            id={id}
+          />
           <span style={css("font-size:12.5px;color:var(--tx2)")}>{c.segmento[id]}</span>
-          <span style={css(planoBadge(c.plano))}>{nomePlano(s.planos, c.plano, id)}</span>
+          <span style={css(planoBadge(planoPorChave(s.planos, c.plano)))}>{nomePlano(s.planos, c.plano, id)}</span>
           <span style={css(statusBadge(c.status))}>
             {c.status === "ativo"
               ? id === "pt"
@@ -167,7 +182,7 @@ export function ClientesView() {
           </span>
           <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--tx3)`)}>{c.data}</span>
 
-          <div style={css("display:flex;justify-content:flex-end;gap:6px;position:relative")}>
+          <div style={css("display:flex;justify-content:flex-end;gap:6px")}>
             <button
               onClick={() => a.abrirCliente(c.id)}
               className="hv-bright-sm"
@@ -178,61 +193,38 @@ export function ClientesView() {
             >
               {L.gerenciar}
             </button>
-            <button
-              onClick={() => a.set((st) => ({ menuLinha: st.menuLinha === c.id ? null : c.id }))}
-              aria-label={L.acoes}
-              className="hv-tx"
-              style={css(
-                "border:1px solid var(--line);background:var(--panel);color:var(--tx3);" +
-                  "font-size:13px;line-height:1;padding:7px 9px;border-radius:7px;cursor:pointer",
-              )}
-            >
-              ⋯
-            </button>
 
-            {s.menuLinha === c.id && (
-              <div
-                style={css(
-                  "position:absolute;top:36px;right:0;z-index:8;background:var(--panel);" +
-                    "border:1px solid var(--line);border-radius:9px;" +
-                    "box-shadow:0 10px 24px rgba(9,26,33,.16);padding:5px;display:flex;" +
-                    "flex-direction:column;min-width:168px",
-                )}
+            <MenuAcoes
+              aberto={s.menuLinha === c.id}
+              onAlternar={() => a.set((st) => ({ menuLinha: st.menuLinha === c.id ? null : c.id }))}
+              onFechar={fecharMenu}
+              rotulo={L.acoes}
+            >
+              <button
+                onClick={() => a.abrirCliente(c.id)}
+                role="menuitem"
+                className="hv-menu"
+                style={css(ITEM_MENU + "color:var(--tx2)")}
               >
-                <button
-                  onClick={() => a.abrirCliente(c.id)}
-                  className="hv-menu"
-                  style={css(
-                    "text-align:left;background:none;border:none;color:var(--tx2);font-size:12.5px;" +
-                      "padding:8px 10px;border-radius:6px;cursor:pointer",
-                  )}
-                >
-                  {L.gerenciar}
-                </button>
-                <button
-                  onClick={() =>
-                    a.abrirModal(c.status === "ativo" ? "desativar" : "reativar", c.id)
-                  }
-                  className="hv-menu"
-                  style={css(
-                    "text-align:left;background:none;border:none;color:var(--tx2);font-size:12.5px;" +
-                      "padding:8px 10px;border-radius:6px;cursor:pointer",
-                  )}
-                >
-                  {c.status === "ativo" ? L.desativar : L.reativar}
-                </button>
-                <button
-                  onClick={() => a.abrirModal("excluir", c.id)}
-                  className="hv-bad"
-                  style={css(
-                    "text-align:left;background:none;border:none;color:var(--bad);font-size:12.5px;" +
-                      "padding:8px 10px;border-radius:6px;cursor:pointer",
-                  )}
-                >
-                  {L.excluir}
-                </button>
-              </div>
-            )}
+                {L.gerenciar}
+              </button>
+              <button
+                onClick={() => a.abrirModal(c.status === "ativo" ? "desativar" : "reativar", c.id)}
+                role="menuitem"
+                className="hv-menu"
+                style={css(ITEM_MENU + "color:var(--tx2)")}
+              >
+                {c.status === "ativo" ? L.desativar : L.reativar}
+              </button>
+              <button
+                onClick={() => a.abrirModal("excluir", c.id)}
+                role="menuitem"
+                className="hv-bad"
+                style={css(ITEM_MENU + "color:var(--bad)")}
+              >
+                {L.excluir}
+              </button>
+            </MenuAcoes>
           </div>
         </div>
       ))}

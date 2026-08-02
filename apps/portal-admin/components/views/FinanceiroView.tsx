@@ -7,11 +7,13 @@ import {
   calcMrr,
   cobraveis,
   contaPorStatus,
+  ehCobravel,
   fmtDin,
   fmtMrr,
   infoPag,
   somaPorStatus,
 } from "@/lib/money";
+import { planoPorChave } from "@/lib/planos";
 import { CampoBusca, MetricasGrid, type Metrica } from "@/components/shared";
 import {
   avatar,
@@ -94,7 +96,8 @@ export function FinanceiroView() {
   const linhas = cs.filter((x) => {
     if (qp && !x.nome.toLowerCase().includes(qp)) return false;
     if (s.filtroPag === "todos") return true;
-    return x.plano !== "free" && infoPag(s.pagamentos, x.id).status === s.filtroPag;
+    // Quem não é cobrado não tem status de pagamento para filtrar.
+    return ehCobravel(x) && infoPag(s.pagamentos, x.id).status === s.filtroPag;
   });
 
   const exportar = () => {
@@ -108,7 +111,7 @@ export function FinanceiroView() {
     ].join(";");
     const corpo = linhas.map((x) => {
       const p = infoPag(s.pagamentos, x.id);
-      const grat = x.plano === "free";
+      const grat = !ehCobravel(x);
       return [
         x.nome,
         nomePlano(s.planos, x.plano, id),
@@ -317,7 +320,8 @@ export function FinanceiroView() {
 
         {(vazio ? [] : linhas).map((x) => {
           const p = infoPag(s.pagamentos, x.id);
-          const grat = x.plano === "free";
+          // "Gratuito" é não ter mensalidade — não é a chave do plano.
+          const grat = !ehCobravel(x);
           const pago = p.status === "emdia";
           const menuAberto = s.menuPag === x.id;
 
@@ -357,7 +361,7 @@ export function FinanceiroView() {
               )}
             >
               <div style={css("display:flex;align-items:center;gap:11px;min-width:0")}>
-                <div style={css(avatar(x.plano))}>{iniciais(x.nome)}</div>
+                <div style={css(avatar(planoPorChave(s.planos, x.plano)))}>{iniciais(x.nome)}</div>
                 <span
                   style={css(
                     "font-size:13.5px;font-weight:500;color:var(--tx);white-space:nowrap;" +
@@ -376,7 +380,7 @@ export function FinanceiroView() {
 
               {!compacto && (
                 <>
-                  <span style={css(planoBadge(x.plano))}>{nomePlano(s.planos, x.plano, id)}</span>
+                  <span style={css(planoBadge(planoPorChave(s.planos, x.plano)))}>{nomePlano(s.planos, x.plano, id)}</span>
                   <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--tx)`)}>
                     {grat ? "—" : x.valor}
                   </span>
@@ -401,7 +405,7 @@ export function FinanceiroView() {
                 >
                   <div style={css("display:flex;flex-direction:column;gap:4px")}>
                     <span style={css(rotuloCampo)}>{L.plano}</span>
-                    <span style={css(planoBadge(x.plano))}>{nomePlano(s.planos, x.plano, id)}</span>
+                    <span style={css(planoBadge(planoPorChave(s.planos, x.plano)))}>{nomePlano(s.planos, x.plano, id)}</span>
                   </div>
                   <div style={css("display:flex;flex-direction:column;gap:4px")}>
                     <span style={css(rotuloCampo)}>{L.valorMensal}</span>

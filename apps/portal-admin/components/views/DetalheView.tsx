@@ -7,12 +7,12 @@ import { css, MONO } from "@/lib/css";
 import { BarraAcoes } from "@/components/BarraAcoes";
 import { GradeModulos, ModuloCard } from "@/components/ModuloCard";
 import { ROTAS } from "@/lib/rotas";
+import { planoPorChave } from "@/lib/planos";
 import { clientePorId, estaSujo } from "@/lib/state";
 import { iniciais, nomePlano, planoBadge, statusBadge } from "@/lib/styleKit";
 
 // Chaves do banco (tabela `tenants`, coluna `plan`), na ordem em que o botão
-// "mudar plano" cicla entre elas.
-const ORDEM_PLANOS = ["free", "paid", "custom"];
+
 
 export function DetalheView({ clienteId }: { clienteId: string }) {
   const { s, a, opts } = useAdmin();
@@ -44,25 +44,36 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
       ? s.rascunho
       : { plano: c.plano, mods: c.mods, valor: c.valor };
   const sujo = estaSujo(s);
-  const custom = r.plano === "custom";
+  const planoAtual = planoPorChave(s.planos, r.plano);
+  const custom = planoAtual?.tipo === "custom";
 
   const rotuloCampo =
     "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);font-weight:600";
 
+  /**
+   * "Mudar plano" cicla pelo catálogo real, na ordem de `plans.sort_order`.
+   *
+   * Antes a lista era `["free","paid","custom"]` em código, e os valores eram
+   * "R$ 89,00" e "R$ 149,00" escritos à mão — um plano criado na tela de Planos
+   * nunca apareceria aqui, e mudar o preço lá não mudava o que a ficha cobrava.
+   * Agora o preço sai de `plans.price`; no plano sob medida o valor é negociado,
+   * então preserva-se o que o cliente já pagava.
+   */
   const trocarPlano = () =>
     a.editarRascunho((d) => {
-      const novo = ORDEM_PLANOS[(ORDEM_PLANOS.indexOf(d.plano) + 1) % ORDEM_PLANOS.length];
+      if (s.planos.length === 0) return d;
+      const i = s.planos.findIndex((p) => p.k === d.plano);
+      const novo = s.planos[(i + 1) % s.planos.length];
       return {
         ...d,
-        plano: novo,
+        plano: novo.k,
         valor:
-          novo === "free"
-            ? "—"
-            : novo === "paid"
-              ? "R$ 89,00"
-              : c.valor !== "—"
-                ? c.valor
-                : "R$ 149,00",
+          novo.tipo === "custom"
+            ? // Negociado por cliente: mantém o valor atual em vez de zerar.
+              c.valor !== "—"
+              ? c.valor
+              : d.valor
+            : (novo.preco ?? "—"),
       };
     });
 
@@ -103,7 +114,7 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
             >
               {c.nome}
             </h2>
-            <span style={css(planoBadge(r.plano))}>{nomePlano(s.planos, r.plano, id)}</span>
+            <span style={css(planoBadge(planoAtual))}>{nomePlano(s.planos, r.plano, id)}</span>
             <span style={css(statusBadge(c.status))}>
               {c.status === "ativo"
                 ? id === "pt"
@@ -123,6 +134,16 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
             <div style={css("display:flex;flex-direction:column;gap:3px")}>
               <span style={css(rotuloCampo)}>{L.responsavel}</span>
               <span style={css("font-size:13px;color:var(--tx)")}>{c.resp}</span>
+            </div>
+            {/* Cidade e telefone vêm de `tenants.city` / `tenants.phone`. O
+                cadastro já os pedia; agora o banco guarda e a ficha mostra. */}
+            <div style={css("display:flex;flex-direction:column;gap:3px")}>
+              <span style={css(rotuloCampo)}>{L.cidade}</span>
+              <span style={css("font-size:13px;color:var(--tx)")}>{c.cidade}</span>
+            </div>
+            <div style={css("display:flex;flex-direction:column;gap:3px")}>
+              <span style={css(rotuloCampo)}>{L.telefone}</span>
+              <span style={css("font-size:13px;color:var(--tx)")}>{c.telefone}</span>
             </div>
             <div style={css("display:flex;flex-direction:column;gap:3px")}>
               <span style={css(rotuloCampo)}>{L.cadastro}</span>

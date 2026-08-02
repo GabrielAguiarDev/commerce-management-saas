@@ -22,6 +22,8 @@ interface LinhaTenant {
   status: string | null;
   plan: string | null;
   monthly_fee: number | string | null;
+  city: string | null;
+  phone: string | null;
   created_at: string | null;
   profiles: { full_name: string | null }[] | null;
   tenant_modules: { module_key: string; enabled: boolean }[] | null;
@@ -34,6 +36,8 @@ const SELECT = `
   status,
   plan,
   monthly_fee,
+  city,
+  phone,
   created_at,
   profiles ( full_name ),
   tenant_modules ( module_key, enabled )
@@ -67,11 +71,15 @@ function paraCliente(linha: LinhaTenant): Cliente {
     id: linha.id,
     nome: linha.name ?? "—",
     segmento: { pt: linha.segment || "—", en: linha.segment || "—" },
-    plano: linha.plan ?? "free",
+    // Sem fallback para "free": um tenant sem plano é anomalia de dado, e
+    // chutar um plano faria a tela mentir. A chave vazia cai no selo neutro.
+    plano: linha.plan ?? "",
     status: (linha.status === "active" ? "ativo" : "inativo") as StatusCliente,
     data: formatarData(linha.created_at),
     resp: dono || "—",
     valor: formatarValor(linha.monthly_fee),
+    cidade: linha.city || "—",
+    telefone: linha.phone || "—",
     mods: (linha.tenant_modules ?? []).filter((m) => m.enabled).map((m) => m.module_key),
   };
 }

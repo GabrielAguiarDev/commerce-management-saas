@@ -3,6 +3,7 @@
 import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
 import { ehDoMesCorrente } from "@/lib/datas";
+import { planoPorChave } from "@/lib/planos";
 import { calcMrr, cobraveis, fmtMrr } from "@/lib/money";
 import { ROTAS } from "@/lib/rotas";
 import { CelulaNegocio, MetricasGrid, type Metrica } from "@/components/shared";
@@ -27,6 +28,9 @@ export function VisaoView() {
   const mrr = fmtMrr(calcMrr(cs));
   const abertos = (vazio ? [] : s.chamados).filter((t) => t.status === "aberto").length;
   const andamento = (vazio ? [] : s.chamados).filter((t) => t.status === "andamento").length;
+  const altaPrioridade = (vazio ? [] : s.chamados).filter(
+    (t) => t.prioridade === "alta" && t.status !== "resolvido",
+  ).length;
   // Cadastrados neste mês, contados a partir de `tenants.created_at` — antes
   // era o número 2 escrito na mão.
   const novos = vazio ? [] : cs.filter((x) => ehDoMesCorrente(x.data));
@@ -87,7 +91,9 @@ export function VisaoView() {
     {
       rotulo: L.chamadosLabel,
       valor: abertos,
-      delta: vazio ? "—" : "SLA 4h",
+      // Era "SLA 4h" fixo — não existe SLA configurado em lugar nenhum. No
+      // lugar vai um número que o banco sabe: os chamados de prioridade alta.
+      delta: altaPrioridade > 0 ? `${altaPrioridade} ${L.altaCurto}` : "—",
       nota: vazio
         ? id === "pt"
           ? "nenhum chamado aberto"
@@ -243,9 +249,14 @@ export function VisaoView() {
                   "align-items:center;padding:12px 20px;border-bottom:1px solid var(--lineSoft);cursor:pointer",
               )}
             >
-              <CelulaNegocio cliente={c} totalMods={s.modulos.length} id={id} />
+              <CelulaNegocio
+                cliente={c}
+                plano={planoPorChave(s.planos, c.plano)}
+                totalMods={s.modulos.length}
+                id={id}
+              />
               <span style={css("font-size:12.5px;color:var(--tx2)")}>{c.segmento[id]}</span>
-              <span style={css(planoBadge(c.plano))}>{nomePlano(s.planos, c.plano, id)}</span>
+              <span style={css(planoBadge(planoPorChave(s.planos, c.plano)))}>{nomePlano(s.planos, c.plano, id)}</span>
               <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--tx3)`)}>
                 {c.data}
               </span>

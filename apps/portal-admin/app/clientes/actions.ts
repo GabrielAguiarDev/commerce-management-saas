@@ -129,6 +129,8 @@ export async function criarCliente(
     .toLowerCase();
   const planoBruto = String(formData.get("plano") ?? "");
   const mensalidadeBruta = String(formData.get("mensalidade") ?? "").trim();
+  const cidade = String(formData.get("cidade") ?? "").trim();
+  const telefone = String(formData.get("telefone") ?? "").trim();
 
   if (!nome) return erro("Informe o nome do negócio.", "nome");
   if (!email) return erro("Informe o e-mail de acesso.", "email");
@@ -224,6 +226,8 @@ export async function criarCliente(
     p_plan: plano,
     p_monthly_fee: mensalidade,
     p_module_keys: modulos,
+    p_city: cidade,
+    p_phone: telefone,
   });
 
   // =====================================================================
