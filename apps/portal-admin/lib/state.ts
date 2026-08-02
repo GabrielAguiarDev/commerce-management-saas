@@ -1,5 +1,3 @@
-import { PLANOS_CATALOGO } from "@/lib/catalogo";
-import { CONFIGS, PAGAMENTOS, RECEITA } from "@/lib/mock/data";
 import type { AdminState, Chamado, Cliente } from "@/types/types";
 
 export const ESTADO_INICIAL: AdminState = {
@@ -31,16 +29,19 @@ export const ESTADO_INICIAL: AdminState = {
   senha1: "",
   senha2: "",
   emailRec: "",
-  // TODO: conectar ao Supabase — não há tabela de receita, pagamentos nem
-  // configurações da plataforma. Ver lib/mock/data.ts.
-  receita: RECEITA,
-  pagamentos: PAGAMENTOS,
-  config: CONFIGS,
-  // O catálogo de módulos vem da tabela `modules` pelo layout, via
-  // `modulosIniciais` no <AdminProvider>. Sem semente local.
+  // Tudo abaixo vem do Supabase pelo layout (server component) e entra aqui
+  // pelas props do <AdminProvider>. Sem semente local em lugar nenhum:
+  //   receita/pagamentos → platform_payments   config → platform_settings
+  //   modulos → modules                        planos → plans
+  receita: [],
+  pagamentos: {},
+  erroFinanceiro: null,
+  config: [],
+  erroConfig: null,
   modulos: [],
   erroModulos: null,
-  planos: PLANOS_CATALOGO,
+  planos: [],
+  erroPlanos: null,
   filtroChamado: "todos",
   buscaChamado: "",
   resposta: "",

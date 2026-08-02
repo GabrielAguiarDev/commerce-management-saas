@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { ehPlanoValido, MENSALIDADE_PADRAO, modulosDoPlano, type Plano } from "@/lib/planos";
+import { modulosPadrao } from "@/lib/configuracoes";
+import { resolverModulos } from "@/lib/planos";
 
 /**
  * Dados do cliente recém-criado, para a interface inserir na lista sem
@@ -14,9 +15,35 @@ export interface ClienteCriado {
   nome: string;
   segmento: string;
   responsavel: string;
-  plano: Plano;
+  plano: string;
   mensalidade: number;
   modulos: readonly string[];
+}
+
+/**
+ * A linha vigente de `plans`, lida no servidor.
+ *
+ * Toda decisão de preço e composição sai daqui — nunca do que o navegador
+ * afirmou. É o que impede uma requisição forjada de contratar o plano Pago
+ * pagando o preço do Gratuito, ou de marcar módulos que o pacote não inclui.
+ */
+async function lerPlano(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  chave: string,
+): Promise<{ preco: number | null; custom: boolean; mods: string[] } | null> {
+  const { data, error } = await supabase
+    .from("plans")
+    .select("price, is_custom, module_keys")
+    .eq("key", chave)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return {
+    preco: data.price === null ? null : Number(data.price),
+    custom: !!data.is_custom,
+    mods: data.module_keys ?? [],
+  };
 }
 
 export type EstadoFormulario =
@@ -106,14 +133,17 @@ export async function criarCliente(
   if (!nome) return erro("Informe o nome do negócio.", "nome");
   if (!email) return erro("Informe o e-mail de acesso.", "email");
   if (!EMAIL_RE.test(email)) return erro("E-mail inválido.", "email");
-  if (!ehPlanoValido(planoBruto)) return erro("Escolha um plano.", "plano");
+  // O plano vem da tabela `plans`, não de uma lista em código. Se a chave não
+  // existir (ou o plano tiver sido desativado), o cadastro para aqui.
+  const regra = await lerPlano(supabase, planoBruto);
+  if (!regra) return erro("Escolha um plano.", "plano");
 
-  const plano: Plano = planoBruto;
+  const plano = planoBruto;
 
-  // A mensalidade só é informada no plano customizado; nos demais o preço é
-  // tabelado (ver lib/planos.ts).
+  // A mensalidade só é informada no plano customizado; nos demais vale o preço
+  // gravado em `plans.price`.
   let mensalidade: number;
-  if (plano === "custom") {
+  if (regra.custom) {
     // Aceita "149", "149,90" e "R$ 149,90".
     const numero = Number(mensalidadeBruta.replace(/[^\d,.-]/g, "").replace(",", "."));
     if (!mensalidadeBruta || !Number.isFinite(numero) || numero <= 0) {
@@ -121,18 +151,29 @@ export async function criarCliente(
     }
     mensalidade = numero;
   } else {
-    mensalidade = MENSALIDADE_PADRAO[plano] ?? 0;
+    mensalidade = regra.preco ?? 0;
   }
 
   // Os módulos marcados na grade só valem no plano Customizado. Nos planos de
-  // pacote fechado, `modulosDoPlano` descarta o que veio no formulário e usa o
-  // pacote do plano — assim uma requisição forjada não consegue "comprar"
+  // pacote fechado, `resolverModulos` descarta o que veio no formulário e usa
+  // `plans.module_keys` — assim uma requisição forjada não consegue "comprar"
   // módulos extras marcando caixinhas.
-  const modulos = modulosDoPlano(plano, formData.getAll("modulos").map(String));
+  let modulos = resolverModulos(
+    regra.custom,
+    regra.mods,
+    formData.getAll("modulos").map(String),
+  );
+
+  // Plano de pacote fechado sem composição gravada cai nos módulos padrão da
+  // plataforma (`platform_settings.default_modules`) em vez de barrar o
+  // cadastro — antes isto era uma lista fixa em código.
+  if (modulos.length === 0 && !regra.custom) {
+    modulos = await modulosPadrao();
+  }
 
   if (modulos.length === 0) {
     return erro(
-      plano === "custom"
+      regra.custom
         ? "Selecione ao menos um módulo para o plano customizado."
         : "O plano escolhido não tem módulos configurados.",
       "modulos",
@@ -306,17 +347,19 @@ export async function atualizarCliente(
   const auth = await exigirAdmin();
   if (!("supabase" in auth)) return auth;
 
-  if (!ehPlanoValido(plano)) return { ok: false, mensagem: "Plano inválido." };
+  // Mesma leitura do cadastro: preço e composição saem de `plans`, nunca do
+  // que o navegador mandou.
+  const regra = await lerPlano(auth.supabase, plano);
+  if (!regra) return { ok: false, mensagem: "Plano inválido." };
 
-  const modulos = modulosDoPlano(plano, modulosEscolhidos);
+  const modulos = resolverModulos(regra.custom, regra.mods, modulosEscolhidos);
   if (modulos.length === 0) {
     return { ok: false, mensagem: "Selecione ao menos um módulo para este cliente." };
   }
 
-  const mensalidade =
-    plano === "custom" ? paraNumero(valorFormatado) : (MENSALIDADE_PADRAO[plano] ?? 0);
+  const mensalidade = regra.custom ? paraNumero(valorFormatado) : (regra.preco ?? 0);
 
-  if (plano === "custom" && mensalidade <= 0) {
+  if (regra.custom && mensalidade <= 0) {
     return { ok: false, mensagem: "Informe a mensalidade do plano customizado." };
   }
 

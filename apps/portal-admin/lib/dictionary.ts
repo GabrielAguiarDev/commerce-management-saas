@@ -238,6 +238,7 @@ const pt = {
   vazioVisaoTexto:
     "Cadastre seu primeiro cliente para ver receita, ativações e atividade da plataforma.",
   erroChamadosTitulo: "Não foi possível carregar os chamados",
+  erroFinanceiroTitulo: "Não foi possível carregar o financeiro",
   enviando: "Enviando…",
   clientesCobraveis: "clientes cobráveis",
   vazioSuporteTitulo: "Nenhum chamado no momento",
@@ -498,6 +499,7 @@ const en: Dic = {
   vazioVisaoTexto:
     "Register your first customer to see revenue, activations and platform activity.",
   erroChamadosTitulo: "Could not load the tickets",
+  erroFinanceiroTitulo: "Could not load the finance data",
   enviando: "Sending…",
   clientesCobraveis: "billable customers",
   vazioSuporteTitulo: "No tickets right now",

@@ -201,11 +201,17 @@ export interface AdminState {
   emailRec: string;
   receita: ReceitaMes[];
   pagamentos: Record<string, Pagamento>;
+  /** Falha ao ler `platform_payments`. */
+  erroFinanceiro: string | null;
   modulos: Modulo[];
   /** Falha ao ler o catálogo de módulos no Supabase. */
   erroModulos: string | null;
   planos: Plano[];
+  /** Falha ao ler `plans`. */
+  erroPlanos: string | null;
   config: ConfigItem[];
+  /** Falha ao ler `platform_settings`. */
+  erroConfig: string | null;
   chamadoSel: string;
   filtroChamado: string;
   buscaChamado: string;

@@ -4,8 +4,11 @@ import { AdminProvider } from "@/components/AdminProvider";
 import { AdminShell } from "@/components/AdminShell";
 import { listarChamados } from "@/lib/chamados";
 import { listarClientes } from "@/lib/clientes";
+import { listarConfiguracoes } from "@/lib/configuracoes";
 import { listarModulos } from "@/lib/modulos";
+import { listarFinanceiro } from "@/lib/pagamentos";
 import { perfilAtual } from "@/lib/perfil";
+import { listarPlanos } from "@/lib/planosBanco";
 import "./globals.css";
 
 const plexSans = IBM_Plex_Sans({
@@ -43,16 +46,30 @@ export default async function RootLayout({
   // em cada página, porque a lista alimenta quatro telas de uma vez (visão,
   // clientes, ficha e financeiro) e todas precisam concordar entre si.
   //
-  // Em paralelo: são duas consultas independentes, e encadeá-las com dois
-  // `await` seguidos somaria os dois tempos de ida e volta à espera de todo
-  // render. Os chamados alimentam a tela de Suporte, o contador da Visão e as
-  // notificações do topo.
+  // Em paralelo: são consultas independentes, e encadeá-las com um `await`
+  // atrás do outro somaria todos os tempos de ida e volta à espera de todo
+  // render.
+  //
+  // `listarPlanos` fica de fora do bloco porque `listarModulos` DEPENDE dela:
+  // "disponível em" é derivado de `plans.module_keys`. As duas leituras juntas
+  // ainda são mais rápidas do que a cascata inteira em série.
+  const { planos, erro: erroPlanos } = await listarPlanos();
+
   const [
     { clientes, erro },
     { chamados, erro: erroChamados },
     { modulos, erro: erroModulos },
+    { pagamentos, receita, erro: erroFinanceiro },
+    { config, erro: erroConfig },
     perfil,
-  ] = await Promise.all([listarClientes(), listarChamados(), listarModulos(), perfilAtual()]);
+  ] = await Promise.all([
+    listarClientes(),
+    listarChamados(),
+    listarModulos(planos),
+    listarFinanceiro(),
+    listarConfiguracoes(),
+    perfilAtual(),
+  ]);
 
   return (
     <html
@@ -71,6 +88,13 @@ export default async function RootLayout({
           erroChamados={erroChamados}
           modulosIniciais={modulos}
           erroModulos={erroModulos}
+          planosIniciais={planos}
+          erroPlanos={erroPlanos}
+          pagamentosIniciais={pagamentos}
+          receitaInicial={receita}
+          erroFinanceiro={erroFinanceiro}
+          configIniciais={config}
+          erroConfig={erroConfig}
           adminNome={perfil?.nome ?? perfil?.email ?? null}
         >
           <AdminShell>{children}</AdminShell>

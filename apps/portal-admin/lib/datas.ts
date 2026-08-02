@@ -22,13 +22,6 @@ export function hojeRotulo(idioma: "pt" | "en" = "pt"): string {
   return `${d.getDate()} ${mes} ${d.getFullYear()}`;
 }
 
-/** "01/08/2026" — o mesmo formato que o banco recebe formatado nas listagens. */
-export function hojeCurto(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
-}
-
 /** Mês corrente por extenso, para os títulos das telas ("agosto de 2026"). */
 export function mesCorrente(idioma: "pt" | "en" = "pt"): string {
   const d = new Date();

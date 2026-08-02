@@ -1,5 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { salvarConfiguracao } from "@/app/configuracoes/actions";
 import { useAdmin } from "@/components/AdminProvider";
 import { Campo, Selecao } from "@/components/campos";
 import { css, MONO } from "@/lib/css";
@@ -11,6 +14,23 @@ export function ConfigView() {
   const { s, a } = useAdmin();
   const { L } = a;
   const id = s.idioma;
+  const router = useRouter();
+  const [salvando, iniciarSalvar] = useTransition();
+
+  /**
+   * Grava o ajuste em `platform_settings` e relê. O estado local não é tocado:
+   * quem manda no que aparece é o banco, então um valor recusado nunca fica na
+   * tela parecendo salvo.
+   */
+  const salvar = (chave: string, valor: string | number | string[]) => {
+    iniciarSalvar(async () => {
+      const res = await salvarConfiguracao(chave, valor);
+      if (!res.ok) return a.toast(res.mensagem, "erro");
+      a.set({ cfgEditando: null, cfgRascunho: null });
+      a.toast(L.toastConfig);
+      router.refresh();
+    });
+  };
 
   const nomeModulo = (k: string) => {
     const m = s.modulos.find((y) => y.k === k);
@@ -132,29 +152,22 @@ export function ConfigView() {
                   )}
 
                   <button
-                    onClick={() => {
-                      a.set((st) => ({
-                        config: st.config.map((x) =>
-                          x.id === cfg.id
-                            ? {
-                                ...x,
-                                valor: Array.isArray(st.cfgRascunho)
-                                  ? st.cfgRascunho.slice()
-                                  : (st.cfgRascunho ?? x.valor),
-                              }
-                            : x,
-                        ),
-                        cfgEditando: null,
-                        cfgRascunho: null,
-                      }));
-                      a.toast(L.toastConfig);
-                    }}
+                    onClick={() =>
+                      salvar(
+                        cfg.id,
+                        Array.isArray(s.cfgRascunho)
+                          ? s.cfgRascunho.slice()
+                          : (s.cfgRascunho ?? cfg.valor),
+                      )
+                    }
+                    disabled={salvando}
                     style={css(
                       "border:1px solid var(--acc);background:var(--acc);color:var(--accTx);" +
-                        "font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;cursor:pointer",
+                        "font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;" +
+                        (salvando ? "opacity:.6;cursor:progress" : "cursor:pointer"),
                     )}
                   >
-                    {L.salvarSimples}
+                    {salvando ? L.enviando : L.salvarSimples}
                   </button>
                   <button
                     onClick={() => a.set({ cfgEditando: null, cfgRascunho: null })}

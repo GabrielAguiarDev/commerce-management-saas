@@ -85,7 +85,10 @@ export function FinanceiroView() {
     },
   ];
 
-  const maxReceita = Math.max(...s.receita.map((g) => g.valor));
+  // Todo mês do período aparece no gráfico, inclusive os zerados (ver
+  // `lib/pagamentos.ts`). Sem o piso de 1, um período inteiro sem receita daria
+  // divisão por zero e barras com altura NaN.
+  const maxReceita = Math.max(1, ...s.receita.map((g) => g.valor));
 
   const qp = s.buscaPag.trim().toLowerCase();
   const linhas = cs.filter((x) => {
@@ -442,11 +445,13 @@ export function FinanceiroView() {
             >
               <FinanceiroIcone size={22} />
             </div>
+            {/* Uma leitura que falhou não é "nenhum pagamento": dizer que está
+                tudo vazio esconderia o problema. */}
             <span style={css("font-size:14px;font-weight:600;color:var(--tx)")}>
-              {L.vazioFinanceiroTitulo}
+              {s.erroFinanceiro ? L.erroFinanceiroTitulo : L.vazioFinanceiroTitulo}
             </span>
             <span style={css("font-size:12.5px;color:var(--tx2);line-height:1.55;max-width:40ch")}>
-              {L.vazioFinanceiroTexto}
+              {s.erroFinanceiro || L.vazioFinanceiroTexto}
             </span>
           </div>
         )}

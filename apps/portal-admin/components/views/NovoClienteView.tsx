@@ -8,13 +8,7 @@ import { BarraAcoes } from "@/components/BarraAcoes";
 import { GradeModulos, ModuloCard } from "@/components/ModuloCard";
 import { Campo, Selecao } from "@/components/campos";
 import { css, MONO } from "@/lib/css";
-import {
-  ehPlanoFixo,
-  modulosDoPlano,
-  ROTULO_PLANO,
-  SUGESTAO_CUSTOM,
-  type Plano,
-} from "@/lib/planos";
+import { ehPlanoFixo, modulosDoPlano, planoPorChave } from "@/lib/planos";
 import { clienteHref, ROTAS } from "@/lib/rotas";
 
 const ROTULO_CAMPO =
@@ -49,20 +43,28 @@ export function NovoClienteView() {
     email: "",
     mensalidade: "",
   });
-  const [plano, setPlano] = useState<Plano>("free");
-  const [escolhidos, setEscolhidos] = useState<string[]>([...SUGESTAO_CUSTOM]);
+  // O plano inicial é o primeiro do catálogo lido de `plans` (ordenado por
+  // `sort_order`), não a chave "free" escrita à mão. Como o catálogo chega do
+  // servidor, o padrão é DERIVADO no render em vez de gravado por um efeito —
+  // um efeito renderizaria uma vez com o seletor vazio antes de corrigir.
+  const [planoEscolhido, setPlano] = useState<string>("");
+  const [escolhidos, setEscolhidos] = useState<string[]>([]);
+  const plano = planoEscolhido || (s.planos[0]?.k ?? "");
   // Só destacamos o que falta depois da primeira tentativa de envio, para não
   // pintar a tela de vermelho enquanto a pessoa ainda está preenchendo.
   const [tentouEnviar, setTentouEnviar] = useState(false);
 
-  const planoFixo = ehPlanoFixo(plano);
-  const ativos = modulosDoPlano(plano, escolhidos);
+  // `planoAtual` fica indefinido só no primeiro render, antes do efeito que
+  // escolhe o padrão; a tela lida com isso mostrando a grade vazia.
+  const planoAtual = planoPorChave(s.planos, plano);
+  const planoFixo = ehPlanoFixo(planoAtual);
+  const ativos = modulosDoPlano(planoAtual, escolhidos);
 
   const preenchido = Object.values(campos).some((v) => v.trim() !== "");
   const faltando: CampoObrigatorio[] = (["nome", "responsavel", "email"] as const).filter(
     (k) => campos[k].trim() === "",
   );
-  const custoFaltando = plano === "custom" && campos.mensalidade.trim() === "";
+  const custoFaltando = planoAtual?.tipo === "custom" && campos.mensalidade.trim() === "";
   const modulosFaltando = ativos.length === 0;
   const podeEnviar = faltando.length === 0 && !custoFaltando && !modulosFaltando;
 
@@ -77,8 +79,13 @@ export function NovoClienteView() {
   // Ao sair da tela, o formulário deixa de existir — nada mais a proteger.
   useEffect(() => () => set({ novoClienteSujo: false }), [set]);
 
-  const trocarPlano = (novo: Plano) => {
-    if (novo === "custom" && ehPlanoFixo(plano)) setEscolhidos(modulosDoPlano(plano));
+  /**
+   * Ao entrar num plano customizado, a grade começa com o que o plano anterior
+   * já dava — é o ponto de partida mais útil, e o admin ajusta a partir daí.
+   */
+  const trocarPlano = (novo: string) => {
+    const alvo = planoPorChave(s.planos, novo);
+    if (alvo?.tipo === "custom" && planoFixo) setEscolhidos(modulosDoPlano(planoAtual));
     setPlano(novo);
   };
 
@@ -97,8 +104,9 @@ export function NovoClienteView() {
       email: "",
       mensalidade: "",
     });
-    setPlano("free");
-    setEscolhidos([...SUGESTAO_CUSTOM]);
+    // "" volta ao padrão derivado, seja ele qual for.
+    setPlano("");
+    setEscolhidos([]);
     setTentouEnviar(false);
   };
 
@@ -263,18 +271,22 @@ export function NovoClienteView() {
               <Selecao
                 name="plano"
                 value={plano}
-                onChange={(e) => trocarPlano(e.target.value as Plano)}
+                onChange={(e) => trocarPlano(e.target.value)}
                 disabled={enviando}
                 estiloCaixa="width:100%"
               >
-                <option value="free">{ROTULO_PLANO.free}</option>
-                <option value="paid">{ROTULO_PLANO.paid}</option>
-                <option value="custom">{ROTULO_PLANO.custom}</option>
+                {/* Opções vindas de `plans`, na ordem de `sort_order`. */}
+                {s.planos.map((p) => (
+                  <option key={p.k} value={p.k}>
+                    {p.nome[id] || p.nome.pt}
+                  </option>
+                ))}
               </Selecao>
             </label>
 
-            {/* A mensalidade só existe no Customizado — nos outros é tabelada. */}
-            {plano === "custom" && (
+            {/* A mensalidade só existe no plano sob medida (`plans.is_custom`);
+                nos demais vale o preço gravado em `plans.price`. */}
+            {planoAtual?.tipo === "custom" && (
               <label style={css("display:flex;flex-direction:column;gap:6px;min-width:0")}>
                 <span style={css(ROTULO_CAMPO)}>
                   {L.mensalidade}

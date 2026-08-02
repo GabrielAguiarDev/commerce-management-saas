@@ -1,33 +1,22 @@
+import type { Plano } from "@/types/types";
+
 /**
- * REGRA COMERCIAL — fonte única da verdade sobre planos e módulos.
+ * Regras de plano — as que sobraram em código depois que a oferta virou dado.
  *
- * Tudo o que define "o que cada plano libera", "quanto custa" e "como cada
- * módulo se chama" está neste arquivo. Para mudar a oferta, mude AQUI: nem a
- * Server Action nem a interface guardam essa regra por conta própria.
+ * O catálogo de planos (nome, preço, descrição, módulos inclusos) mora na
+ * tabela `plans` e é lido por `lib/planosBanco.ts`. O catálogo de módulos mora
+ * em `modules` e é lido por `lib/modulos.ts`. Este arquivo não guarda mais
+ * nenhum dos dois: só as funções que interpretam essa oferta, e um punhado de
+ * apresentação que o banco não tem onde guardar.
  *
- * As chaves são as mesmas da tabela `modules` do banco (em inglês).
+ * As chaves são as mesmas da tabela `modules`.
  */
 
-export type Plano = "free" | "paid" | "custom";
-
-export const PLANOS: Plano[] = ["free", "paid", "custom"];
-
-export const ROTULO_PLANO: Record<Plano, string> = {
-  free: "Gratuito",
-  paid: "Pago",
-  custom: "Customizado",
-};
-
 // =====================================================================
-// APRESENTAÇÃO DOS MÓDULOS
-//
-// O catálogo em si (chave, nome, descrição, se é módulo de acesso) vive na
-// tabela `modules` e é lido por `lib/modulos.ts`. O que sobra aqui é o que o
-// banco não guarda: as duas letras do ícone, que são decisão de interface.
-//
-// As chaves são as mesmas da tabela `modules`.
+// APRESENTAÇÃO
 // =====================================================================
 
+/** As duas letras do ícone de cada módulo. Decisão de interface, sem coluna. */
 export const SIGLA_MODULO: Record<string, string> = {
   sales: "VD",
   products: "PR",
@@ -40,65 +29,55 @@ export const SIGLA_MODULO: Record<string, string> = {
 };
 
 // =====================================================================
-// PACOTES POR PLANO
-//
-// Gratuito e Pago têm pacote FECHADO: o admin vê quais módulos vêm, mas não
-// escolhe. Só o Customizado permite montar a combinação livremente.
+// REGRAS
 // =====================================================================
 
-export const PACOTES_FIXOS: Record<"free" | "paid", readonly string[]> = {
-  // Gratuito: o essencial para o comércio começar a operar.
-  free: ["sales", "products", "costs"],
-
-  // Pago: todos os módulos de função, mais o acesso ao app mobile.
-  paid: ["sales", "products", "stock", "cash", "costs", "reports", "support", "app"],
-};
-
 /**
- * Sugestão inicial ao abrir o plano Customizado. É só um ponto de partida —
- * o admin liga e desliga o que quiser a partir daí.
- */
-export const SUGESTAO_CUSTOM: readonly string[] = PACOTES_FIXOS.paid;
-
-/** Planos de pacote fechado (grade só de leitura na interface). */
-export function ehPlanoFixo(plano: Plano): plano is "free" | "paid" {
-  return plano === "free" || plano === "paid";
-}
-
-/**
- * Decide os módulos que serão ativados. É a função que aplica a regra —
- * chamada tanto pela interface (para mostrar) quanto pela Server Action (para
- * gravar), então as duas nunca discordam.
+ * Decide os módulos que serão ativados, a partir da composição do plano.
  *
- * Num plano fixo, `escolhidos` é ignorado de propósito: mesmo que alguém
+ * É o coração da regra, e existe como função pura de propósito: a interface
+ * chama com o plano que veio do provider (para mostrar) e a Server Action
+ * chama com a linha que ela mesma leu de `plans` (para gravar). As duas nunca
+ * discordam, e a Action nunca depende do que o navegador afirmou.
+ *
+ * Num plano de pacote fechado, `escolhidos` é ignorado: mesmo que alguém
  * forjasse a requisição marcando módulos extras, o pacote do plano prevalece.
- *
- * Não filtra mais contra uma lista de chaves em código: o catálogo agora vem
- * da tabela `modules`, e é o banco que rejeita uma chave inválida — tanto na
- * `admin_create_tenant` quanto na `admin_update_tenant`, que conferem cada
- * chave contra `modules` e falham a transação inteira se alguma não existir.
- * Duplicar a lista aqui só recriaria a divergência que acabamos de eliminar.
  */
-export function modulosDoPlano(plano: Plano, escolhidos: readonly string[] = []): string[] {
-  if (ehPlanoFixo(plano)) return [...PACOTES_FIXOS[plano]];
+export function resolverModulos(
+  ehCustom: boolean,
+  modulosDoPlano: readonly string[],
+  escolhidos: readonly string[] = [],
+): string[] {
+  if (!ehCustom) return [...modulosDoPlano];
   // Customizado: só o que foi marcado, sem repetição.
   return [...new Set(escolhidos)];
 }
 
-// =====================================================================
-// PREÇO
-// =====================================================================
+/** Plano de pacote fechado — a grade de módulos fica só de leitura. */
+export function ehPlanoFixo(plano: Plano | undefined): boolean {
+  return plano?.tipo === "fixo";
+}
+
+export function planoPorChave(planos: Plano[], k: string): Plano | undefined {
+  return planos.find((p) => p.k === k);
+}
+
+/** Atalho para a interface, que trabalha com o formato de tela. */
+export function modulosDoPlano(plano: Plano | undefined, escolhidos: readonly string[] = []) {
+  if (!plano) return [];
+  return resolverModulos(plano.tipo === "custom", plano.mods, escolhidos);
+}
 
 /**
- * Mensalidade padrão em reais. `custom` é `null` porque o valor é negociado
- * caso a caso e vem do formulário.
+ * Completa o plano customizado com todos os módulos do catálogo.
+ *
+ * `plans.custom.module_keys` é um array vazio no banco — e está certo: "sob
+ * medida" não tem composição fixa. Só que o cartão da tela de Planos ficaria
+ * anunciando "0 módulos inclusos", o que lê como erro. Aqui ele passa a
+ * mostrar o catálogo inteiro, que é o que o admin de fato pode escolher.
  */
-export const MENSALIDADE_PADRAO: Record<Plano, number | null> = {
-  free: 0,
-  paid: 89,
-  custom: null,
-};
-
-export function ehPlanoValido(v: unknown): v is Plano {
-  return typeof v === "string" && (PLANOS as string[]).includes(v);
+export function planosComCatalogo(planos: Plano[], chavesDoBanco: string[]): Plano[] {
+  return planos.map((p) =>
+    p.tipo === "custom" && p.mods.length === 0 ? { ...p, mods: chavesDoBanco } : p,
+  );
 }

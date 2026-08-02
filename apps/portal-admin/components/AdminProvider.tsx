@@ -16,9 +16,10 @@ import {
   excluirCliente,
   mudarStatusCliente,
 } from "@/app/clientes/actions";
-import { planosComCatalogo } from "@/lib/catalogo";
+import { marcarPago, reverterPago } from "@/app/financeiro/actions";
+import { criarPlano, salvarModulo, salvarPlano } from "@/app/planos/actions";
 import { DIC } from "@/lib/dictionary";
-import { hojeCurto } from "@/lib/datas";
+import { planosComCatalogo } from "@/lib/planos";
 import { ROTAS } from "@/lib/rotas";
 import { ESTADO_INICIAL, estaSujo } from "@/lib/state";
 import { createClient } from "@/lib/supabase/client";
@@ -28,12 +29,14 @@ import type {
   AdminState,
   Chamado,
   Cliente,
+  ConfigItem,
   Modulo,
   Pagamento,
+  Plano,
+  ReceitaMes,
   Patch,
   Rascunho,
   StatusCliente,
-  StatusPagamento,
   ToastEstado,
 } from "@/types/types";
 import type { ViewProps } from "@/types/viewProps";
@@ -64,6 +67,13 @@ export function AdminProvider({
   erroChamados = null,
   modulosIniciais = [],
   erroModulos = null,
+  planosIniciais = [],
+  erroPlanos = null,
+  pagamentosIniciais = {},
+  receitaInicial = [],
+  erroFinanceiro = null,
+  configIniciais = [],
+  erroConfig = null,
   adminNome = null,
   ...overrides
 }: {
@@ -77,6 +87,16 @@ export function AdminProvider({
   /** Catálogo de módulos lido da tabela `modules` pelo layout. */
   modulosIniciais?: Modulo[];
   erroModulos?: string | null;
+  /** Catálogo de planos lido da tabela `plans`. */
+  planosIniciais?: Plano[];
+  erroPlanos?: string | null;
+  /** Financeiro lido de `platform_payments`. */
+  pagamentosIniciais?: Record<string, Pagamento>;
+  receitaInicial?: ReceitaMes[];
+  erroFinanceiro?: string | null;
+  /** Ajustes lidos de `platform_settings`. */
+  configIniciais?: ConfigItem[];
+  erroConfig?: string | null;
   /** Nome do admin logado, de `profiles.full_name`. */
   adminNome?: string | null;
 } & Partial<AdminOpcoes>) {
@@ -94,8 +114,17 @@ export function AdminProvider({
     modulos: modulosIniciais,
     erroModulos,
     adminNome,
+    pagamentos: pagamentosIniciais,
+    receita: receitaInicial,
+    erroFinanceiro,
+    config: configIniciais,
+    erroConfig,
+    erroPlanos,
     // O plano customizado inclui "todos os módulos", e só o banco sabe quais.
-    planos: planosComCatalogo(ESTADO_INICIAL.planos, modulosIniciais.map((m) => m.k)),
+    planos: planosComCatalogo(
+      planosIniciais,
+      modulosIniciais.map((m) => m.k),
+    ),
     // Sem semente: o chamado selecionado é o primeiro que veio do banco.
     chamadoSel: chamadosIniciais[0]?.id ?? "",
   }));
@@ -126,7 +155,15 @@ export function AdminProvider({
     `#${erroChamados ?? ""}` +
     "@" +
     modulosIniciais.map((m) => m.k).join("|") +
-    `#${erroModulos ?? ""}#${adminNome ?? ""}`;
+    `#${erroModulos ?? ""}#${adminNome ?? ""}` +
+    "@" +
+    planosIniciais.map((p) => `${p.k}:${p.preco}:${p.mods.join(",")}`).join("|") +
+    "@" +
+    Object.entries(pagamentosIniciais)
+      .map(([k, v]) => `${k}:${v.status}:${v.ultimo}`)
+      .join("|") +
+    "@" +
+    configIniciais.map((c) => `${c.id}:${String(c.valor)}`).join("|");
   const [assinaturaAplicada, setAssinaturaAplicada] = useState(assinatura);
 
   if (assinatura !== assinaturaAplicada) {
@@ -140,8 +177,14 @@ export function AdminProvider({
       modulos: modulosIniciais,
       erroModulos,
       adminNome,
+      pagamentos: pagamentosIniciais,
+      receita: receitaInicial,
+      erroFinanceiro,
+      config: configIniciais,
+      erroConfig,
+      erroPlanos,
       planos: planosComCatalogo(
-        ESTADO_INICIAL.planos,
+        planosIniciais,
         modulosIniciais.map((m) => m.k),
       ),
       // O chamado aberto pode ter deixado de existir; nesse caso volta para o
@@ -378,142 +421,55 @@ export function AdminProvider({
   };
 
   /**
-   * TODO: conectar ao Supabase.
+   * Grava a edição de plano ou de módulo.
    *
-   * Editar plano ou módulo grava só na memória, e um `router.refresh()` desfaz.
-   * Para PLANOS falta tabela — a oferta hoje é regra em `lib/planos.ts`, e a
-   * decisão pendente é se planos viram dado ou se estes botões saem da tela.
-   * Para MÓDULOS a tabela existe (`modules`), mas editar o catálogo do produto
-   * é operação de plataforma, não de painel: fica para quando houver a decisão
-   * acima, junto.
+   * Nada mais mexe no estado local: a Server Action revalida o layout, o
+   * `router.refresh()` traz o catálogo relido e o bloco de sincronização
+   * aplica. Assim a tela nunca mostra uma composição que o banco recusou.
    */
   const salvarForm = () => {
     const f = state.form;
     if (!f || !f.nome.trim()) return;
-    const nome = { pt: f.nome.trim(), en: f.nome.trim() };
-    const desc = { pt: f.desc.trim(), en: f.desc.trim() };
 
-    if (f.tipo === "plano") {
-      set((s) =>
-        f.novo
-          ? {
-              modal: null,
-              form: null,
-              planos: [
-                ...s.planos,
-                {
-                  k: f.nome.trim(),
-                  nome,
-                  tipo: "fixo",
-                  preco: f.preco.trim() || "R$ 0",
-                  desc,
-                  mods: f.sel.slice(),
-                },
-              ],
-            }
-          : {
-              modal: null,
-              form: null,
-              planos: s.planos.map((p) =>
-                p.k === f.k
-                  ? {
-                      ...p,
-                      nome,
-                      desc,
-                      mods: f.sel.slice(),
-                      preco: p.tipo === "fixo" ? f.preco.trim() || p.preco : null,
-                    }
-                  : p,
-              ),
-            },
-      );
-      return;
-    }
+    // Fecha o diálogo já; o resultado chega por toast.
+    set({ modal: null, form: null });
 
-    set((s) =>
-      f.novo
-        ? {
-            modal: null,
-            form: null,
-            modulos: [
-              ...s.modulos,
-              {
-                k: f.nome
-                  .trim()
-                  .toLowerCase()
-                  .replace(/[^a-z0-9]+/g, "-"),
-                nome,
-                sigla: f.nome.trim().slice(0, 2).toUpperCase(),
-                desc,
-                planos: f.sel.slice(),
-              },
-            ],
-          }
-        : {
-            modal: null,
-            form: null,
-            modulos: s.modulos.map((m) =>
-              m.k === f.k ? { ...m, nome, desc, planos: f.sel.slice() } : m,
-            ),
-          },
-    );
+    iniciarAcao(async () => {
+      const res =
+        f.tipo === "plano"
+          ? f.novo
+            ? await criarPlano(f.nome, f.preco, f.desc, f.sel)
+            : await salvarPlano(f.k ?? "", f.nome, f.preco, f.desc, f.sel)
+          : // Na tela de Módulos edita-se a descrição (em `modules`) e os
+            // planos que incluem o módulo (em `plans.module_keys`).
+            await salvarModulo(f.k ?? "", f.desc, f.sel);
+
+      if (!res.ok) return toast(res.mensagem, "erro");
+      toast(f.tipo === "plano" ? L.toastPlanoSalvo : L.toastModuloSalvo);
+      router.refresh();
+    });
   };
 
-  // TODO: conectar ao Supabase. Não existe tabela de pagamentos/faturas no
-  // banco, então isto grava só na memória e some ao recarregar a página.
+  /** Registra o pagamento do mês corrente em `platform_payments`. */
   const registrarPagamento = (clienteId: string) => {
-    const x = state.clientes.find((y) => y.id === clienteId);
-    if (!x) return;
-    const hoje = hojeCurto();
-    const p: Pick<Pagamento, "vencimento" | "hist"> = state.pagamentos[clienteId] ?? {
-      vencimento: "—",
-      hist: [],
-    };
-    // Manual tracking: the next due date is simply the current one a month on.
-    const venc =
-      p.vencimento && p.vencimento !== "—"
-        ? p.vencimento.replace(
-            /^(\d{2})\/(\d{2})/,
-            (_m, d: string, mes: string) =>
-              d + "/" + String(Math.min(12, parseInt(mes, 10) + 1)).padStart(2, "0"),
-          )
-        : hoje.replace(
-            /^(\d{2})\/(\d{2})/,
-            (_m, d: string, mes: string) =>
-              d + "/" + String(Math.min(12, parseInt(mes, 10) + 1)).padStart(2, "0"),
-          );
-    set((st) => ({
-      menuPag: null,
-      pagamentos: {
-        ...st.pagamentos,
-        [clienteId]: {
-          status: "emdia" as StatusPagamento,
-          ultimo: hoje,
-          vencimento: venc,
-          hist: ([[hoje, x.valor]] as [string, string][]).concat(p.hist || []),
-        },
-      },
-    }));
-    toast(L.toastPago);
+    set({ menuPag: null });
+    iniciarAcao(async () => {
+      const res = await marcarPago(clienteId);
+      if (!res.ok) return toast(res.mensagem, "erro");
+      toast(L.toastPago);
+      router.refresh();
+    });
   };
 
+  /** Desfaz o último pagamento registrado deste cliente. */
   const reverterPagamento = (clienteId: string) => {
-    const p = state.pagamentos[clienteId];
-    if (!p) return;
-    const hist = (p.hist || []).slice(1);
-    set((st) => ({
-      menuPag: null,
-      pagamentos: {
-        ...st.pagamentos,
-        [clienteId]: {
-          status: "pendente" as StatusPagamento,
-          ultimo: hist[0] ? hist[0][0] : "—",
-          vencimento: p.vencimento,
-          hist,
-        },
-      },
-    }));
-    toast(L.toastRevertido, "alerta");
+    set({ menuPag: null });
+    iniciarAcao(async () => {
+      const res = await reverterPago(clienteId);
+      if (!res.ok) return toast(res.mensagem, "erro");
+      toast(L.toastRevertido, "alerta");
+      router.refresh();
+    });
   };
 
   const confirmarModal = () => {
@@ -568,8 +524,9 @@ export function AdminProvider({
         return;
       case "plano":
       case "modulo":
+        // O toast agora sai de dentro de `salvarForm`, junto do resultado da
+        // gravação — antes ele anunciava sucesso antes de haver gravação.
         salvarForm();
-        toast(m.tipo === "plano" ? L.toastPlanoSalvo : L.toastModuloSalvo);
         return;
     }
 
