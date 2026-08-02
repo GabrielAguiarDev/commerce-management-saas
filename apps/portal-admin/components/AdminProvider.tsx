@@ -414,7 +414,9 @@ export function AdminProvider({
         nome: m.nome[id],
         preco: "",
         desc: m.desc[id],
-        sel: m.planos.slice(),
+        // Vazio de propósito: a ficha do módulo não edita mais a relação com
+        // os planos — ela é definida só na tela de Planos.
+        sel: [],
         fixo: false,
       },
     });
@@ -440,9 +442,10 @@ export function AdminProvider({
           ? f.novo
             ? await criarPlano(f.nome, f.preco, f.desc, f.sel)
             : await salvarPlano(f.k ?? "", f.nome, f.preco, f.desc, f.sel)
-          : // Na tela de Módulos edita-se a descrição (em `modules`) e os
-            // planos que incluem o módulo (em `plans.module_keys`).
-            await salvarModulo(f.k ?? "", f.desc, f.sel);
+          : // Na tela de Módulos edita-se só a descrição, em `modules`. A
+            // relação com os planos mora em `plans.module_keys` e é editada
+            // apenas do lado do plano.
+            await salvarModulo(f.k ?? "", f.desc);
 
       if (!res.ok) return toast(res.mensagem, "erro");
       toast(f.tipo === "plano" ? L.toastPlanoSalvo : L.toastModuloSalvo);

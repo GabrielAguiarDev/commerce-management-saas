@@ -173,6 +173,9 @@ const pt = {
   campoDescricao: "Descrição",
   campoModulos: "Módulos inclusos",
   campoPlanos: "Disponível nos planos",
+  nenhumPlano: "Nenhum plano inclui este módulo.",
+  relacaoNosPlanos:
+    "Somente leitura. Para mudar em quais planos este módulo entra, edite os módulos inclusos na tela de Planos.",
   avisoPreco:
     "A mudança de preço vale para novas contratações. Clientes atuais continuam pagando o valor já acordado.",
   avisoCustomPreco:
@@ -261,7 +264,7 @@ const pt = {
   toastSenha: "Senha definida com sucesso",
   toastErroSenha: "As senhas não conferem",
   modulosFixos:
-    "A lista de módulos é definida no sistema. Aqui você ajusta a descrição e em quais planos cada módulo está disponível.",
+    "A lista de módulos é definida no sistema. Aqui você ajusta a descrição de cada um. A coluna \u201cDisponível em\u201d é calculada a partir dos planos — para mudá-la, edite os módulos inclusos na tela de Planos.",
   reverterPagamento: "Reverter pagamento",
   verHistorico: "Ver histórico",
   confirmarPagTitulo: "Confirmar pagamento?",
@@ -438,6 +441,9 @@ const en: Dic = {
   campoDescricao: "Description",
   campoModulos: "Included modules",
   campoPlanos: "Available on plans",
+  nenhumPlano: "No plan includes this module.",
+  relacaoNosPlanos:
+    "Read-only. To change which plans include this module, edit the included modules on the Plans screen.",
   avisoPreco:
     "Price changes apply to new contracts. Current customers keep the amount already agreed.",
   avisoCustomPreco: "Custom plan: the amount is set per customer, in each record.",
@@ -522,7 +528,7 @@ const en: Dic = {
   toastSenha: "Password set successfully",
   toastErroSenha: "Passwords do not match",
   modulosFixos:
-    "The module list is defined in the system. Here you adjust the description and which plans each module belongs to.",
+    "The module list is defined in the system. Here you adjust each one\u2019s description. The \u201cAvailable on\u201d column is derived from the plans — to change it, edit the included modules on the Plans screen.",
   reverterPagamento: "Revert payment",
   verHistorico: "View history",
   confirmarPagTitulo: "Confirm payment?",

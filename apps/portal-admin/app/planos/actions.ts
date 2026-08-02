@@ -74,67 +74,35 @@ export async function salvarPlano(
 }
 
 /**
- * Edição de um módulo: a descrição e em quais planos ele aparece.
+ * Edição de um módulo — apenas a descrição.
  *
- * As duas metades vivem em tabelas diferentes, e isso não é acidente. A
- * descrição é propriedade do MÓDULO (`modules.description`). Já "disponível
- * em" é propriedade da RELAÇÃO, e quem guarda é o PLANO (`plans.module_keys`)
- * — então marcar um plano aqui significa acrescentar a chave do módulo naquele
- * plano, e desmarcar, removê-la. É a mesma verdade, escrita do outro lado.
+ * A RELAÇÃO módulo↔plano NÃO se edita por aqui, de propósito. Quem a guarda é
+ * `plans.module_keys`, e ela é definida só na tela de Planos. Antes dava para
+ * mexer nela pelos dois lados, o que criava duas fontes da verdade para o
+ * mesmo fato: marcar "Pago" na ficha do módulo e remover aquele módulo do
+ * plano Pago eram edições contraditórias, e a última a gravar vencia.
  *
- * Não é transacional: se a segunda metade falhar, a descrição fica gravada e a
- * composição não. As duas são independentes e reeditáveis, então o estrago é
- * pequeno perto de introduzir uma função de banco só para isto.
+ * A tela de Módulos continua MOSTRANDO em quais planos o módulo está, mas como
+ * valor derivado de `plans.module_keys` (ver `lib/modulos.ts`) — leitura, não
+ * edição. Assim os dois lados não têm como discordar.
  */
 export async function salvarModulo(
   moduloKey: string,
   descricao: string,
-  planosMarcados: string[],
 ): Promise<ResultadoAcao> {
   const auth = await exigirAdmin("editar módulos");
   if (!auth.ok) return auth;
 
-  // A descrição é do módulo e mora em `modules`. O nome fica de fora de
-  // propósito: o formulário não expõe campo para ele, então gravá-lo aqui só
-  // criaria a chance de sobrescrever com um valor que ninguém editou.
-  const { error: erroDescricao } = await auth.supabase
+  // O nome fica de fora: o formulário não expõe campo para ele, então gravá-lo
+  // aqui só criaria a chance de sobrescrever com um valor que ninguém editou.
+  const { error } = await auth.supabase
     .from("modules")
     .update({ description: descricao.trim() || null })
     .eq("key", moduloKey);
 
-  if (erroDescricao) {
-    console.error("[salvarModulo] falha ao gravar descrição:", erroDescricao.message);
-    return { ok: false, mensagem: `Não foi possível salvar: ${erroDescricao.message}` };
-  }
-
-  const { data: planos, error: erroLeitura } = await auth.supabase
-    .from("plans")
-    .select("key, is_custom, module_keys");
-
-  if (erroLeitura || !planos) {
-    return { ok: false, mensagem: "Não foi possível ler os planos." };
-  }
-
-  for (const p of planos) {
-    // O customizado inclui tudo por definição — não entra na conta.
-    if (p.is_custom) continue;
-
-    const atuais: string[] = p.module_keys ?? [];
-    const deveTer = planosMarcados.includes(p.key);
-    const tem = atuais.includes(moduloKey);
-    if (deveTer === tem) continue;
-
-    const novos = deveTer ? [...atuais, moduloKey] : atuais.filter((k) => k !== moduloKey);
-
-    const { error } = await auth.supabase
-      .from("plans")
-      .update({ module_keys: novos })
-      .eq("key", p.key);
-
-    if (error) {
-      console.error("[salvarModulo] falha em", p.key, error.message);
-      return { ok: false, mensagem: `Não foi possível salvar: ${error.message}` };
-    }
+  if (error) {
+    console.error("[salvarModulo] falha ao gravar descrição:", error.message);
+    return { ok: false, mensagem: `Não foi possível salvar: ${error.message}` };
   }
 
   revalidatePath("/", "layout");
