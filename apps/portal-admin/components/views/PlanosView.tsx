@@ -2,7 +2,7 @@
 
 import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
-import { EditarIcone } from "@/lib/icons";
+import { EditarIcone, LixeiraIcone } from "@/lib/icons";
 import { badgeAcc, badgeNeutro, badgeOk } from "@/lib/styleKit";
 
 export function PlanosView() {
@@ -44,6 +44,9 @@ export function PlanosView() {
                 ? "var(--okLine)"
                 : "var(--line)";
           const tag = p.tipo === "custom" ? badgeAcc() : cobrado ? badgeOk() : badgeNeutro();
+          // O sob medida é estrutural e nunca se apaga; o último plano também não.
+          const ultimoPlano = s.planos.length <= 1;
+          const naoExcluivel = p.tipo === "custom" || ultimoPlano;
 
           return (
             <section
@@ -74,6 +77,36 @@ export function PlanosView() {
                     )}
                   >
                     <EditarIcone />
+                  </button>
+                  {/* Excluir fica indisponível em dois casos:
+                      · o plano SOB MEDIDA, que é estrutural — sem ele não há
+                        como montar módulos e valor por cliente;
+                      · o último plano ativo, porque sem catálogo o cadastro de
+                        cliente não tem o que oferecer.
+                      As checagens que valem rodam no servidor; estas só evitam
+                      oferecer um caminho que terminaria em erro. */}
+                  <button
+                    onClick={() => a.abrirModal("excluirPlano", p.k)}
+                    disabled={naoExcluivel}
+                    aria-label={L.excluirPlanoBotao}
+                    title={
+                      p.tipo === "custom"
+                        ? L.planoCustomFixo
+                        : ultimoPlano
+                          ? L.planoUnico
+                          : L.excluirPlanoBotao
+                    }
+                    className={naoExcluivel ? undefined : "hv-bad"}
+                    style={css(
+                      "display:flex;align-items:center;justify-content:center;width:28px;height:28px;" +
+                        "border:1px solid var(--line);background:var(--panel);" +
+                        "border-radius:7px;padding:0;" +
+                        (naoExcluivel
+                          ? "color:var(--neuLine);cursor:not-allowed;"
+                          : "color:var(--tx3);cursor:pointer;"),
+                    )}
+                  >
+                    <LixeiraIcone />
                   </button>
                 </div>
               </div>

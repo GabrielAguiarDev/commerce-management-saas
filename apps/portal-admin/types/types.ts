@@ -134,6 +134,7 @@ export type ModalTipo =
   | "historico"
   | "plano"
   | "modulo"
+  | "excluirPlano"
   | "excluir"
   | "desativar"
   | "reativar";
@@ -268,6 +269,8 @@ export interface AdminActions {
   salvarRascunho: () => void;
   abrirFormPlano: (k: string | null) => void;
   abrirFormModulo: (k: string) => void;
+  /** Move um cliente para outro plano, recalculando módulos e mensalidade. */
+  moverClienteDePlano: (clienteId: string, novoPlano: string) => void;
   editarForm: (campo: "nome" | "preco" | "desc", valor: string) => void;
   alternarSel: (v: string) => void;
   baixarCsv: (linhas: string[], nome: string) => void;

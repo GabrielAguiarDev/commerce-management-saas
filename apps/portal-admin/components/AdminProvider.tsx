@@ -17,7 +17,7 @@ import {
   mudarStatusCliente,
 } from "@/app/clientes/actions";
 import { marcarPago, reverterPago } from "@/app/financeiro/actions";
-import { criarPlano, salvarModulo, salvarPlano } from "@/app/planos/actions";
+import { criarPlano, excluirPlano, salvarModulo, salvarPlano } from "@/app/planos/actions";
 import { DIC } from "@/lib/dictionary";
 import { planosComCatalogo } from "@/lib/planos";
 import { ROTAS } from "@/lib/rotas";
@@ -369,6 +369,27 @@ export function AdminProvider({
     });
   };
 
+  /**
+   * Move um cliente para outro plano, a partir do diálogo de excluir plano.
+   *
+   * Reaproveita `atualizarCliente` de propósito: é a mesma Server Action que a
+   * ficha do cliente usa, então os módulos e a mensalidade são recalculados
+   * pelo plano de destino (lendo `plans` no servidor) em vez de simplesmente
+   * trocar o rótulo e deixar o cliente com a composição do plano antigo.
+   */
+  const moverClienteDePlano = (clienteId: string, novoPlano: string) => {
+    const x = state.clientes.find((y) => y.id === clienteId);
+    if (!x) return;
+    iniciarAcao(async () => {
+      // O valor só é usado quando o destino é sob medida; nos demais o preço
+      // vem de `plans.price`. Mandamos o atual para não perder o negociado.
+      const res = await atualizarCliente(clienteId, novoPlano, x.valor, x.mods);
+      if (!res.ok) return toast(res.mensagem, "erro");
+      toast(L.toastSalvo);
+      router.refresh();
+    });
+  };
+
   const abrirFormPlano = (k: string | null) => {
     const p = k ? state.planos.find((x) => x.k === k) : null;
     const id = state.idioma;
@@ -525,6 +546,18 @@ export function AdminProvider({
       case "historico":
         set({ modal: null });
         return;
+      case "excluirPlano":
+        if (m.alvo) {
+          const chave = m.alvo;
+          set({ modal: null });
+          iniciarAcao(async () => {
+            const res = await excluirPlano(chave);
+            if (!res.ok) return toast(res.mensagem, "erro");
+            toast(L.toastPlanoExcluido, "erro");
+            router.refresh();
+          });
+        }
+        return;
       case "plano":
       case "modulo":
         // O toast agora sai de dentro de `salvarForm`, junto do resultado da
@@ -656,6 +689,7 @@ export function AdminProvider({
       salvarRascunho,
       abrirFormPlano,
       abrirFormModulo,
+      moverClienteDePlano,
       editarForm,
       alternarSel,
       baixarCsv,

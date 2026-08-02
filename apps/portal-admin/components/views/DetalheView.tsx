@@ -7,6 +7,7 @@ import { css, MONO } from "@/lib/css";
 import { BarraAcoes } from "@/components/BarraAcoes";
 import { GradeModulos, ModuloCard } from "@/components/ModuloCard";
 import { ROTAS } from "@/lib/rotas";
+import { num } from "@/lib/money";
 import { planoPorChave } from "@/lib/planos";
 import { clientePorId, estaSujo } from "@/lib/state";
 import { iniciais, nomePlano, planoBadge, statusBadge } from "@/lib/styleKit";
@@ -73,7 +74,13 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
               c.valor !== "—"
               ? c.valor
               : d.valor
-            : (novo.preco ?? "—"),
+            : // Plano sem cobrança mostra "—", e não "R$ 0,00": é a mesma regra
+              // que `lib/clientes.ts` aplica ao ler `tenants.monthly_fee`. Sem
+              // isto, o rascunho exibia "R$ 0,00" e, depois de salvar e
+              // recarregar, a mesma ficha passava a exibir "—".
+              novo.preco && num(novo.preco) > 0
+              ? novo.preco
+              : "—",
       };
     });
 

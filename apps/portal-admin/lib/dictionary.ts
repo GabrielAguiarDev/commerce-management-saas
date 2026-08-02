@@ -147,6 +147,17 @@ const pt = {
   reativarTexto:
     "O acesso ao sistema volta imediatamente, com os módulos que já estavam ativos.",
   reativarBotao: "Confirmar",
+  excluirPlanoTitulo: "Excluir este plano?",
+  excluirPlanoTexto:
+    "O plano sai do catálogo e deixa de aparecer no cadastro e nos filtros. Clientes já cadastrados não são afetados.",
+  excluirPlanoBotao: "Excluir plano",
+  planoCustomFixo: "O plano sob medida não pode ser excluído",
+  planoUnico: "A plataforma precisa de ao menos um plano",
+  planoEmUsoTitulo: "Este plano ainda tem clientes",
+  planoEmUsoTexto:
+    "Mude o plano de cada cliente abaixo antes de excluir. A troca vale na hora e recalcula os módulos e a mensalidade pelo plano de destino.",
+  moverPara: "Mover para",
+  clientesNoPlano: "clientes neste plano",
   excluirTitulo: "Excluir cliente permanentemente",
   excluirTexto:
     "Esta ação não pode ser desfeita. Vendas, produtos, histórico de caixa e chamados deste cliente serão apagados para sempre.",
@@ -264,6 +275,7 @@ const pt = {
   toastPago: "Pagamento registrado",
   toastConfig: "Preferência atualizada",
   toastPlanoSalvo: "Plano salvo",
+  toastPlanoExcluido: "Plano excluído",
   toastModuloSalvo: "Módulo salvo",
   toastResposta: "Resposta enviada ao cliente",
   toastCadastrado: "Cliente cadastrado",
@@ -422,6 +434,17 @@ const en: Dic = {
   reativarTexto:
     "Access is restored immediately, with the modules that were already enabled.",
   reativarBotao: "Confirm",
+  excluirPlanoTitulo: "Delete this plan?",
+  excluirPlanoTexto:
+    "The plan leaves the catalog and stops showing up in signup and filters. Existing customers are not affected.",
+  excluirPlanoBotao: "Delete plan",
+  planoCustomFixo: "The custom plan cannot be deleted",
+  planoUnico: "The platform needs at least one plan",
+  planoEmUsoTitulo: "This plan still has customers",
+  planoEmUsoTexto:
+    "Move each customer below to another plan before deleting. The change applies immediately and recalculates modules and fee from the target plan.",
+  moverPara: "Move to",
+  clientesNoPlano: "customers on this plan",
   excluirTitulo: "Delete customer permanently",
   excluirTexto:
     "This action cannot be undone. Sales, products, register history and tickets for this customer will be erased forever.",
@@ -534,6 +557,7 @@ const en: Dic = {
   toastPago: "Payment registered",
   toastConfig: "Preference updated",
   toastPlanoSalvo: "Plan saved",
+  toastPlanoExcluido: "Plan deleted",
   toastModuloSalvo: "Module saved",
   toastResposta: "Reply sent to the customer",
   toastCadastrado: "Customer registered",

@@ -217,6 +217,21 @@ export function EditarIcone({ size = 14 }: IconProps) {
   );
 }
 
+/** Lixeira — excluir um plano do catálogo. */
+export function LixeiraIcone({ size = 14 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none">
+      <path
+        d="M3.4 5.2h11.2M7.4 5.2V3.8h3.2v1.4M4.9 5.2l.7 8.6a1.2 1.2 0 0 0 1.2 1.1h4.4a1.2 1.2 0 0 0 1.2-1.1l.7-8.6"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Phone outline that marks the "mobile access" module. */
 export function AcessoIcone() {
   return (

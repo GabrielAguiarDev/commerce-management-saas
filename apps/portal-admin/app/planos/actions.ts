@@ -174,3 +174,85 @@ export async function criarPlano(
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+/**
+ * Exclui um plano do catálogo.
+ *
+ * ┌─ POR QUE A CHECAGEM DE CLIENTES É OBRIGATÓRIA ─────────────────────────┐
+ * │ `tenants.plan` é uma coluna de TEXTO, sem chave estrangeira para       │
+ * │ `plans.key`. O banco não impede apagar um plano que ainda está em uso  │
+ * │ — os clientes simplesmente passariam a apontar para uma chave que não  │
+ * │ existe mais, e o painel mostraria o selo vazio, o preço sumiria da     │
+ * │ ficha e o cadastro recusaria aquele plano. A trava tem que ser aqui.   │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * A alternativa seria desativar (`is_active = false`), que já esconde o plano
+ * das telas sem quebrar quem o usa. Exclusão de verdade fica reservada ao caso
+ * em que ninguém mais o utiliza — que é o que a tela ajuda o admin a alcançar,
+ * remanejando os clientes antes.
+ */
+export async function excluirPlano(chave: string): Promise<ResultadoAcao> {
+  const auth = await exigirAdmin("excluir planos");
+  if (!auth.ok) return auth;
+
+  // O plano sob medida (`is_custom`) é ESTRUTURAL, não uma oferta comum: é ele
+  // que permite montar qualquer combinação de módulos com valor negociado.
+  // Sem ele, a ficha do cliente perde a única forma de fugir dos pacotes
+  // fechados, e o cadastro fica sem opção para um cliente fora da tabela.
+  // Por isso não se apaga — nem mesmo quando não há nenhum cliente nele.
+  const { data: alvo, error: erroAlvo } = await auth.supabase
+    .from("plans")
+    .select("is_custom")
+    .eq("key", chave)
+    .maybeSingle();
+
+  if (erroAlvo) return { ok: false, mensagem: "Não foi possível ler o plano." };
+  if (!alvo) return { ok: false, mensagem: "Plano não encontrado." };
+  if (alvo.is_custom) {
+    return {
+      ok: false,
+      mensagem:
+        "O plano sob medida não pode ser excluído — é ele que permite montar " +
+        "módulos e valor por cliente.",
+    };
+  }
+
+  // Um catálogo vazio quebraria o cadastro de clientes por completo.
+  const { data: ativos, error: erroLista } = await auth.supabase
+    .from("plans")
+    .select("key")
+    .eq("is_active", true);
+
+  if (erroLista) return { ok: false, mensagem: "Não foi possível ler os planos." };
+  if ((ativos ?? []).length <= 1) {
+    return { ok: false, mensagem: "Este é o único plano ativo — a plataforma precisa de ao menos um." };
+  }
+
+  // `head: true` traz só a contagem, sem puxar as linhas.
+  const { count, error: erroContagem } = await auth.supabase
+    .from("tenants")
+    .select("id", { count: "exact", head: true })
+    .eq("plan", chave);
+
+  if (erroContagem) {
+    return { ok: false, mensagem: `Não foi possível verificar os clientes: ${erroContagem.message}` };
+  }
+
+  if ((count ?? 0) > 0) {
+    return {
+      ok: false,
+      mensagem:
+        `Ainda há ${count} cliente(s) neste plano. Mude o plano deles antes de excluir.`,
+    };
+  }
+
+  const { error } = await auth.supabase.from("plans").delete().eq("key", chave);
+
+  if (error) {
+    console.error("[excluirPlano] falha:", error.message);
+    return { ok: false, mensagem: `Não foi possível excluir o plano: ${error.message}` };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
