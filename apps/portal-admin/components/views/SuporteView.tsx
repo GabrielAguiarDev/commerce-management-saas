@@ -1,5 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useTransition } from "react";
+import { mudarStatusChamado, responderChamado } from "@/app/suporte/actions";
 import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
 import { AreaTexto } from "@/components/campos";
@@ -12,6 +15,14 @@ export function SuporteView() {
   const { s, a, cs, vazio } = useAdmin();
   const { L } = a;
   const id = s.idioma;
+  const router = useRouter();
+  // `useTransition` mantém a interface responsiva enquanto a Server Action
+  // roda, e dá o sinal para desabilitar o botão sem inventar um estado próprio.
+  const [enviando, iniciarEnvio] = useTransition();
+
+  // Abaixo desta largura os dois painéis não cabem lado a lado, e a tela
+  // empilha. O sinal é o mesmo que o Financeiro já usa (ver AdminProvider).
+  const compacto = s.larguraTela < 900;
 
   const t = chamadoAtual(s);
   const clienteChamado =
@@ -31,47 +42,81 @@ export function SuporteView() {
   const rotuloStatus = (st: StatusChamado) =>
     st === "aberto" ? L.aberto : st === "andamento" ? L.andamento : L.resolvido;
 
-  const marcar = (status: StatusChamado) =>
-    a.set((st) => ({
-      chamados: st.chamados.map((x) => (x.id === st.chamadoSel ? { ...x, status } : x)),
-    }));
-
-  const enviarResposta = () =>
-    a.set((st) => {
-      const txt = st.resposta.trim();
-      if (!txt) return null;
-      // Toast after the state settles so it does not fire during the update.
-      setTimeout(() => a.toast(L.toastResposta), 0);
-      return {
-        resposta: "",
-        chamados: st.chamados.map((x) =>
-          x.id === st.chamadoSel
-            ? {
-                ...x,
-                // Replying reopens work on a ticket unless it is already closed.
-                status: x.status === "resolvido" ? x.status : "andamento",
-                msgs: [...x.msgs, { de: "admin" as const, texto: txt, quando: "24/07 · agora" }],
-              }
-            : x,
-        ),
-      };
+  // As duas ações abaixo gravam no Supabase e pedem ao servidor que releia a
+  // lista (`revalidatePath` na action + `router.refresh()` aqui). Não mexemos
+  // no estado local: quem manda no que aparece é o banco, e assim a tela nunca
+  // mostra um status que a gravação não confirmou.
+  const marcar = (status: StatusChamado) => {
+    if (!t) return;
+    iniciarEnvio(async () => {
+      const r = await mudarStatusChamado(t.id, status);
+      if (!r.ok) return a.toast(r.mensagem, "erro");
+      router.refresh();
     });
+  };
+
+  const enviarResposta = () => {
+    const txt = s.resposta.trim();
+    if (!t || !txt) return;
+    iniciarEnvio(async () => {
+      const r = await responderChamado(t.id, txt);
+      if (!r.ok) return a.toast(r.mensagem, "erro");
+      a.set({ resposta: "" });
+      a.toast(L.toastResposta);
+      router.refresh();
+    });
+  };
 
   const botaoCabecalho =
     "border:1px solid var(--line);background:var(--panel);color:var(--tx2);font-size:12px;" +
     "padding:8px 12px;border-radius:8px;cursor:pointer";
 
+  /**
+   * A conversa abre no fim, como qualquer aplicativo de mensagem: o que importa
+   * é a última fala, não a primeira. Roda ao trocar de chamado e ao chegar uma
+   * mensagem nova (a contagem muda depois que o servidor confirma a gravação).
+   *
+   * Salta direto para o fim em vez de animar: numa troca de chamado a rolagem
+   * suave mostraria a conversa inteira passando, que é ruído, não informação.
+   */
+  const painelMensagens = useRef<HTMLDivElement>(null);
+  const totalMsgs = t?.msgs.length ?? 0;
+  useEffect(() => {
+    const el = painelMensagens.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [s.chamadoSel, totalMsgs]);
+
+  // Molde comum aos dois painéis. `min-height:0` é o que autoriza um item flex a
+  // encolher abaixo do conteúdo — sem ele, o filho com `overflow-y:auto` cresce
+  // e o scroll vaza para a página em vez de acontecer aqui dentro.
+  const painel =
+    "background:var(--panel);border:1px solid var(--line);border-radius:12px;" +
+    "display:flex;flex-direction:column;overflow:hidden;min-height:0;";
+
   return (
-    <div style={css("display:flex;flex-wrap:wrap;gap:16px;align-items:stretch")}>
+    <div
+      style={css(
+        // `flex:1` em vez de `height:100%`: a raiz é um item flex da casca, e
+        // crescer para preencher é mais confiável do que medir contra o pai.
+        "display:flex;gap:16px;align-items:stretch;flex:1;min-height:0;" +
+          (compacto ? "flex-direction:column" : ""),
+      )}
+    >
       <section
         style={css(
-          "flex:1 1 340px;max-width:400px;background:var(--panel);border:1px solid var(--line);" +
-            "border-radius:12px;display:flex;flex-direction:column;overflow:hidden;min-height:560px",
+          painel +
+            (compacto
+              ? // Empilhado, a lista fica com uma faixa própria no topo e a
+                // conversa herda o resto; as duas seguem rolando por dentro.
+                "flex:0 0 auto;max-height:38%;"
+              : "flex:1 1 340px;max-width:400px;"),
         )}
       >
+        {/* Busca e filtros ficam presos ao topo do painel: `flex:none` impede
+            que encolham quando a lista abaixo fica longa. */}
         <div
           style={css(
-            "padding:14px 16px;border-bottom:1px solid var(--lineSoft);display:flex;" +
+            "flex:none;padding:14px 16px;border-bottom:1px solid var(--lineSoft);display:flex;" +
               "flex-direction:column;gap:10px",
           )}
         >
@@ -102,30 +147,37 @@ export function SuporteView() {
           </div>
         </div>
 
-        <div style={css("flex:1;overflow-y:auto")}>
+        <div style={css("flex:1;min-height:0;overflow-y:auto")}>
           {(vazio || s.chamados.length === 0) && (
             <div
               style={css(
-                "display:flex;flex-direction:column;align-items:center;gap:11px;" +
-                  "padding:52px 20px;text-align:center",
+                // `height:100%` centra o estado vazio no painel inteiro, e não
+                // logo abaixo dos filtros.
+                "height:100%;display:flex;flex-direction:column;align-items:center;" +
+                  "justify-content:center;gap:11px;padding:40px 20px;text-align:center",
               )}
             >
+              {/* Ler os chamados pode falhar (sessão, RLS, rede). Nesse caso a
+                  lista vazia é sintoma, não notícia boa — dizer "tudo tranquilo"
+                  aqui esconderia o problema. */}
               <div
                 style={css(
-                  "width:44px;height:44px;border-radius:12px;background:var(--okBg);" +
-                    "border:1px solid var(--okLine);color:var(--ok);display:flex;" +
-                    "align-items:center;justify-content:center;font-size:17px;font-weight:700",
+                  "width:44px;height:44px;border-radius:12px;display:flex;" +
+                    "align-items:center;justify-content:center;font-size:17px;font-weight:700;" +
+                    (s.erroChamados
+                      ? "background:var(--badBg);border:1px solid var(--badLine);color:var(--bad);"
+                      : "background:var(--okBg);border:1px solid var(--okLine);color:var(--ok);"),
                 )}
               >
-                ✓
+                {s.erroChamados ? "!" : "✓"}
               </div>
               <span style={css("font-size:13.5px;font-weight:600;color:var(--tx)")}>
-                {L.vazioSuporteTitulo}
+                {s.erroChamados ? L.erroChamadosTitulo : L.vazioSuporteTitulo}
               </span>
               <span
                 style={css("font-size:12px;color:var(--tx2);line-height:1.55;max-width:32ch")}
               >
-                {L.vazioSuporteTexto}
+                {s.erroChamados || L.vazioSuporteTexto}
               </span>
             </div>
           )}
@@ -182,13 +234,13 @@ export function SuporteView() {
 
       <section
         style={css(
-          "flex:6 1 440px;min-width:0;background:var(--panel);border:1px solid var(--line);" +
-            "border-radius:12px;display:flex;flex-direction:column;overflow:hidden;min-height:560px",
+          painel + "min-width:0;" + (compacto ? "flex:1 1 auto;" : "flex:6 1 440px;"),
         )}
       >
+        {/* Cabeçalho do chamado — fixo no topo do painel. */}
         <div
           style={css(
-            "padding:16px 20px;border-bottom:1px solid var(--lineSoft);display:flex;" +
+            "flex:none;padding:16px 20px;border-bottom:1px solid var(--lineSoft);display:flex;" +
               "align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;" +
               "background:var(--panel2)",
           )}
@@ -207,38 +259,47 @@ export function SuporteView() {
             </div>
           </div>
 
-          <div style={css("display:flex;gap:7px;flex-wrap:wrap")}>
-            <button
-              onClick={() => clienteChamado && a.abrirCliente(clienteChamado.id)}
-              className="hv-acc-line"
-              style={css(botaoCabecalho)}
-            >
-              {L.verCliente}
-            </button>
-            <button
-              onClick={() => marcar("andamento")}
-              className="hv-acc-line"
-              style={css(botaoCabecalho)}
-            >
-              {L.emAndamento}
-            </button>
-            <button
-              onClick={() => marcar("resolvido")}
-              className="hv-bright-sm"
-              style={css(
-                "border:1px solid var(--okLine);background:var(--okBg);color:var(--ok);" +
-                  "font-size:12px;font-weight:500;padding:8px 12px;border-radius:8px;cursor:pointer",
-              )}
-            >
-              {L.marcarResolvido}
-            </button>
-          </div>
+          {/* Sem chamado selecionado não há o que marcar nem a quem responder. */}
+          {t && (
+            <div style={css("display:flex;gap:7px;flex-wrap:wrap")}>
+              <button
+                onClick={() => clienteChamado && a.abrirCliente(clienteChamado.id)}
+                disabled={!clienteChamado}
+                className="hv-acc-line"
+                style={css(botaoCabecalho + (clienteChamado ? "" : ";opacity:.5;cursor:default"))}
+              >
+                {L.verCliente}
+              </button>
+              <button
+                onClick={() => marcar("andamento")}
+                disabled={enviando}
+                className="hv-acc-line"
+                style={css(botaoCabecalho + (enviando ? ";opacity:.6;cursor:progress" : ""))}
+              >
+                {L.emAndamento}
+              </button>
+              <button
+                onClick={() => marcar("resolvido")}
+                disabled={enviando}
+                className="hv-bright-sm"
+                style={css(
+                  "border:1px solid var(--okLine);background:var(--okBg);color:var(--ok);" +
+                    "font-size:12px;font-weight:500;padding:8px 12px;border-radius:8px;" +
+                    (enviando ? "opacity:.6;cursor:progress" : "cursor:pointer"),
+                )}
+              >
+                {L.marcarResolvido}
+              </button>
+            </div>
+          )}
         </div>
 
+        {/* A thread — a única parte que rola deste painel. */}
         <div
+          ref={painelMensagens}
           style={css(
-            "flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;" +
-              "background:var(--bg)",
+            "flex:1;min-height:0;overflow-y:auto;padding:20px;display:flex;" +
+              "flex-direction:column;gap:14px;background:var(--bg)",
           )}
         >
           {(t ? t.msgs : []).map((m, i) => {
@@ -285,10 +346,11 @@ export function SuporteView() {
           })}
         </div>
 
+        {/* Caixa de resposta — presa ao rodapé, nunca rola com as mensagens. */}
         <div
           style={css(
-            "padding:14px 20px;border-top:1px solid var(--lineSoft);display:flex;gap:10px;" +
-              "align-items:flex-end;background:var(--panel)",
+            "flex:none;padding:14px 20px;border-top:1px solid var(--lineSoft);display:flex;" +
+              "gap:10px;align-items:flex-end;background:var(--panel)",
           )}
         >
           <AreaTexto
@@ -296,17 +358,24 @@ export function SuporteView() {
             onChange={(e) => a.set({ resposta: e.target.value })}
             placeholder={L.escrevaResposta}
             aria-label={L.escrevaResposta}
+            disabled={!t || enviando}
             estilo="flex:1;resize:none;min-height:64px;line-height:1.5"
           />
           <button
             onClick={enviarResposta}
+            // Sem chamado aberto, ou com um envio em curso, o clique não teria
+            // para onde ir — e um duplo clique gravaria a resposta duas vezes.
+            disabled={!t || enviando || !s.resposta.trim()}
             className="hv-bright"
             style={css(
               "background:var(--acc);border:1px solid var(--acc);color:var(--accTx);font-size:13px;" +
-                "font-weight:500;padding:11px 18px;border-radius:9px;cursor:pointer",
+                "font-weight:500;padding:11px 18px;border-radius:9px;" +
+                (!t || enviando || !s.resposta.trim()
+                  ? "opacity:.55;cursor:default"
+                  : "cursor:pointer"),
             )}
           >
-            {L.responder}
+            {enviando ? L.enviando : L.responder}
           </button>
         </div>
       </section>

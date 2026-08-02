@@ -2,6 +2,7 @@
 
 import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
+import { ehDoMesCorrente } from "@/lib/datas";
 import { calcMrr, cobraveis, fmtMrr } from "@/lib/money";
 import { ROTAS } from "@/lib/rotas";
 import { CelulaNegocio, MetricasGrid, type Metrica } from "@/components/shared";
@@ -26,13 +27,18 @@ export function VisaoView() {
   const mrr = fmtMrr(calcMrr(cs));
   const abertos = (vazio ? [] : s.chamados).filter((t) => t.status === "aberto").length;
   const andamento = (vazio ? [] : s.chamados).filter((t) => t.status === "andamento").length;
+  // Cadastrados neste mês, contados a partir de `tenants.created_at` — antes
+  // era o número 2 escrito na mão.
+  const novos = vazio ? [] : cs.filter((x) => ehDoMesCorrente(x.data));
   const neutro = badgeNeutro();
 
   const metricas: Metrica[] = [
     {
       rotulo: L.mrrLabel,
       valor: mrr,
-      delta: vazio ? "—" : "+18,7% " + L.vsMes,
+      // Sem histórico de MRR no banco não há com o que comparar, então o
+      // "delta" mostra a composição do valor em vez de um percentual fictício.
+      delta: vazio ? "—" : `${pagos.length}/${cs.length}`,
       nota: vazio
         ? id === "pt"
           ? "nenhum cliente cobrável ainda"
@@ -60,15 +66,22 @@ export function VisaoView() {
     },
     {
       rotulo: L.novosLabel,
-      valor: vazio ? 0 : 2,
-      delta: vazio ? "—" : "−1",
-      nota: vazio
-        ? id === "pt"
-          ? "nada no período"
-          : "nothing in the period"
-        : "1 " + L.novosNota,
-      ponto: ponto(vazio ? "var(--neuLine)" : "var(--warn)"),
-      deltaStyle: vazio ? neutro : badgeWarn(),
+      valor: novos.length,
+      delta: novos.length === 0 ? "—" : `+${novos.length}`,
+      nota:
+        novos.length === 0
+          ? id === "pt"
+            ? "nada no período"
+            : "nothing in the period"
+          : novos.length === 1
+            ? id === "pt"
+              ? "cadastro neste mês"
+              : "signup this month"
+            : id === "pt"
+              ? "cadastros neste mês"
+              : "signups this month",
+      ponto: ponto(novos.length === 0 ? "var(--neuLine)" : "var(--warn)"),
+      deltaStyle: novos.length === 0 ? neutro : badgeWarn(),
       acao: () => a.ir(ROTAS.clientes),
     },
     {
@@ -95,34 +108,44 @@ export function VisaoView() {
     "display:grid;grid-template-columns:minmax(180px,1.9fr) minmax(110px,1fr) 92px 100px;" +
     "gap:12px;min-width:560px;";
 
+  /**
+   * Atividade recente, montada a partir do que o banco realmente sabe.
+   *
+   * O protótipo trazia três eventos escritos na mão, com nomes de negócios que
+   * nunca existiram. Não há tabela de auditoria/eventos, então o que dá para
+   * mostrar honestamente são dois fatos datados: cadastros (`tenants.created_at`)
+   * e chamados abertos (`support_tickets.created_at`). Se um dia existir uma
+   * tabela de eventos, é aqui que ela entra.
+   */
   const atividade = vazio
     ? []
     : [
-        {
+        ...recentes.slice(0, 3).map((c) => ({
+          chave: "cliente:" + c.id,
           texto:
             id === "pt"
-              ? "Módulo Relatórios ativado para Lava-Jato Cristal"
-              : "Reports module enabled for Lava-Jato Cristal",
-          quando: id === "pt" ? "hoje, 09:12" : "today, 09:12",
-          cor: "var(--acc)",
-        },
-        {
-          texto:
-            id === "pt"
-              ? "Costura & Cia cadastrada no plano Gratuito"
-              : "Costura & Cia signed up on the Free plan",
-          quando: id === "pt" ? "ontem, 17:40" : "yesterday, 17:40",
+              ? `${c.nome} cadastrada no plano ${nomePlano(s.planos, c.plano, id)}`
+              : `${c.nome} signed up on the ${nomePlano(s.planos, c.plano, id)} plan`,
+          quando: c.data,
           cor: "var(--ok)",
-        },
-        {
-          texto:
-            id === "pt"
-              ? "Hortifruti Vale Verde marcada como inativa"
-              : "Hortifruti Vale Verde marked inactive",
-          quando: "22 jul, 11:05",
-          cor: "var(--bad)",
-        },
-      ];
+        })),
+        ...s.chamados.slice(0, 2).map((t) => {
+          const cl = cs.find((x) => x.id === t.clienteId);
+          return {
+            chave: "chamado:" + t.id,
+            texto:
+              (id === "pt" ? "Chamado de " : "Ticket from ") +
+              (cl ? cl.nome : L.cliente) +
+              ": " +
+              t.assunto[id],
+            quando: t.data,
+            cor: t.status === "resolvido" ? "var(--acc)" : "var(--warn)",
+          };
+        }),
+      ]
+        // Mais recente primeiro, misturando as duas origens.
+        .sort((x, y) => ts(y.quando) - ts(x.quando))
+        .slice(0, 4);
 
   return (
     <div style={css("display:flex;flex-direction:column;gap:20px")}>
@@ -272,7 +295,7 @@ export function VisaoView() {
             })}
           </div>
 
-          {!vazio && opts.mostrarPainelAtividade && (
+          {!vazio && opts.mostrarPainelAtividade && atividade.length > 0 && (
             <div
               style={css(
                 "margin-top:20px;padding-top:16px;border-top:1px solid var(--lineSoft);" +
@@ -283,7 +306,7 @@ export function VisaoView() {
                 {L.atividade}
               </h2>
               {atividade.map((e) => (
-                <div key={e.texto} style={css("display:flex;gap:11px;align-items:flex-start")}>
+                <div key={e.chave} style={css("display:flex;gap:11px;align-items:flex-start")}>
                   <div style={css(ponto(e.cor) + ";margin-top:5px")} />
                   <div style={css("display:flex;flex-direction:column;gap:2px")}>
                     <span style={css("font-size:12.5px;color:var(--tx2);line-height:1.4")}>

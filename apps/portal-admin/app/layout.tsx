@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { AdminProvider } from "@/components/AdminProvider";
 import { AdminShell } from "@/components/AdminShell";
+import { listarChamados } from "@/lib/chamados";
 import { listarClientes } from "@/lib/clientes";
 import "./globals.css";
 
@@ -39,7 +40,15 @@ export default async function RootLayout({
   // cookies — o RLS decide o que este usuário pode ver. Fica no layout, e não
   // em cada página, porque a lista alimenta quatro telas de uma vez (visão,
   // clientes, ficha e financeiro) e todas precisam concordar entre si.
-  const { clientes, erro } = await listarClientes();
+  //
+  // Em paralelo: são duas consultas independentes, e encadeá-las com dois
+  // `await` seguidos somaria os dois tempos de ida e volta à espera de todo
+  // render. Os chamados alimentam a tela de Suporte, o contador da Visão e as
+  // notificações do topo.
+  const [{ clientes, erro }, { chamados, erro: erroChamados }] = await Promise.all([
+    listarClientes(),
+    listarChamados(),
+  ]);
 
   return (
     <html
@@ -51,7 +60,12 @@ export default async function RootLayout({
       <body data-tema="claro">
         {/* The session lives above the router, so filters, drafts, theme and
             language survive moving between routes. */}
-        <AdminProvider clientesIniciais={clientes} erroClientes={erro}>
+        <AdminProvider
+          clientesIniciais={clientes}
+          erroClientes={erro}
+          chamadosIniciais={chamados}
+          erroChamados={erroChamados}
+        >
           <AdminShell>{children}</AdminShell>
         </AdminProvider>
       </body>

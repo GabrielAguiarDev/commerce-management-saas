@@ -11,7 +11,7 @@ import {
   type SyntheticEvent,
 } from "react";
 import { DIC } from "@/lib/dictionary";
-import { HOJE } from "@/lib/mock/data";
+import { hojeCurto } from "@/lib/datas";
 import { ROTAS } from "@/lib/rotas";
 import { ESTADO_INICIAL, estaSujo } from "@/lib/state";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +19,7 @@ import type {
   AdminActions,
   AdminOpcoes,
   AdminState,
+  Chamado,
   Cliente,
   Pagamento,
   Patch,
@@ -51,44 +52,69 @@ export function AdminProvider({
   children,
   clientesIniciais = [],
   erroClientes = null,
+  chamadosIniciais = [],
+  erroChamados = null,
   ...overrides
 }: {
   children: ReactNode;
   /** Clientes lidos do Supabase pelo layout (server component). */
   clientesIniciais?: Cliente[];
   erroClientes?: string | null;
+  /** Chamados de suporte lidos do Supabase pelo layout (server component). */
+  chamadosIniciais?: Chamado[];
+  erroChamados?: string | null;
 } & Partial<AdminOpcoes>) {
   const router = useRouter();
   const [state, setState] = useState<AdminState>(() => ({
     ...ESTADO_INICIAL,
     clientes: clientesIniciais,
     erroClientes,
+    chamados: chamadosIniciais,
+    erroChamados,
+    // Sem semente: o chamado selecionado é o primeiro que veio do banco.
+    chamadoSel: chamadosIniciais[0]?.id ?? "",
   }));
   const opts: AdminOpcoes = { ...PADROES, ...overrides };
 
   // ───────────────────────────────────────────────────────────────────
-  // O servidor é a fonte da verdade dos clientes. Depois de um cadastro, de um
-  // `router.refresh()` ou de um `revalidatePath`, o layout relê a tabela
-  // `tenants` e manda a lista nova para cá — o estado local acompanha em vez de
-  // seguir mostrando o que estava em memória.
+  // O servidor é a fonte da verdade dos clientes e dos chamados. Depois de um
+  // cadastro, de uma resposta no suporte, de um `router.refresh()` ou de um
+  // `revalidatePath`, o layout relê as tabelas e manda as listas novas para cá
+  // — o estado local acompanha em vez de seguir mostrando o que estava em
+  // memória.
   //
   // O ajuste acontece DURANTE o render, não num efeito: é o padrão do React
   // para estado derivado de props (react.dev/learn/you-might-not-need-an-effect).
   // Um efeito renderizaria uma vez com a lista velha antes de corrigir.
   //
-  // A comparação é por assinatura, e não pela identidade do array: a lista
-  // chega como um array novo a cada render, e só os campos abaixo mudam por
+  // A comparação é por assinatura, e não pela identidade do array: as listas
+  // chegam como arrays novos a cada render, e só os campos abaixo mudam por
   // fora. Sem isso, todo render reescreveria o estado.
   // ───────────────────────────────────────────────────────────────────
   const assinatura =
     clientesIniciais
       .map((c) => `${c.id}:${c.status}:${c.plano}:${c.valor}:${c.mods.join(",")}`)
-      .join("|") + `#${erroClientes ?? ""}`;
+      .join("|") +
+    `#${erroClientes ?? ""}` +
+    "@" +
+    chamadosIniciais.map((t) => `${t.id}:${t.status}:${t.msgs.length}`).join("|") +
+    `#${erroChamados ?? ""}`;
   const [assinaturaAplicada, setAssinaturaAplicada] = useState(assinatura);
 
   if (assinatura !== assinaturaAplicada) {
     setAssinaturaAplicada(assinatura);
-    setState((prev) => ({ ...prev, clientes: clientesIniciais, erroClientes }));
+    setState((prev) => ({
+      ...prev,
+      clientes: clientesIniciais,
+      erroClientes,
+      chamados: chamadosIniciais,
+      erroChamados,
+      // O chamado aberto pode ter deixado de existir; nesse caso volta para o
+      // primeiro da lista em vez de deixar a tela sem conversa nenhuma.
+      chamadoSel: chamadosIniciais.some((t) => t.id === prev.chamadoSel)
+        ? prev.chamadoSel
+        : (chamadosIniciais[0]?.id ?? ""),
+    }));
   }
 
   const set = useCallback((patch: Patch) => {
@@ -280,7 +306,8 @@ export function AdminProvider({
             nome: "",
             preco: "R$ ",
             desc: "",
-            sel: ["vendas", "produtos"],
+            // Chaves da tabela `modules`, não os rótulos em português.
+            sel: ["sales", "products"],
             fixo: true,
           },
     });
@@ -378,9 +405,12 @@ export function AdminProvider({
     );
   };
 
+  // TODO: conectar ao Supabase. Não existe tabela de pagamentos/faturas no
+  // banco, então isto grava só na memória e some ao recarregar a página.
   const registrarPagamento = (clienteId: string) => {
     const x = state.clientes.find((y) => y.id === clienteId);
     if (!x) return;
+    const hoje = hojeCurto();
     const p: Pick<Pagamento, "vencimento" | "hist"> = state.pagamentos[clienteId] ?? {
       vencimento: "—",
       hist: [],
@@ -393,16 +423,20 @@ export function AdminProvider({
             (_m, d: string, mes: string) =>
               d + "/" + String(Math.min(12, parseInt(mes, 10) + 1)).padStart(2, "0"),
           )
-        : "24/08/2026";
+        : hoje.replace(
+            /^(\d{2})\/(\d{2})/,
+            (_m, d: string, mes: string) =>
+              d + "/" + String(Math.min(12, parseInt(mes, 10) + 1)).padStart(2, "0"),
+          );
     set((st) => ({
       menuPag: null,
       pagamentos: {
         ...st.pagamentos,
         [clienteId]: {
           status: "emdia" as StatusPagamento,
-          ultimo: HOJE,
+          ultimo: hoje,
           vencimento: venc,
-          hist: ([[HOJE, x.valor]] as [string, string][]).concat(p.hist || []),
+          hist: ([[hoje, x.valor]] as [string, string][]).concat(p.hist || []),
         },
       },
     }));

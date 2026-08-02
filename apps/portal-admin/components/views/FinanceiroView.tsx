@@ -52,8 +52,10 @@ export function FinanceiroView() {
     {
       rotulo: L.mrrAtual,
       valor: fmtMrr(mrr),
-      delta: vazio ? "—" : "+18,7% " + L.vsMes,
-      nota: faturaveis.length + " " + (id === "pt" ? "clientes cobráveis" : "billable customers"),
+      // Sem histórico de faturamento no banco não existe "vs mês anterior" —
+      // o protótipo mostrava +18,7% fixo. Aqui vai a fração da base que paga.
+      delta: vazio ? "—" : `${faturaveis.length}/${cs.length}`,
+      nota: faturaveis.length + " " + L.clientesCobraveis,
       ponto: ponto(vazio ? "var(--neuLine)" : "var(--ok)"),
       deltaStyle: vazio ? neutro : badgeOk(),
     },

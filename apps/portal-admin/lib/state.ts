@@ -1,5 +1,5 @@
 import { MODULOS_CATALOGO, PLANOS_CATALOGO } from "@/lib/catalogo";
-import { CHAMADOS, CONFIGS, PAGAMENTOS, RECEITA } from "@/lib/mock/data";
+import { CONFIGS, PAGAMENTOS, RECEITA } from "@/lib/mock/data";
 import type { AdminState, Chamado, Cliente } from "@/types/types";
 
 export const ESTADO_INICIAL: AdminState = {
@@ -31,23 +31,27 @@ export const ESTADO_INICIAL: AdminState = {
   senha1: "",
   senha2: "",
   emailRec: "",
+  // TODO: conectar ao Supabase — não há tabela de receita, pagamentos nem
+  // configurações da plataforma. Ver lib/mock/data.ts.
   receita: RECEITA,
   pagamentos: PAGAMENTOS,
+  config: CONFIGS,
   modulos: MODULOS_CATALOGO,
   planos: PLANOS_CATALOGO,
-  config: CONFIGS,
-  chamadoSel: "t1",
   filtroChamado: "todos",
   buscaChamado: "",
   resposta: "",
   loginEmail: "",
   loginSenha: "",
   ultimaAcao: null,
-  // Os clientes vêm do Supabase pelo layout (server component) e entram aqui
-  // via `clientesIniciais` no <AdminProvider>. Nunca há semente local.
+  // Clientes e chamados vêm do Supabase pelo layout (server component) e entram
+  // aqui via `clientesIniciais` / `chamadosIniciais` no <AdminProvider>. Nunca
+  // há semente local — `chamadoSel` também é definido lá, a partir da lista.
   clientes: [],
   erroClientes: null,
-  chamados: CHAMADOS,
+  chamados: [],
+  erroChamados: null,
+  chamadoSel: "",
 };
 
 /** True when the customer draft differs from the saved record. */

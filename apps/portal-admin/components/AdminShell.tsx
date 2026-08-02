@@ -8,7 +8,8 @@ import { Dica, Toasts } from "@/components/Overlays";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { css } from "@/lib/css";
-import { calcMrr, fmtMrr } from "@/lib/money";
+import { mesCorrente } from "@/lib/datas";
+import { calcMrr, cobraveis, fmtMrr } from "@/lib/money";
 import { clienteIdDaRota, ROTAS } from "@/lib/rotas";
 import { clientePorId } from "@/lib/state";
 
@@ -43,8 +44,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const abertos = (vazio ? [] : s.chamados).filter((t) => t.status === "aberto").length;
 
+  // "Resumo da operação do Aguiar One em agosto de 2026" — o mês vem do
+  // relógio, não de um texto fixo do protótipo.
+  const subtituloVisao = `${L.tituloVisao[1]} ${mesCorrente(s.idioma)}`;
+
   const titulos: Record<string, [string, string]> = {
-    [ROTAS.visao]: [L.tituloVisao[0], L.tituloVisao[1]],
+    [ROTAS.visao]: [L.tituloVisao[0], subtituloVisao],
     [ROTAS.clientes]: [L.tituloClientes[0], L.tituloClientes[1]],
     [ROTAS.suporte]: [L.tituloSuporte[0], L.tituloSuporte[1]],
     [ROTAS.planos]: [L.tituloPlanos[0], L.tituloPlanos[1]],
@@ -68,30 +73,61 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const cliente = clienteId != null ? clientePorId(s, clienteId) : undefined;
   const [titulo, subtitulo] = cliente
     ? [cliente.nome, L.tituloDetalhe]
-    : (titulos[pathname] ?? [L.tituloVisao[0], L.tituloVisao[1]]);
+    : (titulos[pathname] ?? [L.tituloVisao[0], subtituloVisao]);
+
+  /**
+   * Telas de altura travada: a janela não rola, e a área de conteúdo entrega
+   * exatamente o espaço que sobra entre a barra de topo e a base — quem rola é
+   * cada painel, por dentro.
+   *
+   * É exceção, não regra: as outras telas são listas que crescem e devem rolar
+   * na página, do jeito que já faziam. Por isso o modo é escolhido pela rota em
+   * vez de virar o padrão da casca.
+   */
+  const alturaFixa = pathname === ROTAS.suporte;
 
   return (
     <div
       style={css(
-        "display:flex;min-height:100vh;align-items:stretch;background:var(--bg);color:var(--tx)",
+        "display:flex;align-items:stretch;background:var(--bg);color:var(--tx);" +
+          // `overflow:hidden` impede que um painel alto empurre a barra de
+          // rolagem da janela de volta.
+          (alturaFixa ? "height:100vh;overflow:hidden" : "min-height:100vh"),
       )}
     >
       <Sidebar
         totalClientes={cs.length}
         chamadosAbertos={abertos}
         mrrValor={fmtMrr(calcMrr(cs))}
+        // Antes era "+R$ 89 vs junho", um delta inventado. Não há série
+        // histórica de MRR no banco, então o rodapé diz o que dá para provar:
+        // quantos clientes sustentam o valor mostrado.
         mrrDelta={
-          vazio
+          vazio || cobraveis(cs).length === 0
             ? s.idioma === "pt"
               ? "sem cobranças ativas"
               : "no active billing"
-            : "+R$ 89 " + L.vsMes
+            : `${cobraveis(cs).length} ${L.clientesCobraveis}`
         }
       />
 
-      <main style={css("flex:1;min-width:0;display:flex;flex-direction:column")}>
+      <main
+        style={css(
+          "flex:1;min-width:0;display:flex;flex-direction:column;" +
+            // `min-height:0` é o que permite ao filho encolher abaixo do próprio
+            // conteúdo; sem isso um item flex nunca gera scroll interno.
+            (alturaFixa ? "min-height:0;overflow:hidden" : ""),
+        )}
+      >
         <Topbar titulo={titulo} subtitulo={subtitulo} />
-        <div style={css("padding:24px 30px 44px;display:flex;flex-direction:column;gap:20px")}>
+        <div
+          style={css(
+            "display:flex;flex-direction:column;gap:20px;" +
+              (alturaFixa
+                ? "flex:1;min-height:0;overflow:hidden;padding:24px 30px"
+                : "padding:24px 30px 44px"),
+          )}
+        >
           {children}
         </div>
       </main>

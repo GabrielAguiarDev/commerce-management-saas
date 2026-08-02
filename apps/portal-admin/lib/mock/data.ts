@@ -1,20 +1,33 @@
-import type { Chamado, ConfigItem, Pagamento, ReceitaMes } from "@/types/types";
+import type { ConfigItem, Pagamento, ReceitaMes } from "@/types/types";
 
 /**
  * Dados de exemplo do protótipo — o que AINDA não tem tabela no Supabase.
  *
+ * ┌─ TODO: conectar ao Supabase ───────────────────────────────────────────┐
+ * │ Tudo neste arquivo depende de tabela que NÃO EXISTE no banco hoje:     │
+ * │                                                                        │
+ * │   * `RECEITA` e `PAGAMENTOS` → falta uma tabela de pagamentos/faturas  │
+ * │     da plataforma (mensalidade que cada tenant paga à Aguiar One).     │
+ * │     Alimentam a tela Financeiro inteira.                               │
+ * │   * `CONFIGS` → falta uma tabela de configurações da plataforma.       │
+ * │     Alimenta a tela Configurações.                                     │
+ * │                                                                        │
+ * │ Enquanto a tabela não existir, apagar isto QUEBRA as duas telas. O     │
+ * │ caminho é criar a migration com RLS, escrever o `lib/` de leitura (nos │
+ * │ moldes de `lib/clientes.ts`) e só então remover a constante daqui.     │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
  * Já saíram daqui, substituídos por dados reais:
- *   * `CLIENTES`  → tabela `tenants`, lida em `lib/clientes.ts`;
+ *   * `CLIENTES` → tabela `tenants`, lida em `lib/clientes.ts`;
+ *   * `CHAMADOS` → `support_tickets` + `support_messages`, em `lib/chamados.ts`;
  *   * `MODULOS` e `PLANOS` → catálogo real em `lib/planos.ts`, adaptado para as
- *     telas em `lib/catalogo.ts`.
+ *     telas em `lib/catalogo.ts`;
+ *   * `HOJE` / `HOJE_ROTULO` → data de verdade, em `lib/datas.ts`.
  *
- * O que sobra abaixo sustenta as telas de Financeiro, Suporte e Configurações,
- * que ainda não têm tabela correspondente. Não apague sem antes ligar a tela.
- *
- * ATENÇÃO aos ids: `PAGAMENTOS` e `CHAMADOS` são chaveados por id de cliente,
- * e os clientes reais têm UUID. Nenhuma dessas chaves ("1", "2"…) casa com um
- * cliente do banco — de propósito, porque esse dado não existe lá. As telas
- * degradam para "sem pagamento" / nome genérico em vez de quebrar.
+ * ATENÇÃO aos ids: `PAGAMENTOS` é chaveado por id de cliente, e os clientes
+ * reais têm UUID. Nenhuma dessas chaves ("1", "2"…) casa com um cliente do
+ * banco — de propósito, porque esse dado não existe lá. A tela degrada para
+ * "sem pagamento" em vez de quebrar.
  */
 
 export const RECEITA: ReceitaMes[] = [
@@ -78,7 +91,9 @@ export const CONFIGS: ConfigItem[] = [
     id: "padrao",
     rotulo: { pt: "Módulos padrão no cadastro", en: "Default modules at signup" },
     tipo: "mods",
-    valor: ["vendas", "produtos"],
+    // Chaves da tabela `modules`. Antes estavam em português ("vendas",
+    // "produtos"), que não casa com nada — a tela mostrava a chave crua.
+    valor: ["sales", "products"],
   },
   {
     id: "teste",
@@ -111,181 +126,3 @@ export const CONFIGS: ConfigItem[] = [
     ],
   },
 ];
-
-export const CHAMADOS: Chamado[] = [
-  {
-    id: "t1",
-    clienteId: "1",
-    assunto: {
-      pt: "Não consigo fechar o caixa do dia",
-      en: "Cannot close the daily cash register",
-    },
-    status: "aberto",
-    prioridade: "alta",
-    data: "24/07/2026",
-    msgs: [
-      {
-        de: "cliente",
-        texto: {
-          pt: "Bom dia! Quando aperto em fechar caixa aparece uma mensagem de erro e o valor não salva. Já tentei em dois celulares.",
-          en: "Good morning! When I tap close register an error shows up and the amount is not saved. I tried on two phones.",
-        },
-        quando: "24/07 · 09:05",
-      },
-      {
-        de: "admin",
-        texto: {
-          pt: "Bom dia, Neide! Recebi seu chamado. Vou verificar o fechamento de ontem aqui no painel e já te retorno.",
-          en: "Good morning, Neide! I got your ticket. I will check yesterday closing here in the panel and get back to you.",
-        },
-        quando: "24/07 · 09:18",
-      },
-      {
-        de: "cliente",
-        texto: {
-          pt: "Obrigada! Preciso disso ainda hoje porque o movimento da feira começa às 15h.",
-          en: "Thank you! I need it today because the market rush starts at 3pm.",
-        },
-        quando: "24/07 · 09:26",
-      },
-    ],
-  },
-  {
-    id: "t2",
-    clienteId: "2",
-    assunto: {
-      pt: "Relatório mensal com produto duplicado",
-      en: "Monthly report shows a duplicated product",
-    },
-    status: "andamento",
-    prioridade: "media",
-    data: "23/07/2026",
-    msgs: [
-      {
-        de: "cliente",
-        texto: {
-          pt: "No relatório de julho a ração Golden aparece duas vezes, com quantidades diferentes.",
-          en: "In the July report the Golden pet food appears twice, with different amounts.",
-        },
-        quando: "23/07 · 14:02",
-      },
-      {
-        de: "admin",
-        texto: {
-          pt: "Identificamos dois cadastros com o mesmo nome. Vou unificar e reprocessar o relatório.",
-          en: "We found two records with the same name. I will merge them and reprocess the report.",
-        },
-        quando: "23/07 · 16:40",
-      },
-    ],
-  },
-  {
-    id: "t3",
-    clienteId: "3",
-    assunto: {
-      pt: "Como ativar o módulo Estoque?",
-      en: "How do I enable the Inventory module?",
-    },
-    status: "aberto",
-    prioridade: "baixa",
-    data: "23/07/2026",
-    msgs: [
-      {
-        de: "cliente",
-        texto: {
-          pt: "Vi o módulo Estoque na apresentação mas não encontro no meu app. Preciso pagar?",
-          en: "I saw the Inventory module in the presentation but cannot find it in my app. Do I need to pay?",
-        },
-        quando: "23/07 · 10:11",
-      },
-    ],
-  },
-  {
-    id: "t4",
-    clienteId: "4",
-    assunto: {
-      pt: "Erro ao cadastrar preço com desconto",
-      en: "Error when saving a discounted price",
-    },
-    status: "andamento",
-    prioridade: "alta",
-    data: "22/07/2026",
-    msgs: [
-      {
-        de: "cliente",
-        texto: {
-          pt: "Ao colocar desconto acima de 50% o app trava na tela de salvar.",
-          en: "When I set a discount above 50% the app freezes on the save screen.",
-        },
-        quando: "22/07 · 08:33",
-      },
-      {
-        de: "admin",
-        texto: {
-          pt: "Reproduzimos o erro e a correção entra na atualização desta semana.",
-          en: "We reproduced the bug and the fix ships in this week update.",
-        },
-        quando: "22/07 · 11:57",
-      },
-    ],
-  },
-  {
-    id: "t5",
-    clienteId: "6",
-    assunto: { pt: "Pedido de nota fiscal do plano", en: "Invoice request for the plan" },
-    status: "resolvido",
-    prioridade: "baixa",
-    data: "21/07/2026",
-    msgs: [
-      {
-        de: "cliente",
-        texto: {
-          pt: "Preciso da nota fiscal de julho para a contabilidade.",
-          en: "I need the July invoice for accounting.",
-        },
-        quando: "21/07 · 17:20",
-      },
-      {
-        de: "admin",
-        texto: {
-          pt: "Nota enviada para o e-mail cadastrado. Qualquer coisa, é só responder aqui.",
-          en: "Invoice sent to your registered email. Just reply here if you need anything else.",
-        },
-        quando: "21/07 · 18:02",
-      },
-    ],
-  },
-  {
-    id: "t6",
-    clienteId: "9",
-    assunto: {
-      pt: "Adicionar segundo usuário na conta",
-      en: "Add a second user to the account",
-    },
-    status: "resolvido",
-    prioridade: "media",
-    data: "18/07/2026",
-    msgs: [
-      {
-        de: "cliente",
-        texto: {
-          pt: "Meu sócio precisa acessar o caixa também.",
-          en: "My partner also needs access to the register.",
-        },
-        quando: "18/07 · 09:44",
-      },
-      {
-        de: "admin",
-        texto: {
-          pt: "Segundo acesso liberado no plano Pago, sem custo adicional.",
-          en: "Second seat enabled on the Paid plan at no extra cost.",
-        },
-        quando: "18/07 · 10:15",
-      },
-    ],
-  },
-];
-
-/** "Today" in the seeded dataset — the header date and manual payment entries. */
-export const HOJE = "24/07/2026";
-export const HOJE_ROTULO = "24 jul 2026";

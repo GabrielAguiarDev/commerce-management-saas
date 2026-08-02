@@ -2,10 +2,10 @@
 
 import { useAdmin } from "@/components/AdminProvider";
 import { css, MONO } from "@/lib/css";
-import { HOJE_ROTULO } from "@/lib/mock/data";
+import { hojeRotulo } from "@/lib/datas";
 import { IdiomaIcone, LuaIcone, SinoIcone, SolIcone } from "@/lib/icons";
 import { ROTAS } from "@/lib/rotas";
-import type { Idioma, Loc } from "@/types/types";
+import { nomePlano } from "@/lib/styleKit";
 
 interface TopbarProps {
   titulo: string;
@@ -14,40 +14,12 @@ interface TopbarProps {
 
 type TipoNotif = "alerta" | "risco" | "ok" | "info";
 
-const NOTIFICACOES: { texto: Loc; quando: Record<Idioma, string>; tipo: TipoNotif }[] = [
-  {
-    texto: {
-      pt: "Novo chamado de Acarajé da Bahia: não consigo fechar o caixa",
-      en: "New ticket from Acarajé da Bahia: cannot close the register",
-    },
-    quando: { pt: "há 12 min", en: "12 min ago" },
-    tipo: "alerta",
-  },
-  {
-    texto: {
-      pt: "Costura & Cia se cadastrou no plano Gratuito",
-      en: "Costura & Cia signed up on the Free plan",
-    },
-    quando: { pt: "há 3 h", en: "3 h ago" },
-    tipo: "ok",
-  },
-  {
-    texto: {
-      pt: "Hortifruti Vale Verde sem acessos há 21 dias — risco de churn",
-      en: "Hortifruti Vale Verde inactive for 21 days — churn risk",
-    },
-    quando: { pt: "ontem", en: "yesterday" },
-    tipo: "risco",
-  },
-  {
-    texto: {
-      pt: "Lava-Jato Cristal ativou o módulo Relatórios",
-      en: "Lava-Jato Cristal enabled the Reports module",
-    },
-    quando: { pt: "22/07", en: "22/07" },
-    tipo: "info",
-  },
-];
+interface Notificacao {
+  chave: string;
+  texto: string;
+  quando: string;
+  tipo: TipoNotif;
+}
 
 const CORES: Record<TipoNotif, string> = {
   alerta: "var(--bad)",
@@ -57,10 +29,47 @@ const CORES: Record<TipoNotif, string> = {
 };
 
 export function Topbar({ titulo, subtitulo }: TopbarProps) {
-  const { s, a } = useAdmin();
+  const { s, a, cs } = useAdmin();
   const { L } = a;
   const id = s.idioma;
   const escuro = s.tema === "escuro";
+
+  /**
+   * Notificações montadas a partir do banco.
+   *
+   * O protótipo trazia quatro avisos escritos na mão, com nomes de negócios
+   * inexistentes ("Acarajé da Bahia", "Costura & Cia"…). Não existe tabela de
+   * notificações, então o painel mostra o que dá para provar: chamados que
+   * ainda não foram resolvidos e clientes recém-cadastrados. Quando houver uma
+   * tabela de eventos, é esta lista que passa a sair de lá.
+   */
+  const notificacoes: Notificacao[] = [
+    ...s.chamados
+      .filter((t) => t.status !== "resolvido")
+      .slice(0, 4)
+      .map((t) => {
+        const cl = cs.find((x) => x.id === t.clienteId);
+        return {
+          chave: "chamado:" + t.id,
+          texto:
+            (id === "pt" ? "Chamado de " : "Ticket from ") +
+            (cl ? cl.nome : L.cliente) +
+            ": " +
+            t.assunto[id],
+          quando: t.data,
+          tipo: (t.prioridade === "alta" ? "alerta" : "info") as TipoNotif,
+        };
+      }),
+    ...cs.slice(0, 3).map((c) => ({
+      chave: "cliente:" + c.id,
+      texto:
+        id === "pt"
+          ? `${c.nome} cadastrada no plano ${nomePlano(s.planos, c.plano, id)}`
+          : `${c.nome} signed up on the ${nomePlano(s.planos, c.plano, id)} plan`,
+      quando: c.data,
+      tipo: "ok" as TipoNotif,
+    })),
+  ].slice(0, 6);
 
   return (
     <header
@@ -82,7 +91,7 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
 
       <div style={css("display:flex;align-items:center;gap:10px;flex:none")}>
         <span style={css(`font-family:${MONO};font-size:11px;color:var(--tx3)`)}>
-          {HOJE_ROTULO}
+          {hojeRotulo(id)}
         </span>
         <div style={css("width:1px;height:22px;background:var(--line)")} />
 
@@ -100,7 +109,7 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
             )}
           >
             <SinoIcone />
-            {!s.lidas && (
+            {!s.lidas && notificacoes.length > 0 && (
               <span
                 style={css(
                   "position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:99px;" +
@@ -135,7 +144,9 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
                       {L.notificacoes}
                     </span>
                     <span style={css("font-size:11px;color:var(--tx3)")}>
-                      {s.lidas ? L.tudoSalvo : NOTIFICACOES.length + " " + L.naoLidas}
+                      {s.lidas || notificacoes.length === 0
+                        ? L.tudoSalvo
+                        : notificacoes.length + " " + L.naoLidas}
                     </span>
                   </div>
                   <button
@@ -150,9 +161,19 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
                 </div>
 
                 <div style={css("max-height:320px;overflow-y:auto")}>
-                  {NOTIFICACOES.map((n, i) => (
+                  {notificacoes.length === 0 && (
                     <div
-                      key={i}
+                      style={css(
+                        "padding:22px 16px;text-align:center;font-size:12px;color:var(--tx3)",
+                      )}
+                    >
+                      {L.semNotificacoes}
+                    </div>
+                  )}
+
+                  {notificacoes.map((n) => (
+                    <div
+                      key={n.chave}
                       style={css(
                         "display:flex;gap:11px;align-items:flex-start;padding:12px 16px;" +
                           "border-bottom:1px solid var(--lineSoft);" +
@@ -173,10 +194,10 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
                               ")",
                           )}
                         >
-                          {n.texto[id]}
+                          {n.texto}
                         </span>
                         <span style={css(`font-family:${MONO};font-size:10.5px;color:var(--tx3)`)}>
-                          {n.quando[id]}
+                          {n.quando}
                         </span>
                       </div>
                     </div>

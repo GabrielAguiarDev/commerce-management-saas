@@ -58,14 +58,21 @@ export interface Cliente {
 
 export interface Mensagem {
   de: "cliente" | "admin";
-  /** Seeded messages are translated; replies typed in the panel are not. */
+  /**
+   * Mensagens do banco vêm num idioma só (`string`); a forma `Loc` fica de pé
+   * para textos do próprio painel que tenham tradução.
+   */
   texto: Loc | string;
   quando: string;
 }
 
+/**
+ * Um chamado de suporte, já traduzido da linha do banco para o vocabulário da
+ * interface. Ver `lib/chamados.ts` para o mapeamento.
+ */
 export interface Chamado {
   id: string;
-  /** Id do cliente. Os chamados ainda são dados de exemplo (não há tabela). */
+  /** UUID do tenant que abriu o chamado (`support_tickets.tenant_id`). */
   clienteId: string;
   assunto: Loc;
   status: StatusChamado;
@@ -208,6 +215,8 @@ export interface AdminState {
   /** Falha ao ler os clientes no Supabase, para a lista poder explicar o vazio. */
   erroClientes: string | null;
   chamados: Chamado[];
+  /** Falha ao ler os chamados no Supabase, pelo mesmo motivo. */
+  erroChamados: string | null;
 }
 
 /** Returning `null` from an updater leaves the state untouched. */

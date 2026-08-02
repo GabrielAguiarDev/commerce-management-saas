@@ -24,7 +24,9 @@ const pt = {
   admin: "Administrador",
   sair: "Sair",
   mrr: "Receita mensal",
-  tituloVisao: ["Visão Geral", "Resumo da operação do Aguiar One em julho de 2026"],
+  // O mês é acrescentado em AdminShell, a partir do relógio — o protótipo
+  // trazia "julho de 2026" fixo aqui.
+  tituloVisao: ["Visão Geral", "Resumo da operação do Aguiar One em"],
   tituloClientes: ["Clientes", "Todos os comércios cadastrados na plataforma"],
   tituloSuporte: ["Suporte", "Chamados abertos pelos clientes da plataforma"],
   tituloPlanos: ["Planos", "Estrutura comercial e distribuição da base"],
@@ -42,9 +44,7 @@ const pt = {
   chamadosLabel: "Chamados abertos",
   mrrNota: "clientes no plano Pago",
   ativosNota: "em risco de churn",
-  novosNota: "cancelamento no período",
   chamadosNota: "em andamento agora",
-  vsMes: "vs junho",
   clientesRecentes: "Clientes recentes",
   verTodos: "Ver todos →",
   adocao: "Adoção de módulos",
@@ -83,7 +83,7 @@ const pt = {
   desativado: "Desativado",
   modulosAjuda:
     "Ative ou desative funcionalidades individualmente. As mudanças só valem para este cliente depois de clicar em Salvar alterações.",
-  semAcao: "Nenhuma alteração pendente. Última sincronização às 09:41.",
+  semAcao: "Nenhuma alteração pendente.",
   buscarChamado: "Buscar por cliente ou assunto",
   todosChamados: "Todos",
   aberto: "Aberto",
@@ -121,7 +121,7 @@ const pt = {
   limparBotao: "Desativar todos",
   todosTitulo: "Ativar todos os módulos?",
   todosTexto:
-    "Os 6 módulos serão liberados para este cliente. Você ainda precisa salvar para aplicar.",
+    "Todos os módulos serão liberados para este cliente. Você ainda precisa salvar para aplicar.",
   todosBotao: "Ativar todos",
   valorPorCliente: "valor definido por cliente",
   semPrecoFixo: "Sob medida",
@@ -237,6 +237,9 @@ const pt = {
   vazioVisaoTitulo: "Suas métricas aparecem aqui",
   vazioVisaoTexto:
     "Cadastre seu primeiro cliente para ver receita, ativações e atividade da plataforma.",
+  erroChamadosTitulo: "Não foi possível carregar os chamados",
+  enviando: "Enviando…",
+  clientesCobraveis: "clientes cobráveis",
   vazioSuporteTitulo: "Nenhum chamado no momento",
   vazioSuporteTexto:
     "Tudo tranquilo por aqui. Quando um cliente abrir um chamado, ele aparece nesta lista.",
@@ -288,7 +291,7 @@ const en: Dic = {
   admin: "Administrator",
   sair: "Sign out",
   mrr: "Monthly revenue",
-  tituloVisao: ["Overview", "Aguiar One business summary — July 2026"],
+  tituloVisao: ["Overview", "Aguiar One business summary —"],
   tituloClientes: ["Customers", "Every business registered on the platform"],
   tituloSuporte: ["Support", "Tickets opened by platform customers"],
   tituloPlanos: ["Plans", "Commercial structure and base distribution"],
@@ -306,9 +309,7 @@ const en: Dic = {
   chamadosLabel: "Open tickets",
   mrrNota: "customers on the Paid plan",
   ativosNota: "at churn risk",
-  novosNota: "cancellation in the period",
   chamadosNota: "in progress right now",
-  vsMes: "vs June",
   clientesRecentes: "Recent customers",
   verTodos: "View all →",
   adocao: "Module adoption",
@@ -347,7 +348,7 @@ const en: Dic = {
   desativado: "Disabled",
   modulosAjuda:
     "Turn features on or off individually. Changes apply to this customer only after you click Save changes.",
-  semAcao: "No pending changes. Last sync at 09:41.",
+  semAcao: "No pending changes.",
   buscarChamado: "Search by customer or subject",
   todosChamados: "All",
   aberto: "Open",
@@ -385,7 +386,7 @@ const en: Dic = {
   limparBotao: "Disable all",
   todosTitulo: "Enable every module?",
   todosTexto:
-    "All 6 modules will be unlocked for this customer. You still need to save to apply.",
+    "Every module will be unlocked for this customer. You still need to save to apply.",
   todosBotao: "Enable all",
   valorPorCliente: "amount set per customer",
   semPrecoFixo: "Custom",
@@ -496,6 +497,9 @@ const en: Dic = {
   vazioVisaoTitulo: "Your metrics show up here",
   vazioVisaoTexto:
     "Register your first customer to see revenue, activations and platform activity.",
+  erroChamadosTitulo: "Could not load the tickets",
+  enviando: "Sending…",
+  clientesCobraveis: "billable customers",
   vazioSuporteTitulo: "No tickets right now",
   vazioSuporteTexto:
     "All quiet. When a customer opens a ticket it shows up in this list.",
