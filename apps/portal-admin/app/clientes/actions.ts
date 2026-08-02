@@ -3,22 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { EstadoFormulario, ResultadoCliente } from "@/app/clientes/estadoFormulario";
 import { modulosPadrao } from "@/lib/configuracoes";
 import { resolverModulos } from "@/lib/planos";
 
-/**
- * Dados do cliente recém-criado, para a interface inserir na lista sem
- * esperar um novo carregamento.
- */
-export interface ClienteCriado {
-  id: string;
-  nome: string;
-  segmento: string;
-  responsavel: string;
-  plano: string;
-  mensalidade: number;
-  modulos: readonly string[];
-}
 
 /**
  * A linha vigente de `plans`, lida no servidor.
@@ -46,12 +34,6 @@ async function lerPlano(
   };
 }
 
-export type EstadoFormulario =
-  | { status: "inicial" }
-  | { status: "erro"; mensagem: string; campo?: string }
-  | { status: "sucesso"; mensagem: string; cliente: ClienteCriado };
-
-export const ESTADO_INICIAL: EstadoFormulario = { status: "inicial" };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -293,7 +275,6 @@ export async function criarCliente(
 // sessão. É uma segunda tranca, independente da checagem daqui.
 // =====================================================================
 
-export type ResultadoCliente = { ok: true } | { ok: false; mensagem: string };
 
 /** Confirma que quem chamou é admin da plataforma. */
 async function exigirAdmin(): Promise<

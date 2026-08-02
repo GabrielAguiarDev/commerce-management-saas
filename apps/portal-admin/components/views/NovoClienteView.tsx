@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
-import { criarCliente, ESTADO_INICIAL } from "@/app/clientes/actions";
+import { criarCliente } from "@/app/clientes/actions";
+import { ESTADO_INICIAL } from "@/app/clientes/estadoFormulario";
 import { useAdmin } from "@/components/AdminProvider";
 import { BarraAcoes } from "@/components/BarraAcoes";
 import { GradeModulos, ModuloCard } from "@/components/ModuloCard";
