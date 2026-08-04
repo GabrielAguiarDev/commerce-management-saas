@@ -14,13 +14,13 @@ import { usePortal } from "@/components/PortalProvider";
  * corpo — assim nenhuma tela precisa carregar formulário que não é dela.
  */
 export function Modais() {
-  const { s } = usePortal();
+  const { s, d } = usePortal();
   const m = s.modal;
   if (!m) return null;
 
   switch (m.k) {
     case "detalheVenda": {
-      const venda = s.vendas.find((v) => v.id === m.id);
+      const venda = d.vendas.find((v) => v.id === m.id);
       return venda ? <VendaDetalheModal venda={venda} /> : null;
     }
     case "produto":
@@ -36,11 +36,11 @@ export function Modais() {
     case "caixaFechar":
       return <CaixaFecharModal />;
     case "caixaDetalhe": {
-      const caixa = s.caixasFechados.find((c) => c.id === m.id);
+      const caixa = d.caixasFechados.find((c) => c.id === m.id);
       return caixa ? <CaixaDetalheModal caixa={caixa} /> : null;
     }
     case "funcionario":
-      return <FuncionarioModal />;
+      return <FuncionarioModal id={m.id} />;
     case "papel":
       return <PapelModal />;
     case "novoChamado":

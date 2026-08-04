@@ -1,25 +1,16 @@
-import { mkCaixas } from "@/lib/dados/caixa";
-import { mkChamados } from "@/lib/dados/chamados";
-import { CATS_CUSTO, mkCustos } from "@/lib/dados/custos";
-import { mkEquipe, mkLog, mkPapeis } from "@/lib/dados/equipe";
-import { mkMovs } from "@/lib/dados/estoque";
-import { PERFIS } from "@/lib/dados/perfis";
-import { mkProdutos } from "@/lib/dados/produtos";
-import { FORMAS, mkVendas } from "@/lib/dados/vendas";
+import { FORMAS } from "@/lib/dados/vendas";
 import type {
+  DadosPortal,
   FormCaixa,
   FormChamado,
   FormCusto,
-  FormFuncionario,
   FormMov,
   FormPapel,
   FormProduto,
   FormResposta,
   PortalState,
 } from "@/types/estado";
-import type { DadosNegocio, PerfilKey, Preferencias, Tema } from "@/types/types";
-
-/** Largura abaixo da qual o portal vira a versão de celular. */
+import type { DadosNegocio, Tema } from "@/types/types";
 
 export const FORM_PRODUTO_VAZIO: FormProduto = {
   id: null,
@@ -29,6 +20,7 @@ export const FORM_PRODUTO_VAZIO: FormProduto = {
   catNova: false,
   ativo: true,
   fav: false,
+  servico: false,
   codigo: "",
   custo: "",
   estoque: "",
@@ -61,15 +53,7 @@ export const FORM_CAIXA_VAZIO: FormCaixa = {
   valor: "",
   motivo: "",
   obs: "",
-  contado: {},
-};
-
-export const FORM_FUNC_VAZIO: FormFuncionario = {
-  id: null,
-  nome: "",
-  email: "",
-  papel: "",
-  tentouSalvar: false,
+  contadoDinheiro: "",
 };
 
 export const FORM_PAPEL_VAZIO: FormPapel = {
@@ -89,55 +73,42 @@ export const FORM_CHAMADO_VAZIO: FormChamado = {
 
 export const FORM_RESPOSTA_VAZIA: FormResposta = { texto: "", anexo: "" };
 
-/** Os dados que a tela de Configurações edita, derivados do perfil. */
-function dadosDe(perfil: PerfilKey): DadosNegocio {
-  const n = PERFIS[perfil];
-  return perfil === "petshop"
-    ? {
-        nome: n.nome,
-        tipo: "Petshop",
-        documento: "12.345.678/0001-90",
-        telefone: "(71) 99876-5432",
-        endereco: "Rua das Flores, 120 — Centro, Salvador/BA",
-      }
-    : {
-        nome: n.nome,
-        tipo: "Comida de rua",
-        documento: "123.456.789-00",
-        telefone: "(71) 98765-4321",
-        endereco: "Largo do Rio Vermelho — Salvador/BA",
-      };
-}
-
-const PREFS_PADRAO: Preferencias = {
-  imprimirComprovante: true,
-  pedirCliente: false,
-  alertaEstoque: true,
+/** O retrato vazio, usado enquanto a leitura falha ou o ambiente não tem banco. */
+export const DADOS_VAZIOS: DadosPortal = {
+  negocio: {
+    id: "",
+    nome: "Seu negócio",
+    sigla: "?",
+    tipo: "",
+    user: { nome: "Você", sigla: "?" },
+    modulos: ["dashboard", "config"],
+  },
+  dados: { nome: "", tipo: "", telefone: "", cidade: "" },
+  produtos: [],
+  vendas: [],
+  movs: [],
+  custos: [],
+  caixaAberto: null,
+  caixasFechados: [],
+  papeis: [],
+  equipe: [],
+  chamados: [],
+  erro: null,
 };
 
 /**
- * Monta o estado inteiro a partir de um perfil.
+ * Monta o estado da SESSÃO — tema, filtros, carrinho, rascunhos.
  *
- * Trocar de perfil descarta tudo e semeia de novo — é uma demonstração, e
- * misturar as vendas do petshop com o catálogo da barraca não faria sentido.
- * Aparência e largura da tela sobrevivem à troca porque são de quem olha, não
- * do negócio.
+ * O retrato do negócio não entra aqui: ele chega como prop do servidor e é
+ * lido direto. Copiá-lo para o estado criaria duas verdades, e a do cliente
+ * ficaria velha no instante seguinte a uma escrita.
  */
-export function estadoDoPerfil(
-  perfil: PerfilKey,
+export function estadoInicial(
+  dados: DadosNegocio,
   manter?: { tema: Tema; larguraTela: number; colapsada: boolean },
 ): PortalState {
-  const negocio = PERFIS[perfil];
-  const caixas = mkCaixas(perfil, negocio.user.nome);
-  const produtos = mkProdutos(perfil);
-  const dados = dadosDe(perfil);
-
-  const catsProduto = Array.from(new Set(produtos.map((p) => p.categoria))).sort();
-
   return {
-    perfil,
     tema: manter?.tema ?? "claro",
-    idioma: "Português (Brasil)",
     larguraTela: manter?.larguraTela ?? 1440,
     colapsada: manter?.colapsada ?? false,
     navAberto: false,
@@ -145,25 +116,11 @@ export function estadoDoPerfil(
     logoutAberto: false,
     dica: null,
 
-    produtos,
-    vendas: mkVendas(perfil),
-    movs: mkMovs(perfil, negocio.user.nome),
-    custos: mkCustos(perfil),
-    caixaAberto: caixas.aberto,
-    caixasFechados: caixas.fechados,
-    papeis: mkPapeis(perfil),
-    equipe: mkEquipe(perfil),
-    log: mkLog(perfil),
-    chamados: mkChamados(perfil),
-
-    dados,
-    dadosRascunho: { ...dados },
-    prefs: { ...PREFS_PADRAO },
     formasAceitas: FORMAS.slice(),
-    catsProduto,
-    catsCusto: CATS_CUSTO.slice(),
-    novaCatProduto: "",
-    novaCatCusto: "",
+    imprimirComprovante: true,
+    pedirCliente: false,
+
+    dadosRascunho: { ...dados },
 
     carrinho: [],
     pagAtual: "Dinheiro",
@@ -186,24 +143,19 @@ export function estadoDoPerfil(
     },
     fCustos: { tipo: "Todos", cat: "Todas as categorias", periodo: "Este mês" },
     fRel: { periodo: "30", comparar: false },
-    fConfig: {
-      aba: "dados",
-      logUsuario: "Todos",
-      logAcao: "Tudo",
-      logPeriodo: "Últimos 30 dias",
-    },
+    fConfig: { aba: "dados" },
     fSuporte: { busca: "", status: "todos" },
 
     menuLinha: null,
     modal: null,
     conf: null,
     toast: "",
+    salvando: false,
 
     formProduto: { ...FORM_PRODUTO_VAZIO },
     formCusto: { ...FORM_CUSTO_VAZIO },
     formMov: { ...FORM_MOV_VAZIO },
     formCaixa: { ...FORM_CAIXA_VAZIO },
-    formFunc: { ...FORM_FUNC_VAZIO },
     formPapel: { ...FORM_PAPEL_VAZIO },
     formChamado: { ...FORM_CHAMADO_VAZIO },
     formResposta: { ...FORM_RESPOSTA_VAZIA },
@@ -211,8 +163,8 @@ export function estadoDoPerfil(
 }
 
 /** Rascunho de dados do negócio diferente do que está salvo. */
-export function dadosSujos(s: PortalState): boolean {
-  return (Object.keys(s.dados) as (keyof DadosNegocio)[]).some(
-    (k) => s.dados[k] !== s.dadosRascunho[k],
+export function dadosSujos(s: PortalState, salvo: DadosNegocio): boolean {
+  return (Object.keys(salvo) as (keyof DadosNegocio)[]).some(
+    (k) => salvo[k] !== s.dadosRascunho[k],
   );
 }

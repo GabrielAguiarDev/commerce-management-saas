@@ -3,7 +3,7 @@
 import { ModalBase } from "@/components/modais/Base";
 import { campo, CampoDinheiro, CampoRotulado, css, MONO, RodapeModal, ROTULO_CAMPO, SANS, SelecaoSimples, trilha } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { UNIDADES } from "@/lib/dados/produtos";
+import { categoriasDe, UNIDADES } from "@/lib/dados/produtos";
 import { numBR } from "@/lib/formato";
 
 /**
@@ -14,7 +14,7 @@ import { numBR } from "@/lib/formato";
  * "quantidade em estoque": é um campo que ele nunca vai poder usar.
  */
 export function ProdutoModal() {
-  const { s, a, tem, isMobile } = usePortal();
+  const { s, a, tem, isMobile, d } = usePortal();
   const f = s.formProduto;
   const editando = f.id != null;
 
@@ -56,7 +56,7 @@ export function ProdutoModal() {
         label="Nome do produto"
         valor={f.nome}
         onMudar={(v) => set({ nome: v })}
-        placeholder={s.perfil === "petshop" ? "Ex.: Ração premium 15kg" : "Ex.: Acarajé completo"}
+        placeholder="Ex.: o que você vende"
         erro={erroNome}
         mensagem="Escreva o nome do produto."
       />
@@ -81,7 +81,7 @@ export function ProdutoModal() {
                 style={css(campo().replace("var(--border2)", "var(--accent)"))}
               />
               <button
-                onClick={() => set({ catNova: false, categoria: s.catsProduto[0] ?? "" })}
+                onClick={() => set({ catNova: false, categoria: categoriasDe(d.produtos)[0] ?? "" })}
                 title="Escolher da lista"
                 style={css(
                   `flex:none;padding:0 12px;border:1px solid var(--border2);border-radius:11px;background:var(--surface);color:var(--muted);font:600 13px ${MONO}`,
@@ -95,7 +95,7 @@ export function ProdutoModal() {
               valor={f.categoria}
               // "Criar categoria" é uma opção da própria lista: é onde a pessoa
               // já está olhando quando descobre que a dela não existe.
-              opcoes={[...s.catsProduto, "+ Criar categoria"]}
+              opcoes={[...categoriasDe(d.produtos), "+ Criar categoria"]}
               onMudar={(v) =>
                 v === "+ Criar categoria" ? set({ catNova: true, categoria: "" }) : set({ categoria: v })
               }

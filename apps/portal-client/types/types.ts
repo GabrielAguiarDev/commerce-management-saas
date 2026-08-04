@@ -5,6 +5,13 @@
  * menu quanto o dashboard montam-se a partir dele. Por isso `ModuloKey` é o
  * tipo mais importante daqui — quase toda decisão de "isto aparece?" passa por
  * uma checagem contra a lista de módulos ativos.
+ *
+ * SOBRE O FORMATO: estes tipos são o modelo do PORTAL, não o do banco. As
+ * linhas do Supabase são traduzidas para cá em `lib/dados/*` — é lá que
+ * `sold_at` vira `d`/`hora`, que `payment_method` vira "Pix" e que os nomes em
+ * inglês viram os do produto. As telas nunca veem uma linha crua.
+ *
+ * Todo `id` é o uuid do banco, em texto.
  */
 
 export type ModuloKey =
@@ -17,8 +24,6 @@ export type ModuloKey =
   | "relatorios"
   | "config"
   | "suporte";
-
-export type PerfilKey = "petshop" | "acaraje";
 
 export type Tema = "claro" | "escuro";
 
@@ -43,15 +48,15 @@ export interface Usuario {
   sigla: string;
 }
 
-/** O negócio do cliente: identidade, plano e textos de exemplo do perfil. */
+/** O negócio do cliente: identidade e módulos que o plano liga. */
 export interface Negocio {
+  id: string;
   nome: string;
   sigla: string;
+  /** Ramo do comércio — `tenants.segment`. */
   tipo: string;
   user: Usuario;
-  /** Módulos que o plano deste cliente liga. */
   modulos: ModuloKey[];
-  itemPlaceholder: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -65,10 +70,16 @@ export interface ItemVenda {
 }
 
 export interface Venda {
-  id: number;
-  /** Dias atrás: 0 = hoje, 1 = ontem. É como o design semeia o histórico. */
+  id: string;
+  /**
+   * Dias atrás, calculado de `sales.sold_at` na leitura: 0 = hoje, 1 = ontem.
+   * Os filtros e gráficos do portal raciocinam em "quantos dias", então a
+   * conta é feita uma vez, na borda, em vez de em cada tela.
+   */
   d: number;
   hora: string;
+  /** O carimbo original, para quando a escrita precisa da data exata. */
+  quando: string;
   pag: FormaPagamento;
   estornada: boolean;
   itens: ItemVenda[];
@@ -76,6 +87,8 @@ export interface Venda {
 
 /** Um item no carrinho do PDV. */
 export interface ItemCarrinho {
+  /** `null` num item avulso, que não veio do catálogo. */
+  produtoId: string | null;
   nome: string;
   preco: number;
   qtd: number;
@@ -86,7 +99,7 @@ export interface ItemCarrinho {
 /* -------------------------------------------------------------------------- */
 
 export interface Produto {
-  id: number;
+  id: string;
   nome: string;
   preco: number;
   codigo: string;
@@ -94,16 +107,19 @@ export interface Produto {
   ativo: boolean;
   categoria: string;
   custo: number;
-  /** `null` em serviços — banho, consulta: não há o que contar na prateleira. */
+  /** `null` em quem não controla estoque — serviços e afins. */
   estoque: number | null;
   minimo: number | null;
   unidade: string;
+  /** `products.is_service`: banho, consulta. Não tem prateleira. */
+  servico: boolean;
 }
 
 export interface MovEstoque {
-  id: number;
+  id: string;
   d: number;
   hora: string;
+  produtoId: string;
   produto: string;
   tipo: TipoMovEstoque;
   /** Assinado: entrada é positiva, saída e perda são negativas. */
@@ -119,15 +135,17 @@ export interface MovEstoque {
 /* -------------------------------------------------------------------------- */
 
 export interface Custo {
-  id: number;
+  id: string;
   tipo: TipoCusto;
   descricao: string;
   categoria: string;
   valor: number;
   d: number;
+  /** A data exata (`costs.cost_date`), para editar sem recalcular. */
+  data: string;
   recorrente: boolean;
-  /** Lançado automaticamente por uma entrada de mercadoria no Estoque. */
-  doEstoque?: boolean;
+  /** `costs.origin = 'stock'`: veio de uma entrada de mercadoria. */
+  doEstoque: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -135,7 +153,7 @@ export interface Custo {
 /* -------------------------------------------------------------------------- */
 
 export interface MovCaixa {
-  id: number;
+  id: string;
   hora: string;
   tipo: TipoMovCaixa;
   valor: number;
@@ -143,58 +161,54 @@ export interface MovCaixa {
 }
 
 export interface CaixaAberto {
-  id: number;
+  id: string;
   abertura: string;
+  /** Carimbo da abertura, para somar só as vendas deste turno. */
+  abertoEm: string;
   inicial: number;
   operador: string;
   movs: MovCaixa[];
 }
 
 export interface CaixaFechado {
-  id: number;
+  id: string;
   d: number;
   abertura: string;
   fechamento: string;
   inicial: number;
   operador: string;
+  /** Quanto entrou por forma de pagamento durante o turno. */
   vendas: Partial<Record<FormaPagamento, number>>;
-  contado: Partial<Record<FormaPagamento, number>>;
+  /**
+   * A conferência é só do dinheiro em espécie — é o único que fica numa gaveta
+   * para ser contado. Pix e cartão são conferidos no extrato, fora do portal.
+   */
+  esperadoDinheiro: number;
+  contadoDinheiro: number;
+  diferenca: number;
   movs: MovCaixa[];
   obs: string;
 }
 
 /* -------------------------------------------------------------------------- */
-/* Equipe e auditoria                                                          */
+/* Equipe                                                                      */
 /* -------------------------------------------------------------------------- */
 
 export interface Papel {
-  id: number;
+  id: string;
   nome: string;
   modulos: ModuloKey[];
-  /** O "Dono" não pode ser removido nem ter acessos tirados. */
+  /** O dono não pode ser removido nem ter acessos tirados. */
   fixo: boolean;
 }
 
 export interface Funcionario {
-  id: number;
+  id: string;
   nome: string;
   email: string;
   papel: string;
   ativo: boolean;
-  acesso: string;
   dono: boolean;
-}
-
-export type TagLog = "venda" | "caixa" | "estoque" | "custos" | "config";
-
-export interface LinhaLog {
-  id: number;
-  d: number;
-  hora: string;
-  quem: string;
-  tag: TagLog;
-  texto: string;
-  detalhe: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -202,6 +216,7 @@ export interface LinhaLog {
 /* -------------------------------------------------------------------------- */
 
 export interface MensagemChamado {
+  id: string;
   autor: AutorMensagem;
   d: number;
   hora: string;
@@ -211,6 +226,8 @@ export interface MensagemChamado {
 
 export interface Chamado {
   id: string;
+  /** Número curto mostrado como protocolo — os 6 primeiros dígitos do uuid. */
+  protocolo: string;
   assunto: string;
   categoria: string;
   status: StatusChamado;
@@ -222,16 +239,10 @@ export interface Chamado {
 /* Configurações                                                               */
 /* -------------------------------------------------------------------------- */
 
+/** O que `tenants` guarda hoje. Documento e endereço ainda não têm coluna. */
 export interface DadosNegocio {
   nome: string;
   tipo: string;
-  documento: string;
   telefone: string;
-  endereco: string;
-}
-
-export interface Preferencias {
-  imprimirComprovante: boolean;
-  pedirCliente: boolean;
-  alertaEstoque: boolean;
+  cidade: string;
 }

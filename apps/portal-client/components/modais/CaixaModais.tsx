@@ -4,7 +4,6 @@ import { ModalBase } from "@/components/modais/Base";
 import { CampoDinheiro, CampoRotulado, css, MONO, NUM, RodapeModal, SANS, Sugestoes } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
 import {
-  esperadoCx,
   MOTIVOS_REFORCO,
   MOTIVOS_SANGRIA,
   MOV_CAIXA_ESTILO,
@@ -15,7 +14,7 @@ import {
 import { FORMAS, NOTA_FORMA } from "@/lib/dados/vendas";
 import { brl, brlDif, corDif, numBR, rotuloData } from "@/lib/formato";
 import { dinheiroNaGaveta, esperadoDoTurno, vendasDoTurno } from "@/lib/selectors";
-import type { CaixaFechado, FormaPagamento } from "@/types/types";
+import type { CaixaFechado } from "@/types/types";
 
 /* -------------------------------------------------------------------------- */
 /* Abrir o caixa                                                               */
@@ -60,10 +59,10 @@ export function CaixaAbrirModal() {
 /* -------------------------------------------------------------------------- */
 
 export function CaixaMovModal({ tipo }: { tipo: "sangria" | "reforco" }) {
-  const { s, a } = usePortal();
+  const { s, a, d } = usePortal();
   const f = s.formCaixa;
   const estilo = MOV_CAIXA_ESTILO[tipo];
-  const naGaveta = dinheiroNaGaveta(s);
+  const naGaveta = dinheiroNaGaveta(d);
   const valor = numBR(f.valor);
 
   const sangriaAlta = tipo === "sangria" && valor > naGaveta;
@@ -125,27 +124,37 @@ export function CaixaMovModal({ tipo }: { tipo: "sangria" | "reforco" }) {
 /* Conferência e fechamento                                                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * A conferência do fechamento.
+ *
+ * Só o dinheiro é digitado: é o único que fica numa gaveta para ser contado.
+ * Pix e cartão caem na conta e aparecem aqui como referência do que deve estar
+ * no extrato — pedir para "conferir" um Pix seria pedir um número que a pessoa
+ * não tem como checar no balcão.
+ *
+ * Quem calcula o esperado e a diferença de verdade é `close_cash_register`, no
+ * banco. O número mostrado aqui é a mesma conta, adiantada, para a pessoa
+ * enxergar a diferença antes de confirmar.
+ */
 export function CaixaFecharModal() {
-  const { s, a, isMobile } = usePortal();
-  const cx = s.caixaAberto;
+  const { s, a, d } = usePortal();
+  const cx = d.caixaAberto;
   const f = s.formCaixa;
   if (!cx) return null;
 
-  const esperado = esperadoDoTurno(s);
+  const esperado = esperadoDoTurno(d);
+  const vendas = vendasDoTurno(d);
 
-  const contadoDe = (forma: FormaPagamento) => numBR(f.contado[forma] ?? "");
-  const difDe = (forma: FormaPagamento) => contadoDe(forma) - esperado[forma];
-
-  const difTotal = FORMAS.reduce((x, forma) => x + difDe(forma), 0);
-  const estiloTotal = corDif(difTotal);
-
-  const cols = isMobile ? "1fr" : "1fr 1fr 1fr";
+  const contado = numBR(f.contadoDinheiro);
+  const preenchido = f.contadoDinheiro.trim() !== "";
+  const dif = preenchido ? contado - esperado.Dinheiro : 0;
+  const estilo = corDif(dif);
 
   return (
     <ModalBase
       titulo="Conferência do caixa"
-      subtitulo={`Turno aberto às ${cx.abertura} · confira cada forma de pagamento`}
-      largura={540}
+      subtitulo={`Turno aberto às ${cx.abertura} · conte o dinheiro da gaveta`}
+      largura={520}
       onFechar={a.fecharModal}
       rodape={
         <RodapeModal
@@ -153,12 +162,13 @@ export function CaixaFecharModal() {
           onConfirmar={() =>
             a.confirmar({
               titulo: "Fechar o caixa?",
-              texto: "O turno é encerrado e os valores conferidos ficam guardados no histórico.",
-              resumo:
-                Math.abs(difTotal) < 0.005
-                  ? "Os valores bateram certinho"
-                  : `${difTotal > 0 ? "Sobra" : "Falta"} de ${brl(Math.abs(difTotal))}`,
-              sub: `Aberto às ${cx.abertura} · ${brl(somaFormas(vendasDoTurno(s)))} vendidos`,
+              texto: "O turno é encerrado e a conferência fica guardada no histórico.",
+              resumo: !preenchido
+                ? "Sem contagem informada"
+                : Math.abs(dif) < 0.005
+                  ? "O dinheiro bateu certinho"
+                  : `${dif > 0 ? "Sobra" : "Falta"} de ${brl(Math.abs(dif))}`,
+              sub: `Aberto às ${cx.abertura} · ${brl(somaFormas(vendas))} vendidos no turno`,
               reversao: "Se fechar por engano, dá para reabrir pelo histórico de turnos.",
               btn: "Fechar caixa",
               btnBg: "var(--warn)",
@@ -174,96 +184,116 @@ export function CaixaFecharModal() {
         />
       }
     >
-      {FORMAS.map((forma) => {
-        const dif = difDe(forma);
-        const estilo = corDif(dif);
-        const preenchido = (f.contado[forma] ?? "").trim() !== "";
-
-        return (
-          <div
-            key={forma}
-            style={css("padding:13px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2)")}
-          >
-            <div style={css("display:flex;align-items:baseline;justify-content:space-between;gap:10px")}>
-              <span style={css(`font:700 13.5px ${SANS}`)}>{forma}</span>
-              <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>{NOTA_FORMA[forma]}</span>
-            </div>
-
-            <div
-              style={css(`display:grid;grid-template-columns:${cols};gap:9px;align-items:end;margin-top:10px`)}
-            >
-              <div>
-                <div style={css(`font:600 10px ${MONO};letter-spacing:.08em;text-transform:uppercase;color:var(--muted)`)}>
-                  Esperado
-                </div>
-                <div
-                  style={css(
-                    `margin-top:5px;padding:11px 12px;border-radius:10px;background:var(--surface3);font:700 14.5px ${SANS};${NUM};color:var(--text2)`,
-                  )}
-                >
-                  {brl(esperado[forma])}
-                </div>
-              </div>
-
-              <div>
-                <div style={css(`font:600 10px ${MONO};letter-spacing:.08em;text-transform:uppercase;color:var(--muted)`)}>
-                  {forma === "Dinheiro" ? "Contado na gaveta" : "Conferido"}
-                </div>
-                <div
-                  style={css(
-                    `display:flex;align-items:center;gap:6px;margin-top:5px;padding:0 12px;border:1.5px solid ${preenchido ? "var(--accent)" : "var(--border2)"};border-radius:10px;background:var(--surface)`,
-                  )}
-                >
-                  <span style={css(`font:600 12.5px ${SANS};color:var(--muted)`)}>R$</span>
-                  <input
-                    value={f.contado[forma] ?? ""}
-                    onChange={(e) =>
-                      a.set({ formCaixa: { ...f, contado: { ...f.contado, [forma]: e.target.value } } })
-                    }
-                    placeholder="0,00"
-                    inputMode="decimal"
-                    style={css(
-                      `flex:1;min-width:0;padding:11px 0;border:0;background:none;font:700 14.5px ${SANS};${NUM};color:var(--text);outline:none`,
-                    )}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div style={css(`font:600 10px ${MONO};letter-spacing:.08em;text-transform:uppercase;color:var(--muted)`)}>
-                  Diferença
-                </div>
-                <div
-                  style={css(
-                    `margin-top:5px;padding:11px 12px;border-radius:10px;background:${estilo.bg};font:700 14.5px ${SANS};${NUM};color:${estilo.cor}`,
-                  )}
-                >
-                  {brlDif(dif)}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-
+      {/* O que é contado */}
       <div
         style={css(
-          `padding:14px;border:1px solid ${estiloTotal.cor};border-radius:12px;background:${estiloTotal.bg}`,
+          "padding:14px;border:1.5px solid var(--border2);border-radius:12px;background:var(--surface2)",
         )}
       >
         <div style={css("display:flex;align-items:baseline;justify-content:space-between;gap:10px")}>
-          <span style={css(`font:700 14px ${SANS};color:${estiloTotal.cor}`)}>Diferença total</span>
-          <span style={css(`font:700 21px/1 ${SANS};${NUM};color:${estiloTotal.cor}`)}>
-            {brlDif(difTotal)}
+          <span style={css(`font:700 14px ${SANS}`)}>Dinheiro na gaveta</span>
+          <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>
+            troco + vendas em espécie ± movimentações
           </span>
         </div>
-        <p style={css(`margin:6px 0 0;font:500 12px/1.45 ${SANS};color:${estiloTotal.cor}`)}>
-          {Math.abs(difTotal) < 0.005
-            ? "Tudo conferido. Pode fechar tranquilo."
-            : difTotal > 0
-              ? "Sobrou dinheiro. Costuma ser troco não lançado ou uma venda registrada a menos."
-              : "Faltou dinheiro. Confira a gaveta de novo e as sangrias do turno."}
+
+        <div style={css("display:grid;grid-template-columns:1fr 1fr;gap:9px;align-items:end;margin-top:12px")}>
+          <div>
+            <div
+              style={css(
+                `font:600 10px ${MONO};letter-spacing:.08em;text-transform:uppercase;color:var(--muted)`,
+              )}
+            >
+              Esperado
+            </div>
+            <div
+              style={css(
+                `margin-top:5px;padding:12px;border-radius:10px;background:var(--surface3);font:700 16px ${SANS};${NUM};color:var(--text2)`,
+              )}
+            >
+              {brl(esperado.Dinheiro)}
+            </div>
+          </div>
+
+          <div>
+            <div
+              style={css(
+                `font:600 10px ${MONO};letter-spacing:.08em;text-transform:uppercase;color:var(--muted)`,
+              )}
+            >
+              Contado por você
+            </div>
+            <div
+              style={css(
+                `display:flex;align-items:center;gap:6px;margin-top:5px;padding:0 12px;border:1.5px solid ${preenchido ? "var(--accent)" : "var(--border2)"};border-radius:10px;background:var(--surface)`,
+              )}
+            >
+              <span style={css(`font:600 13px ${SANS};color:var(--muted)`)}>R$</span>
+              <input
+                value={f.contadoDinheiro}
+                onChange={(e) => a.set({ formCaixa: { ...f, contadoDinheiro: e.target.value } })}
+                placeholder="0,00"
+                inputMode="decimal"
+                autoFocus
+                style={css(
+                  `flex:1;min-width:0;padding:12px 0;border:0;background:none;font:700 16px ${SANS};${NUM};color:var(--text);outline:none`,
+                )}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={css(
+            `display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:12px;padding:11px 13px;border-radius:10px;background:${estilo.bg}`,
+          )}
+        >
+          <span style={css(`font:700 13px ${SANS};color:${estilo.cor}`)}>Diferença</span>
+          <span style={css(`font:700 19px/1 ${SANS};${NUM};color:${estilo.cor}`)}>
+            {preenchido ? brlDif(dif) : "—"}
+          </span>
+        </div>
+
+        <p style={css(`margin:8px 0 0;font:500 11.5px/1.45 ${SANS};color:var(--muted)`)}>
+          {!preenchido
+            ? "Conte o que está na gaveta e digite acima."
+            : Math.abs(dif) < 0.005
+              ? "Tudo conferido. Pode fechar tranquilo."
+              : dif > 0
+                ? "Sobrou dinheiro. Costuma ser troco não lançado ou uma venda registrada a menos."
+                : "Faltou dinheiro. Confira a gaveta de novo e as sangrias do turno."}
         </p>
+      </div>
+
+      {/* O que não é contado aqui */}
+      <div>
+        <div
+          style={css(
+            `margin-bottom:8px;font:600 10.5px ${MONO};letter-spacing:.1em;text-transform:uppercase;color:var(--muted)`,
+          )}
+        >
+          Confira no extrato
+        </div>
+        <div style={css("display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:11px;overflow:hidden")}>
+          {FORMAS.filter((x) => x !== "Dinheiro").map((forma) => (
+            <div
+              key={forma}
+              style={css(
+                "display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--surface)",
+              )}
+            >
+              <span style={css("flex:1;min-width:0")}>
+                <span style={css(`display:block;font:600 12.5px ${SANS}`)}>{forma}</span>
+                <span style={css(`display:block;margin-top:2px;font:500 11px ${SANS};color:var(--muted)`)}>
+                  {NOTA_FORMA[forma]}
+                </span>
+              </span>
+              <span style={css(`flex:none;font:700 13.5px ${SANS};${NUM};color:var(--text2)`)}>
+                {brl(vendas[forma] ?? 0)}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <CampoRotulado
@@ -282,9 +312,7 @@ export function CaixaFecharModal() {
 
 export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
   const { a } = usePortal();
-  const esperado = esperadoCx(caixa);
-  const dif = FORMAS.reduce((x, f) => x + ((caixa.contado[f] ?? 0) - esperado[f]), 0);
-  const estilo = corDif(dif);
+  const estilo = corDif(caixa.diferenca);
 
   return (
     <ModalBase
@@ -331,36 +359,62 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
         </div>
       }
     >
-      {FORMAS.map((f) => {
-        const d = (caixa.contado[f] ?? 0) - esperado[f];
-        const e = corDif(d);
-        return (
+      <div
+        style={css(
+          "display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:11px;overflow:hidden",
+        )}
+      >
+        {[
+          { nome: "Troco inicial", valor: caixa.inicial, nota: "Com o que o turno começou" },
+          {
+            nome: "Vendas em dinheiro",
+            valor: caixa.vendas.Dinheiro ?? 0,
+            nota: "Entraram na gaveta",
+          },
+          {
+            nome: "Movimentações",
+            valor: saldoMovs(caixa.movs),
+            nota: `${caixa.movs.length} no turno`,
+          },
+        ].map((l) => (
           <div
-            key={f}
-            style={css(
-              "display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--border);border-radius:11px;background:var(--surface2)",
-            )}
+            key={l.nome}
+            style={css("display:flex;align-items:center;gap:12px;padding:12px 13px;background:var(--surface)")}
           >
             <span style={css("flex:1;min-width:0")}>
-              <span style={css(`display:block;font:600 13px ${SANS}`)}>{f}</span>
-              <span style={css(`display:block;margin-top:2px;font:500 11.5px ${SANS};color:var(--muted)`)}>
-                esperado {brl(esperado[f])}
+              <span style={css(`display:block;font:600 12.5px ${SANS}`)}>{l.nome}</span>
+              <span style={css(`display:block;margin-top:2px;font:500 11px ${SANS};color:var(--muted)`)}>
+                {l.nota}
               </span>
             </span>
-            <span style={css("flex:none;text-align:right")}>
-              <span style={css(`display:block;font:700 13.5px ${SANS};${NUM}`)}>
-                {brl(caixa.contado[f] ?? 0)}
-              </span>
-              <span style={css(`display:block;margin-top:2px;font:600 11px ${SANS};${NUM};color:${e.cor}`)}>
-                {brlDif(d)}
-              </span>
+            <span style={css(`flex:none;font:700 13.5px ${SANS};${NUM}`)}>{brl(l.valor)}</span>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={css("display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:11px;overflow:hidden")}
+      >
+        {[
+          { nome: "Esperado na gaveta", valor: caixa.esperadoDinheiro, forte: false },
+          { nome: "Contado no fechamento", valor: caixa.contadoDinheiro, forte: true },
+        ].map((l) => (
+          <div
+            key={l.nome}
+            style={css("display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;background:var(--surface)")}
+          >
+            <span style={css(`font:${l.forte ? "700" : "500"} 12.5px ${SANS};color:var(--text2)`)}>
+              {l.nome}
+            </span>
+            <span style={css(`font:${l.forte ? "700" : "600"} 13.5px ${SANS};${NUM}`)}>
+              {brl(l.valor)}
             </span>
           </div>
-        );
-      })}
+        ))}
+      </div>
 
       {caixa.movs.length > 0 && (
-        <div style={css("margin-top:4px")}>
+        <div>
           <div
             style={css(
               `margin-bottom:7px;font:600 10.5px ${MONO};letter-spacing:.12em;text-transform:uppercase;color:var(--muted)`,
@@ -396,9 +450,6 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
               </div>
             );
           })}
-          <div style={css(`margin-top:7px;font:500 11.5px ${SANS};color:var(--muted)`)}>
-            Saldo das movimentações: {brlDif(saldoMovs(caixa.movs))}
-          </div>
         </div>
       )}
 
@@ -418,7 +469,9 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
         )}
       >
         <span style={css(`font:600 13px ${SANS};color:var(--text2)`)}>Diferença do turno</span>
-        <span style={css(`font:700 22px/1 ${SANS};${NUM};color:${estilo.cor}`)}>{brlDif(dif)}</span>
+        <span style={css(`font:700 22px/1 ${SANS};${NUM};color:${estilo.cor}`)}>
+          {brlDif(caixa.diferenca)}
+        </span>
       </div>
     </ModalBase>
   );

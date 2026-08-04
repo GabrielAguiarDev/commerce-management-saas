@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { PortalProvider } from "@/components/PortalProvider";
 import { PortalShell } from "@/components/PortalShell";
+import { carregarPortal } from "@/lib/dados/carregar";
 import "./globals.css";
 
 /**
@@ -27,11 +28,23 @@ export const metadata: Metadata = {
     "O portal do seu negócio: vendas, caixa, produtos, estoque, custos, relatórios e suporte.",
 };
 
-export default function RootLayout({
+/**
+ * Nada aqui pode ser pré-renderizado e reaproveitado: a página carrega os dados
+ * do negócio de quem pediu. Sem isto, um build feito sem as variáveis de
+ * ambiente congelaria um portal vazio para todo mundo.
+ */
+export const dynamic = "force-dynamic";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // A leitura acontece no SERVIDOR, com o cliente que carrega a sessão pelos
+  // cookies — o RLS decide o que este usuário pode ver. Uma vez por navegação,
+  // aqui, porque o menu e todas as telas leem do mesmo retrato.
+  const dados = await carregarPortal();
+
   return (
     <html lang="pt-BR" className={`${sans.variable} ${mono.variable} h-full`}>
       {/* `data-tema` é trocado no cliente pelo portal; semeá-lo aqui mantém a
@@ -39,7 +52,7 @@ export default function RootLayout({
       <body data-tema="claro">
         {/* A sessão vive acima do roteador, então filtros, carrinho, rascunhos
             e aparência sobrevivem à troca de tela. */}
-        <PortalProvider>
+        <PortalProvider dados={dados}>
           <PortalShell>{children}</PortalShell>
         </PortalProvider>
       </body>

@@ -1,9 +1,9 @@
-import { esperadoCx, saldoMovs } from "@/lib/dados/caixa";
+import { esperadoEmDinheiro, saldoMovs } from "@/lib/dados/caixa";
 import { rateioFixo } from "@/lib/dados/custos";
 import { estoqueBaixo } from "@/lib/dados/produtos";
 import { FORMAS } from "@/lib/dados/vendas";
 import { qtdV, totalV } from "@/lib/formato";
-import type { PeriodoRel, PortalState } from "@/types/estado";
+import type { DadosPortal, PeriodoRel } from "@/types/estado";
 import type { Custo, FormaPagamento, Produto, Venda } from "@/types/types";
 
 /**
@@ -63,28 +63,46 @@ export function totalCustos(custos: Custo[], dias: number): number {
  * venda corrige o esperado do fechamento sozinho, que era exatamente o bug
  * relatado no chamado 1046.
  */
-export function vendasDoTurno(s: PortalState): Partial<Record<FormaPagamento, number>> {
+export function vendasDoTurno(d: DadosPortal): Partial<Record<FormaPagamento, number>> {
   const out: Partial<Record<FormaPagamento, number>> = {};
   for (const f of FORMAS) out[f] = 0;
-  for (const v of s.vendas) {
-    if (!valida(v) || v.d !== 0) continue;
+
+  // A janela é a do turno, não o dia: quem abre o caixa às 18h não deve ver as
+  // vendas da manhã caindo na gaveta que acabou de contar.
+  const desde = d.caixaAberto ? new Date(d.caixaAberto.abertoEm).getTime() : null;
+
+  for (const v of d.vendas) {
+    if (!valida(v)) continue;
+    if (desde == null ? v.d !== 0 : new Date(v.quando).getTime() < desde) continue;
     out[v.pag] = (out[v.pag] ?? 0) + totalV(v);
   }
   return out;
 }
 
-/** O que deveria haver em cada forma agora, se o turno fechasse neste instante. */
-export function esperadoDoTurno(s: PortalState): Record<FormaPagamento, number> {
-  const cx = s.caixaAberto;
-  if (!cx) return { Dinheiro: 0, Pix: 0, Débito: 0, Crédito: 0 };
-  return esperadoCx({ inicial: cx.inicial, vendas: vendasDoTurno(s), movs: cx.movs });
+/**
+ * O que deveria haver em cada forma agora.
+ *
+ * Só o dinheiro acumula troco e movimentações da gaveta — Pix e cartão caem na
+ * conta, então o esperado deles é a soma das vendas e nada mais.
+ */
+export function esperadoDoTurno(d: DadosPortal): Record<FormaPagamento, number> {
+  const vendas = vendasDoTurno(d);
+  const base = {
+    Dinheiro: vendas.Dinheiro ?? 0,
+    Pix: vendas.Pix ?? 0,
+    Débito: vendas.Débito ?? 0,
+    Crédito: vendas.Crédito ?? 0,
+  };
+  const cx = d.caixaAberto;
+  if (!cx) return base;
+  return { ...base, Dinheiro: esperadoEmDinheiro(cx.inicial, base.Dinheiro, cx.movs) };
 }
 
 /** Dinheiro que está fisicamente na gaveta: troco + vendas em espécie ± movimentações. */
-export function dinheiroNaGaveta(s: PortalState): number {
-  const cx = s.caixaAberto;
+export function dinheiroNaGaveta(d: DadosPortal): number {
+  const cx = d.caixaAberto;
   if (!cx) return 0;
-  return cx.inicial + (vendasDoTurno(s).Dinheiro ?? 0) + saldoMovs(cx.movs);
+  return cx.inicial + (vendasDoTurno(d).Dinheiro ?? 0) + saldoMovs(cx.movs);
 }
 
 /* -------------------------------------------------------------------------- */

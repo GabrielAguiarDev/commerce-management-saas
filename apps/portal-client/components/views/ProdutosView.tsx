@@ -3,7 +3,7 @@
 import { usePortal } from "@/components/PortalProvider";
 import { MenuLinha } from "@/components/ui";
 import { BotaoNovo, CABECALHO_TABELA, CabecalhoTela, css, FaixaKpis, LimparFiltros, LISTA, MONO, NUM, rotuloColuna, SANS, SelecaoSimples, Vazio } from "@aguiar/ui";
-import { estoqueBaixo } from "@/lib/dados/produtos";
+import { categoriasDe, estoqueBaixo } from "@/lib/dados/produtos";
 import { brl } from "@/lib/formato";
 import { valorDoEstoque } from "@/lib/selectors";
 import { campoFiltro, SELO_NEUTRO } from "@/lib/styleKit";
@@ -20,7 +20,7 @@ const TODOS_STATUS = "Todos";
  * se está à venda.
  */
 export function ProdutosView() {
-  const { s, a, tem, isDesktop, isMobile } = usePortal();
+  const { s, a, tem, isDesktop, isMobile, d } = usePortal();
   const f = s.fProdutos;
 
   const temEstoque = tem("estoque");
@@ -28,7 +28,7 @@ export function ProdutosView() {
   const colEstoque = isDesktop && temEstoque;
 
   const busca = f.busca.trim().toLowerCase();
-  const filtrados = s.produtos.filter((p) => {
+  const filtrados = d.produtos.filter((p) => {
     if (busca && !p.nome.toLowerCase().includes(busca) && !p.codigo.includes(busca)) return false;
     if (f.cat !== TODAS_CATS && p.categoria !== f.cat) return false;
     if (f.status === "À venda" && !p.ativo) return false;
@@ -47,13 +47,13 @@ export function ProdutosView() {
   const set = (p: Partial<typeof f>) => a.set({ fProdutos: { ...f, ...p } });
   const limpar = () => set({ busca: "", cat: TODAS_CATS, status: TODOS_STATUS, soBaixo: false });
 
-  const ativos = s.produtos.filter((p) => p.ativo);
-  const emFalta = s.produtos.filter((p) => p.ativo && estoqueBaixo(p));
+  const ativos = d.produtos.filter((p) => p.ativo);
+  const emFalta = d.produtos.filter((p) => p.ativo && estoqueBaixo(p));
   const precoMedio = ativos.length ? ativos.reduce((x, p) => x + p.preco, 0) / ativos.length : 0;
 
   const kpis = [
-    { label: "No catálogo", valor: String(s.produtos.length), nota: `${ativos.length} à venda` },
-    { label: "Mais vendidos", valor: String(s.produtos.filter((p) => p.fav).length), nota: "Aparecem primeiro no PDV" },
+    { label: "No catálogo", valor: String(d.produtos.length), nota: `${ativos.length} à venda` },
+    { label: "Mais vendidos", valor: String(d.produtos.filter((p) => p.fav).length), nota: "Aparecem primeiro no PDV" },
     { label: "Preço médio", valor: brl(precoMedio), nota: "Dos produtos à venda" },
     temEstoque
       ? {
@@ -62,7 +62,7 @@ export function ProdutosView() {
           nota: emFalta.length ? "Precisa repor" : "Nada para repor",
           cor: emFalta.length ? "var(--warn)" : "var(--pos)",
         }
-      : { label: "Categorias", valor: String(s.catsProduto.length), nota: "Em uso no catálogo" },
+      : { label: "Categorias", valor: String(categoriasDe(d.produtos).length), nota: "Em uso no catálogo" },
   ];
 
   const cols =
@@ -89,7 +89,7 @@ export function ProdutosView() {
           placeholder="Buscar por nome ou código de barras"
           style={css(`flex:1;min-width:180px;${campoFiltro()}`)}
         />
-        <SelecaoSimples valor={f.cat} opcoes={[TODAS_CATS, ...s.catsProduto]} onMudar={(v) => set({ cat: v })} />
+        <SelecaoSimples valor={f.cat} opcoes={[TODAS_CATS, ...categoriasDe(d.produtos)]} onMudar={(v) => set({ cat: v })} />
         <SelecaoSimples
           valor={f.status}
           opcoes={[TODOS_STATUS, "À venda", "Pausados"]}
@@ -110,7 +110,7 @@ export function ProdutosView() {
         {filtroAtivo && <LimparFiltros onClick={limpar} />}
       </div>
 
-      {s.produtos.length === 0 ? (
+      {d.produtos.length === 0 ? (
         <Vazio
           titulo="Seu catálogo está vazio"
           texto="Cadastre o que você vende para agilizar o balcão: os produtos aparecem na tela de venda prontos para um toque."
@@ -152,8 +152,8 @@ export function ProdutosView() {
           </div>
 
           <p style={css(`margin:10px 0 0;font:500 12px ${SANS};color:var(--muted)`)}>
-            {ordenados.length} de {s.produtos.length} produtos
-            {temEstoque && ` · ${brl(valorDoEstoque(s.produtos))} parados na prateleira`}
+            {ordenados.length} de {d.produtos.length} produtos
+            {temEstoque && ` · ${brl(valorDoEstoque(d.produtos))} parados na prateleira`}
           </p>
         </>
       )}

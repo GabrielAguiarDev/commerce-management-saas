@@ -1,8 +1,8 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { css, MONO, NUM, PAINEL, pilula, SANS, TITULO_PAINEL, TITULO_TELA } from "@aguiar/ui";
-import { MODULOS, PERFIS_LISTA } from "@/lib/dados/perfis";
+import { css, MONO, NUM, PAINEL, SANS, TITULO_PAINEL, TITULO_TELA } from "@aguiar/ui";
+import { MODULOS } from "@/lib/dados/perfis";
 import { brl, brlCurto, dataPorExtenso, diaSemana, rotuloData, saudacao, totalV } from "@/lib/formato";
 import { ROTA_PDV, ROTAS } from "@/lib/rotas";
 import {
@@ -31,15 +31,15 @@ interface CartaoKpi {
  * mesma regra que monta o menu lateral.
  */
 export function DashboardView() {
-  const { s, a, tem, isMobile } = usePortal();
+  const { a, tem, isMobile, d } = usePortal();
 
-  const hoje = s.vendas.filter((v) => v.d === 0);
+  const hoje = d.vendas.filter((v) => v.d === 0);
   const faturamentoHoje = faturamento(hoje);
-  const custoHoje = custoDasVendas(hoje, s.produtos);
-  const custosLancadosHoje = s.custos.filter((c) => c.d === 0).reduce((x, c) => x + c.valor, 0);
+  const custoHoje = custoDasVendas(hoje, d.produtos);
+  const custosLancadosHoje = d.custos.filter((c) => c.d === 0).reduce((x, c) => x + c.valor, 0);
   const lucroHoje = faturamentoHoje - custoHoje - custosLancadosHoje;
-  const mes = faturamento(s.vendas.filter((v) => v.d < 30));
-  const emFalta = produtosEmFalta(s.produtos);
+  const mes = faturamento(d.vendas.filter((v) => v.d < 30));
+  const emFalta = produtosEmFalta(d.produtos);
 
   const kpis: CartaoKpi[] = [
     {
@@ -84,8 +84,8 @@ export function DashboardView() {
     label: "Faturamento do mês",
     valor: brl(mes),
     nota: tem("custos")
-      ? `Custos: ${brl(totalCustos(s.custos, 30))}`
-      : `${s.vendas.filter((v) => v.d < 30 && !v.estornada).length} vendas no período`,
+      ? `Custos: ${brl(totalCustos(d.custos, 30))}`
+      : `${d.vendas.filter((v) => v.d < 30 && !v.estornada).length} vendas no período`,
     cor: "var(--text)",
     dot: "var(--muted)",
   });
@@ -93,12 +93,12 @@ export function DashboardView() {
   if (tem("caixa")) {
     kpis.push({
       label: "Caixa",
-      valor: s.caixaAberto ? "Aberto" : "Fechado",
-      nota: s.caixaAberto
-        ? `Desde ${s.caixaAberto.abertura} · ${brl(dinheiroNaGaveta(s))} na gaveta`
+      valor: d.caixaAberto ? "Aberto" : "Fechado",
+      nota: d.caixaAberto
+        ? `Desde ${d.caixaAberto.abertura} · ${brl(dinheiroNaGaveta(d))} na gaveta`
         : "Abra o caixa para começar o dia",
-      cor: s.caixaAberto ? "var(--pos)" : "var(--muted)",
-      dot: s.caixaAberto ? "var(--pos)" : "var(--border2)",
+      cor: d.caixaAberto ? "var(--pos)" : "var(--muted)",
+      dot: d.caixaAberto ? "var(--pos)" : "var(--border2)",
     });
   }
 
@@ -119,10 +119,10 @@ export function DashboardView() {
 
   // Últimos 7 dias, do mais antigo para hoje — a leitura natural de um gráfico.
   const dias = [6, 5, 4, 3, 2, 1, 0];
-  const barras = dias.map((d) => ({
-    d,
-    dia: diaSemana(d),
-    valor: faturamento(s.vendas.filter((v) => v.d === d)),
+  const barras = dias.map((dia) => ({
+    d: dia,
+    dia: diaSemana(dia),
+    valor: faturamento(d.vendas.filter((v) => v.d === dia)),
   }));
   const maior = Math.max(...barras.map((b) => b.valor), 1);
   const media = barras.reduce((x, b) => x + b.valor, 0) / barras.length;
@@ -130,7 +130,7 @@ export function DashboardView() {
   const atalhos: { sigla: string; nome: string; rota: string; modulo: ModuloKey }[] = [];
   if (tem("vendas")) atalhos.push({ sigla: "NV", nome: "Nova venda", rota: ROTA_PDV, modulo: "vendas" });
   if (tem("custos")) atalhos.push({ sigla: "CU", nome: "Registrar custo", rota: ROTAS.custos, modulo: "custos" });
-  if (tem("caixa")) atalhos.push({ sigla: "CX", nome: s.caixaAberto ? "Fechar caixa" : "Abrir caixa", rota: ROTAS.caixa, modulo: "caixa" });
+  if (tem("caixa")) atalhos.push({ sigla: "CX", nome: d.caixaAberto ? "Fechar caixa" : "Abrir caixa", rota: ROTAS.caixa, modulo: "caixa" });
   if (tem("estoque")) atalhos.push({ sigla: "ET", nome: "Ajustar estoque", rota: ROTAS.estoque, modulo: "estoque" });
   if (tem("relatorios") && atalhos.length < 4) atalhos.push({ sigla: "RL", nome: "Ver relatório", rota: ROTAS.relatorios, modulo: "relatorios" });
   if (tem("config") && atalhos.length < 4) atalhos.push({ sigla: "CF", nome: "Configurações", rota: ROTAS.config, modulo: "config" });
@@ -154,26 +154,6 @@ export function DashboardView() {
           </p>
         </div>
 
-        {/* O seletor de perfil é da demonstração, não do produto: é o que deixa
-            comparar lado a lado um plano completo e um plano enxuto. */}
-        <div
-          style={css(
-            "display:flex;align-items:center;gap:8px;padding:5px;border:1px solid var(--border);border-radius:10px;background:var(--surface)",
-          )}
-        >
-          <span style={css(`padding:0 6px;font:600 10px ${MONO};letter-spacing:.1em;color:var(--muted)`)}>
-            PERFIL DEMO
-          </span>
-          {PERFIS_LISTA.map((p) => (
-            <button
-              key={p.chave}
-              onClick={() => a.trocarPerfil(p.chave)}
-              style={css(pilula(s.perfil === p.chave, "sm"))}
-            >
-              {p.nome}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div

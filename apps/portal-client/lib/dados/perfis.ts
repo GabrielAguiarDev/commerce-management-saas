@@ -1,45 +1,4 @@
-import type { ModuloKey, Negocio, PerfilKey } from "@/types/types";
-
-/**
- * Dois negócios de exemplo, escolhidos para provar que o portal é modular.
- *
- * O petshop tem o plano completo; a barraca de acarajé tem seis módulos e nem
- * caixa nem estoque. Trocar o perfil no dashboard remonta menu, KPIs e colunas
- * de tabela sem nenhum `if` espalhado pelas telas — quem manda é `modulos`.
- */
-export const PERFIS: Record<PerfilKey, Negocio> = {
-  petshop: {
-    nome: "Pet & Cia",
-    sigla: "PC",
-    tipo: "Petshop · Centro",
-    user: { nome: "Marcela Dias", sigla: "MD" },
-    modulos: [
-      "dashboard",
-      "vendas",
-      "produtos",
-      "estoque",
-      "caixa",
-      "custos",
-      "relatorios",
-      "config",
-      "suporte",
-    ],
-    itemPlaceholder: "Ex.: banho e tosa da Mel",
-  },
-  acaraje: {
-    nome: "Acarajé da Dona Rita",
-    sigla: "DR",
-    tipo: "Comida de rua · Rio Vermelho",
-    user: { nome: "Rita Nascimento", sigla: "RN" },
-    modulos: ["dashboard", "vendas", "produtos", "custos", "config", "suporte"],
-    itemPlaceholder: "Ex.: 2 acarajés completos",
-  },
-};
-
-export const PERFIS_LISTA: { chave: PerfilKey; nome: string }[] = [
-  { chave: "petshop", nome: "Petshop" },
-  { chave: "acaraje", nome: "Acarajé" },
-];
+import type { ModuloKey } from "@/types/types";
 
 /** Sigla e nome de cada módulo, para o menu e os selos de acesso. */
 export const MODULOS: Record<ModuloKey, { sigla: string; nome: string }> = {
@@ -62,7 +21,13 @@ export const GRUPOS: { titulo: string; itens: ModuloKey[] }[] = [
   { titulo: "Sistema", itens: ["config", "suporte"] },
 ];
 
-/** Módulos que um tipo de acesso pode liberar — `dashboard` e `suporte` são de todos. */
+/**
+ * Módulos que um tipo de acesso pode liberar.
+ *
+ * `dashboard` e `config` ficam de fora porque todo mundo os tem — não são
+ * permissão, são o mínimo para a pessoa conseguir usar o portal. `suporte`
+ * idem: quem trabalha no negócio precisa poder pedir ajuda.
+ */
 export const MODULOS_PERM: ModuloKey[] = [
   "vendas",
   "produtos",
@@ -70,5 +35,4 @@ export const MODULOS_PERM: ModuloKey[] = [
   "caixa",
   "custos",
   "relatorios",
-  "config",
 ];

@@ -7,12 +7,10 @@ import type {
   FormaPagamento,
   Funcionario,
   ItemCarrinho,
-  LinhaLog,
   ModuloKey,
   MovEstoque,
+  Negocio,
   Papel,
-  PerfilKey,
-  Preferencias,
   Produto,
   Tema,
   TipoCusto,
@@ -30,16 +28,16 @@ import type {
  * comportamento do design e o que evita duas camadas empilhadas no celular.
  */
 export type Modal =
-  | { k: "detalheVenda"; id: number }
-  | { k: "produto"; id: number | null }
+  | { k: "detalheVenda"; id: string }
+  | { k: "produto"; id: string | null }
   | { k: "movEstoque" }
-  | { k: "custo"; id: number | null }
+  | { k: "custo"; id: string | null }
   | { k: "caixaAbrir" }
   | { k: "caixaMov"; tipo: TipoMovCaixa }
   | { k: "caixaFechar" }
-  | { k: "caixaDetalhe"; id: number }
-  | { k: "funcionario"; id: number | null }
-  | { k: "papel"; id: number | null }
+  | { k: "caixaDetalhe"; id: string }
+  | { k: "funcionario"; id: string }
+  | { k: "papel"; id: string | null }
   | { k: "novoChamado" };
 
 /**
@@ -71,7 +69,7 @@ export interface Dica {
 /* -------------------------------------------------------------------------- */
 
 export interface FormProduto {
-  id: number | null;
+  id: string | null;
   nome: string;
   preco: string;
   categoria: string;
@@ -79,6 +77,7 @@ export interface FormProduto {
   catNova: boolean;
   ativo: boolean;
   fav: boolean;
+  servico: boolean;
   codigo: string;
   custo: string;
   estoque: string;
@@ -88,11 +87,12 @@ export interface FormProduto {
 }
 
 export interface FormCusto {
-  id: number | null;
+  id: string | null;
   tipo: TipoCusto;
   descricao: string;
   categoria: string;
   valor: string;
+  /** Dias atrás, escolhido na lista. Vira `cost_date` na hora de salvar. */
   d: number;
   recorrente: boolean;
   tentouSalvar: boolean;
@@ -100,7 +100,7 @@ export interface FormCusto {
 
 export interface FormMov {
   tipo: TipoMovEstoque;
-  produtoId: number | null;
+  produtoId: string | null;
   qtd: string;
   custo: string;
   motivo: string;
@@ -111,20 +111,15 @@ export interface FormCaixa {
   valor: string;
   motivo: string;
   obs: string;
-  /** O que a pessoa contou em cada forma, no fechamento. */
-  contado: Partial<Record<FormaPagamento, string>>;
-}
-
-export interface FormFuncionario {
-  id: number | null;
-  nome: string;
-  email: string;
-  papel: string;
-  tentouSalvar: boolean;
+  /**
+   * Quanto foi contado na gaveta. Só dinheiro: Pix e cartão caem na conta e são
+   * conferidos no extrato — é o que `close_cash_register` espera.
+   */
+  contadoDinheiro: string;
 }
 
 export interface FormPapel {
-  id: number | null;
+  id: string | null;
   nome: string;
   modulos: ModuloKey[];
   tentouSalvar: boolean;
@@ -185,9 +180,6 @@ export interface FiltrosCustos {
 
 export interface FiltrosConfig {
   aba: AbaConfig;
-  logUsuario: string;
-  logAcao: string;
-  logPeriodo: string;
 }
 
 export interface FiltrosSuporte {
@@ -196,14 +188,39 @@ export interface FiltrosSuporte {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Os dados que o servidor entrega                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * O retrato do negócio lido no servidor a cada navegação.
+ *
+ * O provider NÃO edita nada disto: toda escrita vai a uma Server Action e o
+ * `router.refresh()` traz o retrato novo. É o que garante que a tela mostre o
+ * que está no banco, e não o que o navegador acha que gravou.
+ */
+export interface DadosPortal {
+  negocio: Negocio;
+  dados: DadosNegocio;
+  produtos: Produto[];
+  vendas: Venda[];
+  movs: MovEstoque[];
+  custos: Custo[];
+  caixaAberto: CaixaAberto | null;
+  caixasFechados: CaixaFechado[];
+  papeis: Papel[];
+  equipe: Funcionario[];
+  chamados: Chamado[];
+  /** Preenchido quando a leitura falhou — a tela avisa em vez de mentir "vazio". */
+  erro: string | null;
+}
+
+/* -------------------------------------------------------------------------- */
 /* O estado                                                                    */
 /* -------------------------------------------------------------------------- */
 
 export interface PortalState {
-  /* Sessão e aparência */
-  perfil: PerfilKey;
+  /* Aparência e ambiente */
   tema: Tema;
-  idioma: string;
   /**
    * Assume desktop até o listener de resize contar a verdade, para que o
    * render do servidor e o primeiro render do cliente concordem.
@@ -215,27 +232,21 @@ export interface PortalState {
   logoutAberto: boolean;
   dica: Dica | null;
 
-  /* Dados do negócio */
-  produtos: Produto[];
-  vendas: Venda[];
-  movs: MovEstoque[];
-  custos: Custo[];
-  caixaAberto: CaixaAberto | null;
-  caixasFechados: CaixaFechado[];
-  papeis: Papel[];
-  equipe: Funcionario[];
-  log: LinhaLog[];
-  chamados: Chamado[];
-
-  /* Configurações */
-  dados: DadosNegocio;
-  dadosRascunho: DadosNegocio;
-  prefs: Preferencias;
+  /**
+   * Preferências de uso.
+   *
+   * Ainda NÃO têm tabela: valem só nesta sessão e voltam ao padrão no próximo
+   * login. A tela de Configurações diz isso em voz alta. Ver a análise.
+   */
   formasAceitas: FormaPagamento[];
-  catsProduto: string[];
-  catsCusto: string[];
-  novaCatProduto: string;
-  novaCatCusto: string;
+  imprimirComprovante: boolean;
+  pedirCliente: boolean;
+
+  /**
+   * Rascunho dos dados do negócio. O salvo vive no retrato do servidor (`d`);
+   * este é só o que está sendo digitado.
+   */
+  dadosRascunho: DadosNegocio;
 
   /* PDV */
   carrinho: ItemCarrinho[];
@@ -244,7 +255,7 @@ export interface PortalState {
   codigo: string;
   carrinhoAberto: boolean;
   /** Venda em edição no PDV — `null` quando é uma venda nova. */
-  editandoVenda: number | null;
+  editandoVenda: string | null;
 
   /* Filtros */
   fVendas: FiltrosVendas;
@@ -260,13 +271,14 @@ export interface PortalState {
   modal: Modal | null;
   conf: Confirmacao | null;
   toast: string;
+  /** Uma escrita em andamento — trava os botões que a disparariam de novo. */
+  salvando: boolean;
 
   /* Rascunhos */
   formProduto: FormProduto;
   formCusto: FormCusto;
   formMov: FormMov;
   formCaixa: FormCaixa;
-  formFunc: FormFuncionario;
   formPapel: FormPapel;
   formChamado: FormChamado;
   formResposta: FormResposta;
@@ -276,8 +288,6 @@ export type Patch = Partial<PortalState>;
 
 export interface PortalActions {
   set: (p: Patch) => void;
-  /** Troca o perfil demo e recarrega todas as sementes daquele negócio. */
-  trocarPerfil: (p: PerfilKey) => void;
   toggleTema: () => void;
   irPara: (rota: string) => void;
   avisar: (texto: string) => void;
@@ -287,6 +297,7 @@ export interface PortalActions {
   abrirModal: (m: Modal) => void;
   /** Abre o menu de linha da chave dada, ou fecha o que estiver aberto. */
   abrirMenu: (chave: string | null) => void;
+  sair: () => void;
 
   /* Vendas e PDV */
   addCarrinho: (p: Produto) => void;
@@ -294,48 +305,43 @@ export interface PortalActions {
   removerItem: (nome: string) => void;
   limparCarrinho: () => void;
   registrarVenda: () => void;
-  editarVenda: (id: number) => void;
-  estornarVenda: (id: number) => void;
-  desfazerEstorno: (id: number) => void;
+  editarVenda: (id: string) => void;
+  estornarVenda: (id: string) => void;
+  desfazerEstorno: (id: string) => void;
 
   /* Produtos */
-  abrirProduto: (id: number | null) => void;
+  abrirProduto: (id: string | null) => void;
   salvarProduto: () => void;
-  toggleFav: (id: number) => void;
-  toggleAtivo: (id: number) => void;
-  excluirProduto: (id: number) => void;
+  toggleFav: (id: string) => void;
+  toggleAtivo: (id: string) => void;
+  excluirProduto: (id: string) => void;
 
   /* Estoque */
-  abrirMov: (produtoId?: number, tipo?: TipoMovEstoque) => void;
+  abrirMov: (produtoId?: string, tipo?: TipoMovEstoque) => void;
   salvarMov: () => void;
-  reverterMov: (id: number) => void;
+  reverterMov: (id: string) => void;
 
   /* Custos */
-  abrirCusto: (id: number | null) => void;
+  abrirCusto: (id: string | null) => void;
   salvarCusto: () => void;
-  excluirCusto: (id: number) => void;
+  excluirCusto: (id: string) => void;
 
   /* Caixa */
   abrirCaixa: () => void;
   registrarMovCaixa: () => void;
-  reverterMovCaixa: (id: number) => void;
+  reverterMovCaixa: (id: string) => void;
   fecharCaixa: () => void;
-  reabrirCaixa: (id: number) => void;
+  reabrirCaixa: (id: string) => void;
 
   /* Configurações */
   salvarDados: () => void;
   descartarDados: () => void;
   toggleForma: (f: FormaPagamento) => void;
-  togglePref: (k: keyof Preferencias) => void;
-  criarCategoria: (grupo: "produto" | "custo") => void;
-  removerCategoria: (grupo: "produto" | "custo", nome: string) => void;
-  abrirFuncionario: (id: number | null) => void;
-  salvarFuncionario: () => void;
-  toggleFuncionario: (id: number) => void;
-  removerFuncionario: (id: number) => void;
-  abrirPapel: (id: number | null) => void;
+  abrirPapel: (id: string | null) => void;
   salvarPapel: () => void;
-  removerPapel: (id: number) => void;
+  removerPapel: (id: string) => void;
+  toggleFuncionario: (id: string) => void;
+  mudarPapelDoFuncionario: (id: string, papelId: string) => void;
 
   /* Suporte */
   abrirNovoChamado: () => void;
@@ -355,4 +361,6 @@ export interface ViewProps {
   tem: (m: ModuloKey) => boolean;
   isMobile: boolean;
   isDesktop: boolean;
+  /** Atalhos para o retrato do servidor, para as telas não escreverem `s.dados.` */
+  d: DadosPortal;
 }

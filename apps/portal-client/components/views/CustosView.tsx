@@ -3,7 +3,7 @@
 import { usePortal } from "@/components/PortalProvider";
 import { MenuLinha } from "@/components/ui";
 import { BotaoNovo, CABECALHO_TABELA, CabecalhoTela, css, FaixaKpis, LimparFiltros, LISTA, MONO, NUM, rotuloColuna, SANS, SelecaoSimples, Vazio } from "@aguiar/ui";
-import { rateioFixo, TIPO_CUSTO_ESTILO } from "@/lib/dados/custos";
+import { categoriasDeCusto, rateioFixo, TIPO_CUSTO_ESTILO } from "@/lib/dados/custos";
 import { brl, rotuloData } from "@/lib/formato";
 import { ROTAS } from "@/lib/rotas";
 import { faturamento } from "@/lib/selectors";
@@ -22,13 +22,13 @@ const DIAS: Record<string, number> = { "Este mês": 30, "Últimos 7 dias": 7, Tu
  * sozinhas, marcadas, para ninguém lançar a mesma nota duas vezes.
  */
 export function CustosView() {
-  const { s, a, tem, isDesktop, isMobile } = usePortal();
+  const { s, a, tem, isDesktop, isMobile, d } = usePortal();
   const f = s.fCustos;
   const set = (p: Partial<typeof f>) => a.set({ fCustos: { ...f, ...p } });
 
   const dias = DIAS[f.periodo] ?? 30;
 
-  const doPeriodo = s.custos.filter((c) => c.d < dias);
+  const doPeriodo = d.custos.filter((c) => c.d < dias);
   const filtrados = doPeriodo.filter((c) => {
     if (f.tipo === "Fixos" && c.tipo !== "fixo") return false;
     if (f.tipo === "Variáveis" && c.tipo !== "variavel") return false;
@@ -40,8 +40,8 @@ export function CustosView() {
 
   const fixos = doPeriodo.filter((c) => c.tipo === "fixo").reduce((x, c) => x + c.valor, 0);
   const variaveis = doPeriodo.filter((c) => c.tipo === "variavel").reduce((x, c) => x + c.valor, 0);
-  const totalReal = variaveis + rateioFixo(s.custos, dias);
-  const receita = faturamento(s.vendas.filter((v) => v.d < dias));
+  const totalReal = variaveis + rateioFixo(d.custos, dias);
+  const receita = faturamento(d.vendas.filter((v) => v.d < dias));
   const peso = receita > 0 ? (totalReal / receita) * 100 : 0;
 
   const filtroAtivo = f.tipo !== TODOS_TIPOS || f.cat !== TODAS_CATS || f.periodo !== "Este mês";
@@ -99,14 +99,14 @@ export function CustosView() {
           opcoes={[TODOS_TIPOS, "Fixos", "Variáveis"]}
           onMudar={(v) => set({ tipo: v })}
         />
-        <SelecaoSimples valor={f.cat} opcoes={[TODAS_CATS, ...s.catsCusto]} onMudar={(v) => set({ cat: v })} />
+        <SelecaoSimples valor={f.cat} opcoes={[TODAS_CATS, ...categoriasDeCusto(d.custos)]} onMudar={(v) => set({ cat: v })} />
         <SelecaoSimples valor={f.periodo} opcoes={PERIODOS} onMudar={(v) => set({ periodo: v })} />
         {filtroAtivo && (
           <LimparFiltros onClick={() => set({ tipo: TODOS_TIPOS, cat: TODAS_CATS, periodo: "Este mês" })} />
         )}
       </div>
 
-      {s.custos.length === 0 ? (
+      {d.custos.length === 0 ? (
         <Vazio
           titulo="Nenhum custo lançado ainda"
           texto="Anote o que você gasta — ingredientes, mercadoria, aluguel, luz — e o portal mostra o lucro de verdade do seu mês."

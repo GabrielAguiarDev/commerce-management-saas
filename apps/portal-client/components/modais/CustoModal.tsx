@@ -3,14 +3,14 @@
 import { ModalBase } from "@/components/modais/Base";
 import { campo, CampoDinheiro, CampoRotulado, css, EscolhaCartao, PilulaEscolha, RodapeModal, ROTULO_CAMPO, SANS, SelecaoSimples, Sugestoes, trilha } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { SUGESTOES_CUSTO } from "@/lib/dados/custos";
+import { categoriasDeCusto, SUGESTOES_CUSTO } from "@/lib/dados/custos";
 import { numBR, rotuloData } from "@/lib/formato";
 
 /** As últimas datas que fazem sentido para um lançamento manual. */
 const DIAS = [0, 1, 2, 3, 4, 5, 6, 7];
 
 export function CustoModal() {
-  const { s, a, isMobile } = usePortal();
+  const { s, a, isMobile, d } = usePortal();
   const f = s.formCusto;
   const editando = f.id != null;
 
@@ -55,11 +55,11 @@ export function CustoModal() {
           label="O que foi o gasto"
           valor={f.descricao}
           onMudar={(v) => set({ descricao: v })}
-          placeholder={s.perfil === "petshop" ? "Ex.: compra de ração" : "Ex.: feira da semana"}
+          placeholder="Ex.: compra de mercadoria"
           erro={erroDesc}
           mensagem="Escreva o que foi o gasto."
         />
-        <Sugestoes itens={SUGESTOES_CUSTO[s.perfil]} onEscolher={(v) => set({ descricao: v })} />
+        <Sugestoes itens={SUGESTOES_CUSTO} onEscolher={(v) => set({ descricao: v })} />
       </div>
 
       <div style={css(`display:grid;grid-template-columns:${cols};gap:12px`)}>
@@ -84,7 +84,7 @@ export function CustoModal() {
       <div>
         <label style={css(ROTULO_CAMPO)}>Categoria (opcional)</label>
         <div style={css("display:flex;gap:7px;flex-wrap:wrap")}>
-          {s.catsCusto.map((c) => (
+          {categoriasDeCusto(d.custos).map((c) => (
             <PilulaEscolha
               key={c}
               nome={c}

@@ -4,7 +4,7 @@ import { usePortal } from "@/components/PortalProvider";
 import { MenuLinha } from "@/components/ui";
 import { BotaoNovo, CABECALHO_TABELA, CabecalhoTela, css, FaixaKpis, GrupoPilulas, LimparFiltros, LISTA, MONO, NUM, rotuloColuna, SANS, SelecaoSimples, Vazio } from "@aguiar/ui";
 import { MOV_ESTILO, podeReverter } from "@/lib/dados/estoque";
-import { controlaEstoque, estoqueBaixo } from "@/lib/dados/produtos";
+import { categoriasDe, controlaEstoque, estoqueBaixo } from "@/lib/dados/produtos";
 import { brl, rotuloData } from "@/lib/formato";
 import { ROTAS } from "@/lib/rotas";
 import { valorDoEstoque } from "@/lib/selectors";
@@ -33,10 +33,10 @@ const DIAS_MOV: Record<string, number> = {
  * sem ninguém precisar lançar nada.
  */
 export function EstoqueView() {
-  const { s, a, isMobile } = usePortal();
+  const { s, a, isMobile, d } = usePortal();
   const f = s.fEstoque;
 
-  const controlados = s.produtos.filter(controlaEstoque);
+  const controlados = d.produtos.filter(controlaEstoque);
   const set = (p: Partial<typeof f>) => a.set({ fEstoque: { ...f, ...p } });
 
   const emFalta = controlados.filter((p) => p.ativo && estoqueBaixo(p));
@@ -56,7 +56,7 @@ export function EstoqueView() {
       nota: zerados.length ? "Acabou" : "Nenhum zerado",
       cor: zerados.length ? "var(--danger)" : "var(--pos)",
     },
-    { label: "Valor parado", valor: brl(valorDoEstoque(s.produtos)), nota: "A preço de custo" },
+    { label: "Valor parado", valor: brl(valorDoEstoque(d.produtos)), nota: "A preço de custo" },
   ];
 
   return (
@@ -111,7 +111,7 @@ export function EstoqueView() {
 /* -------------------------------------------------------------------------- */
 
 function AbaItens({ controlados }: { controlados: Produto[] }) {
-  const { s, a, isDesktop } = usePortal();
+  const { s, a, isDesktop, d } = usePortal();
   const f = s.fEstoque;
   const set = (p: Partial<typeof f>) => a.set({ fEstoque: { ...f, ...p } });
 
@@ -151,7 +151,7 @@ function AbaItens({ controlados }: { controlados: Produto[] }) {
         />
         <SelecaoSimples
           valor={f.cat}
-          opcoes={[TODAS_CATS, ...s.catsProduto]}
+          opcoes={[TODAS_CATS, ...categoriasDe(d.produtos)]}
           onMudar={(v) => set({ cat: v })}
         />
         <SelecaoSimples valor={f.ordem} opcoes={ORDENS} onMudar={(v) => set({ ordem: v })} />
@@ -273,14 +273,14 @@ function LinhaItem({ produto: p, cols }: { produto: Produto; cols: string }) {
 /* -------------------------------------------------------------------------- */
 
 function AbaMovimentacoes() {
-  const { s, a, isDesktop } = usePortal();
+  const { s, a, isDesktop, d } = usePortal();
   const f = s.fEstoque;
   const set = (p: Partial<typeof f>) => a.set({ fEstoque: { ...f, ...p } });
 
   const dias = DIAS_MOV[f.movPeriodo] ?? 30;
-  const nomes = Array.from(new Set(s.movs.map((m) => m.produto))).sort();
+  const nomes = Array.from(new Set(d.movs.map((m) => m.produto))).sort();
 
-  const filtradas = s.movs.filter((m) => {
+  const filtradas = d.movs.filter((m) => {
     if (m.d >= dias) return false;
     if (f.movTipo !== TODOS_TIPOS && MOV_ESTILO[m.tipo].nome !== f.movTipo) return false;
     if (f.movProduto !== TODOS_PRODUTOS && m.produto !== f.movProduto) return false;

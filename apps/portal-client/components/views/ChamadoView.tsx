@@ -3,7 +3,6 @@
 import { usePortal } from "@/components/PortalProvider";
 import { botaoPrimario, css, MONO, PAINEL, SANS, Vazio } from "@aguiar/ui";
 import { podeResponder, SP_STATUS } from "@/lib/dados/chamados";
-import { PERFIS } from "@/lib/dados/perfis";
 import { rotuloData, siglaDe } from "@/lib/formato";
 import { ROTAS } from "@/lib/rotas";
 import type { MensagemChamado } from "@/types/types";
@@ -16,8 +15,8 @@ import type { MensagemChamado } from "@/types/types";
  * mensagem de ninguém e vira uma linha divisória.
  */
 export function ChamadoView({ id }: { id: string }) {
-  const { s, a } = usePortal();
-  const chamado = s.chamados.find((c) => c.id === id);
+  const { s, a, d } = usePortal();
+  const chamado = d.chamados.find((c) => c.id === id);
 
   if (!chamado) {
     return (
@@ -198,7 +197,7 @@ export function ChamadoView({ id }: { id: string }) {
 }
 
 function Mensagem({ msg: m }: { msg: MensagemChamado }) {
-  const { s } = usePortal();
+  const { d } = usePortal();
 
   if (m.autor === "sistema") {
     return (
@@ -213,7 +212,7 @@ function Mensagem({ msg: m }: { msg: MensagemChamado }) {
   }
 
   const doSuporte = m.autor === "suporte";
-  const autor = doSuporte ? "Suporte Aguiar One" : PERFIS[s.perfil].user.nome;
+  const autor = doSuporte ? "Suporte Aguiar One" : d.negocio.user.nome;
 
   return (
     <div

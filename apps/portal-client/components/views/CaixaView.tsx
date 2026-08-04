@@ -3,7 +3,7 @@
 import { usePortal } from "@/components/PortalProvider";
 import { MenuLinha } from "@/components/ui";
 import { botaoPrimario, CABECALHO_TABELA, CabecalhoTela, css, faixaKpis, LISTA, MONO, NUM, ROTULO_KPI, rotuloColuna, SANS, Vazio } from "@aguiar/ui";
-import { esperadoCx, MOV_CAIXA_ESTILO, saldoMovs, somaFormas } from "@/lib/dados/caixa";
+import { MOV_CAIXA_ESTILO, saldoMovs, somaFormas } from "@/lib/dados/caixa";
 import { FORMAS, NOTA_FORMA } from "@/lib/dados/vendas";
 import { brl, brlDif, corDif, rotuloData } from "@/lib/formato";
 import { dinheiroNaGaveta, esperadoDoTurno, vendasDoTurno } from "@/lib/selectors";
@@ -18,13 +18,13 @@ import type { CaixaFechado } from "@/types/types";
  * vendas.
  */
 export function CaixaView() {
-  const { s, a, isMobile, isDesktop } = usePortal();
-  const cx = s.caixaAberto;
+  const { a, isMobile, isDesktop, d } = usePortal();
+  const cx = d.caixaAberto;
 
-  const vendas = vendasDoTurno(s);
+  const vendas = vendasDoTurno(d);
   const totalVendas = somaFormas(vendas);
-  const naGaveta = dinheiroNaGaveta(s);
-  const esperado = esperadoDoTurno(s);
+  const naGaveta = dinheiroNaGaveta(d);
+  const esperado = esperadoDoTurno(d);
 
   const indCols = isMobile ? "1fr 1fr" : "repeat(4,minmax(0,1fr))";
   const painelCols = isDesktop ? "minmax(0,1fr) minmax(0,1fr)" : "1fr";
@@ -205,7 +205,7 @@ export function CaixaView() {
               >
                 <button
                   onClick={() => {
-                    a.set({ formCaixa: { valor: "", motivo: "", obs: "", contado: {} } });
+                    a.set({ formCaixa: { valor: "", motivo: "", obs: "", contadoDinheiro: "" } });
                     a.abrirModal({ k: "caixaMov", tipo: "sangria" });
                   }}
                   className="hv-warn-borda"
@@ -217,7 +217,7 @@ export function CaixaView() {
                 </button>
                 <button
                   onClick={() => {
-                    a.set({ formCaixa: { valor: "", motivo: "", obs: "", contado: {} } });
+                    a.set({ formCaixa: { valor: "", motivo: "", obs: "", contadoDinheiro: "" } });
                     a.abrirModal({ k: "caixaMov", tipo: "reforco" });
                   }}
                   className="hv-pos-borda"
@@ -334,7 +334,7 @@ export function CaixaView() {
 }
 
 function HistoricoTurnos() {
-  const { s, isDesktop } = usePortal();
+  const { isDesktop, d } = usePortal();
   const cols = "96px minmax(0,1fr) 120px 110px 110px 110px 44px";
 
   return (
@@ -348,7 +348,7 @@ function HistoricoTurnos() {
         </div>
       </div>
 
-      {s.caixasFechados.length === 0 ? (
+      {d.caixasFechados.length === 0 ? (
         <Vazio
           titulo="Nenhum turno fechado ainda"
           texto="Quando você fechar o primeiro caixa, o resumo do dia aparece aqui com a conferência e a diferença."
@@ -366,7 +366,7 @@ function HistoricoTurnos() {
               <span />
             </div>
           )}
-          {s.caixasFechados.map((c) => (
+          {d.caixasFechados.map((c) => (
             <LinhaTurno key={c.id} caixa={c} cols={cols} />
           ))}
         </div>
@@ -378,9 +378,10 @@ function HistoricoTurnos() {
 function LinhaTurno({ caixa: c, cols }: { caixa: CaixaFechado; cols: string }) {
   const { a, isDesktop } = usePortal();
 
-  const esperado = esperadoCx(c);
-  const conferido = somaFormas(c.contado);
-  const dif = FORMAS.reduce((x, f) => x + ((c.contado[f] ?? 0) - esperado[f]), 0);
+  // O esperado e a diferença vêm carimbados de `close_cash_register`: recalcular
+  // aqui poderia divergir do que ficou gravado no fechamento.
+  const conferido = c.contadoDinheiro;
+  const dif = c.diferenca;
   const estilo = corDif(dif);
 
   const acoes = [

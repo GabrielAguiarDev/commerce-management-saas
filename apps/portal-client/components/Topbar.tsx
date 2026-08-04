@@ -12,12 +12,12 @@ import { ROTA_PDV, ROTAS } from "@/lib/rotas";
  * hoje — e os avisos que não podem esperar ela abrir uma tela.
  */
 export function Topbar() {
-  const { s, a, tem, isMobile, isDesktop } = usePortal();
+  const { s, a, tem, isMobile, isDesktop, d } = usePortal();
   const pathname = usePathname();
 
-  const vendasHoje = brl(faturamento(s.vendas.filter((v) => v.d === 0)));
-  const alertas = produtosEmFalta(s.produtos);
-  const caixaAberto = !!s.caixaAberto;
+  const vendasHoje = brl(faturamento(d.vendas.filter((v) => v.d === 0)));
+  const alertas = produtosEmFalta(d.produtos);
+  const caixaAberto = !!d.caixaAberto;
 
   // O PDV já é a tela de vender; oferecer "Nova venda" ali seria redundante.
   const noPdv = pathname === ROTA_PDV;
@@ -78,7 +78,7 @@ export function Topbar() {
                   `width:7px;height:7px;border-radius:50%;background:${caixaAberto ? "var(--pos)" : "var(--muted)"}`,
                 )}
               />
-              {caixaAberto ? `Caixa aberto desde ${s.caixaAberto?.abertura}` : "Caixa fechado"}
+              {caixaAberto ? `Caixa aberto desde ${d.caixaAberto?.abertura}` : "Caixa fechado"}
             </button>
           )}
 

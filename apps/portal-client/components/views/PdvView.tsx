@@ -14,11 +14,11 @@ import type { Produto } from "@/types/types";
  * carrinho vira uma folha que sobe, para o catálogo ficar com a tela inteira.
  */
 export function PdvView() {
-  const { s, a, tem, isMobile, isDesktop } = usePortal();
+  const { s, a, tem, isMobile, isDesktop, d } = usePortal();
 
   const editando = s.editandoVenda != null;
 
-  const disponiveis = s.produtos.filter((p) => p.ativo);
+  const disponiveis = d.produtos.filter((p) => p.ativo);
   const busca = s.buscaProd.trim().toLowerCase();
 
   const catalogo = disponiveis.filter((p) => {

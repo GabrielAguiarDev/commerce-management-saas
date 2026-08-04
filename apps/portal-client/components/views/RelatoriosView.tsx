@@ -38,24 +38,24 @@ const COR_PAGAMENTO: Record<string, string> = {
  * ele significar alguma coisa.
  */
 export function RelatoriosView() {
-  const { s, a, tem, isDesktop, isMobile } = usePortal();
+  const { s, a, tem, isDesktop, isMobile, d } = usePortal();
   const f = s.fRel;
   const dias = DIAS_PERIODO[f.periodo];
 
-  const doPeriodo = s.vendas.filter((v) => v.d < dias);
-  const anterior = s.vendas.filter((v) => v.d >= dias && v.d < dias * 2);
+  const doPeriodo = d.vendas.filter((v) => v.d < dias);
+  const anterior = d.vendas.filter((v) => v.d >= dias && v.d < dias * 2);
 
   const receita = faturamento(doPeriodo);
   const receitaAnt = faturamento(anterior);
 
   const temCustos = tem("custos");
-  const custos = temCustos ? totalCustos(s.custos, dias) : custoDasVendas(doPeriodo, s.produtos);
+  const custos = temCustos ? totalCustos(d.custos, dias) : custoDasVendas(doPeriodo, d.produtos);
   const custosAnt = temCustos
     ? totalCustos(
-        s.custos.filter((c) => c.d >= dias).map((c) => ({ ...c, d: c.d - dias })),
+        d.custos.filter((c) => c.d >= dias).map((c) => ({ ...c, d: c.d - dias })),
         dias,
       )
-    : custoDasVendas(anterior, s.produtos);
+    : custoDasVendas(anterior, d.produtos);
 
   const lucro = receita - custos;
   const lucroAnt = receitaAnt - custosAnt;
@@ -66,7 +66,7 @@ export function RelatoriosView() {
     ? receitaAnt / anterior.filter(valida).length
     : 0;
 
-  const semDados = validas.length === 0 && (!temCustos || s.custos.filter((c) => c.d < dias).length === 0);
+  const semDados = validas.length === 0 && (!temCustos || d.custos.filter((c) => c.d < dias).length === 0);
 
   const set = (p: Partial<typeof f>) => a.set({ fRel: { ...f, ...p } });
 
@@ -231,7 +231,7 @@ export function RelatoriosView() {
             <BlocoVendas vendas={doPeriodo} dias={dias} tresCols={tresCols} ticket={ticket} />
           )}
 
-          {temCustos && s.custos.filter((c) => c.d < dias).length > 0 && (
+          {temCustos && d.custos.filter((c) => c.d < dias).length > 0 && (
             <BlocoCustos dias={dias} doisCols={doisCols} />
           )}
 
@@ -443,8 +443,8 @@ function BlocoVendas({
 /* -------------------------------------------------------------------------- */
 
 function BlocoCustos({ dias, doisCols }: { dias: number; doisCols: string }) {
-  const { s } = usePortal();
-  const doPeriodo = s.custos.filter((c) => c.d < dias);
+  const { d } = usePortal();
+  const doPeriodo = d.custos.filter((c) => c.d < dias);
   const total = doPeriodo.reduce((x, c) => x + c.valor, 0) || 1;
 
   const porCategoria = new Map<string, number>();
@@ -540,26 +540,26 @@ function BlocoCustos({ dias, doisCols }: { dias: number; doisCols: string }) {
 /* -------------------------------------------------------------------------- */
 
 function BlocoEstoque({ dias, tresCols }: { dias: number; tresCols: string }) {
-  const { s } = usePortal();
+  const { d } = usePortal();
 
   const saidas = new Map<string, number>();
-  for (const v of s.vendas.filter((x) => x.d < dias && valida(x))) {
+  for (const v of d.vendas.filter((x) => x.d < dias && valida(x))) {
     for (const i of v.itens) saidas.set(i.nome, (saidas.get(i.nome) ?? 0) + i.qtd);
   }
 
-  const controlados = s.produtos.filter((p) => p.estoque != null);
+  const controlados = d.produtos.filter((p) => p.estoque != null);
   const giro = [...saidas.entries()]
     .filter(([nome]) => controlados.some((p) => p.nome === nome))
     .sort((x, y) => y[1] - x[1])
     .slice(0, 4);
 
   const parados = controlados.filter((p) => !saidas.has(p.nome)).slice(0, 4);
-  const alertas = produtosEmFalta(s.produtos).slice(0, 3);
+  const alertas = produtosEmFalta(d.produtos).slice(0, 3);
 
   return (
     <Bloco
       titulo="Estoque"
-      nota={`O que gira, o que está parado e o que precisa repor. Valor imobilizado: ${brl(valorDoEstoque(s.produtos))}.`}
+      nota={`O que gira, o que está parado e o que precisa repor. Valor imobilizado: ${brl(valorDoEstoque(d.produtos))}.`}
     >
       <div style={css(`display:grid;grid-template-columns:${tresCols};gap:1px;background:var(--border)`)}>
         <div style={css("padding:15px 18px;background:var(--surface)")}>
@@ -673,7 +673,7 @@ function BlocoResultado({
   receita: number;
   custos: number;
 }) {
-  const { s, tem, isMobile } = usePortal();
+  const { tem, isMobile, d } = usePortal();
   const temCustos = tem("custos");
 
   const passo = dias <= 14 ? 1 : 7;
@@ -682,16 +682,16 @@ function BlocoResultado({
   const serie = Array.from({ length: grupos }, (_, i) => {
     const de = (grupos - 1 - i) * passo;
     const ate = de + passo;
-    const vendasG = faturamento(s.vendas.filter((v) => v.d >= de && v.d < ate));
+    const vendasG = faturamento(d.vendas.filter((v) => v.d >= de && v.d < ate));
     // Por barra entram só os custos variáveis: o fixo é mensal e ratear o
     // aluguel dia a dia faria toda barra nascer no vermelho.
     const custosG = temCustos
-      ? s.custos
+      ? d.custos
           .filter((c) => c.d >= de && c.d < ate && c.tipo === "variavel")
           .reduce((x, c) => x + c.valor, 0)
       : custoDasVendas(
-          s.vendas.filter((v) => v.d >= de && v.d < ate),
-          s.produtos,
+          d.vendas.filter((v) => v.d >= de && v.d < ate),
+          d.produtos,
         );
     return {
       chave: de,

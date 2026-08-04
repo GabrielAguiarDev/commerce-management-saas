@@ -23,12 +23,12 @@ const FILTROS: { chave: string; nome: string }[] = [
  * lista — é o único que pede uma ação de quem está olhando.
  */
 export function SuporteView() {
-  const { s, a, isMobile } = usePortal();
+  const { s, a, isMobile, d } = usePortal();
   const f = s.fSuporte;
   const set = (p: Partial<typeof f>) => a.set({ fSuporte: { ...f, ...p } });
 
   const busca = f.busca.trim().toLowerCase();
-  const filtrados = s.chamados.filter((c) => {
+  const filtrados = d.chamados.filter((c) => {
     if (busca && !c.assunto.toLowerCase().includes(busca) && !c.id.includes(busca)) return false;
     if (f.status === "abertos" && c.status === "resolvido") return false;
     if (f.status === "aguardando" && c.status !== "aguardando") return false;
@@ -36,8 +36,8 @@ export function SuporteView() {
     return true;
   });
 
-  const contar = (st: StatusChamado) => s.chamados.filter((c) => c.status === st).length;
-  const emAberto = s.chamados.filter((c) => c.status !== "resolvido").length;
+  const contar = (st: StatusChamado) => d.chamados.filter((c) => c.status === st).length;
+  const emAberto = d.chamados.filter((c) => c.status !== "resolvido").length;
 
   const kpis = [
     { label: "Em aberto", valor: String(emAberto), nota: emAberto ? "Ainda em atendimento" : "Nada pendente" },
@@ -58,7 +58,7 @@ export function SuporteView() {
         acao={<BotaoNovo texto="Abrir chamado" onClick={a.abrirNovoChamado} largo={isMobile} />}
       />
 
-      {s.chamados.length === 0 ? (
+      {d.chamados.length === 0 ? (
         <div
           style={css(
             "display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px;padding:48px 20px;" +
@@ -181,7 +181,7 @@ export function SuporteView() {
                 })}
               </div>
               <p style={css(`margin:10px 0 0;font:500 12px ${SANS};color:var(--muted)`)}>
-                {filtrados.length} de {s.chamados.length} chamados
+                {filtrados.length} de {d.chamados.length} chamados
               </p>
             </>
           )}

@@ -1,33 +1,6 @@
-import { proximoId } from "@/lib/dados/uid";
-import type { MovEstoque, PerfilKey, TipoMovEstoque } from "@/types/types";
+import type { MovEstoque, TipoMovEstoque } from "@/types/types";
 
-/** [dias atrás, hora, produto, tipo, delta assinado, motivo] */
-type LinhaMov = [number, string, string, TipoMovEstoque, number, string];
-
-const SEED: Record<PerfilKey, LinhaMov[]> = {
-  petshop: [
-    [1, "08:40", "Ração premium 15kg", "entrada", 10, "Compra — Distribuidora Pet Sul"],
-    [1, "17:20", "Areia sanitária 4kg", "saida", -1, "Embalagem rasgada"],
-    [2, "09:15", "Shampoo neutro 500ml", "ajuste", -2, "Contagem física: nada na prateleira"],
-    [3, "10:05", "Antipulgas", "entrada", 6, "Compra — Vet Distribuidora"],
-  ],
-  acaraje: [],
-};
-
-export function mkMovs(perfil: PerfilKey, quem: string): MovEstoque[] {
-  return (SEED[perfil] || []).map((m) => ({
-    id: proximoId(),
-    d: m[0],
-    hora: m[1],
-    produto: m[2],
-    tipo: m[3],
-    delta: m[4],
-    motivo: m[5],
-    quem,
-  }));
-}
-
-/** A cor e o rótulo de cada tipo de movimentação, no estoque e no caixa. */
+/** A cor e o rótulo de cada tipo de movimentação. */
 export const MOV_ESTILO: Record<TipoMovEstoque, { nome: string; cor: string; bg: string }> = {
   entrada: { nome: "Entrada", cor: "var(--pos)", bg: "var(--pos-soft)" },
   saida: { nome: "Saída ou perda", cor: "var(--danger)", bg: "var(--warn-soft)" },
@@ -36,8 +9,27 @@ export const MOV_ESTILO: Record<TipoMovEstoque, { nome: string; cor: string; bg:
 };
 
 /**
+ * `stock_movements.type` — as chaves que a função `apply_stock_movement`
+ * espera. O ajuste é o único que fala em saldo final, não em variação.
+ */
+export const MOV_DB: Record<TipoMovEstoque, string> = {
+  entrada: "in",
+  saida: "out",
+  ajuste: "adjustment",
+  venda: "sale",
+};
+
+const DB_PARA_PORTAL: Record<string, TipoMovEstoque> = Object.fromEntries(
+  Object.entries(MOV_DB).map(([pt, db]) => [db, pt as TipoMovEstoque]),
+) as Record<string, TipoMovEstoque>;
+
+export function movDoBanco(v: string | null): TipoMovEstoque {
+  return DB_PARA_PORTAL[v ?? ""] ?? "ajuste";
+}
+
+/**
  * Baixa por venda é consequência, não lançamento: quem quiser desfazer estorna
- * a venda. Só o que foi digitado à mão pode ser revertido aqui.
+ * a venda. Só o que foi digitado à mão pode ser revertido no Estoque.
  */
 export function podeReverter(m: MovEstoque): boolean {
   return m.tipo !== "venda";

@@ -4,64 +4,56 @@ import { ModalBase } from "@/components/modais/Base";
 import { CampoRotulado, css, MONO, RodapeModal, ROTULO_CAMPO, SANS } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
 import { MODULOS, MODULOS_PERM } from "@/lib/dados/perfis";
+import { useState } from "react";
 import type { ModuloKey } from "@/types/types";
 
 /* -------------------------------------------------------------------------- */
 /* Funcionário                                                                 */
 /* -------------------------------------------------------------------------- */
 
-export function FuncionarioModal() {
-  const { s, a } = usePortal();
-  const f = s.formFunc;
-  const editando = f.id != null;
+/**
+ * Troca o tipo de acesso de quem já está na equipe.
+ *
+ * Não dá para CADASTRAR alguém por aqui: criar um funcionário significa criar
+ * um usuário no Auth, e isso exige a `service_role` — que este projeto não tem,
+ * por decisão de segurança. Enquanto não houver um convite feito pelo admin (ou
+ * uma Edge Function), o portal administra apenas quem já existe.
+ */
+export function FuncionarioModal({ id }: { id: string }) {
+  const { a, d } = usePortal();
+  const funcionario = d.equipe.find((x) => x.id === id);
+  const [papelId, setPapelId] = useState(
+    () => d.papeis.find((p) => p.nome === funcionario?.papel)?.id ?? "",
+  );
 
-  const erroNome = f.tentouSalvar && !f.nome.trim();
-  const erroEmail = f.tentouSalvar && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim());
-
-  const set = (p: Partial<typeof f>) => a.set({ formFunc: { ...f, ...p } });
+  if (!funcionario) return null;
 
   return (
     <ModalBase
-      titulo={editando ? "Editar funcionário" : "Novo funcionário"}
-      subtitulo="A pessoa recebe um login e vê só o que o tipo de acesso permite."
+      titulo={funcionario.nome}
+      subtitulo="Escolha o que esta pessoa enxerga no portal."
       largura={450}
       onFechar={a.fecharModal}
       rodape={
         <RodapeModal
           onCancelar={a.fecharModal}
-          onConfirmar={a.salvarFuncionario}
-          textoConfirmar={editando ? "Salvar alterações" : "Cadastrar"}
+          onConfirmar={() => {
+            a.mudarPapelDoFuncionario(id, papelId);
+            a.fecharModal();
+          }}
+          textoConfirmar="Salvar tipo de acesso"
         />
       }
     >
-      <CampoRotulado
-        label="Nome da pessoa"
-        valor={f.nome}
-        onMudar={(v) => set({ nome: v })}
-        placeholder="Ex.: João Batista"
-        erro={erroNome}
-        mensagem="Escreva o nome da pessoa."
-      />
-
-      <CampoRotulado
-        label="E-mail de acesso"
-        valor={f.email}
-        onMudar={(v) => set({ email: v })}
-        placeholder="joao@email.com"
-        erro={erroEmail}
-        mensagem="Informe um e-mail válido."
-        nota="É com este e-mail que a pessoa entra no portal."
-      />
-
       <div>
         <label style={css(ROTULO_CAMPO)}>Tipo de acesso</label>
         <div style={css("display:flex;flex-direction:column;gap:7px")}>
-          {s.papeis.map((p) => {
-            const ativo = f.papel === p.nome;
+          {d.papeis.map((p) => {
+            const ativo = papelId === p.id;
             return (
               <button
                 key={p.id}
-                onClick={() => set({ papel: p.nome })}
+                onClick={() => setPapelId(p.id)}
                 style={css(
                   `display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border:1.5px solid ${ativo ? "var(--accent)" : "var(--border2)"};` +
                     `border-radius:11px;background:${ativo ? "var(--accent-soft)" : "var(--surface2)"};text-align:left`,

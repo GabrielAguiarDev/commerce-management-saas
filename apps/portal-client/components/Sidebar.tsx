@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { usePortal } from "@/components/PortalProvider";
 import { css, MONO, SANS } from "@aguiar/ui";
-import { GRUPOS, MODULOS, PERFIS } from "@/lib/dados/perfis";
+import { GRUPOS, MODULOS } from "@/lib/dados/perfis";
 import { IconeModulo } from "@/lib/icons";
 import { moduloDaRota, ROTAS } from "@/lib/rotas";
 import type { ModuloKey } from "@/types/types";
@@ -19,17 +19,17 @@ const LARGURA_COLAPSADA = 68;
  * existe um caixa que ela não contratou.
  */
 export function Sidebar() {
-  const { s, a, tem, isMobile } = usePortal();
+  const { s, a, tem, isMobile, d } = usePortal();
   const pathname = usePathname();
   const atual = moduloDaRota(pathname);
 
-  const negocio = PERFIS[s.perfil];
+  const negocio = d.negocio;
   // No celular a barra é uma gaveta: quando aparece, aparece inteira. Colapsar
   // só faz sentido no desktop, onde ela divide espaço com o conteúdo.
   const colapsada = s.colapsada && !isMobile;
   const mostrarRotulos = !colapsada;
 
-  const naoLidos = s.chamados.filter((c) => c.naoLido).length;
+  const naoLidos = d.chamados.filter((c) => c.naoLido).length;
 
   const grupos = GRUPOS.map((g) => ({
     ...g,
@@ -70,7 +70,7 @@ export function Sidebar() {
                 `font:600 14px/1.25 ${SANS};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis`,
               )}
             >
-              {s.dados.nome}
+              {d.dados.nome}
             </div>
             <div
               style={css(

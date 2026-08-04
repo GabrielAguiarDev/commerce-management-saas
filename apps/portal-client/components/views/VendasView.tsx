@@ -28,12 +28,12 @@ const TODOS_PRODUTOS = "Todos os produtos";
  * permite explicar ao contador por que o caderno e o portal divergem.
  */
 export function VendasView() {
-  const { s, a, tem, isMobile, isDesktop } = usePortal();
+  const { s, a, tem, isMobile, isDesktop, d } = usePortal();
   const f = s.fVendas;
 
   const dias = PERIODOS.find((p) => p.chave === f.periodo)!.dias;
 
-  const doPeriodo = s.vendas.filter((v) => v.d < dias);
+  const doPeriodo = d.vendas.filter((v) => v.d < dias);
   const filtradas = doPeriodo.filter((v) => {
     if (f.pag !== TODAS_FORMAS && v.pag !== f.pag) return false;
     if (f.produto !== TODOS_PRODUTOS && !v.itens.some((i) => i.nome === f.produto)) return false;
@@ -54,7 +54,7 @@ export function VendasView() {
   const filtroAtivo =
     f.pag !== TODAS_FORMAS || f.produto !== TODOS_PRODUTOS || f.busca.trim() !== "";
 
-  const nomesProdutos = Array.from(new Set(s.vendas.flatMap((v) => v.itens.map((i) => i.nome)))).sort();
+  const nomesProdutos = Array.from(new Set(d.vendas.flatMap((v) => v.itens.map((i) => i.nome)))).sort();
 
   const set = (p: Partial<typeof f>) => a.set({ fVendas: { ...f, ...p } });
   const limpar = () => set({ pag: TODAS_FORMAS, produto: TODOS_PRODUTOS, busca: "" });
@@ -165,7 +165,7 @@ export function VendasView() {
           {filtroAtivo && <LimparFiltros onClick={limpar} />}
         </div>
 
-        {s.vendas.length === 0 ? (
+        {d.vendas.length === 0 ? (
           <Vazio
             titulo="Nenhuma venda por aqui ainda"
             texto="Assim que você registrar a primeira venda, ela aparece aqui com valor, itens e forma de pagamento."

@@ -33,10 +33,10 @@ const TIPOS: { chave: TipoMovEstoque; nome: string; explicacao: string }[] = [
  * saldo resultante para ninguém precisar fazer a conta de cabeça.
  */
 export function MovEstoqueModal() {
-  const { s, a } = usePortal();
+  const { s, a, d } = usePortal();
   const f = s.formMov;
 
-  const controlados = s.produtos.filter((p) => p.estoque != null);
+  const controlados = d.produtos.filter((p) => p.estoque != null);
   const produto = controlados.find((p) => p.id === f.produtoId) ?? controlados[0];
   const tipo = TIPOS.find((t) => t.chave === f.tipo)!;
 
