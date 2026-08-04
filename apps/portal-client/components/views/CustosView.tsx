@@ -1,21 +1,12 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import {
-  BotaoNovo,
-  CabecalhoTela,
-  FaixaKpis,
-  LimparFiltros,
-  MenuLinha,
-  Selecao,
-  Vazio,
-} from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { MenuLinha } from "@/components/ui";
+import { BotaoNovo, CABECALHO_TABELA, CabecalhoTela, css, FaixaKpis, LimparFiltros, LISTA, MONO, NUM, rotuloColuna, SANS, SelecaoSimples, Vazio } from "@aguiar/ui";
 import { rateioFixo, TIPO_CUSTO_ESTILO } from "@/lib/dados/custos";
 import { brl, rotuloData } from "@/lib/formato";
 import { ROTAS } from "@/lib/rotas";
 import { faturamento } from "@/lib/selectors";
-import { CABECALHO_TABELA, LISTA, NUM, rotuloColuna } from "@/lib/styleKit";
 import type { Custo } from "@/types/types";
 
 const TODOS_TIPOS = "Todos";
@@ -103,13 +94,13 @@ export function CustosView() {
       )}
 
       <div style={css("display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px")}>
-        <Selecao
+        <SelecaoSimples
           valor={f.tipo}
           opcoes={[TODOS_TIPOS, "Fixos", "Variáveis"]}
           onMudar={(v) => set({ tipo: v })}
         />
-        <Selecao valor={f.cat} opcoes={[TODAS_CATS, ...s.catsCusto]} onMudar={(v) => set({ cat: v })} />
-        <Selecao valor={f.periodo} opcoes={PERIODOS} onMudar={(v) => set({ periodo: v })} />
+        <SelecaoSimples valor={f.cat} opcoes={[TODAS_CATS, ...s.catsCusto]} onMudar={(v) => set({ cat: v })} />
+        <SelecaoSimples valor={f.periodo} opcoes={PERIODOS} onMudar={(v) => set({ periodo: v })} />
         {filtroAtivo && (
           <LimparFiltros onClick={() => set({ tipo: TODOS_TIPOS, cat: TODAS_CATS, periodo: "Este mês" })} />
         )}

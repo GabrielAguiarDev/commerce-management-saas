@@ -1,11 +1,9 @@
 "use client";
 
-import { ModalBase, RodapeModal } from "@/components/modais/Base";
+import { ModalBase } from "@/components/modais/Base";
+import { CampoRotulado, css, MONO, RodapeModal, ROTULO_CAMPO, SANS } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { Campo } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
 import { MODULOS, MODULOS_PERM } from "@/lib/dados/perfis";
-import { ROTULO_CAMPO } from "@/lib/styleKit";
 import type { ModuloKey } from "@/types/types";
 
 /* -------------------------------------------------------------------------- */
@@ -36,7 +34,7 @@ export function FuncionarioModal() {
         />
       }
     >
-      <Campo
+      <CampoRotulado
         label="Nome da pessoa"
         valor={f.nome}
         onMudar={(v) => set({ nome: v })}
@@ -45,7 +43,7 @@ export function FuncionarioModal() {
         mensagem="Escreva o nome da pessoa."
       />
 
-      <Campo
+      <CampoRotulado
         label="E-mail de acesso"
         valor={f.email}
         onMudar={(v) => set({ email: v })}
@@ -136,7 +134,7 @@ export function PapelModal() {
         />
       }
     >
-      <Campo
+      <CampoRotulado
         label="Nome do tipo de acesso"
         valor={f.nome}
         onMudar={(v) => set({ nome: v })}

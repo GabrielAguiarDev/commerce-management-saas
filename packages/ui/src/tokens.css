@@ -1,0 +1,376 @@
+/* ---------------------------------------------------------------------------
+   Tokens do design — Aguiar One
+
+   Um único vocabulário para todos os portais. Cada app importa este arquivo no
+   seu `globals.css` e ganha a paleta inteira, clara e escura, mais as classes
+   de hover que as superfícies clicáveis usam.
+
+   A troca de tema é um `data-tema="escuro"` no <body> — nada aqui depende de
+   media query, porque a preferência é do usuário e não do sistema.
+
+   Tipografia: uma só para todos os portais. Cada app carrega as duas fontes em
+   `layout.tsx` sob os nomes `--font-sans` e `--font-mono`; a pilha completa,
+   com os fallbacks, é montada aqui uma única vez.
+--------------------------------------------------------------------------- */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+
+  /* Tipografia. Public Sans no texto, IBM Plex Mono no que é número e precisa
+     alinhar em coluna. */
+  --fonte-sans: var(--font-sans), "Public Sans", system-ui, -apple-system, sans-serif;
+  --fonte-mono: var(--font-mono), "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Fundo e superfícies. `surface` é o cartão; `surface2` o campo e o
+     cabeçalho de tabela; `surface3` o selo neutro e a linha em destaque. */
+  --bg: #eaeef2;
+  --surface: #ffffff;
+  --surface2: #f5f8fa;
+  --surface3: #eef2f6;
+  --surface-hover: #f6fafb;
+
+  /* Bordas, da mais fraca para a mais forte. */
+  --border-soft: #eef2f4;
+  --border: #dbe3ea;
+  --border2: #c9d5df;
+
+  /* Texto, do mais forte para o mais apagado. */
+  --text: #16222c;
+  --text2: #3a4c5a;
+  --muted: #61748a;
+
+  /* Destaque. `ink` é o que se escreve sobre o destaque, `soft` o seu fundo
+     lavado, `line` a borda que combina com esse fundo e `hi` a versão viva,
+     usada em hover e em detalhes sobre fundo escuro. */
+  --accent: #0d6e78;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2f1f2;
+  --accent-line: #c8dee2;
+  --accent-hi: #14a2b8;
+  --petrol: #14506b;
+
+  /* Estados. Cada um com fundo e borda próprios, para os selos. */
+  --pos: #12784e;
+  --pos-soft: #e2f3ea;
+  --pos-line: #c7e3d3;
+  --warn: #8a5a12;
+  --warn-soft: #faf0dd;
+  --warn-line: #ecdcbd;
+  --danger: #b4442f;
+  --danger-soft: #f8ece9;
+  --danger-line: #eed6d1;
+
+  /* Barra lateral escura — mesma em tema claro e escuro, por isso os valores
+     não se repetem no bloco de baixo. */
+  --side: #0f1c22;
+  --side-card: #17282f;
+  --side-text: #a8bcc5;
+  --side-text2: #5d7885;
+  --side-border: rgba(255, 255, 255, 0.07);
+  --side-hover: #1e343d;
+
+  --shadow:
+    0 1px 2px rgba(19, 38, 52, 0.06), 0 6px 18px rgba(19, 38, 52, 0.06);
+  --shadow-lg: 0 18px 50px rgba(12, 26, 38, 0.22);
+
+  font-family: var(--fonte-sans);
+  background: var(--bg);
+  color: var(--text);
+}
+
+body[data-tema="escuro"] {
+  --bg: #0c141b;
+  --surface: #121d26;
+  --surface2: #17232d;
+  --surface3: #1d2b36;
+  --surface-hover: #182a33;
+
+  --border-soft: #1c2c35;
+  --border: #25333e;
+  --border2: #31424f;
+
+  --text: #e7eef4;
+  --text2: #c2d0da;
+  --muted: #8798a7;
+
+  --accent: #2ea3ac;
+  --accent-ink: #06222a;
+  --accent-soft: #12333a;
+  --accent-line: #255d6a;
+  --accent-hi: #2fb6cd;
+  --petrol: #7fb4cc;
+
+  --pos: #3cbc83;
+  --pos-soft: #12332a;
+  --pos-line: #28553d;
+  --warn: #d8a75a;
+  --warn-soft: #332a18;
+  --warn-line: #54452a;
+  --danger: #d9705c;
+  --danger-soft: #2d1a18;
+  --danger-line: #57302b;
+
+  --side: #081015;
+  --side-card: #14262e;
+  --side-text: #9db4bf;
+  --side-text2: #5c7683;
+  --side-border: rgba(255, 255, 255, 0.06);
+  --side-hover: #1b2f38;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 22px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+input,
+select,
+button,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 0;
+  background: none;
+}
+
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-hi);
+}
+
+/* ---------------------------------------------------------------------------
+   Campos de formulário.
+
+   Input, select e textarea compartilham esta classe para ficarem da mesma
+   família — mesma borda, mesmo raio, mesma altura e os mesmos estados. Um campo
+   novo em qualquer tela só precisa da classe (ou dos componentes `Campo`,
+   `AreaTexto` e `Selecao`) para já nascer padronizado.
+--------------------------------------------------------------------------- */
+
+.campo {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.3;
+  outline: none;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+
+.campo:hover:not(:disabled) {
+  border-color: var(--accent-line);
+}
+
+.campo:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.campo:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Campo obrigatório em falta — o realce vem do atributo, não de estilo inline. */
+.campo[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+/* O select perde a aparência nativa; o chevron é desenhado pelo componente
+   `Selecao`, e este espaço à direita é a folga reservada para ele. */
+select.campo {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+  cursor: pointer;
+}
+
+select.campo:disabled {
+  cursor: not-allowed;
+}
+
+/* Caixa de busca: um input sem borda dentro de um invólucro com o ícone de
+   lupa. O invólucro é que veste a borda, então recebe os mesmos estados — é
+   isso que a deixa da mesma família dos selects ao lado. */
+.campo-caixa {
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: 9px;
+  transition:
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+
+.campo-caixa:hover {
+  border-color: var(--accent-line);
+}
+
+.campo-caixa:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---------------------------------------------------------------------------
+   Animações. Entradas curtas: um painel que aparece usa `pop`, um modal usa
+   `rise`, e o que só precisa surgir usa `fadein`.
+--------------------------------------------------------------------------- */
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Hover.
+
+   Toda superfície clicável carrega o seu visual base num `style` inline, então
+   estas regras precisam de `!important` para ganhar a cascata — é o mesmo
+   truque que o runtime do design usa no atributo `style-hover`.
+--------------------------------------------------------------------------- */
+
+.hv-brilho:hover {
+  filter: brightness(1.08) !important;
+}
+
+.hv-brilho-sm:hover {
+  filter: brightness(1.04) !important;
+}
+
+.hv-texto:hover {
+  color: var(--text) !important;
+}
+
+.hv-linha:hover {
+  background: var(--surface-hover) !important;
+}
+
+.hv-linha2:hover {
+  background: var(--surface2) !important;
+}
+
+.hv-menu:hover {
+  background: var(--surface-hover) !important;
+  color: var(--text) !important;
+}
+
+.hv-borda:hover {
+  border-color: var(--border2) !important;
+}
+
+.hv-borda-tx:hover {
+  border-color: var(--border2) !important;
+  color: var(--text) !important;
+}
+
+.hv-acc:hover {
+  color: var(--accent) !important;
+}
+
+.hv-acc-hi:hover {
+  color: var(--accent-hi) !important;
+}
+
+.hv-borda-acc:hover {
+  border-color: var(--accent) !important;
+}
+
+/* Borda e texto no destaque — o hover dos botões de contorno. */
+.hv-acc-borda:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+/* Só o fundo lavado, para quem não tem borda. */
+.hv-acc-soft:hover {
+  background: var(--accent-soft) !important;
+}
+
+/* Fundo lavado e borda combinando, para quem tem. */
+.hv-acc-soft-borda:hover {
+  border-color: var(--accent-line) !important;
+  background: var(--accent-soft) !important;
+}
+
+.hv-warn-borda:hover {
+  border-color: var(--warn) !important;
+  color: var(--warn) !important;
+}
+
+.hv-warn-soft:hover {
+  background: var(--warn-soft) !important;
+}
+
+.hv-pos-borda:hover {
+  border-color: var(--pos) !important;
+  color: var(--pos) !important;
+}
+
+/* Ação destrutiva: o fundo lavado do perigo. */
+.hv-perigo:hover {
+  background: var(--danger-soft) !important;
+}
+
+/* Remover de uma lista: a linha acende e o texto vira perigo. */
+.hv-remover:hover {
+  background: var(--surface3) !important;
+  color: var(--danger) !important;
+}
+
+/* Item da barra lateral escura. */
+.hv-side:hover {
+  color: #fff !important;
+  background: var(--side-hover) !important;
+}

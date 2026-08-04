@@ -2,15 +2,14 @@
 
 import { resumoPapel } from "@/components/modais/EquipeModais";
 import { usePortal } from "@/components/PortalProvider";
-import { GrupoPilulas, Interruptor, MenuLinha, Painel, Selecao } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { MenuLinha } from "@/components/ui";
+import { botaoPrimario, campo, css, GrupoPilulas, Interruptor, MONO, Painel, ROTULO_CAMPO, ROTULO_KPI, SANS, SelecaoSimples, SUB_TELA, TITULO_TELA } from "@aguiar/ui";
 import { LOG_TAGS } from "@/lib/dados/equipe";
 import { MODULOS, MODULOS_PERM, PERFIS } from "@/lib/dados/perfis";
 import { FORMAS, NOTA_FORMA } from "@/lib/dados/vendas";
 import { rotuloData, siglaDe } from "@/lib/formato";
 import { ROTAS } from "@/lib/rotas";
 import { dadosSujos } from "@/lib/estado";
-import { botaoPrimario, campo, ROTULO_CAMPO, ROTULO_KPI, SUB_TELA, TITULO_TELA } from "@/lib/styleKit";
 import type { AbaConfig } from "@/types/estado";
 import type { DadosNegocio, ModuloKey, Preferencias } from "@/types/types";
 
@@ -388,7 +387,7 @@ function AbaPreferencias() {
                 Idioma do portal para todos os funcionários.
               </span>
             </span>
-            <Selecao
+            <SelecaoSimples
               valor={s.idioma}
               opcoes={["Português (Brasil)", "English"]}
               onMudar={(v) => a.set({ idioma: v })}
@@ -672,17 +671,17 @@ function AbaEquipe() {
             "display:flex;gap:8px;flex-wrap:wrap;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--surface2)",
           )}
         >
-          <Selecao
+          <SelecaoSimples
             valor={f.logUsuario}
             opcoes={["Todos", ...s.equipe.map((x) => x.nome)]}
             onMudar={(v) => set({ logUsuario: v })}
           />
-          <Selecao
+          <SelecaoSimples
             valor={f.logAcao}
             opcoes={["Tudo", ...Object.values(LOG_TAGS).map((t) => t.nome)]}
             onMudar={(v) => set({ logAcao: v })}
           />
-          <Selecao
+          <SelecaoSimples
             valor={f.logPeriodo}
             opcoes={["Últimos 7 dias", "Últimos 30 dias", "Tudo"]}
             onMudar={(v) => set({ logPeriodo: v })}

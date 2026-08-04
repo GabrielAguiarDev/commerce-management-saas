@@ -1,9 +1,9 @@
 "use client";
 
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@/lib/css";
+import { css, MONO } from "@aguiar/ui";
 import { EditarIcone, LixeiraIcone } from "@/lib/icons";
-import { badgeAcc, badgeNeutro, badgeOk } from "@/lib/styleKit";
+import { seloPainel } from "@/lib/styleKit";
 
 export function PlanosView() {
   const { s, a, cs } = useAdmin();
@@ -15,10 +15,10 @@ export function PlanosView() {
       <div style={css("display:flex;justify-content:flex-end")}>
         <button
           onClick={() => a.abrirFormPlano(null)}
-          className="hv-bright"
+          className="hv-brilho"
           style={css(
-            "display:flex;align-items:center;gap:7px;background:var(--acc);border:1px solid var(--acc);" +
-              "color:var(--accTx);font-size:13px;font-weight:500;padding:10px 15px;border-radius:9px;cursor:pointer",
+            "display:flex;align-items:center;gap:7px;background:var(--accent);border:1px solid var(--accent);" +
+              "color:var(--accent-ink);font-size:13px;font-weight:500;padding:10px 15px;border-radius:9px;cursor:pointer",
           )}
         >
           <span style={css("font-size:14px;line-height:1")}>+</span>
@@ -39,11 +39,11 @@ export function PlanosView() {
           const cobrado = p.tipo === "custom" || !!p.preco?.match(/[1-9]/);
           const cor =
             p.tipo === "custom"
-              ? "var(--accLine)"
+              ? "var(--accent-line)"
               : cobrado
-                ? "var(--okLine)"
-                : "var(--line)";
-          const tag = p.tipo === "custom" ? badgeAcc() : cobrado ? badgeOk() : badgeNeutro();
+                ? "var(--pos-line)"
+                : "var(--border)";
+          const tag = p.tipo === "custom" ? seloPainel("acc") : cobrado ? seloPainel("pos") : seloPainel("neutro");
           // O sob medida é estrutural e nunca se apaga; o último plano também não.
           const ultimoPlano = s.planos.length <= 1;
           const naoExcluivel = p.tipo === "custom" || ultimoPlano;
@@ -52,13 +52,13 @@ export function PlanosView() {
             <section
               key={p.k}
               style={css(
-                "background:var(--panel);border:1px solid " +
+                "background:var(--surface);border:1px solid " +
                   cor +
                   ";border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px",
               )}
             >
               <div style={css("display:flex;align-items:center;justify-content:space-between;gap:10px")}>
-                <h3 style={css("margin:0;font-size:16px;font-weight:600;color:var(--tx)")}>
+                <h3 style={css("margin:0;font-size:16px;font-weight:600;color:var(--text)")}>
                   {p.nome[id] || p.nome.pt}
                 </h3>
                 <div style={css("display:flex;align-items:center;gap:8px")}>
@@ -69,10 +69,10 @@ export function PlanosView() {
                     onClick={() => a.abrirFormPlano(p.k)}
                     aria-label={L.editar}
                     title={L.editar}
-                    className="hv-acc-line"
+                    className="hv-acc-borda"
                     style={css(
                       "display:flex;align-items:center;justify-content:center;width:28px;height:28px;" +
-                        "border:1px solid var(--line);background:var(--panel);color:var(--tx3);" +
+                        "border:1px solid var(--border);background:var(--surface);color:var(--muted);" +
                         "border-radius:7px;cursor:pointer;padding:0",
                     )}
                   >
@@ -96,14 +96,14 @@ export function PlanosView() {
                           ? L.planoUnico
                           : L.excluirPlanoBotao
                     }
-                    className={naoExcluivel ? undefined : "hv-bad"}
+                    className={naoExcluivel ? undefined : "hv-perigo"}
                     style={css(
                       "display:flex;align-items:center;justify-content:center;width:28px;height:28px;" +
-                        "border:1px solid var(--line);background:var(--panel);" +
+                        "border:1px solid var(--border);background:var(--surface);" +
                         "border-radius:7px;padding:0;" +
                         (naoExcluivel
-                          ? "color:var(--neuLine);cursor:not-allowed;"
-                          : "color:var(--tx3);cursor:pointer;"),
+                          ? "color:var(--border);cursor:not-allowed;"
+                          : "color:var(--muted);cursor:pointer;"),
                     )}
                   >
                     <LixeiraIcone />
@@ -115,12 +115,12 @@ export function PlanosView() {
                 <div style={css("display:flex;align-items:flex-end;gap:6px")}>
                   <span
                     style={css(
-                      `font-family:${MONO};font-size:29px;font-weight:600;letter-spacing:-.03em;color:var(--tx)`,
+                      `font-family:${MONO};font-size:29px;font-weight:600;letter-spacing:-.03em;color:var(--text)`,
                     )}
                   >
                     {p.preco}
                   </span>
-                  <span style={css("font-size:12px;color:var(--tx3);padding-bottom:5px")}>
+                  <span style={css("font-size:12px;color:var(--muted);padding-bottom:5px")}>
                     {id === "pt" ? "/mês · valor fixo" : "/month · fixed"}
                   </span>
                 </div>
@@ -128,43 +128,43 @@ export function PlanosView() {
                 <div style={css("display:flex;flex-direction:column;gap:3px")}>
                   <span
                     style={css(
-                      "font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--acc)",
+                      "font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--accent)",
                     )}
                   >
                     {L.semPrecoFixo}
                   </span>
-                  <span style={css("font-size:12px;color:var(--tx3)")}>{L.valorPorCliente}</span>
+                  <span style={css("font-size:12px;color:var(--muted)")}>{L.valorPorCliente}</span>
                 </div>
               )}
 
-              <p style={css("margin:0;font-size:12.5px;color:var(--tx2);line-height:1.55")}>
+              <p style={css("margin:0;font-size:12.5px;color:var(--text2);line-height:1.55")}>
                 {p.desc[id] || p.desc.pt}
               </p>
 
               <div
                 style={css(
-                  "display:flex;gap:22px;margin-top:auto;padding-top:14px;border-top:1px solid var(--lineSoft)",
+                  "display:flex;gap:22px;margin-top:auto;padding-top:14px;border-top:1px solid var(--border-soft)",
                 )}
               >
                 <div style={css("display:flex;flex-direction:column;gap:2px")}>
                   <span
-                    style={css(`font-family:${MONO};font-size:18px;font-weight:600;color:var(--tx)`)}
+                    style={css(`font-family:${MONO};font-size:18px;font-weight:600;color:var(--text)`)}
                   >
                     {n}
                   </span>
-                  <span style={css("font-size:11px;color:var(--tx3)")}>{L.clientes}</span>
+                  <span style={css("font-size:11px;color:var(--muted)")}>{L.clientes}</span>
                 </div>
                 <div style={css("display:flex;flex-direction:column;gap:2px;min-width:0")}>
                   <span
-                    style={css(`font-family:${MONO};font-size:18px;font-weight:600;color:var(--tx)`)}
+                    style={css(`font-family:${MONO};font-size:18px;font-weight:600;color:var(--text)`)}
                   >
                     {p.mods.length}
                   </span>
-                  <span style={css("font-size:11px;color:var(--tx3)")}>{L.modulosInclusos}</span>
+                  <span style={css("font-size:11px;color:var(--muted)")}>{L.modulosInclusos}</span>
                 </div>
               </div>
 
-              <span style={css("font-size:11.5px;color:var(--tx3);line-height:1.5")}>
+              <span style={css("font-size:11.5px;color:var(--muted);line-height:1.5")}>
                 {p.mods
                   .map((k) => {
                     const m = s.modulos.find((y) => y.k === k);

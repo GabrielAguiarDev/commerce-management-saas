@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { AdminProvider } from "@/components/AdminProvider";
 import { AdminShell } from "@/components/AdminShell";
 import { listarChamados } from "@/lib/chamados";
@@ -11,14 +11,19 @@ import { perfilAtual } from "@/lib/perfil";
 import { listarPlanos } from "@/lib/planosBanco";
 import "./globals.css";
 
-const plexSans = IBM_Plex_Sans({
-  variable: "--font-plex-sans",
+/**
+ * As duas fontes dos portais. Os nomes das variáveis são os mesmos no portal do
+ * cliente — é por eles que `@aguiar/ui/tokens.css` monta `--fonte-sans` e
+ * `--fonte-mono`, sem precisar saber qual app a está carregando.
+ */
+const sans = Public_Sans({
+  variable: "--font-sans",
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
 });
 
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
+const mono = IBM_Plex_Mono({
+  variable: "--font-mono",
   weight: ["400", "500", "600"],
   subsets: ["latin"],
 });
@@ -72,10 +77,7 @@ export default async function RootLayout({
   ]);
 
   return (
-    <html
-      lang="pt-BR"
-      className={`${plexSans.variable} ${plexMono.variable} h-full`}
-    >
+    <html lang="pt-BR" className={`${sans.variable} ${mono.variable} h-full`}>
       {/* `data-tema` is flipped client-side by the console; seeding it here
           keeps the server markup and the first client paint in agreement. */}
       <body data-tema="claro">

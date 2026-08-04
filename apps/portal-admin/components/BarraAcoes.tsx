@@ -1,6 +1,6 @@
 "use client";
 
-import { css } from "@/lib/css";
+import { css } from "@aguiar/ui";
 
 export type TomBarra = "alerta" | "neutro";
 
@@ -26,20 +26,20 @@ export function BarraAcoes({ estado, tom, secundario, primario }: BarraAcoesProp
         "position:sticky;bottom:0;z-index:7;display:flex;align-items:center;" +
           "justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 20px;" +
           "border-radius:12px;border:1px solid " +
-          (alerta ? "var(--warnLine)" : "var(--line)") +
-          ";background:var(--panel);box-shadow:0 -2px 16px rgba(6,20,26,.1)",
+          (alerta ? "var(--warn-line)" : "var(--border)") +
+          ";background:var(--surface);box-shadow:0 -2px 16px rgba(6,20,26,.1)",
       )}
     >
       <span
         style={css(
           "display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:" +
-            (alerta ? "var(--warn)" : "var(--tx3)"),
+            (alerta ? "var(--warn)" : "var(--muted)"),
         )}
       >
         <span
           style={css(
             "width:7px;height:7px;flex:none;border-radius:99px;background:" +
-              (alerta ? "var(--warn)" : "var(--neuLine)"),
+              (alerta ? "var(--warn)" : "var(--border)"),
           )}
         />
         {estado}
@@ -52,8 +52,8 @@ export function BarraAcoes({ estado, tom, secundario, primario }: BarraAcoesProp
           disabled={secundario.desabilitado}
           style={css(
             "font-size:13px;font-weight:500;padding:10px 16px;border-radius:9px;" +
-              "border:1px solid var(--line);background:var(--panel);color:" +
-              (secundario.desabilitado ? "var(--tx3)" : "var(--tx2)") +
+              "border:1px solid var(--border);background:var(--surface);color:" +
+              (secundario.desabilitado ? "var(--muted)" : "var(--text2)") +
               ";cursor:" +
               (secundario.desabilitado ? "not-allowed" : "pointer"),
           )}
@@ -64,12 +64,12 @@ export function BarraAcoes({ estado, tom, secundario, primario }: BarraAcoesProp
           type={primario.submit ? "submit" : "button"}
           onClick={primario.onClick}
           disabled={primario.desabilitado}
-          className={primario.desabilitado ? undefined : "hv-bright"}
+          className={primario.desabilitado ? undefined : "hv-brilho"}
           style={css(
             "font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px;" +
               (primario.desabilitado
-                ? "border:1px solid var(--line);background:var(--neu);color:var(--tx3);cursor:not-allowed;"
-                : "border:1px solid var(--acc);background:var(--acc);color:var(--accTx);cursor:pointer;"),
+                ? "border:1px solid var(--border);background:var(--surface3);color:var(--muted);cursor:not-allowed;"
+                : "border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;"),
           )}
         >
           {primario.rotulo}

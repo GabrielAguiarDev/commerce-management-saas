@@ -1,57 +1,45 @@
-import { MONO } from "@/lib/css";
+import { MONO, selo, type Tom } from "@aguiar/ui";
 import type { Idioma, Plano, Prioridade, StatusChamado, StatusCliente } from "@/types/types";
 
 /**
- * Shared visual vocabulary. Every helper returns a CSS declaration string to be
- * handed to `css()` — see `css.ts` for why the console works in strings.
+ * O vocabulário visual que é só do painel.
+ *
+ * O selo, o botão, a pílula e o campo vêm de `@aguiar/ui` — são os mesmos do
+ * portal do cliente. O que fica aqui é o que traduz um conceito de negócio do
+ * painel numa escolha visual: qual tom um plano recebe, qual cor um chamado
+ * urgente ganha, como um módulo desligado aparece.
  */
 
-export function badge(bg: string, cor: string, borda: string): string {
-  return (
-    "display:inline-flex;align-items:center;gap:5px;justify-self:start;font-size:11.5px;" +
-    "font-weight:600;padding:4px 9px;border-radius:99px;background:" +
-    bg +
-    ";color:" +
-    cor +
-    ";border:1px solid " +
-    borda +
-    ";white-space:nowrap"
-  );
-}
-
-export const badgeOk = () => badge("var(--okBg)", "var(--ok)", "var(--okLine)");
-export const badgeAcc = () => badge("var(--accSoft)", "var(--acc)", "var(--accLine)");
-export const badgeWarn = () => badge("var(--warnBg)", "var(--warn)", "var(--warnLine)");
-export const badgeBad = () => badge("var(--badBg)", "var(--bad)", "var(--badLine)");
-export const badgeNeutro = () => badge("var(--neu)", "var(--neuTx)", "var(--neuLine)");
+/** O selo do painel sempre tem contorno; é o que o distingue nas tabelas densas. */
+export const seloPainel = (tom: Tom) => selo(tom, { borda: true });
 
 /**
- * Cor do selo do plano, derivada do PLANO e não da sua chave.
+ * Tom do selo do plano, derivado do PLANO e não da sua chave.
  *
  * Antes era `k === "paid"` / `k === "custom"`, o que deixava qualquer plano
  * criado na tela de Planos sem identidade visual. Agora: sob medida usa o
  * destaque, plano sem cobrança fica neutro, e plano pago usa o verde.
  */
 export function planoBadge(plano: Plano | undefined): string {
-  if (!plano) return badgeNeutro();
-  if (plano.tipo === "custom") return badgeAcc();
-  return plano.preco && /[1-9]/.test(plano.preco) ? badgeOk() : badgeNeutro();
+  if (!plano) return seloPainel("neutro");
+  if (plano.tipo === "custom") return seloPainel("acc");
+  return plano.preco && /[1-9]/.test(plano.preco) ? seloPainel("pos") : seloPainel("neutro");
 }
 
 export function statusBadge(status: StatusCliente): string {
-  return status === "ativo" ? badgeAcc() : badgeBad();
+  return seloPainel(status === "ativo" ? "acc" : "danger");
 }
 
 export function badgeChamado(status: StatusChamado): string {
-  if (status === "aberto") return badgeBad();
-  if (status === "andamento") return badgeWarn();
-  return badgeOk();
+  if (status === "aberto") return seloPainel("danger");
+  if (status === "andamento") return seloPainel("warn");
+  return seloPainel("pos");
 }
 
 export function prioridadeBadge(p: Prioridade): string {
-  if (p === "alta") return badgeBad();
-  if (p === "media") return badgeWarn();
-  return badgeNeutro();
+  if (p === "alta") return seloPainel("danger");
+  if (p === "media") return seloPainel("warn");
+  return seloPainel("neutro");
 }
 
 /** Mesma lógica do selo: quem não é cobrado fica neutro, o resto em destaque. */
@@ -61,11 +49,12 @@ export function avatar(plano: Plano | undefined): string {
     "width:34px;height:34px;flex:none;border-radius:9px;display:flex;align-items:center;" +
     "justify-content:center;font-size:11.5px;font-weight:600;" +
     (cobrado
-      ? "background:var(--accSoft);color:var(--acc);"
-      : "background:var(--neu);color:var(--neuTx);")
+      ? "background:var(--accent-soft);color:var(--accent);"
+      : "background:var(--surface3);color:var(--muted);")
   );
 }
 
+/** Item da barra lateral escura — exclusiva do painel. */
 export function navStyle(ativo: boolean, colapsada: boolean): string {
   return (
     "display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:none;" +
@@ -73,62 +62,33 @@ export function navStyle(ativo: boolean, colapsada: boolean): string {
     "font-family:inherit;transition:background .12s,color .12s;" +
     (colapsada ? "justify-content:center;" : "") +
     (ativo
-      ? "background:var(--sideCard);color:#fff;box-shadow:inset 2px 0 0 var(--accHi);"
-      : "background:none;color:var(--sideTx);")
+      ? "background:var(--side-card);color:#fff;box-shadow:inset 2px 0 0 var(--accent-hi);"
+      : "background:none;color:var(--side-text);")
   );
 }
 
+/** O quadradinho com a sigla do módulo, aceso ou apagado. */
 export function iconeMod(ligado: boolean): string {
   return (
     "width:32px;height:32px;flex:none;border-radius:8px;display:flex;align-items:center;" +
     `justify-content:center;font-family:${MONO};font-size:11px;font-weight:600;` +
     (ligado
-      ? "background:var(--acc);color:var(--accTx);"
-      : "background:var(--neu);color:var(--tx3);")
+      ? "background:var(--accent);color:var(--accent-ink);"
+      : "background:var(--surface3);color:var(--muted);")
   );
 }
 
 export const CARD_METRICA =
-  "background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:17px 18px;" +
+  "background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:17px 18px;" +
   "display:flex;flex-direction:column;gap:12px;min-height:132px;";
 
-export function ponto(cor: string): string {
-  return "width:6px;height:6px;flex:none;border-radius:99px;background:" + cor;
-}
-
-/** Filter pill used by the support and finance toolbars. */
-export function chip(ativo: boolean, tamanho: "sm" | "md" = "sm"): string {
-  const base =
-    tamanho === "sm"
-      ? "font-size:11.5px;font-weight:500;padding:6px 11px;"
-      : "font-size:12px;font-weight:500;padding:7px 12px;";
-  return (
-    base +
-    "border-radius:99px;cursor:pointer;" +
-    (ativo
-      ? "border:1px solid var(--accLine);background:var(--accSoft);color:var(--acc);"
-      : "border:1px solid var(--line);background:var(--panel);color:var(--tx3);")
-  );
-}
-
-/** Up to two initials, ignoring punctuation and digits. */
-export function iniciais(nome: string): string {
-  return nome
-    .replace(/[^A-Za-zÀ-ú ]/g, " ")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-}
-
-/** Sortable timestamp from a `dd/mm/yyyy` string. */
+/** Timestamp ordenável a partir de uma data `dd/mm/aaaa`. */
 export function ts(data: string): number {
   const p = data.split("/");
   return new Date(+p[2], +p[1] - 1, +p[0]).getTime();
 }
 
-/** Localised plan name, falling back to the raw key for unknown plans. */
+/** Nome do plano no idioma atual, caindo na chave crua para planos desconhecidos. */
 export function nomePlano(planos: Plano[], k: string, id: Idioma): string {
   const def = planos.find((x) => x.k === k);
   return def ? def.nome[id] || def.nome.pt : k;

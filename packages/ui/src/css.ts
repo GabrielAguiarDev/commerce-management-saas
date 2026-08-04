@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 
 /**
- * O portal veste-se com strings de declaração CSS — a mesma forma que o design
- * usa, e a que os seus auxiliares de estilo produzem naturalmente por
+ * Os portais vestem-se com strings de declaração CSS — a mesma forma que o
+ * design usa, e a que os seus auxiliares de estilo produzem naturalmente por
  * concatenação. `css()` transforma uma delas no objeto que o React quer.
  *
  * O resultado fica em cache: o mesmo punhado de strings é reconstruído a cada
@@ -33,9 +33,16 @@ function kebabToCamel(prop: string): string {
   return prop.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 }
 
-/** As pilhas de fonte, ligadas ao que `layout.tsx` carrega. */
-export const SANS = "var(--font-public-sans),'Public Sans',sans-serif";
-export const MONO = "var(--font-plex-mono),'IBM Plex Mono',monospace";
+/**
+ * As pilhas de fonte.
+ *
+ * Apontam para `--fonte-sans` / `--fonte-mono`, montadas em `tokens.css` a
+ * partir das variáveis que cada app carrega em `layout.tsx` sob os mesmos
+ * nomes (`--font-sans` e `--font-mono`). É por isso que a lib nunca precisa
+ * saber qual portal a está usando.
+ */
+export const SANS = "var(--fonte-sans)";
+export const MONO = "var(--fonte-mono)";
 
 /** `font:` do design, já apontando para a fonte certa. */
 export function fonte(peso: number, tamanho: string, mono = false): string {

@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAdmin } from "@/components/AdminProvider";
-import { css } from "@/lib/css";
+import { css } from "@aguiar/ui";
 import { MarcaIcone } from "@/lib/icons";
 import { ROTAS } from "@/lib/rotas";
 import { createClient } from "@/lib/supabase/client";
@@ -19,20 +19,20 @@ function forcaSenha(v: string): number {
 }
 
 const cartao = (gap = "16px") =>
-  "background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px;" +
+  "background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px;" +
   `display:flex;flex-direction:column;gap:${gap};box-shadow:0 12px 32px rgba(9,26,33,.09)`;
 
 const CARTAO = cartao();
 
 const CAMPO =
-  "border:1px solid var(--line);background:var(--field);color:var(--tx);border-radius:9px;" +
+  "border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:9px;" +
   "padding:11px 13px;font-size:13.5px;outline:none";
 
 const ROTULO =
-  "font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--tx3)";
+  "font-size:11.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)";
 
 const PRIMARIO =
-  "background:var(--acc);border:1px solid var(--acc);color:var(--accTx);font-size:14px;" +
+  "background:var(--accent);border:1px solid var(--accent);color:var(--accent-ink);font-size:14px;" +
   "font-weight:600;padding:12px;border-radius:9px;cursor:pointer";
 
 export function LoginView() {
@@ -176,7 +176,7 @@ export function LoginView() {
       onClick={() => a.set({ authView: "login", senha1: "", senha2: "", emailRec: "" })}
       className="hv-acc"
       style={css(
-        "align-self:center;background:none;border:none;color:var(--tx3);font-size:12.5px;" +
+        "align-self:center;background:none;border:none;color:var(--muted);font-size:12.5px;" +
           "cursor:pointer;padding:0",
       )}
     >
@@ -199,8 +199,8 @@ export function LoginView() {
         <div style={css("display:flex;align-items:center;gap:12px")}>
           <div
             style={css(
-              "width:42px;height:42px;flex:none;border-radius:12px;background:var(--acc);" +
-                "color:var(--accTx);display:flex;align-items:center;justify-content:center",
+              "width:42px;height:42px;flex:none;border-radius:12px;background:var(--accent);" +
+                "color:var(--accent-ink);display:flex;align-items:center;justify-content:center",
             )}
           >
             <MarcaIcone size={22} />
@@ -208,14 +208,14 @@ export function LoginView() {
           <div style={css("display:flex;flex-direction:column;gap:2px")}>
             <span
               style={css(
-                "font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--tx)",
+                "font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--text)",
               )}
             >
               Aguiar One
             </span>
             <span
               style={css(
-                "font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3)",
+                "font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)",
               )}
             >
               {L.console}
@@ -227,10 +227,10 @@ export function LoginView() {
           <>
             <div style={css(CARTAO)}>
               <div style={css("display:flex;flex-direction:column;gap:4px")}>
-                <h2 style={css("margin:0;font-size:17px;font-weight:600;color:var(--tx)")}>
+                <h2 style={css("margin:0;font-size:17px;font-weight:600;color:var(--text)")}>
                   {L.entrarTitulo}
                 </h2>
-                <p style={css("margin:0;font-size:12.5px;color:var(--tx2)")}>{L.entrarSub}</p>
+                <p style={css("margin:0;font-size:12.5px;color:var(--text2)")}>{L.entrarSub}</p>
               </div>
 
               <label style={css("display:flex;flex-direction:column;gap:6px")}>
@@ -269,8 +269,8 @@ export function LoginView() {
                 <span
                   role="alert"
                   style={css(
-                    "font-size:12px;color:var(--bad);background:var(--badBg);" +
-                      "border:1px solid var(--badLine);border-radius:8px;padding:9px 11px",
+                    "font-size:12px;color:var(--danger);background:var(--danger-soft);" +
+                      "border:1px solid var(--danger-line);border-radius:8px;padding:9px 11px",
                   )}
                 >
                   {erro}
@@ -280,7 +280,7 @@ export function LoginView() {
               <button
                 onClick={() => void entrar()}
                 disabled={carregando}
-                className="hv-bright"
+                className="hv-brilho"
                 style={css(
                   PRIMARIO + ";margin-top:2px" + (carregando ? ";opacity:.6;cursor:progress" : ""),
                 )}
@@ -294,7 +294,7 @@ export function LoginView() {
                 }}
                 className="hv-acc-hi"
                 style={css(
-                  "align-self:center;background:none;border:none;color:var(--acc);" +
+                  "align-self:center;background:none;border:none;color:var(--accent);" +
                     "font-size:12.5px;cursor:pointer;padding:0",
                 )}
               >
@@ -307,7 +307,7 @@ export function LoginView() {
                 onClick={() => a.set({ authView: "redefinir", senha1: "", senha2: "" })}
                 className="hv-acc"
                 style={css(
-                  "background:none;border:none;color:var(--tx3);font-size:11.5px;cursor:pointer;" +
+                  "background:none;border:none;color:var(--muted);font-size:11.5px;cursor:pointer;" +
                     "padding:0;text-decoration:underline",
                 )}
               >
@@ -320,10 +320,10 @@ export function LoginView() {
         {s.authView === "redefinir" && (
           <div style={css(CARTAO)}>
             <div style={css("display:flex;flex-direction:column;gap:5px")}>
-              <h2 style={css("margin:0;font-size:17px;font-weight:600;color:var(--tx)")}>
+              <h2 style={css("margin:0;font-size:17px;font-weight:600;color:var(--text)")}>
                 {titulo}
               </h2>
-              <p style={css("margin:0;font-size:12.5px;color:var(--tx2);line-height:1.5")}>{sub}</p>
+              <p style={css("margin:0;font-size:12.5px;color:var(--text2);line-height:1.5")}>{sub}</p>
             </div>
 
             <label style={css("display:flex;flex-direction:column;gap:6px")}>
@@ -343,11 +343,11 @@ export function LoginView() {
                       "flex:1;height:4px;border-radius:99px;background:" +
                         (nf >= i
                           ? nf === 1
-                            ? "var(--bad)"
+                            ? "var(--danger)"
                             : nf === 2
                               ? "var(--warn)"
-                              : "var(--ok)"
-                          : "var(--neuLine)"),
+                              : "var(--pos)"
+                          : "var(--border)"),
                     )}
                   />
                 ))}
@@ -356,12 +356,12 @@ export function LoginView() {
                 style={css(
                   "font-size:11.5px;font-weight:500;color:" +
                     (nf === 0
-                      ? "var(--tx3)"
+                      ? "var(--muted)"
                       : nf === 1
-                        ? "var(--bad)"
+                        ? "var(--danger)"
                         : nf === 2
                           ? "var(--warn)"
-                          : "var(--ok)"),
+                          : "var(--pos)"),
                 )}
               >
                 {nf === 0
@@ -386,7 +386,7 @@ export function LoginView() {
             </label>
 
             {erro && (
-              <span role="alert" style={css("font-size:12px;color:var(--bad)")}>
+              <span role="alert" style={css("font-size:12px;color:var(--danger)")}>
                 {erro}
               </span>
             )}
@@ -394,7 +394,7 @@ export function LoginView() {
             <button
               onClick={() => void salvarNovaSenha()}
               disabled={carregando}
-              className="hv-bright"
+              className="hv-brilho"
               style={css(
                 PRIMARIO + ";margin-top:2px" + (carregando ? ";opacity:.6;cursor:progress" : ""),
               )}
@@ -408,10 +408,10 @@ export function LoginView() {
         {s.authView === "esqueci" && (
           <div style={css(CARTAO)}>
             <div style={css("display:flex;flex-direction:column;gap:5px")}>
-              <h2 style={css("margin:0;font-size:17px;font-weight:600;color:var(--tx)")}>
+              <h2 style={css("margin:0;font-size:17px;font-weight:600;color:var(--text)")}>
                 {titulo}
               </h2>
-              <p style={css("margin:0;font-size:12.5px;color:var(--tx2);line-height:1.5")}>{sub}</p>
+              <p style={css("margin:0;font-size:12.5px;color:var(--text2);line-height:1.5")}>{sub}</p>
             </div>
 
             <label style={css("display:flex;flex-direction:column;gap:6px")}>
@@ -425,7 +425,7 @@ export function LoginView() {
             </label>
 
             {erro && (
-              <span role="alert" style={css("font-size:12px;color:var(--bad)")}>
+              <span role="alert" style={css("font-size:12px;color:var(--danger)")}>
                 {erro}
               </span>
             )}
@@ -433,7 +433,7 @@ export function LoginView() {
             <button
               onClick={() => void enviarLinkRecuperacao()}
               disabled={carregando}
-              className="hv-bright"
+              className="hv-brilho"
               style={css(PRIMARIO + (carregando ? ";opacity:.6;cursor:progress" : ""))}
             >
               {L.enviarLink}
@@ -446,23 +446,23 @@ export function LoginView() {
           <div style={css(cartao("14px"))}>
             <div
               style={css(
-                "width:38px;height:38px;border-radius:10px;background:var(--okBg);" +
-                  "border:1px solid var(--okLine);color:var(--ok);display:flex;align-items:center;" +
+                "width:38px;height:38px;border-radius:10px;background:var(--pos-soft);" +
+                  "border:1px solid var(--pos-line);color:var(--pos);display:flex;align-items:center;" +
                   "justify-content:center;font-size:16px;font-weight:700",
               )}
             >
               ✓
             </div>
-            <h2 style={css("margin:0;font-size:17px;font-weight:600;color:var(--tx)")}>{titulo}</h2>
-            <p style={css("margin:0;font-size:12.5px;color:var(--tx2);line-height:1.55")}>
+            <h2 style={css("margin:0;font-size:17px;font-weight:600;color:var(--text)")}>{titulo}</h2>
+            <p style={css("margin:0;font-size:12.5px;color:var(--text2);line-height:1.55")}>
               {L.linkEnviado}
             </p>
             <button
               onClick={() => a.set({ authView: "login", senha1: "", senha2: "", emailRec: "" })}
-              className="hv-acc-line"
+              className="hv-acc-borda"
               style={css(
-                "align-self:flex-start;border:1px solid var(--line);background:var(--panel);" +
-                  "color:var(--tx2);font-size:12.5px;font-weight:500;padding:9px 14px;" +
+                "align-self:flex-start;border:1px solid var(--border);background:var(--surface);" +
+                  "color:var(--text2);font-size:12.5px;font-weight:500;padding:9px 14px;" +
                   "border-radius:9px;cursor:pointer",
               )}
             >
@@ -472,7 +472,7 @@ export function LoginView() {
         )}
 
         <div style={css("display:flex;align-items:center;justify-content:center;gap:12px")}>
-          <span style={css("font-size:11.5px;color:var(--tx3)")}>{L.acessoRestrito}</span>
+          <span style={css("font-size:11.5px;color:var(--muted)")}>{L.acessoRestrito}</span>
         </div>
       </div>
     </div>

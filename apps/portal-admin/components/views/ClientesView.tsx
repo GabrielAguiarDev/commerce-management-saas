@@ -1,11 +1,9 @@
 "use client";
 
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@/lib/css";
+import { CampoBusca, css, ITEM_MENU, MenuAcoes, MONO, Selecao } from "@aguiar/ui";
 import { BaixarIcone, ClientesNovoIcone } from "@/lib/icons";
-import { Selecao } from "@/components/campos";
-import { ITEM_MENU, MenuAcoes } from "@/components/MenuAcoes";
-import { CampoBusca, CelulaNegocio } from "@/components/shared";
+import { CelulaNegocio } from "@/components/shared";
 import { planoPorChave } from "@/lib/planos";
 import { ROTAS } from "@/lib/rotas";
 import { nomePlano, planoBadge, statusBadge } from "@/lib/styleKit";
@@ -48,13 +46,13 @@ export function ClientesView() {
   return (
     <section
       style={css(
-        "background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow-x:auto",
+        "background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow-x:auto",
       )}
     >
       <div
         style={css(
           "display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:15px 20px;" +
-            "border-bottom:1px solid var(--lineSoft);min-width:812px",
+            "border-bottom:1px solid var(--border-soft);min-width:812px",
         )}
       >
         <CampoBusca
@@ -90,16 +88,16 @@ export function ClientesView() {
         </Selecao>
 
         <div style={css("margin-left:auto;display:flex;align-items:center;gap:12px")}>
-          <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--tx3)`)}>
+          <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
             {filtrados.length + (id === "pt" ? " de " : " of ") + cs.length}
           </span>
           <button
             onClick={exportarCsv}
             title={L.exportarAjuda}
-            className="hv-acc-line"
+            className="hv-acc-borda"
             style={css(
-              "display:flex;align-items:center;gap:7px;background:var(--panel);" +
-                "border:1px solid var(--line);color:var(--tx2);font-size:12.5px;font-weight:500;" +
+              "display:flex;align-items:center;gap:7px;background:var(--surface);" +
+                "border:1px solid var(--border);color:var(--text2);font-size:12.5px;font-weight:500;" +
                 "padding:9px 13px;border-radius:9px;cursor:pointer",
             )}
           >
@@ -108,10 +106,10 @@ export function ClientesView() {
           </button>
           <button
             onClick={() => a.ir(ROTAS.novoCliente)}
-            className="hv-bright"
+            className="hv-brilho"
             style={css(
-              "display:flex;align-items:center;gap:7px;background:var(--acc);" +
-                "border:1px solid var(--acc);color:var(--accTx);font-size:13px;font-weight:500;" +
+              "display:flex;align-items:center;gap:7px;background:var(--accent);" +
+                "border:1px solid var(--accent);color:var(--accent-ink);font-size:13px;font-weight:500;" +
                 "padding:10px 15px;border-radius:9px;cursor:pointer",
             )}
           >
@@ -125,8 +123,8 @@ export function ClientesView() {
         <div
           role="alert"
           style={css(
-            "padding:12px 20px;border-bottom:1px solid var(--lineSoft);background:var(--badBg);" +
-              "color:var(--bad);font-size:12.5px;min-width:812px",
+            "padding:12px 20px;border-bottom:1px solid var(--border-soft);background:var(--danger-soft);" +
+              "color:var(--danger);font-size:12.5px;min-width:812px",
           )}
         >
           {s.erroClientes}
@@ -136,8 +134,8 @@ export function ClientesView() {
       <div
         style={css(
           GRADE +
-            "padding:10px 20px;background:var(--head);border-bottom:1px solid var(--lineSoft);" +
-            "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);font-weight:600",
+            "padding:10px 20px;background:var(--surface2);border-bottom:1px solid var(--border-soft);" +
+            "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600",
         )}
       >
         <span>{L.negocio}</span>
@@ -151,11 +149,11 @@ export function ClientesView() {
       {(vazio ? [] : filtrados).map((c) => (
         <div
           key={c.id}
-          className="hv-row"
+          className="hv-linha"
           style={css(
             GRADE +
-              "align-items:center;padding:13px 20px;border-bottom:1px solid var(--lineSoft);" +
-              (c.status === "inativo" && opts.destacarInativos ? "background:var(--panel2);" : ""),
+              "align-items:center;padding:13px 20px;border-bottom:1px solid var(--border-soft);" +
+              (c.status === "inativo" && opts.destacarInativos ? "background:var(--surface2);" : ""),
           )}
         >
           <CelulaNegocio
@@ -164,7 +162,7 @@ export function ClientesView() {
             totalMods={s.modulos.length}
             id={id}
           />
-          <span style={css("font-size:12.5px;color:var(--tx2)")}>{c.segmento[id]}</span>
+          <span style={css("font-size:12.5px;color:var(--text2)")}>{c.segmento[id]}</span>
           <span style={css(planoBadge(planoPorChave(s.planos, c.plano)))}>{nomePlano(s.planos, c.plano, id)}</span>
           <span style={css(statusBadge(c.status))}>
             {c.status === "ativo"
@@ -175,14 +173,14 @@ export function ClientesView() {
                 ? "Inativo"
                 : "Inactive"}
           </span>
-          <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--tx3)`)}>{c.data}</span>
+          <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>{c.data}</span>
 
           <div style={css("display:flex;justify-content:flex-end;gap:6px")}>
             <button
               onClick={() => a.abrirCliente(c.id)}
-              className="hv-bright-sm"
+              className="hv-brilho-sm"
               style={css(
-                "border:1px solid var(--accLine);background:var(--accSoft);color:var(--acc);" +
+                "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);" +
                   "font-size:12px;font-weight:500;padding:7px 12px;border-radius:7px;cursor:pointer",
               )}
             >
@@ -198,7 +196,7 @@ export function ClientesView() {
                 onClick={() => a.abrirCliente(c.id)}
                 role="menuitem"
                 className="hv-menu"
-                style={css(ITEM_MENU + "color:var(--tx2)")}
+                style={css(ITEM_MENU + "color:var(--text2)")}
               >
                 {L.gerenciar}
               </button>
@@ -206,15 +204,15 @@ export function ClientesView() {
                 onClick={() => a.abrirModal(c.status === "ativo" ? "desativar" : "reativar", c.id)}
                 role="menuitem"
                 className="hv-menu"
-                style={css(ITEM_MENU + "color:var(--tx2)")}
+                style={css(ITEM_MENU + "color:var(--text2)")}
               >
                 {c.status === "ativo" ? L.desativar : L.reativar}
               </button>
               <button
                 onClick={() => a.abrirModal("excluir", c.id)}
                 role="menuitem"
-                className="hv-bad"
-                style={css(ITEM_MENU + "color:var(--bad)")}
+                className="hv-perigo"
+                style={css(ITEM_MENU + "color:var(--danger)")}
               >
                 {L.excluir}
               </button>
@@ -224,7 +222,7 @@ export function ClientesView() {
       ))}
 
       {!vazio && filtrados.length === 0 && (
-        <div style={css("padding:44px 20px;text-align:center;color:var(--tx3);font-size:13px")}>
+        <div style={css("padding:44px 20px;text-align:center;color:var(--muted);font-size:13px")}>
           {L.semResultados}
         </div>
       )}
@@ -237,25 +235,25 @@ export function ClientesView() {
         >
           <div
             style={css(
-              "width:50px;height:50px;border-radius:14px;background:var(--accSoft);" +
-                "border:1px solid var(--accLine);color:var(--acc);display:flex;" +
+              "width:50px;height:50px;border-radius:14px;background:var(--accent-soft);" +
+                "border:1px solid var(--accent-line);color:var(--accent);display:flex;" +
                 "align-items:center;justify-content:center",
             )}
           >
             <ClientesNovoIcone />
           </div>
-          <span style={css("font-size:15px;font-weight:600;color:var(--tx)")}>
+          <span style={css("font-size:15px;font-weight:600;color:var(--text)")}>
             {L.vazioClientesTitulo}
           </span>
-          <span style={css("font-size:12.5px;color:var(--tx2);line-height:1.55;max-width:44ch")}>
+          <span style={css("font-size:12.5px;color:var(--text2);line-height:1.55;max-width:44ch")}>
             {L.vazioClientesTexto}
           </span>
           <button
             onClick={() => a.ir(ROTAS.novoCliente)}
-            className="hv-bright"
+            className="hv-brilho"
             style={css(
-              "margin-top:4px;display:flex;align-items:center;gap:7px;background:var(--acc);" +
-                "border:1px solid var(--acc);color:var(--accTx);font-size:13px;font-weight:500;" +
+              "margin-top:4px;display:flex;align-items:center;gap:7px;background:var(--accent);" +
+                "border:1px solid var(--accent);color:var(--accent-ink);font-size:13px;font-weight:500;" +
                 "padding:10px 16px;border-radius:9px;cursor:pointer",
             )}
           >

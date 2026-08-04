@@ -285,7 +285,8 @@ export interface PortalActions {
   fecharConf: () => void;
   fecharModal: () => void;
   abrirModal: (m: Modal) => void;
-  toggleMenu: (chave: string) => void;
+  /** Abre o menu de linha da chave dada, ou fecha o que estiver aberto. */
+  abrirMenu: (chave: string | null) => void;
 
   /* Vendas e PDV */
   addCarrinho: (p: Produto) => void;

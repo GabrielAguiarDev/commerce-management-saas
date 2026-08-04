@@ -1,8 +1,7 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { BotaoNovo, CabecalhoTela, FaixaKpis, GrupoPilulas, Vazio } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { BotaoNovo, CabecalhoTela, css, FaixaKpis, GrupoPilulas, MONO, SANS, Vazio } from "@aguiar/ui";
 import { SP_STATUS } from "@/lib/dados/chamados";
 import { rotuloData } from "@/lib/formato";
 import { rotaChamado } from "@/lib/rotas";

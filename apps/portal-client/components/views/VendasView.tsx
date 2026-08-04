@@ -1,24 +1,13 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { BotaoNovo, CabecalhoTela, LimparFiltros, MenuLinha, Selecao, Vazio } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { MenuLinha } from "@/components/ui";
+import { BotaoNovo, CABECALHO_TABELA, CabecalhoTela, css, GRUPO_PILULAS, LimparFiltros, LISTA, MONO, NUM, PAINEL, pilula, rotuloColuna, SANS, SelecaoSimples, TITULO_PAINEL, Vazio } from "@aguiar/ui";
 import { FORMAS } from "@/lib/dados/vendas";
 import { brl, qtdV, resumoItens, rotuloData, totalV } from "@/lib/formato";
 import { ROTA_PDV } from "@/lib/rotas";
 import { faturamento, itensVendidos } from "@/lib/selectors";
-import {
-  CABECALHO_TABELA,
-  GRUPO_PILULAS,
-  LISTA,
-  NUM,
-  PAINEL,
-  pilula,
-  rotuloColuna,
-  SELO_NEUTRO,
-  SELO_WARN,
-  TITULO_PAINEL,
-} from "@/lib/styleKit";
+import { SELO_NEUTRO, SELO_WARN } from "@/lib/styleKit";
 import type { PeriodoVendas } from "@/types/estado";
 import type { Venda } from "@/types/types";
 
@@ -157,8 +146,8 @@ export function VendasView() {
             ))}
           </div>
 
-          <Selecao valor={f.pag} opcoes={[TODAS_FORMAS, ...FORMAS]} onMudar={(v) => set({ pag: v })} />
-          <Selecao
+          <SelecaoSimples valor={f.pag} opcoes={[TODAS_FORMAS, ...FORMAS]} onMudar={(v) => set({ pag: v })} />
+          <SelecaoSimples
             valor={f.produto}
             opcoes={[TODOS_PRODUTOS, ...nomesProdutos]}
             onMudar={(v) => set({ produto: v })}

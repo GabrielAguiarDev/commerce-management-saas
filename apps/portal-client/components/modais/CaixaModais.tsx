@@ -1,9 +1,8 @@
 "use client";
 
-import { ModalBase, RodapeModal } from "@/components/modais/Base";
+import { ModalBase } from "@/components/modais/Base";
+import { CampoDinheiro, CampoRotulado, css, MONO, NUM, RodapeModal, SANS, Sugestoes } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { Campo, CampoDinheiro, Sugestoes } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
 import {
   esperadoCx,
   MOTIVOS_REFORCO,
@@ -16,7 +15,6 @@ import {
 import { FORMAS, NOTA_FORMA } from "@/lib/dados/vendas";
 import { brl, brlDif, corDif, numBR, rotuloData } from "@/lib/formato";
 import { dinheiroNaGaveta, esperadoDoTurno, vendasDoTurno } from "@/lib/selectors";
-import { NUM } from "@/lib/styleKit";
 import type { CaixaFechado, FormaPagamento } from "@/types/types";
 
 /* -------------------------------------------------------------------------- */
@@ -104,7 +102,7 @@ export function CaixaMovModal({ tipo }: { tipo: "sangria" | "reforco" }) {
       />
 
       <div>
-        <Campo
+        <CampoRotulado
           label="Motivo"
           valor={f.motivo}
           onMudar={(v) => a.set({ formCaixa: { ...f, motivo: v } })}
@@ -268,7 +266,7 @@ export function CaixaFecharModal() {
         </p>
       </div>
 
-      <Campo
+      <CampoRotulado
         label="Observação (opcional)"
         valor={f.obs}
         onMudar={(v) => a.set({ formCaixa: { ...f, obs: v } })}

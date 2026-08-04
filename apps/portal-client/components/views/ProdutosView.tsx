@@ -1,27 +1,12 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import {
-  BotaoNovo,
-  CabecalhoTela,
-  FaixaKpis,
-  LimparFiltros,
-  MenuLinha,
-  Selecao,
-  Vazio,
-} from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { MenuLinha } from "@/components/ui";
+import { BotaoNovo, CABECALHO_TABELA, CabecalhoTela, css, FaixaKpis, LimparFiltros, LISTA, MONO, NUM, rotuloColuna, SANS, SelecaoSimples, Vazio } from "@aguiar/ui";
 import { estoqueBaixo } from "@/lib/dados/produtos";
 import { brl } from "@/lib/formato";
 import { valorDoEstoque } from "@/lib/selectors";
-import {
-  CABECALHO_TABELA,
-  campoFiltro,
-  LISTA,
-  NUM,
-  rotuloColuna,
-  SELO_NEUTRO,
-} from "@/lib/styleKit";
+import { campoFiltro, SELO_NEUTRO } from "@/lib/styleKit";
 import type { Produto } from "@/types/types";
 
 const TODAS_CATS = "Todas as categorias";
@@ -104,8 +89,8 @@ export function ProdutosView() {
           placeholder="Buscar por nome ou código de barras"
           style={css(`flex:1;min-width:180px;${campoFiltro()}`)}
         />
-        <Selecao valor={f.cat} opcoes={[TODAS_CATS, ...s.catsProduto]} onMudar={(v) => set({ cat: v })} />
-        <Selecao
+        <SelecaoSimples valor={f.cat} opcoes={[TODAS_CATS, ...s.catsProduto]} onMudar={(v) => set({ cat: v })} />
+        <SelecaoSimples
           valor={f.status}
           opcoes={[TODOS_STATUS, "À venda", "Pausados"]}
           onMudar={(v) => set({ status: v })}

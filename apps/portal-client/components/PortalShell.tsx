@@ -6,7 +6,7 @@ import { BarraInferior, Confirmacao, Toast, VeuNav } from "@/components/Overlays
 import { usePortal } from "@/components/PortalProvider";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
-import { css } from "@/lib/css";
+import { css } from "@aguiar/ui";
 
 /**
  * A moldura que toda tela compartilha: menu, topo e as sobreposições que podem

@@ -1,13 +1,11 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { Vazio } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { botaoPrimario, css, MONO, PAINEL, SANS, Vazio } from "@aguiar/ui";
 import { podeResponder, SP_STATUS } from "@/lib/dados/chamados";
 import { PERFIS } from "@/lib/dados/perfis";
 import { rotuloData, siglaDe } from "@/lib/formato";
 import { ROTAS } from "@/lib/rotas";
-import { botaoPrimario, PAINEL } from "@/lib/styleKit";
 import type { MensagemChamado } from "@/types/types";
 
 /**

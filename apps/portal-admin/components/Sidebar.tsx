@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@/lib/css";
+import { css, MONO } from "@aguiar/ui";
 import {
   ClientesIcone,
   ColapsarIcone,
@@ -33,8 +33,8 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
 
   const rotulo = col ? "display:none" : "white-space:nowrap";
   const grupo = col
-    ? "display:block;height:1px;margin:12px 14px;background:var(--sideLine);font-size:0;line-height:0;overflow:hidden;color:transparent"
-    : "font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--sideTx2);padding:14px 11px 5px";
+    ? "display:block;height:1px;margin:12px 14px;background:var(--side-border);font-size:0;line-height:0;overflow:hidden;color:transparent"
+    : "font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--side-text2);padding:14px 11px 5px";
 
   // Hover and focus both raise the tooltip, so the collapsed rail stays usable
   // from the keyboard.
@@ -87,14 +87,14 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
       <div
         style={css(
           "position:relative;height:66px;flex:none;display:flex;align-items:center;gap:11px;" +
-            "border-bottom:1px solid var(--sideLine);" +
+            "border-bottom:1px solid var(--side-border);" +
             (col ? "padding:0 34px 0 12px;" : "padding:0 42px 0 16px;"),
         )}
       >
         <div
           style={css(
-            "width:36px;height:36px;flex:none;border-radius:10px;background:var(--acc);" +
-              "color:var(--accTx);display:flex;align-items:center;justify-content:center;position:relative",
+            "width:36px;height:36px;flex:none;border-radius:10px;background:var(--accent);" +
+              "color:var(--accent-ink);display:flex;align-items:center;justify-content:center;position:relative",
           )}
         >
           <MarcaIcone />
@@ -115,7 +115,7 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
           </span>
           <span
             style={css(
-              "font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--sideTx2);" +
+              "font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--side-text2);" +
                 "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%",
             )}
           >
@@ -127,8 +127,8 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
           className="hv-side"
           style={css(
             "position:absolute;top:18px;right:0;width:26px;height:30px;border-radius:8px 0 0 8px;" +
-              "display:flex;align-items:center;justify-content:center;border:1px solid var(--sideLine);" +
-              "border-right:none;background:var(--sideCard);color:var(--sideTx2);cursor:pointer;" +
+              "display:flex;align-items:center;justify-content:center;border:1px solid var(--side-border);" +
+              "border-right:none;background:var(--side-card);color:var(--side-text2);cursor:pointer;" +
               "padding:0;transition:color .12s,background .12s",
           )}
           aria-label={col ? L.expandir : L.colapsar}
@@ -150,7 +150,7 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
               col
                 ? "display:none"
                 : `margin-left:auto;font-family:${MONO};font-size:10.5px;padding:2px 7px;` +
-                    "border-radius:99px;background:rgba(255,255,255,.07);color:var(--sideTx)",
+                    "border-radius:99px;background:rgba(255,255,255,.07);color:var(--side-text)",
             )}
           >
             {totalClientes}
@@ -166,7 +166,7 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
               col
                 ? "display:none"
                 : `margin-left:auto;font-family:${MONO};font-size:10.5px;padding:2px 7px;` +
-                    "border-radius:99px;background:var(--badBg);color:var(--bad)",
+                    "border-radius:99px;background:var(--danger-soft);color:var(--danger)",
             )}
           >
             {chamadosAbertos}
@@ -185,13 +185,13 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
         style={css(
           col
             ? "display:none"
-            : "margin:16px 12px 0;padding:13px 14px;border-radius:11px;background:var(--sideCard);" +
+            : "margin:16px 12px 0;padding:13px 14px;border-radius:11px;background:var(--side-card);" +
                 "display:flex;flex-direction:column;gap:3px",
         )}
       >
         <span
           style={css(
-            "font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--sideTx2)",
+            "font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--side-text2)",
           )}
         >
           {L.mrr}
@@ -203,12 +203,12 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
         >
           {mrrValor}
         </span>
-        <span style={css("font-size:11px;color:var(--ok)")}>{mrrDelta}</span>
+        <span style={css("font-size:11px;color:var(--pos)")}>{mrrDelta}</span>
       </div>
 
       <div
         style={css(
-          "margin-top:auto;padding:12px;border-top:1px solid var(--sideLine);display:flex;" +
+          "margin-top:auto;padding:12px;border-top:1px solid var(--side-border);display:flex;" +
             "flex-direction:column;gap:8px",
         )}
       >
@@ -220,8 +220,8 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
         >
           <div
             style={css(
-              "width:32px;height:32px;flex:none;border-radius:8px;background:var(--sideCard);" +
-                "color:var(--sideTx);display:flex;align-items:center;justify-content:center;" +
+              "width:32px;height:32px;flex:none;border-radius:8px;background:var(--side-card);" +
+                "color:var(--side-text);display:flex;align-items:center;justify-content:center;" +
                 "font-size:12px;font-weight:600",
             )}
           >
@@ -242,7 +242,7 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
                   depois no rótulo genérico, se o perfil não tiver nome. */}
               {s.adminNome || L.admin}
             </span>
-            <span style={css("font-size:10.5px;color:var(--sideTx2)")}>{L.admin}</span>
+            <span style={css("font-size:10.5px;color:var(--side-text2)")}>{L.admin}</span>
           </div>
           <button
             onClick={() => a.abrirModal("sair")}
@@ -250,7 +250,7 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
               col
                 ? "display:none"
                 : "flex:none;display:flex;align-items:center;justify-content:center;width:30px;" +
-                    "height:30px;margin-left:6px;border:none;background:none;color:var(--sideTx2);" +
+                    "height:30px;margin-left:6px;border:none;background:none;color:var(--side-text2);" +
                     "border-radius:7px;cursor:pointer;padding:0",
             )}
             aria-label={L.sair}

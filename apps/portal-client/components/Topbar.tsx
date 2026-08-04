@@ -2,11 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { usePortal } from "@/components/PortalProvider";
-import { css, MONO, SANS } from "@/lib/css";
+import { botaoPrimario, css, MONO, NUM, SANS } from "@aguiar/ui";
 import { brl, dataPorExtenso } from "@/lib/formato";
 import { faturamento, produtosEmFalta } from "@/lib/selectors";
 import { ROTA_PDV, ROTAS } from "@/lib/rotas";
-import { botaoPrimario, NUM } from "@/lib/styleKit";
 
 /**
  * A barra de topo carrega o número que a pessoa mais quer ver — quanto vendeu

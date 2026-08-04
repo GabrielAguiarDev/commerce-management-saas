@@ -1,30 +1,14 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import {
-  BotaoNovo,
-  CabecalhoTela,
-  FaixaKpis,
-  GrupoPilulas,
-  LimparFiltros,
-  MenuLinha,
-  Selecao,
-  Vazio,
-} from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { MenuLinha } from "@/components/ui";
+import { BotaoNovo, CABECALHO_TABELA, CabecalhoTela, css, FaixaKpis, GrupoPilulas, LimparFiltros, LISTA, MONO, NUM, rotuloColuna, SANS, SelecaoSimples, Vazio } from "@aguiar/ui";
 import { MOV_ESTILO, podeReverter } from "@/lib/dados/estoque";
 import { controlaEstoque, estoqueBaixo } from "@/lib/dados/produtos";
 import { brl, rotuloData } from "@/lib/formato";
 import { ROTAS } from "@/lib/rotas";
 import { valorDoEstoque } from "@/lib/selectors";
-import {
-  CABECALHO_TABELA,
-  campoFiltro,
-  LISTA,
-  NUM,
-  rotuloColuna,
-  SELO_NEUTRO,
-} from "@/lib/styleKit";
+import { campoFiltro, SELO_NEUTRO } from "@/lib/styleKit";
 import type { AbaEstoque } from "@/types/estado";
 import type { MovEstoque, Produto } from "@/types/types";
 
@@ -160,17 +144,17 @@ function AbaItens({ controlados }: { controlados: Produto[] }) {
           placeholder="Buscar por nome ou código"
           style={css(`flex:1;min-width:170px;${campoFiltro()}`)}
         />
-        <Selecao
+        <SelecaoSimples
           valor={f.status}
           opcoes={[TODAS_SITUACOES, "Precisa repor", "Sem estoque", "Em dia"]}
           onMudar={(v) => set({ status: v })}
         />
-        <Selecao
+        <SelecaoSimples
           valor={f.cat}
           opcoes={[TODAS_CATS, ...s.catsProduto]}
           onMudar={(v) => set({ cat: v })}
         />
-        <Selecao valor={f.ordem} opcoes={ORDENS} onMudar={(v) => set({ ordem: v })} />
+        <SelecaoSimples valor={f.ordem} opcoes={ORDENS} onMudar={(v) => set({ ordem: v })} />
       </div>
 
       {ordenados.length === 0 ? (
@@ -313,17 +297,17 @@ function AbaMovimentacoes() {
   return (
     <div>
       <div style={css("display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px")}>
-        <Selecao
+        <SelecaoSimples
           valor={f.movTipo}
           opcoes={[TODOS_TIPOS, ...Object.values(MOV_ESTILO).map((e) => e.nome)]}
           onMudar={(v) => set({ movTipo: v })}
         />
-        <Selecao
+        <SelecaoSimples
           valor={f.movProduto}
           opcoes={[TODOS_PRODUTOS, ...nomes]}
           onMudar={(v) => set({ movProduto: v })}
         />
-        <Selecao valor={f.movPeriodo} opcoes={PERIODOS_MOV} onMudar={(v) => set({ movPeriodo: v })} />
+        <SelecaoSimples valor={f.movPeriodo} opcoes={PERIODOS_MOV} onMudar={(v) => set({ movPeriodo: v })} />
         {filtroAtivo && (
           <LimparFiltros
             onClick={() =>

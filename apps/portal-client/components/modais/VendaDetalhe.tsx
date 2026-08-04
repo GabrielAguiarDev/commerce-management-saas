@@ -2,9 +2,8 @@
 
 import { ModalBase } from "@/components/modais/Base";
 import { usePortal } from "@/components/PortalProvider";
-import { css, MONO, SANS } from "@/lib/css";
+import { css, MONO, NUM, SANS } from "@aguiar/ui";
 import { brl, rotuloData, totalV } from "@/lib/formato";
-import { NUM } from "@/lib/styleKit";
 import type { Venda } from "@/types/types";
 
 export function VendaDetalheModal({ venda }: { venda: Venda }) {

@@ -1,12 +1,10 @@
 "use client";
 
-import { ModalBase, RodapeModal } from "@/components/modais/Base";
+import { ModalBase } from "@/components/modais/Base";
+import { campo, CampoDinheiro, CampoRotulado, css, MONO, RodapeModal, ROTULO_CAMPO, SANS, SelecaoSimples, trilha } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { Campo, CampoDinheiro, Selecao } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
 import { UNIDADES } from "@/lib/dados/produtos";
 import { numBR } from "@/lib/formato";
-import { campo, ROTULO_CAMPO, trilha } from "@/lib/styleKit";
 
 /**
  * Cadastro e edição de produto.
@@ -54,7 +52,7 @@ export function ProdutoModal() {
         />
       }
     >
-      <Campo
+      <CampoRotulado
         label="Nome do produto"
         valor={f.nome}
         onMudar={(v) => set({ nome: v })}
@@ -93,7 +91,7 @@ export function ProdutoModal() {
               </button>
             </div>
           ) : (
-            <Selecao
+            <SelecaoSimples
               valor={f.categoria}
               // "Criar categoria" é uma opção da própria lista: é onde a pessoa
               // já está olhando quando descobre que a dela não existe.
@@ -157,7 +155,7 @@ export function ProdutoModal() {
           </div>
           <div style={css(`display:grid;grid-template-columns:${cols};gap:12px`)}>
             {temCodigo && (
-              <Campo
+              <CampoRotulado
                 label="Código de barras"
                 valor={f.codigo}
                 onMudar={(v) => set({ codigo: v })}
@@ -183,7 +181,7 @@ export function ProdutoModal() {
 
             {temEstoque && (
               <>
-                <Campo
+                <CampoRotulado
                   label="Quantidade em estoque"
                   valor={f.estoque}
                   onMudar={(v) => set({ estoque: v })}
@@ -191,7 +189,7 @@ export function ProdutoModal() {
                   inputMode="numeric"
                   nota="Deixe vazio se for um serviço."
                 />
-                <Campo
+                <CampoRotulado
                   label="Avisar quando chegar em"
                   valor={f.minimo}
                   onMudar={(v) => set({ minimo: v })}
@@ -201,7 +199,7 @@ export function ProdutoModal() {
                 />
                 <div>
                   <label style={css(ROTULO_CAMPO)}>Vendido por</label>
-                  <Selecao
+                  <SelecaoSimples
                     valor={f.unidade}
                     opcoes={UNIDADES}
                     onMudar={(v) => set({ unidade: v })}

@@ -2,10 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { usePortal } from "@/components/PortalProvider";
-import { css, MONO, SANS } from "@/lib/css";
+import { css, MONO, NUM, SANS } from "@aguiar/ui";
 import { brl } from "@/lib/formato";
 import { ROTA_PDV } from "@/lib/rotas";
-import { NUM } from "@/lib/styleKit";
 
 /** O véu que escurece o conteúdo quando a gaveta do menu está aberta. */
 export function VeuNav() {

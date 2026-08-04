@@ -1,12 +1,10 @@
 "use client";
 
-import { EscolhaCartao, ModalBase, PilulaEscolha, RodapeModal } from "@/components/modais/Base";
+import { ModalBase } from "@/components/modais/Base";
+import { campo, CampoDinheiro, CampoRotulado, css, EscolhaCartao, PilulaEscolha, RodapeModal, ROTULO_CAMPO, SANS, SelecaoSimples, Sugestoes, trilha } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { Campo, CampoDinheiro, Selecao, Sugestoes } from "@/components/ui";
-import { css, SANS } from "@/lib/css";
 import { SUGESTOES_CUSTO } from "@/lib/dados/custos";
 import { numBR, rotuloData } from "@/lib/formato";
-import { campo, ROTULO_CAMPO, trilha } from "@/lib/styleKit";
 
 /** As últimas datas que fazem sentido para um lançamento manual. */
 const DIAS = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -53,7 +51,7 @@ export function CustoModal() {
       </div>
 
       <div>
-        <Campo
+        <CampoRotulado
           label="O que foi o gasto"
           valor={f.descricao}
           onMudar={(v) => set({ descricao: v })}
@@ -74,7 +72,7 @@ export function CustoModal() {
         />
         <div>
           <label style={css(ROTULO_CAMPO)}>Quando foi</label>
-          <Selecao
+          <SelecaoSimples
             valor={rotuloData(f.d, "")}
             opcoes={rotulos}
             onMudar={(v) => set({ d: DIAS[rotulos.indexOf(v)] ?? 0 })}

@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { usePortal } from "@/components/PortalProvider";
-import { css, MONO, SANS } from "@/lib/css";
+import { css, MONO, SANS } from "@aguiar/ui";
 import { GRUPOS, MODULOS, PERFIS } from "@/lib/dados/perfis";
 import { IconeModulo } from "@/lib/icons";
 import { moduloDaRota, ROTAS } from "@/lib/rotas";

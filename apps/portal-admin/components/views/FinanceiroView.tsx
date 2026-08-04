@@ -1,7 +1,7 @@
 "use client";
 
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@/lib/css";
+import { CampoBusca, css, ITEM_MENU, MenuAcoes, MONO } from "@aguiar/ui";
 import { BaixarIcone, FinanceiroIcone } from "@/lib/icons";
 import {
   calcMrr,
@@ -14,21 +14,9 @@ import {
   somaPorStatus,
 } from "@/lib/money";
 import { planoPorChave } from "@/lib/planos";
-import { ITEM_MENU, MenuAcoes } from "@/components/MenuAcoes";
-import { CampoBusca, MetricasGrid, type Metrica } from "@/components/shared";
-import {
-  avatar,
-  badgeAcc,
-  badgeBad,
-  badgeNeutro,
-  badgeOk,
-  badgeWarn,
-  chip,
-  iniciais,
-  nomePlano,
-  planoBadge,
-  ponto,
-} from "@/lib/styleKit";
+import { MetricasGrid, type Metrica } from "@/components/shared";
+import { avatar, nomePlano, planoBadge, seloPainel } from "@/lib/styleKit";
+import { chip, iniciais, ponto } from "@aguiar/ui";
 
 const GRADE_PAG =
   "minmax(190px,1.7fr) 110px 110px 110px 120px 120px 74px";
@@ -49,7 +37,7 @@ export function FinanceiroView() {
   const emDiaN = contaPorStatus(cs, s.pagamentos, "emdia");
   const pendenteN = contaPorStatus(cs, s.pagamentos, "pendente");
   const atrasadoN = contaPorStatus(cs, s.pagamentos, "atrasado");
-  const neutro = badgeNeutro();
+  const neutro = seloPainel("neutro");
 
   const metricas: Metrica[] = [
     {
@@ -59,32 +47,32 @@ export function FinanceiroView() {
       // o protótipo mostrava +18,7% fixo. Aqui vai a fração da base que paga.
       delta: vazio ? "—" : `${faturaveis.length}/${cs.length}`,
       nota: faturaveis.length + " " + L.clientesCobraveis,
-      ponto: ponto(vazio ? "var(--neuLine)" : "var(--ok)"),
-      deltaStyle: vazio ? neutro : badgeOk(),
+      ponto: ponto(vazio ? "var(--border)" : "var(--pos)"),
+      deltaStyle: vazio ? neutro : seloPainel("pos"),
     },
     {
       rotulo: L.recebidoMes,
       valor: fmtDin(recebido),
       delta: Math.round((recebido / Math.max(1, mrr)) * 100) + "%",
       nota: emDiaN + " " + L.recebidoNota,
-      ponto: ponto(vazio ? "var(--neuLine)" : "var(--ok)"),
-      deltaStyle: vazio ? neutro : badgeAcc(),
+      ponto: ponto(vazio ? "var(--border)" : "var(--pos)"),
+      deltaStyle: vazio ? neutro : seloPainel("acc"),
     },
     {
       rotulo: L.aReceber,
       valor: fmtDin(aberto),
       delta: String(pendenteN),
       nota: id === "pt" ? "pagamentos pendentes no período" : "pending payments in the period",
-      ponto: ponto(vazio ? "var(--neuLine)" : "var(--warn)"),
-      deltaStyle: vazio ? neutro : badgeWarn(),
+      ponto: ponto(vazio ? "var(--border)" : "var(--warn)"),
+      deltaStyle: vazio ? neutro : seloPainel("warn"),
     },
     {
       rotulo: L.inadimplentes,
       valor: atrasadoN,
       delta: fmtDin(atrasadoTotal),
       nota: id === "pt" ? "clientes com vencimento passado" : "customers past due",
-      ponto: ponto(vazio ? "var(--neuLine)" : "var(--bad)"),
-      deltaStyle: vazio ? neutro : badgeBad(),
+      ponto: ponto(vazio ? "var(--border)" : "var(--danger)"),
+      deltaStyle: vazio ? neutro : seloPainel("danger"),
     },
   ];
 
@@ -132,7 +120,7 @@ export function FinanceiroView() {
   };
 
   const rotuloCampo =
-    "font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);font-weight:600";
+    "font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600";
 
   const menuPagamento = (clienteId: string, pago: boolean) => (
     <MenuAcoes
@@ -145,7 +133,7 @@ export function FinanceiroView() {
         onClick={() => a.abrirModal(pago ? "reverter" : "pagar", clienteId)}
         role="menuitem"
         className="hv-menu"
-        style={css(ITEM_MENU + "color:var(--tx2)")}
+        style={css(ITEM_MENU + "color:var(--text2)")}
       >
         {pago ? L.reverterPagamento : L.marcarPago}
       </button>
@@ -153,7 +141,7 @@ export function FinanceiroView() {
         onClick={() => a.abrirModal("historico", clienteId)}
         role="menuitem"
         className="hv-menu"
-        style={css(ITEM_MENU + "color:var(--tx2)")}
+        style={css(ITEM_MENU + "color:var(--text2)")}
       >
         {L.verHistorico}
       </button>
@@ -166,15 +154,15 @@ export function FinanceiroView() {
 
       <section
         style={css(
-          "background:var(--panel);border:1px solid var(--line);border-radius:12px;" +
+          "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
             "padding:20px 22px 18px;display:flex;flex-direction:column;gap:18px",
         )}
       >
         <div style={css("display:flex;flex-direction:column;gap:3px")}>
-          <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--tx)")}>
+          <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--text)")}>
             {L.receitaEvolucao}
           </h2>
-          <span style={css("font-size:11.5px;color:var(--tx3)")}>{L.receitaSub}</span>
+          <span style={css("font-size:11.5px;color:var(--muted)")}>{L.receitaSub}</span>
         </div>
         <div style={css("display:flex;align-items:flex-end;gap:14px;height:172px;padding-top:6px")}>
           {(vazio ? [] : s.receita).map((g, i) => (
@@ -185,22 +173,22 @@ export function FinanceiroView() {
                   "height:100%;justify-content:flex-end",
               )}
             >
-              <span style={css(`font-family:${MONO};font-size:11px;color:var(--tx2)`)}>
+              <span style={css(`font-family:${MONO};font-size:11px;color:var(--text2)`)}>
                 {fmtDin(g.valor)}
               </span>
               <div
                 style={css(
                   "width:100%;max-width:54px;border-radius:7px 7px 3px 3px;background:" +
                     // The most recent month is the filled bar.
-                    (i === s.receita.length - 1 ? "var(--acc)" : "var(--accSoft)") +
-                    ";border:1px solid var(--accLine);height:" +
+                    (i === s.receita.length - 1 ? "var(--accent)" : "var(--accent-soft)") +
+                    ";border:1px solid var(--accent-line);height:" +
                     Math.round((g.valor / maxReceita) * 118) +
                     "px",
                 )}
               />
               <span
                 style={css(
-                  "font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em",
+                  "font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em",
                 )}
               >
                 {g.mes[id]}
@@ -212,22 +200,22 @@ export function FinanceiroView() {
 
       <section
         style={css(
-          "background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:visible",
+          "background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:visible",
         )}
       >
         <div
           style={css(
             "display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:15px 20px;" +
-              "border-bottom:1px solid var(--lineSoft)",
+              "border-bottom:1px solid var(--border-soft)",
           )}
         >
           <div style={css("display:flex;flex-direction:column;gap:3px;margin-right:6px")}>
-            <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--tx)")}>
+            <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--text)")}>
               {L.pagamentosTitulo}
             </h2>
             <span
               style={css(
-                "display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--tx3)",
+                "display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)",
               )}
             >
               <span
@@ -267,10 +255,10 @@ export function FinanceiroView() {
           <div style={css("margin-left:auto")}>
             <button
               onClick={exportar}
-              className="hv-acc-line"
+              className="hv-acc-borda"
               style={css(
-                "display:flex;align-items:center;gap:7px;background:var(--panel);" +
-                  "border:1px solid var(--line);color:var(--tx2);font-size:12.5px;font-weight:500;" +
+                "display:flex;align-items:center;gap:7px;background:var(--surface);" +
+                  "border:1px solid var(--border);color:var(--text2);font-size:12.5px;font-weight:500;" +
                   "padding:9px 13px;border-radius:9px;cursor:pointer;white-space:nowrap",
               )}
             >
@@ -285,9 +273,9 @@ export function FinanceiroView() {
             style={css(
               "display:grid;grid-template-columns:" +
                 GRADE_PAG +
-                ";gap:12px;padding:10px 20px;background:var(--head);" +
-                "border-bottom:1px solid var(--lineSoft);font-size:10.5px;letter-spacing:.07em;" +
-                "text-transform:uppercase;color:var(--tx3);font-weight:600",
+                ";gap:12px;padding:10px 20px;background:var(--surface2);" +
+                "border-bottom:1px solid var(--border-soft);font-size:10.5px;letter-spacing:.07em;" +
+                "text-transform:uppercase;color:var(--muted);font-weight:600",
             )}
           >
             <span>{L.negocio}</span>
@@ -314,30 +302,30 @@ export function FinanceiroView() {
                 ? L.atrasado
                 : L.pendente;
           const statusEstilo = grat
-            ? badgeNeutro()
+            ? seloPainel("neutro")
             : pago
-              ? badgeOk()
+              ? seloPainel("pos")
               : p.status === "atrasado"
-                ? badgeBad()
-                : badgeWarn();
+                ? seloPainel("danger")
+                : seloPainel("warn");
           const vencEstilo =
             `font-family:${MONO};font-size:11.5px;color:` +
-            (!grat && p.status === "atrasado" ? "var(--bad)" : "var(--tx3)");
-          const destaque = !grat && p.status === "atrasado" ? "background:var(--panel2);" : "";
+            (!grat && p.status === "atrasado" ? "var(--danger)" : "var(--muted)");
+          const destaque = !grat && p.status === "atrasado" ? "background:var(--surface2);" : "";
 
           return (
             <div
               key={x.id}
-              className="hv-row"
+              className="hv-linha"
               style={css(
                 compacto
                   ? "display:flex;flex-direction:column;gap:12px;padding:15px 16px;" +
-                      "border-bottom:1px solid var(--lineSoft);" +
+                      "border-bottom:1px solid var(--border-soft);" +
                       destaque
                   : "display:grid;grid-template-columns:" +
                       GRADE_PAG +
                       ";gap:12px;align-items:center;padding:13px 20px;" +
-                      "border-bottom:1px solid var(--lineSoft);" +
+                      "border-bottom:1px solid var(--border-soft);" +
                       destaque,
               )}
             >
@@ -345,7 +333,7 @@ export function FinanceiroView() {
                 <div style={css(avatar(planoPorChave(s.planos, x.plano)))}>{iniciais(x.nome)}</div>
                 <span
                   style={css(
-                    "font-size:13.5px;font-weight:500;color:var(--tx);white-space:nowrap;" +
+                    "font-size:13.5px;font-weight:500;color:var(--text);white-space:nowrap;" +
                       "overflow:hidden;text-overflow:ellipsis",
                   )}
                 >
@@ -361,11 +349,11 @@ export function FinanceiroView() {
               {!compacto && (
                 <>
                   <span style={css(planoBadge(planoPorChave(s.planos, x.plano)))}>{nomePlano(s.planos, x.plano, id)}</span>
-                  <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--tx)`)}>
+                  <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--text)`)}>
                     {grat ? "—" : x.valor}
                   </span>
                   <span style={css(statusEstilo)}>{statusTexto}</span>
-                  <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--tx3)`)}>
+                  <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
                     {grat ? "—" : p.ultimo}
                   </span>
                   <span style={css(vencEstilo)}>{grat ? "—" : p.vencimento}</span>
@@ -388,7 +376,7 @@ export function FinanceiroView() {
                   </div>
                   <div style={css("display:flex;flex-direction:column;gap:4px")}>
                     <span style={css(rotuloCampo)}>{L.valorMensal}</span>
-                    <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--tx)`)}>
+                    <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--text)`)}>
                       {grat ? "—" : x.valor}
                     </span>
                   </div>
@@ -398,7 +386,7 @@ export function FinanceiroView() {
                   </div>
                   <div style={css("display:flex;flex-direction:column;gap:4px")}>
                     <span style={css(rotuloCampo)}>{L.ultimoPagamento}</span>
-                    <span style={css(`font-family:${MONO};font-size:12px;color:var(--tx2)`)}>
+                    <span style={css(`font-family:${MONO};font-size:12px;color:var(--text2)`)}>
                       {grat ? "—" : p.ultimo}
                     </span>
                   </div>
@@ -421,8 +409,8 @@ export function FinanceiroView() {
           >
             <div
               style={css(
-                "width:48px;height:48px;border-radius:13px;background:var(--accSoft);" +
-                  "border:1px solid var(--accLine);color:var(--acc);display:flex;" +
+                "width:48px;height:48px;border-radius:13px;background:var(--accent-soft);" +
+                  "border:1px solid var(--accent-line);color:var(--accent);display:flex;" +
                   "align-items:center;justify-content:center",
               )}
             >
@@ -430,10 +418,10 @@ export function FinanceiroView() {
             </div>
             {/* Uma leitura que falhou não é "nenhum pagamento": dizer que está
                 tudo vazio esconderia o problema. */}
-            <span style={css("font-size:14px;font-weight:600;color:var(--tx)")}>
+            <span style={css("font-size:14px;font-weight:600;color:var(--text)")}>
               {s.erroFinanceiro ? L.erroFinanceiroTitulo : L.vazioFinanceiroTitulo}
             </span>
-            <span style={css("font-size:12.5px;color:var(--tx2);line-height:1.55;max-width:40ch")}>
+            <span style={css("font-size:12.5px;color:var(--text2);line-height:1.55;max-width:40ch")}>
               {s.erroFinanceiro || L.vazioFinanceiroTexto}
             </span>
           </div>

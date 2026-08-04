@@ -1,11 +1,9 @@
 "use client";
 
-import { ModalBase, RodapeModal } from "@/components/modais/Base";
+import { ModalBase } from "@/components/modais/Base";
+import { CampoRotulado, css, MONO, RodapeModal, ROTULO_CAMPO, SANS } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { Campo } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
 import { SP_CATS } from "@/lib/dados/chamados";
-import { ROTULO_CAMPO } from "@/lib/styleKit";
 
 /**
  * Abrir chamado.
@@ -37,7 +35,7 @@ export function NovoChamadoModal() {
         />
       }
     >
-      <Campo
+      <CampoRotulado
         label="Assunto"
         valor={f.assunto}
         onMudar={(v) => set({ assunto: v })}

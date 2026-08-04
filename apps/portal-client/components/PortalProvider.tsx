@@ -1,5 +1,7 @@
 "use client";
 
+import { QUEBRA_MOBILE } from "@aguiar/ui";
+
 import { useRouter } from "next/navigation";
 import {
   createContext,
@@ -15,7 +17,7 @@ import { proximoProtocolo } from "@/lib/dados/chamados";
 import { MOV_ESTILO } from "@/lib/dados/estoque";
 import { PERFIS } from "@/lib/dados/perfis";
 import { proximoId } from "@/lib/dados/uid";
-import { estadoDoPerfil, FORM_CAIXA_VAZIO, FORM_CHAMADO_VAZIO, FORM_CUSTO_VAZIO, FORM_FUNC_VAZIO, FORM_MOV_VAZIO, FORM_PAPEL_VAZIO, FORM_PRODUTO_VAZIO, FORM_RESPOSTA_VAZIA, QUEBRA_MOBILE } from "@/lib/estado";
+import { estadoDoPerfil, FORM_CAIXA_VAZIO, FORM_CHAMADO_VAZIO, FORM_CUSTO_VAZIO, FORM_FUNC_VAZIO, FORM_MOV_VAZIO, FORM_PAPEL_VAZIO, FORM_PRODUTO_VAZIO, FORM_RESPOSTA_VAZIA } from "@/lib/estado";
 import { agoraHora, brl, numBR, resumoItens, siglaDe, totalV } from "@/lib/formato";
 import { ROTA_PDV, ROTAS } from "@/lib/rotas";
 import { vendasDoTurno } from "@/lib/selectors";
@@ -82,20 +84,24 @@ export function PortalProvider({
     return () => clearTimeout(t);
   }, [s.toast]);
 
-  // Um clique em qualquer lugar fecha o menu de linha aberto e as gavetas do
-  // topo. Sem isto seria preciso acertar de novo o mesmo botão minúsculo.
+  // Um clique em qualquer lugar fecha as gavetas do topo. Sem isto seria
+  // preciso acertar de novo o mesmo botão minúsculo.
+  //
+  // O menu de linha ficou de fora: quem o fecha é o `useDismiss` do Floating UI
+  // dentro de `MenuAcoes`. Ele precisa disso porque o painel vive num portal em
+  // `<body>` — para este listener um clique lá dentro é "fora do menu", e a
+  // ação seria descartada antes de rodar.
   useEffect(() => {
-    if (!s.menuLinha && !s.notifAberto && !s.logoutAberto) return;
-    const fechar = () =>
-      setS((x) => ({ ...x, menuLinha: null, notifAberto: false, logoutAberto: false }));
-    // `capture: false` e um tick de atraso: o clique que ABRE o menu não pode
-    // ser o mesmo que o fecha.
+    if (!s.notifAberto && !s.logoutAberto) return;
+    const fechar = () => setS((x) => ({ ...x, notifAberto: false, logoutAberto: false }));
+    // `capture: false` e um tick de atraso: o clique que ABRE a gaveta não pode
+    // ser o mesmo que a fecha.
     const t = setTimeout(() => document.addEventListener("click", fechar), 0);
     return () => {
       clearTimeout(t);
       document.removeEventListener("click", fechar);
     };
-  }, [s.menuLinha, s.notifAberto, s.logoutAberto]);
+  }, [s.notifAberto, s.logoutAberto]);
 
   const isMobile = s.larguraTela < QUEBRA_MOBILE;
   const isDesktop = !isMobile;
@@ -131,10 +137,14 @@ export function PortalProvider({
   const fecharModal = useCallback(() => set({ modal: null }), [set]);
   const abrirModal = useCallback((m: Modal) => set({ modal: m, menuLinha: null }), [set]);
 
-  const toggleMenu = useCallback(
-    (chave: string) => setS((x) => ({ ...x, menuLinha: x.menuLinha === chave ? null : chave })),
-    [],
-  );
+  /**
+   * Qual menu de linha está aberto — no máximo um, em qualquer tela.
+   *
+   * Recebe a chave ou `null` em vez de alternar: quem chama é o `MenuAcoes`,
+   * que já sabe se está abrindo ou fechando. Alternar aqui faria um "fechar"
+   * que chegasse com o menu já fechado reabri-lo.
+   */
+  const abrirMenu = useCallback((chave: string | null) => set({ menuLinha: chave }), [set]);
 
   const irPara = useCallback(
     (rota: string) => {
@@ -1135,7 +1145,7 @@ export function PortalProvider({
       fecharConf,
       fecharModal,
       abrirModal,
-      toggleMenu,
+      abrirMenu,
       addCarrinho,
       mudarQtd,
       removerItem,
@@ -1182,7 +1192,7 @@ export function PortalProvider({
     }),
     [
       set, trocarPerfil, toggleTema, irPara, avisar, confirmar, fecharConf, fecharModal,
-      abrirModal, toggleMenu, addCarrinho, mudarQtd, removerItem, limparCarrinho,
+      abrirModal, abrirMenu, addCarrinho, mudarQtd, removerItem, limparCarrinho,
       registrarVenda, editarVenda, estornarVenda, desfazerEstorno, abrirProduto,
       salvarProduto, toggleFav, toggleAtivo, excluirProduto, abrirMov, salvarMov,
       reverterMov, abrirCusto, salvarCusto, excluirCusto, abrirCaixa, registrarMovCaixa,

@@ -7,13 +7,12 @@ import { ESTADO_INICIAL } from "@/app/clientes/estadoFormulario";
 import { useAdmin } from "@/components/AdminProvider";
 import { BarraAcoes } from "@/components/BarraAcoes";
 import { GradeModulos, ModuloCard } from "@/components/ModuloCard";
-import { Campo, Selecao } from "@/components/campos";
-import { css, MONO } from "@/lib/css";
+import { Campo, css, MONO, Selecao } from "@aguiar/ui";
 import { ehPlanoFixo, modulosDoPlano, planoPorChave } from "@/lib/planos";
 import { clienteHref, ROTAS } from "@/lib/rotas";
 
 const ROTULO_CAMPO =
-  "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);font-weight:600";
+  "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600";
 
 /** Campos que a interface exige antes de deixar enviar. */
 type CampoObrigatorio = "nome" | "responsavel" | "email";
@@ -138,7 +137,7 @@ export function NovoClienteView() {
       <label style={css("display:flex;flex-direction:column;gap:6px;min-width:0")}>
         <span style={css(ROTULO_CAMPO)}>
           {rotulo}
-          {obrigatorio && <span style={css("color:var(--bad);margin-left:3px")}>*</span>}
+          {obrigatorio && <span style={css("color:var(--danger);margin-left:3px")}>*</span>}
         </span>
         <Campo
           name={chave}
@@ -184,7 +183,7 @@ export function NovoClienteView() {
         onClick={() => a.ir(ROTAS.clientes)}
         className="hv-acc"
         style={css(
-          "align-self:flex-start;background:none;border:none;color:var(--tx2);font-size:12.5px;" +
+          "align-self:flex-start;background:none;border:none;color:var(--text2);font-size:12.5px;" +
             "cursor:pointer;padding:0",
         )}
       >
@@ -196,23 +195,23 @@ export function NovoClienteView() {
       --------------------------------------------------------------- */}
       <section
         style={css(
-          "background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden",
+          "background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden",
         )}
       >
         <div
           style={css(
-            "padding:20px 24px;border-bottom:1px solid var(--lineSoft);background:var(--panel2);" +
+            "padding:20px 24px;border-bottom:1px solid var(--border-soft);background:var(--surface2);" +
               "display:flex;flex-direction:column;gap:4px",
           )}
         >
           <h2
             style={css(
-              "margin:0;font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--tx)",
+              "margin:0;font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--text)",
             )}
           >
             {id === "pt" ? "Novo cliente" : "New customer"}
           </h2>
-          <p style={css("margin:0;font-size:12.5px;color:var(--tx2);max-width:54ch")}>
+          <p style={css("margin:0;font-size:12.5px;color:var(--text2);max-width:54ch")}>
             {id === "pt"
               ? "Cadastre um novo comércio na plataforma."
               : "Register a new business on the platform."}
@@ -250,7 +249,7 @@ export function NovoClienteView() {
           </div>
 
           <div
-            style={css("border-top:1px solid var(--lineSoft);padding-top:18px;" + "display:grid;" +
+            style={css("border-top:1px solid var(--border-soft);padding-top:18px;" + "display:grid;" +
               "grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 20px;align-items:start")}
           >
             <div style={css("display:flex;flex-direction:column;gap:6px;min-width:0")}>
@@ -260,7 +259,7 @@ export function NovoClienteView() {
                 { type: "email", placeholder: "dono@negocio.com.br" },
                 true,
               )}
-              <span style={css("font-size:11.5px;color:var(--tx3);line-height:1.5")}>
+              <span style={css("font-size:11.5px;color:var(--muted);line-height:1.5")}>
                 {id === "pt"
                   ? "O dono recebe um convite por e-mail para definir a própria senha."
                   : "The owner gets an email invite to set their own password."}
@@ -291,7 +290,7 @@ export function NovoClienteView() {
               <label style={css("display:flex;flex-direction:column;gap:6px;min-width:0")}>
                 <span style={css(ROTULO_CAMPO)}>
                   {L.mensalidade}
-                  <span style={css("color:var(--bad);margin-left:3px")}>*</span>
+                  <span style={css("color:var(--danger);margin-left:3px")}>*</span>
                 </span>
                 <Campo
                   name="mensalidade"
@@ -314,20 +313,20 @@ export function NovoClienteView() {
       --------------------------------------------------------------- */}
       <section
         style={css(
-          "background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden",
+          "background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden",
         )}
       >
         <div
           style={css(
             "display:flex;align-items:flex-start;justify-content:space-between;gap:20px;" +
-              "flex-wrap:wrap;padding:20px 24px;border-bottom:1px solid var(--lineSoft);background:var(--panel2)",
+              "flex-wrap:wrap;padding:20px 24px;border-bottom:1px solid var(--border-soft);background:var(--surface2)",
           )}
         >
           <div style={css("display:flex;flex-direction:column;gap:4px")}>
-            <h3 style={css("margin:0;font-size:16px;font-weight:600;color:var(--tx)")}>
+            <h3 style={css("margin:0;font-size:16px;font-weight:600;color:var(--text)")}>
               {id === "pt" ? "Módulos do plano" : "Plan modules"}
             </h3>
-            <p style={css("margin:0;font-size:12.5px;color:var(--tx2);max-width:54ch")}>
+            <p style={css("margin:0;font-size:12.5px;color:var(--text2);max-width:54ch")}>
               {planoFixo
                 ? id === "pt"
                   ? "Os módulos deste plano são fixos. Para uma combinação personalizada, use o plano Customizado."
@@ -342,12 +341,12 @@ export function NovoClienteView() {
             <div style={css("display:flex;flex-direction:column;align-items:flex-end;gap:2px")}>
               <span
                 style={css(
-                  `font-family:${MONO};font-size:20px;font-weight:600;color:var(--acc);line-height:1`,
+                  `font-family:${MONO};font-size:20px;font-weight:600;color:var(--accent);line-height:1`,
                 )}
               >
                 {ativos.length}/{s.modulos.length}
               </span>
-              <span style={css("font-size:11px;color:var(--tx3)")}>{L.modulosAtivos}</span>
+              <span style={css("font-size:11px;color:var(--muted)")}>{L.modulosAtivos}</span>
             </div>
 
             {/* Ativar todos / limpar só fazem sentido quando há o que editar. */}
@@ -356,9 +355,9 @@ export function NovoClienteView() {
                 <button
                   type="button"
                   onClick={() => setEscolhidos(s.modulos.map((m) => m.k))}
-                  className="hv-acc-line"
+                  className="hv-acc-borda"
                   style={css(
-                    "border:1px solid var(--line);background:var(--panel);color:var(--tx2);" +
+                    "border:1px solid var(--border);background:var(--surface);color:var(--text2);" +
                       "font-size:11.5px;padding:7px 11px;border-radius:7px;cursor:pointer",
                   )}
                 >
@@ -367,9 +366,9 @@ export function NovoClienteView() {
                 <button
                   type="button"
                   onClick={() => setEscolhidos([])}
-                  className="hv-tx"
+                  className="hv-texto"
                   style={css(
-                    "border:1px solid var(--line);background:var(--panel);color:var(--tx3);" +
+                    "border:1px solid var(--border);background:var(--surface);color:var(--muted);" +
                       "font-size:11.5px;padding:7px 11px;border-radius:7px;cursor:pointer",
                   )}
                 >
@@ -414,12 +413,12 @@ export function NovoClienteView() {
         {modulosFaltando && (
           <div
             style={css(
-              "padding:13px 24px;border-top:1px solid var(--lineSoft);background:var(--badBg);" +
+              "padding:13px 24px;border-top:1px solid var(--border-soft);background:var(--danger-soft);" +
                 "display:flex;align-items:center;gap:9px",
             )}
           >
-            <div style={css("width:6px;height:6px;border-radius:99px;background:var(--bad)")} />
-            <span style={css("font-size:12px;color:var(--bad)")}>
+            <div style={css("width:6px;height:6px;border-radius:99px;background:var(--danger)")} />
+            <span style={css("font-size:12px;color:var(--danger)")}>
               {id === "pt"
                 ? "Selecione ao menos um módulo para este cliente."
                 : "Select at least one module for this customer."}
@@ -433,8 +432,8 @@ export function NovoClienteView() {
         <div
           role="alert"
           style={css(
-            "padding:13px 16px;border:1px solid var(--badLine);background:var(--badBg);" +
-              "border-radius:11px;font-size:13px;color:var(--bad);line-height:1.5",
+            "padding:13px 16px;border:1px solid var(--danger-line);background:var(--danger-soft);" +
+              "border-radius:11px;font-size:13px;color:var(--danger);line-height:1.5",
           )}
         >
           {estado.mensagem}

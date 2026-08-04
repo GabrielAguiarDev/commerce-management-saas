@@ -1,8 +1,7 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { CabecalhoTela, Vazio } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { CabecalhoTela, css, GRUPO_PILULAS, MONO, NUM, pilula, ROTULO_KPI, SANS, Vazio } from "@aguiar/ui";
 import { FORMAS } from "@/lib/dados/vendas";
 import { brl, brlCurto, ddmm, diaSemana, qtdV, totalV } from "@/lib/formato";
 import {
@@ -18,7 +17,6 @@ import {
   valorDoEstoque,
   variacao,
 } from "@/lib/selectors";
-import { GRUPO_PILULAS, NUM, pilula, ROTULO_KPI } from "@/lib/styleKit";
 import type { PeriodoRel } from "@/types/estado";
 import type { Venda } from "@/types/types";
 

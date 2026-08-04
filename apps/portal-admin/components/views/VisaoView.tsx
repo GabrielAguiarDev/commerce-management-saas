@@ -1,22 +1,14 @@
 "use client";
 
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@/lib/css";
+import { css, MONO } from "@aguiar/ui";
 import { ehDoMesCorrente } from "@/lib/datas";
 import { planoPorChave } from "@/lib/planos";
 import { calcMrr, cobraveis, fmtMrr } from "@/lib/money";
 import { ROTAS } from "@/lib/rotas";
 import { CelulaNegocio, MetricasGrid, type Metrica } from "@/components/shared";
-import {
-  badgeAcc,
-  badgeNeutro,
-  badgeOk,
-  badgeWarn,
-  nomePlano,
-  planoBadge,
-  ponto,
-  ts,
-} from "@/lib/styleKit";
+import { nomePlano, planoBadge, seloPainel, ts } from "@/lib/styleKit";
+import { ponto } from "@aguiar/ui";
 
 export function VisaoView() {
   const { s, a, cs, vazio, opts } = useAdmin();
@@ -34,7 +26,7 @@ export function VisaoView() {
   // Cadastrados neste mês, contados a partir de `tenants.created_at` — antes
   // era o número 2 escrito na mão.
   const novos = vazio ? [] : cs.filter((x) => ehDoMesCorrente(x.data));
-  const neutro = badgeNeutro();
+  const neutro = seloPainel("neutro");
 
   const metricas: Metrica[] = [
     {
@@ -48,8 +40,8 @@ export function VisaoView() {
           ? "nenhum cliente cobrável ainda"
           : "no billable customer yet"
         : pagos.length + " " + L.mrrNota,
-      ponto: ponto(vazio ? "var(--neuLine)" : "var(--ok)"),
-      deltaStyle: vazio ? neutro : badgeOk(),
+      ponto: ponto(vazio ? "var(--border)" : "var(--pos)"),
+      deltaStyle: vazio ? neutro : seloPainel("pos"),
       acao: () => a.ir(ROTAS.planos),
     },
     {
@@ -61,8 +53,8 @@ export function VisaoView() {
           ? "nenhum cliente cadastrado"
           : "no customer registered"
         : cs.length - ativos.length + " " + L.ativosNota,
-      ponto: ponto(vazio ? "var(--neuLine)" : "var(--bad)"),
-      deltaStyle: vazio ? neutro : badgeAcc(),
+      ponto: ponto(vazio ? "var(--border)" : "var(--danger)"),
+      deltaStyle: vazio ? neutro : seloPainel("acc"),
       acao: () => {
         a.set({ status: "inativo" });
         a.ir(ROTAS.clientes);
@@ -84,8 +76,8 @@ export function VisaoView() {
             : id === "pt"
               ? "cadastros neste mês"
               : "signups this month",
-      ponto: ponto(novos.length === 0 ? "var(--neuLine)" : "var(--warn)"),
-      deltaStyle: novos.length === 0 ? neutro : badgeWarn(),
+      ponto: ponto(novos.length === 0 ? "var(--border)" : "var(--warn)"),
+      deltaStyle: novos.length === 0 ? neutro : seloPainel("warn"),
       acao: () => a.ir(ROTAS.clientes),
     },
     {
@@ -99,7 +91,7 @@ export function VisaoView() {
           ? "nenhum chamado aberto"
           : "no open ticket"
         : andamento + " " + L.chamadosNota,
-      ponto: ponto(vazio ? "var(--neuLine)" : "var(--acc)"),
+      ponto: ponto(vazio ? "var(--border)" : "var(--accent)"),
       deltaStyle: neutro,
       acao: () => a.ir(ROTAS.suporte),
     },
@@ -133,7 +125,7 @@ export function VisaoView() {
               ? `${c.nome} cadastrada no plano ${nomePlano(s.planos, c.plano, id)}`
               : `${c.nome} signed up on the ${nomePlano(s.planos, c.plano, id)} plan`,
           quando: c.data,
-          cor: "var(--ok)",
+          cor: "var(--pos)",
         })),
         ...s.chamados.slice(0, 2).map((t) => {
           const cl = cs.find((x) => x.id === t.clienteId);
@@ -145,7 +137,7 @@ export function VisaoView() {
               ": " +
               t.assunto[id],
             quando: t.data,
-            cor: t.status === "resolvido" ? "var(--acc)" : "var(--warn)",
+            cor: t.status === "resolvido" ? "var(--accent)" : "var(--warn)",
           };
         }),
       ]
@@ -159,32 +151,32 @@ export function VisaoView() {
         <div
           style={css(
             "display:flex;align-items:center;gap:14px;padding:16px 20px;" +
-              "border:1px solid var(--accLine);background:var(--accSoft);border-radius:12px",
+              "border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:12px",
           )}
         >
           <div
             style={css(
-              "width:34px;height:34px;flex:none;border-radius:9px;background:var(--acc);" +
-                "color:var(--accTx);display:flex;align-items:center;justify-content:center;" +
+              "width:34px;height:34px;flex:none;border-radius:9px;background:var(--accent);" +
+                "color:var(--accent-ink);display:flex;align-items:center;justify-content:center;" +
                 "font-size:15px;font-weight:700",
             )}
           >
             +
           </div>
           <div style={css("display:flex;flex-direction:column;gap:2px")}>
-            <span style={css("font-size:13.5px;font-weight:600;color:var(--tx)")}>
+            <span style={css("font-size:13.5px;font-weight:600;color:var(--text)")}>
               {L.vazioVisaoTitulo}
             </span>
-            <span style={css("font-size:12.5px;color:var(--tx2);line-height:1.5")}>
+            <span style={css("font-size:12.5px;color:var(--text2);line-height:1.5")}>
               {L.vazioVisaoTexto}
             </span>
           </div>
           <button
             onClick={() => a.ir(ROTAS.clientes)}
-            className="hv-bright"
+            className="hv-brilho"
             style={css(
-              "margin-left:auto;flex:none;background:var(--acc);border:1px solid var(--acc);" +
-                "color:var(--accTx);font-size:12.5px;font-weight:500;padding:9px 14px;" +
+              "margin-left:auto;flex:none;background:var(--accent);border:1px solid var(--accent);" +
+                "color:var(--accent-ink);font-size:12.5px;font-weight:500;padding:9px 14px;" +
                 "border-radius:9px;cursor:pointer",
             )}
           >
@@ -202,23 +194,23 @@ export function VisaoView() {
       >
         <section
           style={css(
-            "background:var(--panel);border:1px solid var(--line);border-radius:12px;" +
+            "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
               "overflow-x:auto;min-width:0;display:flex;flex-direction:column",
           )}
         >
           <div
             style={css(
               "display:flex;align-items:center;justify-content:space-between;padding:15px 20px;" +
-                "border-bottom:1px solid var(--lineSoft);min-width:560px",
+                "border-bottom:1px solid var(--border-soft);min-width:560px",
             )}
           >
-            <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--tx)")}>
+            <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--text)")}>
               {L.clientesRecentes}
             </h2>
             <button
               onClick={() => a.ir(ROTAS.clientes)}
               style={css(
-                "background:none;border:none;color:var(--acc);font-size:12.5px;font-weight:500;" +
+                "background:none;border:none;color:var(--accent);font-size:12.5px;font-weight:500;" +
                   "cursor:pointer;padding:0",
               )}
             >
@@ -229,8 +221,8 @@ export function VisaoView() {
           <div
             style={css(
               grade +
-                "padding:9px 20px;background:var(--head);border-bottom:1px solid var(--lineSoft);" +
-                "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tx3);font-weight:600",
+                "padding:9px 20px;background:var(--surface2);border-bottom:1px solid var(--border-soft);" +
+                "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600",
             )}
           >
             <span>{L.negocio}</span>
@@ -243,10 +235,10 @@ export function VisaoView() {
             <div
               key={c.id}
               onClick={() => a.abrirCliente(c.id)}
-              className="hv-row"
+              className="hv-linha"
               style={css(
                 grade +
-                  "align-items:center;padding:12px 20px;border-bottom:1px solid var(--lineSoft);cursor:pointer",
+                  "align-items:center;padding:12px 20px;border-bottom:1px solid var(--border-soft);cursor:pointer",
               )}
             >
               <CelulaNegocio
@@ -255,9 +247,9 @@ export function VisaoView() {
                 totalMods={s.modulos.length}
                 id={id}
               />
-              <span style={css("font-size:12.5px;color:var(--tx2)")}>{c.segmento[id]}</span>
+              <span style={css("font-size:12.5px;color:var(--text2)")}>{c.segmento[id]}</span>
               <span style={css(planoBadge(planoPorChave(s.planos, c.plano)))}>{nomePlano(s.planos, c.plano, id)}</span>
-              <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--tx3)`)}>
+              <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
                 {c.data}
               </span>
             </div>
@@ -266,14 +258,14 @@ export function VisaoView() {
 
         <section
           style={css(
-            "background:var(--panel);border:1px solid var(--line);border-radius:12px;" +
+            "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
               "padding:18px 20px 20px;display:flex;flex-direction:column;min-width:0",
           )}
         >
-          <h2 style={css("margin:0 0 3px;font-size:14px;font-weight:600;color:var(--tx)")}>
+          <h2 style={css("margin:0 0 3px;font-size:14px;font-weight:600;color:var(--text)")}>
             {L.adocao}
           </h2>
-          <p style={css("margin:0 0 16px;font-size:11.5px;color:var(--tx3)")}>{L.adocaoSub}</p>
+          <p style={css("margin:0 0 16px;font-size:11.5px;color:var(--muted)")}>{L.adocaoSub}</p>
 
           <div style={css("display:flex;flex-direction:column;gap:13px")}>
             {s.modulos.map((m) => {
@@ -281,21 +273,21 @@ export function VisaoView() {
               return (
                 <div key={m.k} style={css("display:flex;flex-direction:column;gap:6px")}>
                   <div style={css("display:flex;justify-content:space-between;align-items:baseline")}>
-                    <span style={css("font-size:12.5px;color:var(--tx2);font-weight:500")}>
+                    <span style={css("font-size:12.5px;color:var(--text2);font-weight:500")}>
                       {m.nome[id]}
                     </span>
-                    <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--tx3)`)}>
+                    <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
                       {n}/{cs.length}
                     </span>
                   </div>
                   <div
                     style={css(
-                      "height:6px;border-radius:99px;background:var(--neu);overflow:hidden",
+                      "height:6px;border-radius:99px;background:var(--surface3);overflow:hidden",
                     )}
                   >
                     <div
                       style={css(
-                        "height:100%;border-radius:99px;background:var(--acc);width:" +
+                        "height:100%;border-radius:99px;background:var(--accent);width:" +
                           Math.round((n / Math.max(1, cs.length)) * 100) +
                           "%",
                       )}
@@ -309,21 +301,21 @@ export function VisaoView() {
           {!vazio && opts.mostrarPainelAtividade && atividade.length > 0 && (
             <div
               style={css(
-                "margin-top:20px;padding-top:16px;border-top:1px solid var(--lineSoft);" +
+                "margin-top:20px;padding-top:16px;border-top:1px solid var(--border-soft);" +
                   "display:flex;flex-direction:column;gap:13px",
               )}
             >
-              <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--tx)")}>
+              <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--text)")}>
                 {L.atividade}
               </h2>
               {atividade.map((e) => (
                 <div key={e.chave} style={css("display:flex;gap:11px;align-items:flex-start")}>
                   <div style={css(ponto(e.cor) + ";margin-top:5px")} />
                   <div style={css("display:flex;flex-direction:column;gap:2px")}>
-                    <span style={css("font-size:12.5px;color:var(--tx2);line-height:1.4")}>
+                    <span style={css("font-size:12.5px;color:var(--text2);line-height:1.4")}>
                       {e.texto}
                     </span>
-                    <span style={css(`font-family:${MONO};font-size:10.5px;color:var(--tx3)`)}>
+                    <span style={css(`font-family:${MONO};font-size:10.5px;color:var(--muted)`)}>
                       {e.quando}
                     </span>
                   </div>

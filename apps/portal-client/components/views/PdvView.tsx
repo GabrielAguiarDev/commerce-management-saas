@@ -1,11 +1,9 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { Selecao } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { campo, css, MONO, NUM, PAINEL, SANS, SelecaoSimples } from "@aguiar/ui";
 import { brl } from "@/lib/formato";
 import { ROTAS } from "@/lib/rotas";
-import { campo, NUM, PAINEL } from "@/lib/styleKit";
 import type { Produto } from "@/types/types";
 
 /**
@@ -316,7 +314,7 @@ export function PdvView() {
               <label style={css(`display:block;margin-bottom:7px;font:600 11px ${SANS};color:var(--text2)`)}>
                 Forma de pagamento
               </label>
-              <Selecao
+              <SelecaoSimples
                 valor={s.pagAtual}
                 opcoes={s.formasAceitas}
                 onMudar={(v) => a.set({ pagAtual: v as typeof s.pagAtual })}

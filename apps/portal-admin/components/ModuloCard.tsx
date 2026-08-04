@@ -1,6 +1,6 @@
 "use client";
 
-import { css } from "@/lib/css";
+import { css } from "@aguiar/ui";
 import { iconeMod } from "@/lib/styleKit";
 import { TagAcesso } from "@/components/shared";
 
@@ -83,8 +83,8 @@ export function ModuloCard({
         "display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:11px;" +
           "transition:border-color .12s,background .12s;" +
           (ligado
-            ? "border:1px solid var(--accLine);background:var(--accSoft);"
-            : "border:1px solid var(--lineSoft);background:var(--panel);") +
+            ? "border:1px solid var(--accent-line);background:var(--accent-soft);"
+            : "border:1px solid var(--border-soft);background:var(--surface);") +
           (somenteLeitura ? "cursor:default;" : "cursor:pointer;"),
       )}
     >
@@ -93,7 +93,7 @@ export function ModuloCard({
           <div style={css(iconeMod(ligado))}>{sigla}</div>
           <div style={css("display:flex;flex-direction:column;gap:3px;min-width:0")}>
             <span style={css("display:flex;align-items:center;gap:7px;min-width:0")}>
-              <span style={css("font-size:14px;font-weight:600;color:var(--tx)")}>{nome}</span>
+              <span style={css("font-size:14px;font-weight:600;color:var(--text)")}>{nome}</span>
               {acesso && tagAcesso && (
                 <TagAcesso rotulo={tagAcesso} ajuda={ajudaAcesso ?? tagAcesso} />
               )}
@@ -101,7 +101,7 @@ export function ModuloCard({
             <span
               style={css(
                 "font-size:11px;font-weight:500;white-space:nowrap;color:" +
-                  (ligado ? "var(--ok)" : "var(--tx3)"),
+                  (ligado ? "var(--pos)" : "var(--muted)"),
               )}
             >
               {estado}
@@ -113,7 +113,7 @@ export function ModuloCard({
           style={css(
             "width:44px;height:24px;flex:none;border-radius:99px;padding:3px;display:flex;" +
               "transition:background .15s;background:" +
-              (ligado ? "var(--acc)" : "var(--neuLine)") +
+              (ligado ? "var(--accent)" : "var(--border)") +
               (somenteLeitura ? ";opacity:.65" : ""),
           )}
         >
@@ -128,7 +128,7 @@ export function ModuloCard({
           />
         </div>
       </div>
-      <p style={css("margin:0;font-size:12px;color:var(--tx2);line-height:1.5")}>{descricao}</p>
+      <p style={css("margin:0;font-size:12px;color:var(--text2);line-height:1.5")}>{descricao}</p>
     </div>
   );
 }

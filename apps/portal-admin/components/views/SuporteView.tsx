@@ -4,11 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useTransition } from "react";
 import { mudarStatusChamado, responderChamado } from "@/app/suporte/actions";
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@/lib/css";
-import { AreaTexto } from "@/components/campos";
-import { CampoBusca } from "@/components/shared";
+import { AreaTexto, CampoBusca, css, MONO } from "@aguiar/ui";
 import { chamadoAtual } from "@/lib/state";
-import { badgeChamado, chip, prioridadeBadge } from "@/lib/styleKit";
+import { badgeChamado, prioridadeBadge } from "@/lib/styleKit";
+import { chip } from "@aguiar/ui";
 import type { StatusChamado } from "@/types/types";
 
 export function SuporteView() {
@@ -68,7 +67,7 @@ export function SuporteView() {
   };
 
   const botaoCabecalho =
-    "border:1px solid var(--line);background:var(--panel);color:var(--tx2);font-size:12px;" +
+    "border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;" +
     "padding:8px 12px;border-radius:8px;cursor:pointer";
 
   /**
@@ -90,7 +89,7 @@ export function SuporteView() {
   // encolher abaixo do conteúdo — sem ele, o filho com `overflow-y:auto` cresce
   // e o scroll vaza para a página em vez de acontecer aqui dentro.
   const painel =
-    "background:var(--panel);border:1px solid var(--line);border-radius:12px;" +
+    "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
     "display:flex;flex-direction:column;overflow:hidden;min-height:0;";
 
   return (
@@ -116,7 +115,7 @@ export function SuporteView() {
             que encolham quando a lista abaixo fica longa. */}
         <div
           style={css(
-            "flex:none;padding:14px 16px;border-bottom:1px solid var(--lineSoft);display:flex;" +
+            "flex:none;padding:14px 16px;border-bottom:1px solid var(--border-soft);display:flex;" +
               "flex-direction:column;gap:10px",
           )}
         >
@@ -165,17 +164,17 @@ export function SuporteView() {
                   "width:44px;height:44px;border-radius:12px;display:flex;" +
                     "align-items:center;justify-content:center;font-size:17px;font-weight:700;" +
                     (s.erroChamados
-                      ? "background:var(--badBg);border:1px solid var(--badLine);color:var(--bad);"
-                      : "background:var(--okBg);border:1px solid var(--okLine);color:var(--ok);"),
+                      ? "background:var(--danger-soft);border:1px solid var(--danger-line);color:var(--danger);"
+                      : "background:var(--pos-soft);border:1px solid var(--pos-line);color:var(--pos);"),
                 )}
               >
                 {s.erroChamados ? "!" : "✓"}
               </div>
-              <span style={css("font-size:13.5px;font-weight:600;color:var(--tx)")}>
+              <span style={css("font-size:13.5px;font-weight:600;color:var(--text)")}>
                 {s.erroChamados ? L.erroChamadosTitulo : L.vazioSuporteTitulo}
               </span>
               <span
-                style={css("font-size:12px;color:var(--tx2);line-height:1.55;max-width:32ch")}
+                style={css("font-size:12px;color:var(--text2);line-height:1.55;max-width:32ch")}
               >
                 {s.erroChamados || L.vazioSuporteTexto}
               </span>
@@ -190,9 +189,9 @@ export function SuporteView() {
                 onClick={() => a.set({ chamadoSel: x.id })}
                 style={css(
                   "display:flex;flex-direction:column;gap:7px;padding:13px 16px;" +
-                    "border-bottom:1px solid var(--lineSoft);cursor:pointer;" +
+                    "border-bottom:1px solid var(--border-soft);cursor:pointer;" +
                     (x.id === s.chamadoSel
-                      ? "background:var(--accSoft);box-shadow:inset 3px 0 0 var(--acc);"
+                      ? "background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent);"
                       : ""),
                 )}
               >
@@ -203,7 +202,7 @@ export function SuporteView() {
                 >
                   <span
                     style={css(
-                      "font-size:12.5px;font-weight:600;color:var(--tx);white-space:nowrap;" +
+                      "font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;" +
                         "overflow:hidden;text-overflow:ellipsis",
                     )}
                   >
@@ -213,7 +212,7 @@ export function SuporteView() {
                     {x.prioridade === "alta" ? L.alta : x.prioridade === "media" ? L.media : L.baixa}
                   </span>
                 </div>
-                <span style={css("font-size:12.5px;color:var(--tx2);line-height:1.4")}>
+                <span style={css("font-size:12.5px;color:var(--text2);line-height:1.4")}>
                   {x.assunto[id]}
                 </span>
                 <div
@@ -222,7 +221,7 @@ export function SuporteView() {
                   )}
                 >
                   <span style={css(badgeChamado(x.status))}>{rotuloStatus(x.status)}</span>
-                  <span style={css(`font-family:${MONO};font-size:10.5px;color:var(--tx3)`)}>
+                  <span style={css(`font-family:${MONO};font-size:10.5px;color:var(--muted)`)}>
                     {x.data}
                   </span>
                 </div>
@@ -240,19 +239,19 @@ export function SuporteView() {
         {/* Cabeçalho do chamado — fixo no topo do painel. */}
         <div
           style={css(
-            "flex:none;padding:16px 20px;border-bottom:1px solid var(--lineSoft);display:flex;" +
+            "flex:none;padding:16px 20px;border-bottom:1px solid var(--border-soft);display:flex;" +
               "align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;" +
-              "background:var(--panel2)",
+              "background:var(--surface2)",
           )}
         >
           <div style={css("display:flex;flex-direction:column;gap:5px;min-width:0")}>
-            <h3 style={css("margin:0;font-size:15.5px;font-weight:600;color:var(--tx)")}>
+            <h3 style={css("margin:0;font-size:15.5px;font-weight:600;color:var(--text)")}>
               {t ? t.assunto[id] : ""}
             </h3>
             <div style={css("display:flex;align-items:center;gap:9px;flex-wrap:wrap")}>
-              <span style={css("font-size:12.5px;color:var(--tx2)")}>{nomeCliente}</span>
-              <span style={css("color:var(--tx3);font-size:11px")}>·</span>
-              <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--tx3)`)}>
+              <span style={css("font-size:12.5px;color:var(--text2)")}>{nomeCliente}</span>
+              <span style={css("color:var(--muted);font-size:11px")}>·</span>
+              <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
                 {t ? t.data : ""}
               </span>
               {t && <span style={css(badgeChamado(t.status))}>{rotuloStatus(t.status)}</span>}
@@ -265,7 +264,7 @@ export function SuporteView() {
               <button
                 onClick={() => clienteChamado && a.abrirCliente(clienteChamado.id)}
                 disabled={!clienteChamado}
-                className="hv-acc-line"
+                className="hv-acc-borda"
                 style={css(botaoCabecalho + (clienteChamado ? "" : ";opacity:.5;cursor:default"))}
               >
                 {L.verCliente}
@@ -273,7 +272,7 @@ export function SuporteView() {
               <button
                 onClick={() => marcar("andamento")}
                 disabled={enviando}
-                className="hv-acc-line"
+                className="hv-acc-borda"
                 style={css(botaoCabecalho + (enviando ? ";opacity:.6;cursor:progress" : ""))}
               >
                 {L.emAndamento}
@@ -281,9 +280,9 @@ export function SuporteView() {
               <button
                 onClick={() => marcar("resolvido")}
                 disabled={enviando}
-                className="hv-bright-sm"
+                className="hv-brilho-sm"
                 style={css(
-                  "border:1px solid var(--okLine);background:var(--okBg);color:var(--ok);" +
+                  "border:1px solid var(--pos-line);background:var(--pos-soft);color:var(--pos);" +
                     "font-size:12px;font-weight:500;padding:8px 12px;border-radius:8px;" +
                     (enviando ? "opacity:.6;cursor:progress" : "cursor:pointer"),
                 )}
@@ -316,8 +315,8 @@ export function SuporteView() {
                     "max-width:70%;display:flex;flex-direction:column;gap:5px;padding:12px 14px;" +
                       "border-radius:12px;" +
                       (adm
-                        ? "background:var(--acc);color:var(--accTx);border-bottom-right-radius:4px;"
-                        : "background:var(--panel);border:1px solid var(--line);color:var(--tx);" +
+                        ? "background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px;"
+                        : "background:var(--surface);border:1px solid var(--border);color:var(--text);" +
                           "border-bottom-left-radius:4px;"),
                   )}
                 >
@@ -349,8 +348,8 @@ export function SuporteView() {
         {/* Caixa de resposta — presa ao rodapé, nunca rola com as mensagens. */}
         <div
           style={css(
-            "flex:none;padding:14px 20px;border-top:1px solid var(--lineSoft);display:flex;" +
-              "gap:10px;align-items:flex-end;background:var(--panel)",
+            "flex:none;padding:14px 20px;border-top:1px solid var(--border-soft);display:flex;" +
+              "gap:10px;align-items:flex-end;background:var(--surface)",
           )}
         >
           <AreaTexto
@@ -366,9 +365,9 @@ export function SuporteView() {
             // Sem chamado aberto, ou com um envio em curso, o clique não teria
             // para onde ir — e um duplo clique gravaria a resposta duas vezes.
             disabled={!t || enviando || !s.resposta.trim()}
-            className="hv-bright"
+            className="hv-brilho"
             style={css(
-              "background:var(--acc);border:1px solid var(--acc);color:var(--accTx);font-size:13px;" +
+              "background:var(--accent);border:1px solid var(--accent);color:var(--accent-ink);font-size:13px;" +
                 "font-weight:500;padding:11px 18px;border-radius:9px;" +
                 (!t || enviando || !s.resposta.trim()
                   ? "opacity:.55;cursor:default"

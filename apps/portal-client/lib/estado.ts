@@ -20,7 +20,6 @@ import type {
 import type { DadosNegocio, PerfilKey, Preferencias, Tema } from "@/types/types";
 
 /** Largura abaixo da qual o portal vira a versão de celular. */
-export const QUEBRA_MOBILE = 900;
 
 export const FORM_PRODUTO_VAZIO: FormProduto = {
   id: null,

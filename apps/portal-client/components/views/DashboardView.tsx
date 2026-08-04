@@ -1,7 +1,7 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { css, MONO, SANS } from "@/lib/css";
+import { css, MONO, NUM, PAINEL, pilula, SANS, TITULO_PAINEL, TITULO_TELA } from "@aguiar/ui";
 import { MODULOS, PERFIS_LISTA } from "@/lib/dados/perfis";
 import { brl, brlCurto, dataPorExtenso, diaSemana, rotuloData, saudacao, totalV } from "@/lib/formato";
 import { ROTA_PDV, ROTAS } from "@/lib/rotas";
@@ -13,7 +13,6 @@ import {
   produtosEmFalta,
   totalCustos,
 } from "@/lib/selectors";
-import { NUM, PAINEL, pilula, TITULO_PAINEL, TITULO_TELA } from "@/lib/styleKit";
 import type { ModuloKey } from "@/types/types";
 
 interface CartaoKpi {

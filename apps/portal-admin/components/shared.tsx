@@ -1,8 +1,8 @@
 "use client";
 
-import { css, MONO } from "@/lib/css";
+import { css, iniciais, MONO } from "@aguiar/ui";
 import { AcessoIcone } from "@/lib/icons";
-import { avatar, CARD_METRICA, iniciais } from "@/lib/styleKit";
+import { avatar, CARD_METRICA } from "@/lib/styleKit";
 import type { Cliente, Idioma, Plano } from "@/types/types";
 
 export interface Metrica {
@@ -37,7 +37,7 @@ export function MetricasGrid({ metricas }: { metricas: Metrica[] }) {
           >
             <span
               style={css(
-                "font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--tx3);font-weight:600",
+                "font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600",
               )}
             >
               {m.rotulo}
@@ -47,7 +47,7 @@ export function MetricasGrid({ metricas }: { metricas: Metrica[] }) {
           <span
             style={css(
               `font-family:${MONO};font-size:30px;font-weight:600;line-height:1;` +
-                "letter-spacing:-.03em;color:var(--tx)",
+                "letter-spacing:-.03em;color:var(--text)",
             )}
           >
             {m.valor}
@@ -56,7 +56,7 @@ export function MetricasGrid({ metricas }: { metricas: Metrica[] }) {
             style={css("display:flex;align-items:center;gap:7px;margin-top:auto;min-height:18px")}
           >
             <div style={css(m.ponto)} />
-            <span style={css("font-size:11.5px;color:var(--tx2);line-height:1.4")}>{m.nota}</span>
+            <span style={css("font-size:11.5px;color:var(--text2);line-height:1.4")}>{m.nota}</span>
           </div>
         </div>
       ))}
@@ -83,13 +83,13 @@ export function CelulaNegocio({
       <div style={css("display:flex;flex-direction:column;gap:2px;min-width:0")}>
         <span
           style={css(
-            "font-size:13.5px;font-weight:500;color:var(--tx);white-space:nowrap;" +
+            "font-size:13.5px;font-weight:500;color:var(--text);white-space:nowrap;" +
               "overflow:hidden;text-overflow:ellipsis",
           )}
         >
           {cliente.nome}
         </span>
-        <span style={css("font-size:11px;color:var(--tx3)")}>
+        <span style={css("font-size:11px;color:var(--muted)")}>
           {cliente.mods.length +
             (id === "pt" ? ` de ${totalMods} módulos ativos` : ` of ${totalMods} modules on`)}
         </span>
@@ -113,46 +113,13 @@ export function TagAcesso({
       title={ajuda}
       style={css(
         "display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:600;" +
-          "letter-spacing:.05em;text-transform:uppercase;color:var(--tx3);" +
-          "border:1px solid var(--lineSoft);border-radius:99px;padding:2px 7px 2px 5px;" +
+          "letter-spacing:.05em;text-transform:uppercase;color:var(--muted);" +
+          "border:1px solid var(--border-soft);border-radius:99px;padding:2px 7px 2px 5px;" +
           (bloco ? "width:fit-content;" : "flex:none;"),
       )}
     >
       <AcessoIcone />
       {rotulo}
     </span>
-  );
-}
-
-/** Search field shared by the customers, support and payments toolbars. */
-export function CampoBusca({
-  valor,
-  onChange,
-  placeholder,
-  estiloCaixa,
-  compacto,
-}: {
-  valor: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  estiloCaixa: string;
-  compacto?: boolean;
-}) {
-  return (
-    <div
-      className="campo-caixa"
-      style={css("display:flex;align-items:center;gap:8px;padding:0 11px;" + estiloCaixa)}
-    >
-      <span style={css("font-size:13px;color:var(--tx3)")}>⌕</span>
-      <input
-        value={valor}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={css(
-          "flex:1;border:none;background:none;outline:none;color:var(--tx);" +
-            (compacto ? "padding:9px 0;font-size:12.5px" : "padding:10px 0;font-size:13.5px"),
-        )}
-      />
-    </div>
   );
 }

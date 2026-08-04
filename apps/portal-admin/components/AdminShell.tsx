@@ -7,7 +7,7 @@ import { Modal } from "@/components/Modal";
 import { Dica, Toasts } from "@/components/Overlays";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
-import { css } from "@/lib/css";
+import { css } from "@aguiar/ui";
 import { mesCorrente } from "@/lib/datas";
 import { calcMrr, cobraveis, fmtMrr } from "@/lib/money";
 import { clienteIdDaRota, ROTAS } from "@/lib/rotas";
@@ -89,7 +89,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div
       style={css(
-        "display:flex;align-items:stretch;background:var(--bg);color:var(--tx);" +
+        "display:flex;align-items:stretch;background:var(--bg);color:var(--text);" +
           // `overflow:hidden` impede que um painel alto empurre a barra de
           // rolagem da janela de volta.
           (alturaFixa ? "height:100vh;overflow:hidden" : "min-height:100vh"),

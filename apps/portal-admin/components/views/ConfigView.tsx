@@ -4,10 +4,9 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { salvarConfiguracao } from "@/app/configuracoes/actions";
 import { useAdmin } from "@/components/AdminProvider";
-import { Campo, Selecao } from "@/components/campos";
-import { css, MONO } from "@/lib/css";
+import { Campo, css, MONO, Selecao } from "@aguiar/ui";
 import { EditarIcone } from "@/lib/icons";
-import { chip } from "@/lib/styleKit";
+import { chip } from "@aguiar/ui";
 import type { ConfigItem } from "@/types/types";
 
 export function ConfigView() {
@@ -51,14 +50,14 @@ export function ConfigView() {
   return (
     <section
       style={css(
-        "background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;" +
+        "background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;" +
           "display:flex;flex-direction:column;gap:16px;max-width:660px",
       )}
     >
-      <h3 style={css("margin:0;font-size:15px;font-weight:600;color:var(--tx)")}>
+      <h3 style={css("margin:0;font-size:15px;font-weight:600;color:var(--text)")}>
         {L.configTitulo}
       </h3>
-      <p style={css("margin:0;font-size:12.5px;color:var(--tx2);line-height:1.55")}>
+      <p style={css("margin:0;font-size:12.5px;color:var(--text2);line-height:1.55")}>
         {L.configTexto}
       </p>
 
@@ -73,10 +72,10 @@ export function ConfigView() {
               key={cfg.id}
               style={css(
                 "display:flex;align-items:center;justify-content:space-between;gap:16px;" +
-                  "flex-wrap:wrap;padding:13px 15px;border:1px solid var(--lineSoft);border-radius:10px",
+                  "flex-wrap:wrap;padding:13px 15px;border:1px solid var(--border-soft);border-radius:10px",
               )}
             >
-              <span style={css("font-size:13px;color:var(--tx)")}>
+              <span style={css("font-size:13px;color:var(--text)")}>
                 {cfg.rotulo[id] || cfg.rotulo.pt}
               </span>
 
@@ -88,10 +87,10 @@ export function ConfigView() {
                       cfgRascunho: Array.isArray(cfg.valor) ? cfg.valor.slice() : cfg.valor,
                     })
                   }
-                  className="hv-acc-soft"
+                  className="hv-acc-soft-borda"
                   style={css(
                     "display:flex;align-items:center;gap:8px;border:1px solid transparent;" +
-                      `background:none;font-family:${MONO};font-size:12px;color:var(--acc);` +
+                      `background:none;font-family:${MONO};font-size:12px;color:var(--accent);` +
                       "border-radius:7px;padding:5px 8px;cursor:pointer",
                   )}
                 >
@@ -162,7 +161,7 @@ export function ConfigView() {
                     }
                     disabled={salvando}
                     style={css(
-                      "border:1px solid var(--acc);background:var(--acc);color:var(--accTx);" +
+                      "border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);" +
                         "font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;" +
                         (salvando ? "opacity:.6;cursor:progress" : "cursor:pointer"),
                     )}
@@ -171,9 +170,9 @@ export function ConfigView() {
                   </button>
                   <button
                     onClick={() => a.set({ cfgEditando: null, cfgRascunho: null })}
-                    className="hv-tx"
+                    className="hv-texto"
                     style={css(
-                      "border:1px solid var(--line);background:var(--panel);color:var(--tx3);" +
+                      "border:1px solid var(--border);background:var(--surface);color:var(--muted);" +
                         "font-size:12px;padding:8px 11px;border-radius:8px;cursor:pointer",
                     )}
                   >

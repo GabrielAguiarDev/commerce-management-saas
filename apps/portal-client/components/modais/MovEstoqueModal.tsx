@@ -1,12 +1,10 @@
 "use client";
 
-import { ModalBase, RodapeModal } from "@/components/modais/Base";
+import { ModalBase } from "@/components/modais/Base";
+import { campo, CampoDinheiro, CampoRotulado, css, RodapeModal, ROTULO_CAMPO, SANS, SelecaoSimples, Sugestoes } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { Campo, CampoDinheiro, Selecao, Sugestoes } from "@/components/ui";
-import { css, SANS } from "@/lib/css";
 import { MOV_ESTILO, SUGESTOES_MOTIVO } from "@/lib/dados/estoque";
 import { numBR } from "@/lib/formato";
-import { campo, ROTULO_CAMPO } from "@/lib/styleKit";
 import type { TipoMovEstoque } from "@/types/types";
 
 const TIPOS: { chave: TipoMovEstoque; nome: string; explicacao: string }[] = [
@@ -96,7 +94,7 @@ export function MovEstoqueModal() {
 
       <div>
         <label style={css(ROTULO_CAMPO)}>Produto</label>
-        <Selecao
+        <SelecaoSimples
           valor={produto?.nome ?? ""}
           opcoes={controlados.map((p) => p.nome)}
           onMudar={(v) => set({ produtoId: controlados.find((p) => p.nome === v)?.id ?? null })}
@@ -110,7 +108,7 @@ export function MovEstoqueModal() {
       </div>
 
       <div>
-        <Campo
+        <CampoRotulado
           label={f.tipo === "ajuste" ? "Quantidade contada" : "Quantidade"}
           valor={f.qtd}
           onMudar={(v) => set({ qtd: v })}
@@ -134,7 +132,7 @@ export function MovEstoqueModal() {
       )}
 
       <div>
-        <Campo
+        <CampoRotulado
           label={f.tipo === "ajuste" ? "Por que a contagem mudou" : "Motivo"}
           valor={f.motivo}
           onMudar={(v) => set({ motivo: v })}

@@ -1,21 +1,12 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { CabecalhoTela, MenuLinha, Vazio } from "@/components/ui";
-import { css, MONO, SANS } from "@/lib/css";
+import { MenuLinha } from "@/components/ui";
+import { botaoPrimario, CABECALHO_TABELA, CabecalhoTela, css, faixaKpis, LISTA, MONO, NUM, ROTULO_KPI, rotuloColuna, SANS, Vazio } from "@aguiar/ui";
 import { esperadoCx, MOV_CAIXA_ESTILO, saldoMovs, somaFormas } from "@/lib/dados/caixa";
 import { FORMAS, NOTA_FORMA } from "@/lib/dados/vendas";
 import { brl, brlDif, corDif, rotuloData } from "@/lib/formato";
 import { dinheiroNaGaveta, esperadoDoTurno, vendasDoTurno } from "@/lib/selectors";
-import {
-  botaoPrimario,
-  CABECALHO_TABELA,
-  faixaKpis,
-  LISTA,
-  NUM,
-  rotuloColuna,
-  ROTULO_KPI,
-} from "@/lib/styleKit";
 import type { CaixaFechado } from "@/types/types";
 
 /**
