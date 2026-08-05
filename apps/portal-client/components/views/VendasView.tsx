@@ -293,7 +293,7 @@ function SaleRow({
           <span style={css(`text-align:right;font:700 13.5px ${SANS};${NUM};color:${color};${risk}`)}>
             {brl(total)}
           </span>
-          <RowMenu key={`venda:${v.id}`} actions={actions} />
+          <RowMenu menuKey={`venda:${v.id}`} actions={actions} />
         </div>
       ) : (
         <div style={css("display:flex;gap:10px;padding:13px 14px")}>
@@ -318,7 +318,7 @@ function SaleRow({
             style={css("flex:none;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:8px")}
           >
             <span style={css(`font:700 15px ${SANS};${NUM};color:${color};${risk}`)}>{brl(total)}</span>
-            <RowMenu key={`venda:${v.id}`} actions={actions} />
+            <RowMenu menuKey={`venda:${v.id}`} actions={actions} />
           </div>
         </div>
       )}

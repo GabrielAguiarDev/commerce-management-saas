@@ -2,7 +2,8 @@
 
 import { Button, css, MONO, SANS } from "@aguiar/ui";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePortal } from "@/components/PortalProvider";
 import { createClient } from "@/lib/supabase/client";
 
 const CARD =
@@ -26,11 +27,38 @@ const REASONS: Record<string, string> = {
 export function LoginView() {
   const router = useRouter();
   const params = useSearchParams();
+  const { a } = usePortal();
+
+  // O nome do parâmetro é o que o middleware escreve (`?erro=…`).
+  const reason = REASONS[params.get("erro") ?? ""] ?? null;
 
   const [email, setEmail] = useState("");
   const [password, setSenha] = useState("");
   const [loading, setCarregando] = useState(false);
-  const [error, setErro] = useState<string | null>(REASONS[params.get("error") ?? ""] ?? null);
+  const [attemptError, setErro] = useState<string | null>(null);
+
+  /**
+   * O que a pessoa lê. O erro da tentativa vem primeiro — é a resposta ao que
+   * ela acabou de fazer; o motivo do middleware é o pano de fundo.
+   *
+   * O motivo é LIDO NO RENDER, e não guardado num estado inicial: esta tela
+   * não remonta quando o middleware devolve a pessoa para cá. Ela nunca saiu
+   * do `/login` de fato — o que mudou foi a query string —, e um `useState` só
+   * lê o seu valor inicial uma vez. Guardado, o motivo nunca apareceria.
+   */
+  const error = attemptError ?? reason;
+
+  /**
+   * A senha foi aceita, mas o middleware recusou a conta: é de admin da
+   * plataforma, ou não está ligada a nenhum negócio.
+   *
+   * A tela de entrada está no ar esperando um portal que não vem, e aqui ela
+   * desiste. Sem isto ficaria oito segundos — o tempo da sua rede de segurança
+   * — por cima justamente da explicação que a pessoa precisa ler.
+   */
+  useEffect(() => {
+    if (reason) a.set({ entering: false });
+  }, [reason, a]);
 
   /**
    * Entra com e-mail e senha.
@@ -59,6 +87,13 @@ export function LoginView() {
       setCarregando(false);
       return;
     }
+
+    // A senha foi aceita: daqui em diante quem fala com a pessoa é a tela de
+    // entrada. Ela sobe ANTES da navegação porque a espera começa agora — o
+    // layout ainda vai ser refeito no servidor, com o perfil, os módulos
+    // contratados e o retrato do negócio. Sem ela, o formulário de login
+    // ficaria parado na tela até o portal entrar por cima.
+    a.set({ entering: true });
 
     // `refresh` antes de navegar: o layout é Server Component e precisa ser
     // refeito já com a sessão nova, ou a primeira tela viria vazia.

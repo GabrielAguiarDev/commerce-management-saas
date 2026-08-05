@@ -24,12 +24,12 @@ export type { MenuAction };
  * escolher uma ação.
  */
 export function RowMenu({
-  key,
+  menuKey,
   actions,
   width = 210,
   label = "Ações",
 }: {
-  key: string;
+  menuKey: string;
   actions: MenuAction[];
   width?: number;
   label?: string;
@@ -38,8 +38,8 @@ export function RowMenu({
 
   return (
     <ActionMenu
-      open={s.rowMenu === key}
-      onOpenChange={(open) => a.openMenu(open ? key : null)}
+      open={s.rowMenu === menuKey}
+      onOpenChange={(open) => a.openMenu(open ? menuKey : null)}
       label={label}
       actions={actions}
       minWidth={width}

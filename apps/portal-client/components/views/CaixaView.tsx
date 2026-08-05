@@ -431,7 +431,7 @@ function ShiftRow({ register: c, cols }: { register: ClosedRegister; cols: strin
               {brlDelta(delta)}
             </span>
           </span>
-          <RowMenu key={`turno:${c.id}`} actions={actions} width={216} />
+          <RowMenu menuKey={`turno:${c.id}`} actions={actions} width={216} />
         </div>
       ) : (
         <div style={css("display:flex;gap:10px;padding:13px 14px")}>
@@ -451,7 +451,7 @@ function ShiftRow({ register: c, cols }: { register: ClosedRegister; cols: strin
               Vendas {brl(sumByMethod(c.sales))} · conferido {brl(counted)}
             </div>
           </div>
-          <RowMenu key={`turno:${c.id}`} actions={actions} width={216} />
+          <RowMenu menuKey={`turno:${c.id}`} actions={actions} width={216} />
         </div>
       )}
     </div>

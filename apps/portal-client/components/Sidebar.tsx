@@ -144,11 +144,12 @@ export function Sidebar() {
               Você precisará entrar de novo.
             </div>
             <div style={css("display:flex;gap:6px;margin-top:9px")}>
+              {/* Devolve a promessa: é dela que o botão tira o girador. O
+                  popover fica aberto até o servidor responder — fechá-lo aqui
+                  desmontaria o botão antes do girador aparecer. */}
               <Button
-                onClick={() => {
-                  a.set({ signOutOpen: false });
-                  a.notify("Sessão encerrada");
-                }}
+                onClick={() => a.signOut()}
+                loadingLabel="Saindo…"
                 style={css(
                   `flex:1;padding:7px;border-radius:8px;background:var(--danger);color:#fff;font:600 12px ${SANS}`,
                 )}

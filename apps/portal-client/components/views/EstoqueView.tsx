@@ -241,7 +241,7 @@ function ItemRow({ product: p, cols }: { product: Product; cols: string }) {
               {sit.text}
             </span>
           </span>
-          <RowMenu key={`item:${p.id}`} actions={actions} width={230} />
+          <RowMenu menuKey={`item:${p.id}`} actions={actions} width={230} />
         </div>
       ) : (
         <div style={css("display:flex;gap:10px;padding:12px 13px")}>
@@ -261,7 +261,7 @@ function ItemRow({ product: p, cols }: { product: Product; cols: string }) {
               <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>mín. {p.minimum ?? 0}</span>
             </div>
           </div>
-          <RowMenu key={`item:${p.id}`} actions={actions} width={230} />
+          <RowMenu menuKey={`item:${p.id}`} actions={actions} width={230} />
         </div>
       )}
     </div>

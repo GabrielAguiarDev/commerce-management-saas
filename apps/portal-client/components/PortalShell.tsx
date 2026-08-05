@@ -7,6 +7,7 @@ import { Modais } from "@/components/modais/Modais";
 import { BottomBar, Confirm, Toast, NavVeil } from "@/components/Overlays";
 import { usePortal } from "@/components/PortalProvider";
 import { Sidebar } from "@/components/Sidebar";
+import { Splash } from "@/components/Splash";
 import { Topbar } from "@/components/Topbar";
 
 /**
@@ -18,7 +19,39 @@ export function PortalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   // O login ocupa a tela inteira — sem menu, sem topo, sem barra de venda.
-  if (pathname === "/login") return <>{children}</>;
+  const inLogin = pathname === "/login";
+
+  /**
+   * O retrato do negócio já chegou.
+   *
+   * `business.id` é o `tenant_id`, e ele só existe num retrato lido COM sessão
+   * — em `EMPTY_DATA` é string vazia. É por isso que ele serve de sinal, e a
+   * URL não serve: navegar para `/` é instantâneo, mas o layout raiz é
+   * COMPARTILHADO com o `/login` e não é refeito pela navegação. Quem o refaz
+   * é o `router.refresh()` que o login dispara, e é ele que demora — sete
+   * consultas ao banco para montar o portal inteiro.
+   *
+   * Nesse intervalo a casca renderiza com o retrato VAZIO: menu lateral só com
+   * o mínimo que todo cliente vê, dashboard sem os cartões que dependem do
+   * plano. Quando o retrato real chega, tudo isso muda de uma vez — que é
+   * exatamente o pulo que esta tela existe para cobrir.
+   */
+  const loaded = Boolean(d.business.id);
+
+  // A tela de entrada fica FORA da escolha abaixo, na mesma posição do
+  // fragmento nos dois casos. É o que a mantém sendo o mesmo componente
+  // durante a travessia do login para o portal: trocada de lugar, ela
+  // remontaria no meio do caminho e recomeçaria a contagem — a pessoa veria a
+  // tela reiniciar justamente no instante em que ela deveria estar saindo.
+  const splash = <Splash ready={!inLogin && loaded} />;
+
+  if (inLogin)
+    return (
+      <>
+        {children}
+        {splash}
+      </>
+    );
 
   return (
     <>
@@ -58,6 +91,10 @@ export function PortalShell({ children }: { children: ReactNode }) {
       <Modais />
       <Confirm />
       <Toast />
+
+      {/* Por último, para nascer acima das sobreposições também — um modal
+          reaberto por um refresh não pode furar a tela de entrada. */}
+      {splash}
     </>
   );
 }

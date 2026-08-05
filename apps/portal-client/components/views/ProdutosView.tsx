@@ -282,7 +282,7 @@ function ProductRow({
               {p.active ? "À venda" : "Pausado"}
             </span>
           </span>
-          <RowMenu key={`produto:${p.id}`} actions={actions} width={214} />
+          <RowMenu menuKey={`produto:${p.id}`} actions={actions} width={214} />
         </div>
       ) : (
         <div style={css("display:flex;gap:9px;padding:12px 13px")}>
@@ -321,7 +321,7 @@ function ProductRow({
               </div>
             )}
           </div>
-          <RowMenu key={`produto:${p.id}`} actions={actions} width={214} />
+          <RowMenu menuKey={`produto:${p.id}`} actions={actions} width={214} />
         </div>
       )}
     </div>

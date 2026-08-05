@@ -231,6 +231,16 @@ export interface PortalState {
    * render do servidor e o primeiro render do cliente concordem.
    */
   screenWidth: number;
+  /**
+   * A pessoa acabou de entrar e o portal ainda está sendo montado — é o que
+   * mantém a tela de abertura no ar.
+   *
+   * Quem levanta é o login, ao ter a senha aceita; quem baixa é a própria tela
+   * de abertura, depois de o portal chegar. Deliberadamente NÃO sobe num F5:
+   * recarregar é continuar de onde parou, e uma tela de boas-vindas ali só
+   * atrasaria quem já está trabalhando.
+   */
+  entering: boolean;
   collapsed: boolean;
   navOpen: boolean;
   notificationsOpen: boolean;

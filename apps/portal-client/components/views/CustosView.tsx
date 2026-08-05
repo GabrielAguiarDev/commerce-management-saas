@@ -243,7 +243,7 @@ function CostRow({ cost: c, cols, categoryCol }: { cost: Cost; cols: string; cat
               No Estoque
             </Button>
           ) : (
-            <RowMenu key={`custo:${c.id}`} actions={actions} width={200} />
+            <RowMenu menuKey={`custo:${c.id}`} actions={actions} width={200} />
           )}
         </div>
       ) : (
@@ -267,7 +267,7 @@ function CostRow({ cost: c, cols, categoryCol }: { cost: Cost; cols: string; cat
             <div style={css(`font:700 14px ${SANS};${NUM}`)}>{brl(c.amount)}</div>
             {!c.fromStock && (
               <div style={css("margin-top:4px;display:flex;justify-content:flex-end")}>
-                <RowMenu key={`custo:${c.id}`} actions={actions} width={200} />
+                <RowMenu menuKey={`custo:${c.id}`} actions={actions} width={200} />
               </div>
             )}
           </div>

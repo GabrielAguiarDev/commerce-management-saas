@@ -441,7 +441,7 @@ function TeamTab() {
                     <span style={css(`flex:none;font:500 11px ${SANS};color:var(--muted)`)}>é você</span>
                   ) : (
                     <RowMenu
-                      key={`func:${x.id}`}
+                      menuKey={`func:${x.id}`}
                       width={214}
                       actions={[
                         {
@@ -546,7 +546,7 @@ function TeamTab() {
 
                     {!p.fixed && (
                       <RowMenu
-                        key={`papel:${p.id}`}
+                        menuKey={`papel:${p.id}`}
                         width={200}
                         actions={[
                           { text: "Editar acessos", onClick: () => a.openRole(p.id) },
@@ -717,7 +717,8 @@ function AccountTab() {
 
       <Panel title="Sua conta" note="Encerrar a sessão neste dispositivo.">
         <Button
-          onClick={a.signOut}
+          onClick={() => a.signOut()}
+          loadingLabel="Saindo…"
           className="hv-borda"
           style={css(
             `padding:12px 18px;border-radius:11px;border:1px solid var(--border2);background:var(--surface);color:var(--danger);font:600 13px ${SANS}`,

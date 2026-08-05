@@ -110,6 +110,9 @@ export function initialState(
   return {
     theme: manter?.theme ?? "light",
     screenWidth: manter?.screenWidth ?? 1440,
+    // Só o login levanta isto. Nascendo falso, um documento novo — F5, ou um
+    // link colado na barra — abre direto no portal, sem tela de espera.
+    entering: false,
     collapsed: manter?.collapsed ?? false,
     navOpen: false,
     notificationsOpen: false,
