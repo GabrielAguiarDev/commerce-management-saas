@@ -1,6 +1,6 @@
 "use client";
 
-import { QUEBRA_MOBILE } from "@aguiar/ui";
+import { MOBILE_BREAKPOINT } from "@aguiar/ui";
 import { useRouter } from "next/navigation";
 import {
   createContext,
@@ -13,67 +13,67 @@ import {
   type ReactNode,
 } from "react";
 import {
-  abrirCaixa as acaoAbrirCaixa,
-  fecharCaixa as acaoFecharCaixa,
-  reabrirCaixa as acaoReabrirCaixa,
-  registrarMovimentacaoCaixa,
-  reverterMovimentacaoCaixa,
+  openRegister as acaoAbrirCaixa,
+  closeRegister as acaoFecharCaixa,
+  reopenRegister as acaoReabrirCaixa,
+  recordRegisterMovement as recordRegisterMovementAction,
+  undoRegisterMovement as undoRegisterMovementAction,
 } from "@/app/caixa/actions";
 import {
-  alternarFuncionario,
-  mudarPapelDoFuncionario as acaoMudarPapel,
-  removerPapel as acaoRemoverPapel,
-  salvarDadosNegocio,
-  salvarPapel as acaoSalvarPapel,
+  setEmployeeActive,
+  changeEmployeeRole as acaoMudarPapel,
+  removeRole as acaoRemoverPapel,
+  saveBusinessData,
+  saveRole as acaoSalvarPapel,
 } from "@/app/configuracoes/actions";
-import { excluirCusto as acaoExcluirCusto, salvarCusto as acaoSalvarCusto } from "@/app/custos/actions";
-import { registrarMovimentacao, reverterMovimentacao } from "@/app/estoque/actions";
+import { deleteCost as acaoExcluirCusto, saveCost as acaoSalvarCusto } from "@/app/custos/actions";
+import { recordStockMovement, undoStockMovement } from "@/app/estoque/actions";
 import {
-  alternarAtivo,
-  alternarFavorito,
-  excluirProduto as acaoExcluirProduto,
-  salvarProduto as acaoSalvarProduto,
+  setActive,
+  setFav,
+  deleteProduct as acaoExcluirProduto,
+  saveProduct as acaoSalvarProduto,
 } from "@/app/produtos/actions";
-import { sair as acaoSair } from "@/app/sair/actions";
+import { signOut as acaoSair } from "@/app/sair/actions";
 import {
-  abrirChamado,
-  marcarChamadoLido,
-  mudarStatusChamado,
-  responderChamado as acaoResponder,
+  openTicket,
+  markTicketRead,
+  setTicketStatus,
+  replyToTicket as acaoResponder,
 } from "@/app/suporte/actions";
 import {
-  desfazerEstorno as acaoDesfazerEstorno,
-  editarVenda as acaoEditarVenda,
-  estornarVenda as acaoEstornarVenda,
-  registrarVenda as acaoRegistrarVenda,
+  undoRefund as acaoDesfazerEstorno,
+  editSale as acaoEditarVenda,
+  refundSale as acaoEstornarVenda,
+  recordSale as acaoRegistrarVenda,
 } from "@/app/vendas/actions";
 import {
-  DADOS_VAZIOS,
-  estadoInicial,
-  FORM_CAIXA_VAZIO,
-  FORM_CHAMADO_VAZIO,
-  FORM_CUSTO_VAZIO,
-  FORM_MOV_VAZIO,
-  FORM_PAPEL_VAZIO,
-  FORM_PRODUTO_VAZIO,
-  FORM_RESPOSTA_VAZIA,
+  EMPTY_DATA,
+  initialState,
+  EMPTY_REGISTER_FORM,
+  EMPTY_TICKET_FORM,
+  EMPTY_COST_FORM,
+  EMPTY_MOVEMENT_FORM,
+  EMPTY_ROLE_FORM,
+  EMPTY_PRODUCT_FORM,
+  EMPTY_REPLY_FORM,
 } from "@/lib/estado";
-import { numBR } from "@/lib/formato";
-import { ROTA_PDV, ROTAS } from "@/lib/rotas";
+import { parseBrNumber } from "@/lib/formato";
+import { POS_ROUTE, ROUTES } from "@/lib/rotas";
 import type {
-  Confirmacao,
-  DadosPortal,
+  Confirm,
+  PortalData,
   Modal,
   Patch,
   PortalActions,
   PortalState,
   ViewProps,
 } from "@/types/estado";
-import type { FormaPagamento, ModuloKey, Produto, TipoMovEstoque } from "@/types/types";
+import type { PaymentMethod, ModuleKey, Product, StockMovementType } from "@/types/types";
 
 const Ctx = createContext<ViewProps | null>(null);
 
-type Resultado = { ok: true } | { ok: false; mensagem: string };
+type Result = { ok: true } | { ok: false; message: string };
 
 /**
  * Guarda a sessão do portal acima do roteador, para que filtros, carrinho e
@@ -87,20 +87,46 @@ type Resultado = { ok: true } | { ok: false; mensagem: string };
  */
 export function PortalProvider({
   children,
-  dados = DADOS_VAZIOS,
+  data = EMPTY_DATA,
 }: {
   children: ReactNode;
-  dados?: DadosPortal;
+  data?: PortalData;
 }) {
   const router = useRouter();
   const [, iniciarTransicao] = useTransition();
-  const [s, setS] = useState<PortalState>(() => estadoInicial(dados.dados));
+  const [s, setS] = useState<PortalState>(() => initialState(data.data));
 
   // O retrato do servidor NÃO entra no estado: ele é lido direto da prop, e o
   // `router.refresh()` do laço de escrita traz a versão nova. Duas cópias
   // significariam duas verdades, e a do cliente ficaria velha já na próxima
   // gravação.
-  const d = dados;
+  const d = data;
+
+  /**
+   * A única cópia que sobra: o rascunho de "Dados do negócio", que precisa ser
+   * editável enquanto a pessoa digita.
+   *
+   * Ele é refeito quando o valor SALVO muda de conteúdo. Isso cobre dois casos
+   * que não são óbvios:
+   *
+   * 1. O provider vive no layout raiz, que envolve o `/login` também. Ele monta
+   *    lá, sem sessão, com o retrato vazio — e não remonta ao entrar no portal.
+   *    Sem esta linha o formulário ficaria em branco até um F5.
+   * 2. Depois de salvar, o rascunho volta a espelhar o que o banco confirmou.
+   *
+   * A comparação é por CONTEÚDO, não por identidade: cada render do servidor
+   * cria um objeto novo, e comparar por referência apagaria o que a pessoa
+   * acabou de digitar a cada `router.refresh()`.
+   *
+   * Ajuste durante o render (e não num efeito) é o padrão do React para
+   * derivar estado de props: evita o render em cascata.
+   */
+  const saved = JSON.stringify(data.data);
+  const [salvoAnterior, setSalvoAnterior] = useState(saved);
+  if (saved !== salvoAnterior) {
+    setSalvoAnterior(saved);
+    setS((x) => ({ ...x, draftData: { ...data.data } }));
+  }
 
   const set = useCallback((p: Patch) => setS((x) => ({ ...x, ...p })), []);
 
@@ -113,7 +139,7 @@ export function PortalProvider({
   // versão de celular e saltaria.
   useEffect(() => {
     const medir = () =>
-      setS((x) => (x.larguraTela === window.innerWidth ? x : { ...x, larguraTela: window.innerWidth }));
+      setS((x) => (x.screenWidth === window.innerWidth ? x : { ...x, screenWidth: window.innerWidth }));
     medir();
     window.addEventListener("resize", medir);
     return () => window.removeEventListener("resize", medir);
@@ -122,8 +148,8 @@ export function PortalProvider({
   // O tema vive num atributo do <body> para que uma única troca repinte tudo:
   // cada cor do portal é lida de uma variável CSS declarada ali.
   useEffect(() => {
-    document.body.dataset.tema = s.tema;
-  }, [s.tema]);
+    document.body.dataset.theme = s.theme;
+  }, [s.theme]);
 
   // O aviso some sozinho: ele confirma o que acabou de acontecer, não pede ação.
   useEffect(() => {
@@ -139,20 +165,20 @@ export function PortalProvider({
   // `<body>` — para este listener um clique lá dentro é "fora do menu", e a
   // ação seria descartada antes de rodar.
   useEffect(() => {
-    if (!s.notifAberto && !s.logoutAberto) return;
-    const fechar = () => setS((x) => ({ ...x, notifAberto: false, logoutAberto: false }));
+    if (!s.notificationsOpen && !s.signOutOpen) return;
+    const fechar = () => setS((x) => ({ ...x, notificationsOpen: false, signOutOpen: false }));
     const t = setTimeout(() => document.addEventListener("click", fechar), 0);
     return () => {
       clearTimeout(t);
       document.removeEventListener("click", fechar);
     };
-  }, [s.notifAberto, s.logoutAberto]);
+  }, [s.notificationsOpen, s.signOutOpen]);
 
-  const isMobile = s.larguraTela < QUEBRA_MOBILE;
+  const isMobile = s.screenWidth < MOBILE_BREAKPOINT;
   const isDesktop = !isMobile;
 
-  const modulos = d.negocio.modulos;
-  const tem = useCallback((m: ModuloKey) => modulos.includes(m), [modulos]);
+  const modules = d.business.modules;
+  const has = useCallback((m: ModuleKey) => modules.includes(m), [modules]);
 
   /* ---------------------------------------------------------------------- */
   /* O laço de escrita                                                       */
@@ -165,25 +191,28 @@ export function PortalProvider({
    * gravariam duas vendas. O aviso de sucesso só aparece depois do refresh, e o
    * de erro traz a mensagem que o servidor devolveu — o banco recusou por um
    * motivo, e escondê-lo faria a pessoa tentar de novo sem saber o quê mudar.
+   *
+   * A promessa sobe até quem chamou: cada ação daqui devolve a sua, e é dela
+   * que o `Button` de `@aguiar/ui` tira o girador — só o botão que foi clicado
+   * espera, e ele espera exatamente o tempo da gravação.
    */
-  const executar = useCallback(
+  const run = useCallback(
     async (
-      acao: () => Promise<Resultado>,
+      action: () => Promise<Result>,
       sucesso: string,
       depois?: (ok: boolean) => void,
-    ): Promise<boolean> => {
-      setS((x) => ({ ...x, salvando: true }));
-      let r: Resultado;
+    ): Promise<void> => {
+      setS((x) => ({ ...x, saving: true }));
+      let r: Result;
       try {
-        r = await acao();
+        r = await action();
       } catch {
-        r = { ok: false, mensagem: "Não foi possível falar com o servidor. Tente de novo." };
+        r = { ok: false, message: "Não foi possível falar com o servidor. Tente de novo." };
       }
 
-      setS((x) => ({ ...x, salvando: false, toast: r.ok ? sucesso : r.mensagem }));
+      setS((x) => ({ ...x, saving: false, toast: r.ok ? sucesso : r.message }));
       if (r.ok) iniciarTransicao(() => router.refresh());
       depois?.(r.ok);
-      return r.ok;
     },
     [router],
   );
@@ -192,90 +221,90 @@ export function PortalProvider({
   /* Utilidades                                                              */
   /* ---------------------------------------------------------------------- */
 
-  const avisar = useCallback((texto: string) => set({ toast: texto }), [set]);
-  const fecharConf = useCallback(() => set({ conf: null }), [set]);
-  const confirmar = useCallback((c: Confirmacao) => set({ conf: c, menuLinha: null }), [set]);
-  const fecharModal = useCallback(() => set({ modal: null }), [set]);
-  const abrirModal = useCallback((m: Modal) => set({ modal: m, menuLinha: null }), [set]);
-  const abrirMenu = useCallback((chave: string | null) => set({ menuLinha: chave }), [set]);
+  const notify = useCallback((text: string) => set({ toast: text }), [set]);
+  const closeConfirm = useCallback(() => set({ confirmDialog: null }), [set]);
+  const confirm = useCallback((c: Confirm) => set({ confirmDialog: c, rowMenu: null }), [set]);
+  const closeModal = useCallback(() => set({ modal: null }), [set]);
+  const openModal = useCallback((m: Modal) => set({ modal: m, rowMenu: null }), [set]);
+  const openMenu = useCallback((key: string | null) => set({ rowMenu: key }), [set]);
 
-  const irPara = useCallback(
+  const goTo = useCallback(
     (rota: string) => {
       router.push(rota);
-      setS((x) => ({ ...x, navAberto: false, menuLinha: null, notifAberto: false }));
+      setS((x) => ({ ...x, navOpen: false, rowMenu: null, notificationsOpen: false }));
     },
     [router],
   );
 
-  const toggleTema = useCallback(
-    () => setS((x) => ({ ...x, tema: x.tema === "claro" ? "escuro" : "claro" })),
+  const toggleTheme = useCallback(
+    () => setS((x) => ({ ...x, theme: x.theme === "light" ? "dark" : "light" })),
     [],
   );
 
-  const sair = useCallback(() => void acaoSair(), []);
+  const signOut = useCallback(() => acaoSair(), []);
 
   /* ---------------------------------------------------------------------- */
   /* PDV                                                                     */
   /* ---------------------------------------------------------------------- */
 
-  const addCarrinho = useCallback((p: Produto) => {
+  const addToCart = useCallback((p: Product) => {
     setS((x) => {
-      const achou = x.carrinho.find((c) => c.nome === p.nome);
-      const carrinho = achou
-        ? x.carrinho.map((c) => (c.nome === p.nome ? { ...c, qtd: c.qtd + 1 } : c))
-        : [...x.carrinho, { produtoId: p.id, nome: p.nome, preco: p.preco, qtd: 1 }];
+      const found = x.cart.find((c) => c.name === p.name);
+      const cart = found
+        ? x.cart.map((c) => (c.name === p.name ? { ...c, qtd: c.qtd + 1 } : c))
+        : [...x.cart, { productId: p.id, name: p.name, price: p.price, qtd: 1 }];
       // Buscar, tocar, buscar de novo: limpar a busca deixa o catálogo inteiro
-      // de volta sem precisar apagar o campo à mão.
-      return { ...x, carrinho, buscaProd: "", codigo: "" };
+      // de volta sem precisar apagar o field à mão.
+      return { ...x, cart, productSearch: "", code: "" };
     });
   }, []);
 
-  const mudarQtd = useCallback((nome: string, delta: number) => {
+  const changeQty = useCallback((name: string, delta: number) => {
     setS((x) => ({
       ...x,
-      carrinho: x.carrinho
-        .map((c) => (c.nome === nome ? { ...c, qtd: c.qtd + delta } : c))
+      cart: x.cart
+        .map((c) => (c.name === name ? { ...c, qtd: c.qtd + delta } : c))
         .filter((c) => c.qtd > 0),
     }));
   }, []);
 
-  const removerItem = useCallback((nome: string) => {
-    setS((x) => ({ ...x, carrinho: x.carrinho.filter((c) => c.nome !== nome) }));
+  const removeItem = useCallback((name: string) => {
+    setS((x) => ({ ...x, cart: x.cart.filter((c) => c.name !== name) }));
   }, []);
 
-  const limparCarrinho = useCallback(
-    () => set({ carrinho: [], editandoVenda: null, conf: null }),
+  const clearCart = useCallback(
+    () => set({ cart: [], editingSale: null, confirmDialog: null }),
     [set],
   );
 
-  const registrarVenda = useCallback(() => {
-    if (s.salvando || !s.carrinho.length) return;
+  const recordSale = useCallback(async () => {
+    if (s.saving || !s.cart.length) return;
 
-    const itens = s.carrinho.map((c) => ({
-      produtoId: c.produtoId,
-      nome: c.nome,
+    const items = s.cart.map((c) => ({
+      productId: c.productId,
+      name: c.name,
       qtd: c.qtd,
-      preco: c.preco,
+      price: c.price,
     }));
-    const editando = s.editandoVenda;
+    const editing = s.editingSale;
 
-    void executar(
+    await run(
       () =>
-        editando
-          ? acaoEditarVenda(editando, itens, s.pagAtual)
-          : acaoRegistrarVenda(itens, s.pagAtual),
-      editando ? "Venda atualizada" : "Venda registrada",
+        editing
+          ? acaoEditarVenda(editing, items, s.currentMethod)
+          : acaoRegistrarVenda(items, s.currentMethod),
+      editing ? "Venda atualizada" : "Venda registrada",
       (ok) => {
         if (!ok) return;
-        setS((x) => ({ ...x, carrinho: [], editandoVenda: null, carrinhoAberto: false }));
-        router.push(ROTAS.vendas);
+        setS((x) => ({ ...x, cart: [], editingSale: null, cartOpen: false }));
+        router.push(ROUTES.sales);
       },
     );
-  }, [s.salvando, s.carrinho, s.pagAtual, s.editandoVenda, executar, router]);
+  }, [s.saving, s.cart, s.currentMethod, s.editingSale, run, router]);
 
-  const editarVenda = useCallback(
+  const editSale = useCallback(
     (id: string) => {
-      const v = d.vendas.find((y) => y.id === id);
+      const v = d.sales.find((y) => y.id === id);
       if (!v) return;
 
       // O carrinho reabre com os nomes gravados na venda. O `produtoId` é
@@ -283,435 +312,475 @@ export function PortalProvider({
       // depois, e nesse caso a venda continua editável como item avulso.
       setS((x) => ({
         ...x,
-        carrinho: v.itens.map((i) => ({
-          produtoId: d.produtos.find((p) => p.nome === i.nome)?.id ?? null,
-          nome: i.nome,
-          preco: i.preco,
+        cart: v.items.map((i) => ({
+          productId: d.products.find((p) => p.name === i.name)?.id ?? null,
+          name: i.name,
+          price: i.price,
           qtd: i.qtd,
         })),
-        pagAtual: v.pag,
-        editandoVenda: id,
-        menuLinha: null,
+        currentMethod: v.payment,
+        editingSale: id,
+        rowMenu: null,
       }));
-      router.push(ROTA_PDV);
+      router.push(POS_ROUTE);
     },
-    [d.vendas, d.produtos, router],
+    [d.sales, d.products, router],
   );
 
-  const estornarVenda = useCallback(
-    (id: string) => void executar(() => acaoEstornarVenda(id), "Venda estornada"),
-    [executar],
+  // As duas saem da caixa de confirmação, e é ela que fica na tela enquanto a
+  // gravação acontece — antes a caixa continuava aberta depois de confirmar,
+  // porque ninguém a fechava.
+  const refundSale = useCallback(
+    async (id: string) => {
+      await run(() => acaoEstornarVenda(id), "Venda estornada");
+      set({ confirmDialog: null });
+    },
+    [run, set],
   );
 
-  const desfazerEstorno = useCallback(
-    (id: string) => void executar(() => acaoDesfazerEstorno(id), "Estorno desfeito"),
-    [executar],
+  const undoRefund = useCallback(
+    async (id: string) => {
+      await run(() => acaoDesfazerEstorno(id), "Estorno desfeito");
+      set({ confirmDialog: null });
+    },
+    [run, set],
   );
 
   /* ---------------------------------------------------------------------- */
   /* Produtos                                                                */
   /* ---------------------------------------------------------------------- */
 
-  const abrirProduto = useCallback(
+  const openProduct = useCallback(
     (id: string | null) => {
-      const p = id ? d.produtos.find((y) => y.id === id) : null;
+      const p = id ? d.products.find((y) => y.id === id) : null;
       set({
-        modal: { k: "produto", id },
-        menuLinha: null,
-        formProduto: p
+        modal: { k: "product", id },
+        rowMenu: null,
+        productForm: p
           ? {
               id: p.id,
-              nome: p.nome,
-              preco: String(p.preco).replace(".", ","),
-              categoria: p.categoria,
-              catNova: false,
-              ativo: p.ativo,
+              name: p.name,
+              price: String(p.price).replace(".", ","),
+              category: p.category,
+              newCategory: false,
+              active: p.active,
               fav: p.fav,
-              servico: p.servico,
-              codigo: p.codigo,
-              custo: p.custo ? String(p.custo).replace(".", ",") : "",
-              estoque: p.estoque == null ? "" : String(p.estoque),
-              minimo: p.minimo == null ? "" : String(p.minimo),
-              unidade: p.unidade,
-              tentouSalvar: false,
+              service: p.service,
+              code: p.code,
+              cost: p.cost ? String(p.cost).replace(".", ",") : "",
+              stock: p.stock == null ? "" : String(p.stock),
+              minimum: p.minimum == null ? "" : String(p.minimum),
+              unit: p.unit,
+              submitted: false,
             }
-          : { ...FORM_PRODUTO_VAZIO },
+          : { ...EMPTY_PRODUCT_FORM },
       });
     },
-    [d.produtos, set],
+    [d.products, set],
   );
 
-  const salvarProduto = useCallback(() => {
-    const f = s.formProduto;
-    const preco = numBR(f.preco);
-    if (!f.nome.trim() || preco <= 0) {
-      set({ formProduto: { ...f, tentouSalvar: true } });
+  const saveProduct = useCallback(async () => {
+    const f = s.productForm;
+    const price = parseBrNumber(f.price);
+    if (!f.name.trim() || price <= 0) {
+      set({ productForm: { ...f, submitted: true } });
       return;
     }
 
-    const temEstoque = f.estoque.trim() !== "";
-    void executar(
+    const hasStock = f.stock.trim() !== "";
+    await run(
       () =>
         acaoSalvarProduto({
           id: f.id,
-          nome: f.nome,
-          preco,
-          categoria: f.categoria,
-          codigo: f.codigo,
-          custo: numBR(f.custo),
-          estoque: temEstoque ? Math.round(numBR(f.estoque)) : null,
-          minimo: temEstoque ? Math.round(numBR(f.minimo)) : null,
-          unidade: f.unidade,
-          ativo: f.ativo,
+          name: f.name,
+          price,
+          category: f.category,
+          code: f.code,
+          cost: parseBrNumber(f.cost),
+          stock: hasStock ? Math.round(parseBrNumber(f.stock)) : null,
+          minimum: hasStock ? Math.round(parseBrNumber(f.minimum)) : null,
+          unit: f.unit,
+          active: f.active,
           fav: f.fav,
-          servico: f.servico,
+          service: f.service,
         }),
       f.id ? "Produto atualizado" : "Produto cadastrado",
-      (ok) => ok && set({ modal: null, formProduto: { ...FORM_PRODUTO_VAZIO } }),
+      (ok) => ok && set({ modal: null, productForm: { ...EMPTY_PRODUCT_FORM } }),
     );
-  }, [s.formProduto, executar, set]);
+  }, [s.productForm, run, set]);
 
   const toggleFav = useCallback(
-    (id: string) => {
-      const p = d.produtos.find((y) => y.id === id);
+    async (id: string) => {
+      const p = d.products.find((y) => y.id === id);
       if (!p) return;
-      set({ menuLinha: null });
-      void executar(
-        () => alternarFavorito(id, !p.fav),
+      set({ rowMenu: null });
+      await run(
+        () => setFav(id, !p.fav),
         p.fav ? "Saiu dos mais vendidos" : "Marcado como mais vendido",
       );
     },
-    [d.produtos, executar, set],
+    [d.products, run, set],
   );
 
-  const toggleAtivo = useCallback(
-    (id: string) => {
-      const p = d.produtos.find((y) => y.id === id);
+  const toggleActive = useCallback(
+    async (id: string) => {
+      const p = d.products.find((y) => y.id === id);
       if (!p) return;
-      set({ conf: null, menuLinha: null });
-      void executar(() => alternarAtivo(id, !p.ativo), p.ativo ? "Produto pausado" : "Produto reativado");
+      set({ rowMenu: null });
+      await run(() => setActive(id, !p.active), p.active ? "Produto pausado" : "Produto reativado");
+      // A caixa de confirmação só sai depois da resposta: é o botão dela que
+      // segura a espera, travado e girando. Fechá-la antes anunciava um fim que
+      // o servidor ainda podia recusar.
+      set({ confirmDialog: null });
     },
-    [d.produtos, executar, set],
+    [d.products, run, set],
   );
 
-  const excluirProduto = useCallback(
-    (id: string) => {
-      set({ conf: null, menuLinha: null });
-      void executar(() => acaoExcluirProduto(id), "Produto excluído");
+  const deleteProduct = useCallback(
+    async (id: string) => {
+      set({ rowMenu: null });
+      await run(() => acaoExcluirProduto(id), "Produto excluído");
+      // A caixa de confirmação só sai depois da resposta: é o botão dela que
+      // segura a espera, travado e girando. Fechá-la antes anunciava um fim que
+      // o servidor ainda podia recusar.
+      set({ confirmDialog: null });
     },
-    [executar, set],
+    [run, set],
   );
 
   /* ---------------------------------------------------------------------- */
   /* Estoque                                                                 */
   /* ---------------------------------------------------------------------- */
 
-  const abrirMov = useCallback(
-    (produtoId?: string, tipo?: TipoMovEstoque) => {
-      const controlados = d.produtos.filter((p) => p.estoque != null);
+  const openMovement = useCallback(
+    (productId?: string, type?: StockMovementType) => {
+      const tracked = d.products.filter((p) => p.stock != null);
       set({
-        modal: { k: "movEstoque" },
-        menuLinha: null,
-        formMov: {
-          ...FORM_MOV_VAZIO,
-          tipo: tipo ?? "entrada",
-          produtoId: produtoId ?? controlados[0]?.id ?? null,
+        modal: { k: "stockMovement" },
+        rowMenu: null,
+        movementForm: {
+          ...EMPTY_MOVEMENT_FORM,
+          type: type ?? "in",
+          productId: productId ?? tracked[0]?.id ?? null,
         },
       });
     },
-    [d.produtos, set],
+    [d.products, set],
   );
 
-  const salvarMov = useCallback(() => {
-    const f = s.formMov;
-    if (!f.produtoId || !f.qtd.trim()) {
-      set({ formMov: { ...f, tentouSalvar: true } });
+  const saveMovement = useCallback(async () => {
+    const f = s.movementForm;
+    if (!f.productId || !f.qtd.trim()) {
+      set({ movementForm: { ...f, submitted: true } });
       return;
     }
 
-    void executar(
+    await run(
       () =>
-        registrarMovimentacao({
-          produtoId: f.produtoId as string,
-          tipo: f.tipo,
-          quantidade: Math.round(numBR(f.qtd)),
-          custoUnitario: numBR(f.custo),
-          motivo: f.motivo,
+        recordStockMovement({
+          productId: f.productId as string,
+          type: f.type,
+          quantidade: Math.round(parseBrNumber(f.qtd)),
+          custoUnitario: parseBrNumber(f.cost),
+          reason: f.reason,
         }),
       "Movimentação registrada",
-      (ok) => ok && set({ modal: null, formMov: { ...FORM_MOV_VAZIO } }),
+      (ok) => ok && set({ modal: null, movementForm: { ...EMPTY_MOVEMENT_FORM } }),
     );
-  }, [s.formMov, executar, set]);
+  }, [s.movementForm, run, set]);
 
-  const reverterMov = useCallback(
-    (id: string) => {
-      set({ conf: null, menuLinha: null });
-      void executar(() => reverterMovimentacao(id), "Movimentação revertida");
+  const undoMovement = useCallback(
+    async (id: string) => {
+      set({ rowMenu: null });
+      await run(() => undoStockMovement(id), "Movimentação revertida");
+      // A caixa de confirmação só sai depois da resposta: é o botão dela que
+      // segura a espera, travado e girando. Fechá-la antes anunciava um fim que
+      // o servidor ainda podia recusar.
+      set({ confirmDialog: null });
     },
-    [executar, set],
+    [run, set],
   );
 
   /* ---------------------------------------------------------------------- */
   /* Custos                                                                  */
   /* ---------------------------------------------------------------------- */
 
-  const abrirCusto = useCallback(
+  const openCost = useCallback(
     (id: string | null) => {
-      const c = id ? d.custos.find((y) => y.id === id) : null;
+      const c = id ? d.costs.find((y) => y.id === id) : null;
       set({
-        modal: { k: "custo", id },
-        menuLinha: null,
-        formCusto: c
+        modal: { k: "cost", id },
+        rowMenu: null,
+        costForm: c
           ? {
               id: c.id,
-              tipo: c.tipo,
-              descricao: c.descricao,
-              categoria: c.categoria,
-              valor: String(c.valor).replace(".", ","),
+              type: c.type,
+              description: c.description,
+              category: c.category,
+              amount: String(c.amount).replace(".", ","),
               d: c.d,
-              recorrente: c.recorrente,
-              tentouSalvar: false,
+              recurring: c.recurring,
+              submitted: false,
             }
-          : { ...FORM_CUSTO_VAZIO },
+          : { ...EMPTY_COST_FORM },
       });
     },
-    [d.custos, set],
+    [d.costs, set],
   );
 
-  const salvarCusto = useCallback(() => {
-    const f = s.formCusto;
-    const valor = numBR(f.valor);
-    if (!f.descricao.trim() || valor <= 0) {
-      set({ formCusto: { ...f, tentouSalvar: true } });
+  const saveCost = useCallback(async () => {
+    const f = s.costForm;
+    const amount = parseBrNumber(f.amount);
+    if (!f.description.trim() || amount <= 0) {
+      set({ costForm: { ...f, submitted: true } });
       return;
     }
 
-    void executar(
+    await run(
       () =>
         acaoSalvarCusto({
           id: f.id,
-          tipo: f.tipo,
-          descricao: f.descricao,
-          categoria: f.categoria,
-          valor,
-          data: dataDeDiasAtras(f.d),
-          recorrente: f.recorrente,
+          type: f.type,
+          description: f.description,
+          category: f.category,
+          amount,
+          data: dateDaysAgo(f.d),
+          recurring: f.recurring,
         }),
       f.id ? "Custo atualizado" : "Custo registrado",
-      (ok) => ok && set({ modal: null, formCusto: { ...FORM_CUSTO_VAZIO } }),
+      (ok) => ok && set({ modal: null, costForm: { ...EMPTY_COST_FORM } }),
     );
-  }, [s.formCusto, executar, set]);
+  }, [s.costForm, run, set]);
 
-  const excluirCusto = useCallback(
-    (id: string) => {
-      set({ conf: null, menuLinha: null });
-      void executar(() => acaoExcluirCusto(id), "Custo excluído");
+  const deleteCost = useCallback(
+    async (id: string) => {
+      set({ rowMenu: null });
+      await run(() => acaoExcluirCusto(id), "Custo excluído");
+      // A caixa de confirmação só sai depois da resposta: é o botão dela que
+      // segura a espera, travado e girando. Fechá-la antes anunciava um fim que
+      // o servidor ainda podia recusar.
+      set({ confirmDialog: null });
     },
-    [executar, set],
+    [run, set],
   );
 
   /* ---------------------------------------------------------------------- */
   /* Caixa                                                                   */
   /* ---------------------------------------------------------------------- */
 
-  const abrirCaixa = useCallback(() => {
-    const valor = numBR(s.formCaixa.valor);
-    void executar(
-      () => acaoAbrirCaixa(valor),
+  const openRegister = useCallback(() => {
+    const amount = parseBrNumber(s.registerForm.amount);
+    return run(
+      () => acaoAbrirCaixa(amount),
       "Caixa aberto",
-      (ok) => ok && set({ modal: null, formCaixa: { ...FORM_CAIXA_VAZIO } }),
+      (ok) => ok && set({ modal: null, registerForm: { ...EMPTY_REGISTER_FORM } }),
     );
-  }, [s.formCaixa.valor, executar, set]);
+  }, [s.registerForm.amount, run, set]);
 
-  const registrarMovCaixa = useCallback(() => {
-    if (s.modal?.k !== "caixaMov" || !d.caixaAberto) return;
-    const tipo = s.modal.tipo;
+  const recordRegisterMovement = useCallback(async () => {
+    if (s.modal?.k !== "registerMovement" || !d.openRegister) return;
+    const type = s.modal.type;
 
-    void executar(
+    await run(
       () =>
-        registrarMovimentacaoCaixa({
-          caixaId: d.caixaAberto!.id,
-          tipo,
-          valor: numBR(s.formCaixa.valor),
-          motivo: s.formCaixa.motivo,
+        recordRegisterMovementAction({
+          registerId: d.openRegister!.id,
+          type,
+          amount: parseBrNumber(s.registerForm.amount),
+          reason: s.registerForm.reason,
         }),
-      tipo === "sangria" ? "Sangria registrada" : "Reforço registrado",
-      (ok) => ok && set({ modal: null, conf: null, formCaixa: { ...FORM_CAIXA_VAZIO } }),
+      type === "withdrawal" ? "Sangria registrada" : "Reforço registrado",
+      (ok) => ok && set({ modal: null, confirmDialog: null, registerForm: { ...EMPTY_REGISTER_FORM } }),
     );
-  }, [s.modal, s.formCaixa, d.caixaAberto, executar, set]);
+  }, [s.modal, s.registerForm, d.openRegister, run, set]);
 
-  const reverterMovCaixa = useCallback(
-    (id: string) => {
-      set({ conf: null });
-      void executar(() => reverterMovimentacaoCaixa(id), "Movimentação revertida");
+  const undoRegisterMovement = useCallback(
+    async (id: string) => {
+      await run(() => undoRegisterMovementAction(id), "Movimentação revertida");
+      // A caixa de confirmação só sai depois da resposta: é o botão dela que
+      // segura a espera, travado e girando. Fechá-la antes anunciava um fim que
+      // o servidor ainda podia recusar.
+      set({ confirmDialog: null });
     },
-    [executar, set],
+    [run, set],
   );
 
-  const fecharCaixa = useCallback(() => {
-    if (!d.caixaAberto) return;
-    void executar(
+  const closeRegister = useCallback(async () => {
+    if (!d.openRegister) return;
+    await run(
       () =>
         acaoFecharCaixa(
-          d.caixaAberto!.id,
-          numBR(s.formCaixa.contadoDinheiro),
-          s.formCaixa.obs,
+          d.openRegister!.id,
+          parseBrNumber(s.registerForm.countedCash),
+          s.registerForm.obs,
         ),
       "Caixa fechado",
-      (ok) => ok && set({ modal: null, conf: null, formCaixa: { ...FORM_CAIXA_VAZIO } }),
+      (ok) => ok && set({ modal: null, confirmDialog: null, registerForm: { ...EMPTY_REGISTER_FORM } }),
     );
-  }, [d.caixaAberto, s.formCaixa, executar, set]);
+  }, [d.openRegister, s.registerForm, run, set]);
 
-  const reabrirCaixa = useCallback(
-    (id: string) => {
-      set({ conf: null, modal: null, menuLinha: null });
-      void executar(() => acaoReabrirCaixa(id), "Caixa reaberto");
+  const reopenRegister = useCallback(
+    async (id: string) => {
+      set({ rowMenu: null });
+      await run(() => acaoReabrirCaixa(id), "Caixa reaberto");
+      set({ confirmDialog: null, modal: null });
     },
-    [executar, set],
+    [run, set],
   );
 
   /* ---------------------------------------------------------------------- */
   /* Configurações                                                           */
   /* ---------------------------------------------------------------------- */
 
-  const salvarDados = useCallback(() => {
-    void executar(() => salvarDadosNegocio(s.dadosRascunho), "Dados do negócio salvos");
-  }, [s.dadosRascunho, executar]);
+  const saveData = useCallback(() => {
+    return run(() => saveBusinessData(s.draftData), "Dados do negócio salvos");
+  }, [s.draftData, run]);
 
-  const descartarDados = useCallback(
-    () => setS((x) => ({ ...x, dadosRascunho: { ...d.dados } })),
-    [d.dados],
+  const discardData = useCallback(
+    () => setS((x) => ({ ...x, draftData: { ...d.data } })),
+    [d.data],
   );
 
-  const toggleForma = useCallback((f: FormaPagamento) => {
+  const toggleMethod = useCallback((f: PaymentMethod) => {
     setS((x) => {
-      const ligada = x.formasAceitas.includes(f);
+      const on = x.acceptedMethods.includes(f);
       // Desligar a última forma deixaria o PDV sem como cobrar.
-      if (ligada && x.formasAceitas.length === 1) {
+      if (on && x.acceptedMethods.length === 1) {
         return { ...x, toast: "Você precisa aceitar pelo menos uma forma" };
       }
-      const formasAceitas = ligada
-        ? x.formasAceitas.filter((y) => y !== f)
-        : [...x.formasAceitas, f];
+      const acceptedMethods = on
+        ? x.acceptedMethods.filter((y) => y !== f)
+        : [...x.acceptedMethods, f];
       return {
         ...x,
-        formasAceitas,
-        pagAtual: formasAceitas.includes(x.pagAtual) ? x.pagAtual : formasAceitas[0],
+        acceptedMethods,
+        currentMethod: acceptedMethods.includes(x.currentMethod) ? x.currentMethod : acceptedMethods[0],
       };
     });
   }, []);
 
-  const abrirPapel = useCallback(
+  const openRole = useCallback(
     (id: string | null) => {
-      const p = id ? d.papeis.find((y) => y.id === id) : null;
+      const p = id ? d.roles.find((y) => y.id === id) : null;
       set({
-        modal: { k: "papel", id },
-        menuLinha: null,
-        formPapel: p
-          ? { id: p.id, nome: p.nome, modulos: p.modulos.slice(), tentouSalvar: false }
-          : { ...FORM_PAPEL_VAZIO },
+        modal: { k: "role", id },
+        rowMenu: null,
+        roleForm: p
+          ? { id: p.id, name: p.name, modules: p.modules.slice(), submitted: false }
+          : { ...EMPTY_ROLE_FORM },
       });
     },
-    [d.papeis, set],
+    [d.roles, set],
   );
 
-  const salvarPapel = useCallback(() => {
-    const f = s.formPapel;
-    if (!f.nome.trim()) {
-      set({ formPapel: { ...f, tentouSalvar: true } });
+  const saveRole = useCallback(async () => {
+    const f = s.roleForm;
+    if (!f.name.trim()) {
+      set({ roleForm: { ...f, submitted: true } });
       return;
     }
-    void executar(
-      () => acaoSalvarPapel({ id: f.id, nome: f.nome, modulos: f.modulos }),
+    await run(
+      () => acaoSalvarPapel({ id: f.id, name: f.name, modules: f.modules }),
       f.id ? "Tipo de acesso atualizado" : "Tipo de acesso criado",
-      (ok) => ok && set({ modal: null, formPapel: { ...FORM_PAPEL_VAZIO } }),
+      (ok) => ok && set({ modal: null, roleForm: { ...EMPTY_ROLE_FORM } }),
     );
-  }, [s.formPapel, executar, set]);
+  }, [s.roleForm, run, set]);
 
-  const removerPapel = useCallback(
-    (id: string) => {
-      set({ conf: null, menuLinha: null });
-      void executar(() => acaoRemoverPapel(id), "Tipo de acesso removido");
+  const removeRole = useCallback(
+    async (id: string) => {
+      set({ rowMenu: null });
+      await run(() => acaoRemoverPapel(id), "Tipo de acesso removido");
+      // A caixa de confirmação só sai depois da resposta: é o botão dela que
+      // segura a espera, travado e girando. Fechá-la antes anunciava um fim que
+      // o servidor ainda podia recusar.
+      set({ confirmDialog: null });
     },
-    [executar, set],
+    [run, set],
   );
 
-  const toggleFuncionario = useCallback(
-    (id: string) => {
-      const f = d.equipe.find((y) => y.id === id);
+  const toggleEmployee = useCallback(
+    async (id: string) => {
+      const f = d.team.find((y) => y.id === id);
       if (!f) return;
-      set({ conf: null, menuLinha: null });
-      void executar(
-        () => alternarFuncionario(id, !f.ativo),
-        f.ativo ? "Acesso suspenso" : "Acesso liberado",
+      set({ rowMenu: null });
+      await run(
+        () => setEmployeeActive(id, !f.active),
+        f.active ? "Acesso suspenso" : "Acesso liberado",
       );
+      // A caixa de confirmação só sai depois da resposta: é o botão dela que
+      // segura a espera, travado e girando. Fechá-la antes anunciava um fim que
+      // o servidor ainda podia recusar.
+      set({ confirmDialog: null });
     },
-    [d.equipe, executar, set],
+    [d.team, run, set],
   );
 
-  const mudarPapelDoFuncionario = useCallback(
-    (id: string, papelId: string) => {
-      set({ menuLinha: null });
-      void executar(() => acaoMudarPapel(id, papelId), "Tipo de acesso alterado");
+  const changeEmployeeRole = useCallback(
+    (id: string, roleId: string) => {
+      set({ rowMenu: null });
+      return run(() => acaoMudarPapel(id, roleId), "Tipo de acesso alterado");
     },
-    [executar, set],
+    [run, set],
   );
 
   /* ---------------------------------------------------------------------- */
   /* Suporte                                                                 */
   /* ---------------------------------------------------------------------- */
 
-  const abrirNovoChamado = useCallback(
-    () => set({ modal: { k: "novoChamado" }, formChamado: { ...FORM_CHAMADO_VAZIO } }),
+  const openNewTicket = useCallback(
+    () => set({ modal: { k: "newTicket" }, ticketForm: { ...EMPTY_TICKET_FORM } }),
     [set],
   );
 
-  const enviarChamado = useCallback(() => {
-    const f = s.formChamado;
-    if (f.assunto.trim().length < 5 || f.descricao.trim().length < 15) {
-      set({ formChamado: { ...f, tentouEnviar: true } });
+  const sendTicket = useCallback(async () => {
+    const f = s.ticketForm;
+    if (f.subject.trim().length < 5 || f.description.trim().length < 15) {
+      set({ ticketForm: { ...f, submitted: true } });
       return;
     }
-    void executar(
+    await run(
       () =>
-        abrirChamado({
-          assunto: f.assunto,
-          categoria: f.categoria,
-          descricao: f.descricao,
-          anexo: f.anexo,
+        openTicket({
+          subject: f.subject,
+          category: f.category,
+          description: f.description,
+          attachment: f.attachment,
         }),
       "Chamado aberto",
-      (ok) => ok && set({ modal: null, formChamado: { ...FORM_CHAMADO_VAZIO } }),
+      (ok) => ok && set({ modal: null, ticketForm: { ...EMPTY_TICKET_FORM } }),
     );
-  }, [s.formChamado, executar, set]);
+  }, [s.ticketForm, run, set]);
 
-  const responderChamado = useCallback(
-    (id: string) => {
-      const f = s.formResposta;
-      if (!f.texto.trim()) {
+  const replyToTicket = useCallback(
+    async (id: string) => {
+      const f = s.replyForm;
+      if (!f.text.trim()) {
         set({ toast: "Escreva a sua resposta" });
         return;
       }
-      void executar(
-        () => acaoResponder(id, f.texto, f.anexo),
+      await run(
+        () => acaoResponder(id, f.text, f.attachment),
         "Resposta enviada",
-        (ok) => ok && set({ formResposta: { ...FORM_RESPOSTA_VAZIA } }),
+        (ok) => ok && set({ replyForm: { ...EMPTY_REPLY_FORM } }),
       );
     },
-    [s.formResposta, executar, set],
+    [s.replyForm, run, set],
   );
 
-  const resolverChamado = useCallback(
-    (id: string) => {
-      set({ conf: null });
-      void executar(() => mudarStatusChamado(id, "resolvido"), "Chamado resolvido");
+  const resolveTicket = useCallback(
+    async (id: string) => {
+      await run(() => setTicketStatus(id, "resolved"), "Chamado resolvido");
+      // A caixa de confirmação só sai depois da resposta: é o botão dela que
+      // segura a espera, travado e girando. Fechá-la antes anunciava um fim que
+      // o servidor ainda podia recusar.
+      set({ confirmDialog: null });
     },
-    [executar, set],
+    [run, set],
   );
 
-  const reabrirChamado = useCallback(
-    (id: string) => void executar(() => mudarStatusChamado(id, "andamento"), "Chamado reaberto"),
-    [executar],
+  const reopenTicket = useCallback(
+    (id: string) => run(() => setTicketStatus(id, "inProgress"), "Chamado reaberto"),
+    [run],
   );
 
   /**
@@ -721,13 +790,14 @@ export function PortalProvider({
    * não merece aviso na tela nem trava de botão. O refresh vem junto para o
    * selo "nova resposta" sumir do menu.
    */
-  const marcarLido = useCallback(
-    (id: string) => {
-      const c = d.chamados.find((y) => y.id === id);
-      if (!c?.naoLido) return;
-      void marcarChamadoLido(id).then(() => iniciarTransicao(() => router.refresh()));
+  const markRead = useCallback(
+    async (id: string) => {
+      const c = d.tickets.find((y) => y.id === id);
+      if (!c?.unread) return;
+      await markTicketRead(id);
+      iniciarTransicao(() => router.refresh());
     },
-    [d.chamados, router],
+    [d.tickets, router],
   );
 
   /* ---------------------------------------------------------------------- */
@@ -735,68 +805,68 @@ export function PortalProvider({
   const a = useMemo<PortalActions>(
     () => ({
       set,
-      toggleTema,
-      irPara,
-      avisar,
-      confirmar,
-      fecharConf,
-      fecharModal,
-      abrirModal,
-      abrirMenu,
-      sair,
-      addCarrinho,
-      mudarQtd,
-      removerItem,
-      limparCarrinho,
-      registrarVenda,
-      editarVenda,
-      estornarVenda,
-      desfazerEstorno,
-      abrirProduto,
-      salvarProduto,
+      toggleTheme,
+      goTo,
+      notify,
+      confirm,
+      closeConfirm,
+      closeModal,
+      openModal,
+      openMenu,
+      signOut,
+      addToCart,
+      changeQty,
+      removeItem,
+      clearCart,
+      recordSale,
+      editSale,
+      refundSale,
+      undoRefund,
+      openProduct,
+      saveProduct,
       toggleFav,
-      toggleAtivo,
-      excluirProduto,
-      abrirMov,
-      salvarMov,
-      reverterMov,
-      abrirCusto,
-      salvarCusto,
-      excluirCusto,
-      abrirCaixa,
-      registrarMovCaixa,
-      reverterMovCaixa,
-      fecharCaixa,
-      reabrirCaixa,
-      salvarDados,
-      descartarDados,
-      toggleForma,
-      abrirPapel,
-      salvarPapel,
-      removerPapel,
-      toggleFuncionario,
-      mudarPapelDoFuncionario,
-      abrirNovoChamado,
-      enviarChamado,
-      responderChamado,
-      resolverChamado,
-      reabrirChamado,
-      marcarLido,
+      toggleActive,
+      deleteProduct,
+      openMovement,
+      saveMovement,
+      undoMovement,
+      openCost,
+      saveCost,
+      deleteCost,
+      openRegister,
+      recordRegisterMovement,
+      undoRegisterMovement,
+      closeRegister,
+      reopenRegister,
+      saveData,
+      discardData,
+      toggleMethod,
+      openRole,
+      saveRole,
+      removeRole,
+      toggleEmployee,
+      changeEmployeeRole,
+      openNewTicket,
+      sendTicket,
+      replyToTicket,
+      resolveTicket,
+      reopenTicket,
+      markRead,
     }),
     [
-      set, toggleTema, irPara, avisar, confirmar, fecharConf, fecharModal, abrirModal,
-      abrirMenu, sair, addCarrinho, mudarQtd, removerItem, limparCarrinho, registrarVenda,
-      editarVenda, estornarVenda, desfazerEstorno, abrirProduto, salvarProduto, toggleFav,
-      toggleAtivo, excluirProduto, abrirMov, salvarMov, reverterMov, abrirCusto, salvarCusto,
-      excluirCusto, abrirCaixa, registrarMovCaixa, reverterMovCaixa, fecharCaixa, reabrirCaixa,
-      salvarDados, descartarDados, toggleForma, abrirPapel, salvarPapel, removerPapel,
-      toggleFuncionario, mudarPapelDoFuncionario, abrirNovoChamado, enviarChamado,
-      responderChamado, resolverChamado, reabrirChamado, marcarLido,
+      set, toggleTheme, goTo, notify, confirm, closeConfirm, closeModal, openModal,
+      openMenu, signOut, addToCart, changeQty, removeItem, clearCart, recordSale,
+      editSale, refundSale, undoRefund, openProduct, saveProduct, toggleFav,
+      toggleActive, deleteProduct, openMovement, saveMovement, undoMovement, openCost, saveCost,
+      deleteCost, openRegister, recordRegisterMovement, undoRegisterMovement, closeRegister, reopenRegister,
+      saveData, discardData, toggleMethod, openRole, saveRole, removeRole,
+      toggleEmployee, changeEmployeeRole, openNewTicket, sendTicket,
+      replyToTicket, resolveTicket, reopenTicket, markRead,
     ],
   );
 
   return (
-    <Ctx.Provider value={{ s, a, d, modulos, tem, isMobile, isDesktop }}>{children}</Ctx.Provider>
+    <Ctx.Provider value={{ s, a, d, modules, has, isMobile, isDesktop }}>{children}</Ctx.Provider>
   );
 }
 
@@ -807,7 +877,7 @@ export function usePortal(): ViewProps {
 }
 
 /** 'YYYY-MM-DD' de N dias atrás — o formato de `costs.cost_date`. */
-function dataDeDiasAtras(d: number): string {
+function dateDaysAgo(d: number): string {
   const x = new Date();
   x.setHours(0, 0, 0, 0);
   x.setDate(x.getDate() - d);

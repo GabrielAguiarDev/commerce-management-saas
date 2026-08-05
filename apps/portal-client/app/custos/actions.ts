@@ -1,47 +1,47 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ORIGEM_MANUAL, TIPO_CUSTO_DB } from "@/lib/dados/custos";
-import { exigirCliente, type ResultadoAcao } from "@/lib/sessao";
-import type { TipoCusto } from "@/types/types";
+import { MANUAL_ORIGIN, COST_TYPE_DB } from "@/lib/dados/custos";
+import { requireCustomer, type ActionResult } from "@/lib/sessao";
+import type { CostType } from "@/types/types";
 
-export interface CustoParaSalvar {
+export interface CostToSave {
   id: string | null;
-  tipo: TipoCusto;
-  descricao: string;
-  categoria: string;
-  valor: number;
+  type: CostType;
+  description: string;
+  category: string;
+  amount: number;
   /** 'YYYY-MM-DD'. */
   data: string;
-  recorrente: boolean;
+  recurring: boolean;
 }
 
-export async function salvarCusto(c: CustoParaSalvar): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("lançar um custo");
-  if (!sessao.ok) return sessao;
+export async function saveCost(c: CostToSave): Promise<ActionResult> {
+  const session = await requireCustomer("lançar um custo");
+  if (!session.ok) return session;
 
-  if (!c.descricao.trim()) return { ok: false, mensagem: "Escreva o que foi o gasto." };
-  if (!(c.valor > 0)) return { ok: false, mensagem: "Informe um valor maior que zero." };
+  if (!c.description.trim()) return { ok: false, message: "Escreva o que foi o gasto." };
+  if (!(c.amount > 0)) return { ok: false, message: "Informe um valor maior que zero." };
 
-  const { supabase, tenantId, usuarioId } = sessao;
+  const { supabase, tenantId, userId } = session;
 
-  const campos = {
-    description: c.descricao.trim(),
-    type: TIPO_CUSTO_DB[c.tipo],
-    category: c.categoria.trim() || null,
-    amount: c.valor,
+  const fields = {
+    description: c.description.trim(),
+    type: COST_TYPE_DB[c.type],
+    category: c.category.trim() || null,
+    amount: c.amount,
     // Só custo fixo repete: um saco de feijão não volta sozinho todo mês.
-    is_recurring: c.tipo === "fixo" ? c.recorrente : false,
+    is_recurring: c.type === "fixed" ? c.recurring : false,
     cost_date: c.data,
   };
 
   const { error } = c.id
-    ? await supabase.from("costs").update(campos).eq("id", c.id)
+    ? await supabase.from("costs").update(fields).eq("id", c.id)
     : await supabase
         .from("costs")
-        .insert({ tenant_id: tenantId, user_id: usuarioId, origin: ORIGEM_MANUAL, ...campos });
+        .insert({ tenant_id: tenantId, user_id: userId, origin: MANUAL_ORIGIN, ...fields });
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -54,22 +54,22 @@ export async function salvarCusto(c: CustoParaSalvar): Promise<ResultadoAcao> {
  * mercadoria, e apagá-lo sozinho deixaria a compra sem despesa. Quem corrige é
  * a reversão da movimentação.
  */
-export async function excluirCusto(id: string): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("excluir um custo");
-  if (!sessao.ok) return sessao;
-  const { supabase } = sessao;
+export async function deleteCost(id: string): Promise<ActionResult> {
+  const session = await requireCustomer("excluir um custo");
+  if (!session.ok) return session;
+  const { supabase } = session;
 
-  const { data: custo } = await supabase.from("costs").select("origin").eq("id", id).single();
+  const { data: cost } = await supabase.from("costs").select("origin").eq("id", id).single();
 
-  if (custo?.origin === "stock") {
+  if (cost?.origin === "stock") {
     return {
       ok: false,
-      mensagem: "Este custo veio de uma entrada no Estoque. Ajuste a movimentação por lá.",
+      message: "Este custo veio de uma entrada no Estoque. Ajuste a movimentação por lá.",
     };
   }
 
   const { error } = await supabase.from("costs").delete().eq("id", id);
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/", "layout");
   return { ok: true };

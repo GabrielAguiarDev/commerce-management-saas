@@ -1,4 +1,4 @@
-import type { ModuloKey } from "@/types/types";
+import type { ModuleKey } from "@/types/types";
 
 /**
  * A ponte entre as chaves do banco (`modules.key`, em inglês) e as do portal.
@@ -11,23 +11,23 @@ import type { ModuloKey } from "@/types/types";
  * - `app` existe no banco mas é módulo de ACESSO (`is_access = true`): libera o
  *   aplicativo mobile, não uma tela do portal. Por isso nunca vira item de menu.
  */
-const DB_PARA_PORTAL: Record<string, ModuloKey> = {
-  sales: "vendas",
-  products: "produtos",
-  stock: "estoque",
-  cash: "caixa",
-  costs: "custos",
-  reports: "relatorios",
-  support: "suporte",
+const DB_TO_PORTAL: Record<string, ModuleKey> = {
+  sales: "sales",
+  products: "products",
+  stock: "stock",
+  cash: "register",
+  costs: "costs",
+  reports: "reports",
+  support: "support",
 };
 
 /** O caminho inverso, para quando a interface precisa perguntar pelo banco. */
-export const PORTAL_PARA_DB: Partial<Record<ModuloKey, string>> = Object.fromEntries(
-  Object.entries(DB_PARA_PORTAL).map(([db, portal]) => [portal, db]),
-) as Partial<Record<ModuloKey, string>>;
+export const PORTAL_TO_DB: Partial<Record<ModuleKey, string>> = Object.fromEntries(
+  Object.entries(DB_TO_PORTAL).map(([db, portal]) => [portal, db]),
+) as Partial<Record<ModuleKey, string>>;
 
 /** Módulos que todo cliente tem, sem depender do plano. */
-export const MODULOS_BASE: ModuloKey[] = ["dashboard", "config"];
+export const BASE_MODULES: ModuleKey[] = ["dashboard", "settings"];
 
 /**
  * Converte as linhas de `v_active_modules` na lista que o menu e as telas leem.
@@ -35,26 +35,26 @@ export const MODULOS_BASE: ModuloKey[] = ["dashboard", "config"];
  * A ordem é a do menu, não a do banco: assim a barra lateral sai estável
  * independentemente de como a consulta voltou.
  */
-const ORDEM: ModuloKey[] = [
+const ORDER: ModuleKey[] = [
   "dashboard",
-  "vendas",
-  "caixa",
-  "produtos",
-  "estoque",
-  "custos",
-  "relatorios",
-  "config",
-  "suporte",
+  "sales",
+  "register",
+  "products",
+  "stock",
+  "costs",
+  "reports",
+  "settings",
+  "support",
 ];
 
-export function modulosDoTenant(linhas: { key: string; is_access: boolean | null }[]): ModuloKey[] {
-  const ativos = new Set<ModuloKey>(MODULOS_BASE);
+export function tenantModules(rows: { key: string; is_access: boolean | null }[]): ModuleKey[] {
+  const active = new Set<ModuleKey>(BASE_MODULES);
 
-  for (const l of linhas) {
+  for (const l of rows) {
     if (l.is_access) continue; // 'app' e afins não são tela do portal.
-    const k = DB_PARA_PORTAL[l.key];
-    if (k) ativos.add(k);
+    const k = DB_TO_PORTAL[l.key];
+    if (k) active.add(k);
   }
 
-  return ORDEM.filter((k) => ativos.has(k));
+  return ORDER.filter((k) => active.has(k));
 }

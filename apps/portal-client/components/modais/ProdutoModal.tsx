@@ -1,111 +1,113 @@
 "use client";
 
-import { ModalBase } from "@/components/modais/Base";
-import { campo, CampoDinheiro, CampoRotulado, css, MONO, RodapeModal, ROTULO_CAMPO, SANS, SelecaoSimples, trilha } from "@aguiar/ui";
+import { ModalFrame } from "@/components/modais/Base";
+import { Button, field, MoneyField, LabeledField, css, MONO, ModalFooter, FIELD_LABEL, SANS, SimpleSelect, track } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { categoriasDe, UNIDADES } from "@/lib/dados/produtos";
-import { numBR } from "@/lib/formato";
+import { categoriesOf, UNITS } from "@/lib/dados/produtos";
+import { parseBrNumber } from "@/lib/formato";
 
 /**
  * Cadastro e edição de produto.
  *
  * Os campos de baixo — código de barras, custo, estoque, unidade — só aparecem
  * para quem tem o módulo correspondente. Um cliente sem Estoque não deve ver
- * "quantidade em estoque": é um campo que ele nunca vai poder usar.
+ * "quantidade em estoque": é um field que ele nunca vai poder usar.
  */
 export function ProdutoModal() {
-  const { s, a, tem, isMobile, d } = usePortal();
-  const f = s.formProduto;
-  const editando = f.id != null;
+  const { s, a, has, isMobile, d } = usePortal();
+  const f = s.productForm;
+  const editing = f.id != null;
 
-  const erroNome = f.tentouSalvar && !f.nome.trim();
-  const erroPreco = f.tentouSalvar && numBR(f.preco) <= 0;
+  const nameError = f.submitted && !f.name.trim();
+  const priceError = f.submitted && parseBrNumber(f.price) <= 0;
 
-  const temCusto = tem("custos") || tem("relatorios");
-  const temEstoque = tem("estoque");
-  const temCodigo = tem("estoque") || tem("produtos");
-  const temAvancado = temCusto || temEstoque || temCodigo;
+  const hasCost = has("costs") || has("reports");
+  const hasStock = has("stock");
+  const hasCode = has("stock") || has("products");
+  const hasAdvanced = hasCost || hasStock || hasCode;
 
   const cols = isMobile ? "1fr" : "1fr 1fr";
 
-  const preco = numBR(f.preco);
-  const custo = numBR(f.custo);
-  const margem = preco > 0 && custo > 0 ? ((preco - custo) / preco) * 100 : null;
+  const price = parseBrNumber(f.price);
+  const cost = parseBrNumber(f.cost);
+  const margin = price > 0 && cost > 0 ? ((price - cost) / price) * 100 : null;
 
-  const set = (p: Partial<typeof f>) => a.set({ formProduto: { ...f, ...p } });
+  const set = (p: Partial<typeof f>) => a.set({ productForm: { ...f, ...p } });
 
   return (
-    <ModalBase
-      titulo={editando ? "Editar produto" : "Novo produto"}
-      subtitulo={
-        editando
+    <ModalFrame
+      closeLabel="Fechar"
+      title={editing ? "Editar produto" : "Novo produto"}
+      subtitle={
+        editing
           ? "O que mudar aqui vale para as próximas vendas."
           : "Cadastre o que você vende para agilizar o balcão."
       }
-      largura={560}
-      onFechar={a.fecharModal}
-      rodape={
-        <RodapeModal
-          onCancelar={a.fecharModal}
-          onConfirmar={a.salvarProduto}
-          textoConfirmar={editando ? "Salvar alterações" : "Cadastrar produto"}
+      width={560}
+      onClose={a.closeModal}
+      footer={
+        <ModalFooter
+          cancelText="Cancelar"
+          onCancel={a.closeModal}
+          onConfirm={a.saveProduct}
+          confirmText={editing ? "Salvar alterações" : "Cadastrar produto"}
         />
       }
     >
-      <CampoRotulado
+      <LabeledField
         label="Nome do produto"
-        valor={f.nome}
-        onMudar={(v) => set({ nome: v })}
+        value={f.name}
+        onChange={(v) => set({ name: v })}
         placeholder="Ex.: o que você vende"
-        erro={erroNome}
-        mensagem="Escreva o nome do produto."
+        error={nameError}
+        message="Escreva o nome do produto."
       />
 
       <div style={css(`display:grid;grid-template-columns:${cols};gap:12px`)}>
-        <CampoDinheiro
+        <MoneyField
           label="Preço de venda"
-          valor={f.preco}
-          onMudar={(v) => set({ preco: v })}
-          erro={erroPreco}
-          mensagem="Informe um preço maior que zero."
+          value={f.price}
+          onChange={(v) => set({ price: v })}
+          error={priceError}
+          message="Informe um preço maior que zero."
         />
 
         <div>
-          <label style={css(ROTULO_CAMPO)}>Categoria</label>
-          {f.catNova ? (
+          <label style={css(FIELD_LABEL)}>Categoria</label>
+          {f.newCategory ? (
             <div style={css("display:flex;gap:7px")}>
               <input
-                value={f.categoria}
-                onChange={(e) => set({ categoria: e.target.value })}
+                value={f.category}
+                onChange={(e) => set({ category: e.target.value })}
                 placeholder="Nome da nova categoria"
-                style={css(campo().replace("var(--border2)", "var(--accent)"))}
+                style={css(field().replace("var(--border2)", "var(--accent)"))}
               />
-              <button
-                onClick={() => set({ catNova: false, categoria: categoriasDe(d.produtos)[0] ?? "" })}
+              <Button
+                onClick={() => set({ newCategory: false, category: categoriesOf(d.products)[0] ?? "" })}
                 title="Escolher da lista"
                 style={css(
                   `flex:none;padding:0 12px;border:1px solid var(--border2);border-radius:11px;background:var(--surface);color:var(--muted);font:600 13px ${MONO}`,
                 )}
               >
                 ×
-              </button>
+              </Button>
             </div>
           ) : (
-            <SelecaoSimples
-              valor={f.categoria}
+            <SimpleSelect
+              value={f.category}
               // "Criar categoria" é uma opção da própria lista: é onde a pessoa
               // já está olhando quando descobre que a dela não existe.
-              opcoes={[...categoriasDe(d.produtos), "+ Criar categoria"]}
-              onMudar={(v) =>
-                v === "+ Criar categoria" ? set({ catNova: true, categoria: "" }) : set({ categoria: v })
+              options={[...categoriesOf(d.products), "+ Criar categoria"]}
+              onChange={(v) =>
+                v === "+ Criar categoria" ? set({ newCategory: true, category: "" }) : set({ category: v })
               }
-              estilo={campo(false, true)}
+              cssText={field(false, true)}
             />
           )}
         </div>
       </div>
 
-      {editando && (
+      {editing && (
         <div
           style={css(
             `padding:11px 13px;border-radius:11px;background:var(--surface2);border:1px solid var(--border);font:500 12px/1.5 ${SANS};color:var(--text2)`,
@@ -117,21 +119,21 @@ export function ProdutoModal() {
       )}
 
       <div style={css("display:flex;gap:9px;flex-wrap:wrap")}>
-        <button
-          onClick={() => set({ ativo: !f.ativo })}
+        <Button
+          onClick={() => set({ active: !f.active })}
           style={css(
-            `display:flex;align-items:center;gap:9px;padding:12px 14px;border:1px solid ${f.ativo ? "var(--accent)" : "var(--border2)"};` +
-              `border-radius:11px;background:${f.ativo ? "var(--accent-soft)" : "var(--surface2)"};` +
-              `color:${f.ativo ? "var(--accent)" : "var(--muted)"};font:600 13px ${SANS}`,
+            `display:flex;align-items:center;gap:9px;padding:12px 14px;border:1px solid ${f.active ? "var(--accent)" : "var(--border2)"};` +
+              `border-radius:11px;background:${f.active ? "var(--accent-soft)" : "var(--surface2)"};` +
+              `color:${f.active ? "var(--accent)" : "var(--muted)"};font:600 13px ${SANS}`,
           )}
         >
-          <span style={css(trilha(f.ativo, 34, 20))}>
+          <span style={css(track(f.active, 34, 20))}>
             <span style={css("width:16px;height:16px;border-radius:50%;background:#fff")} />
           </span>
-          {f.ativo ? "À venda" : "Pausado"}
-        </button>
+          {f.active ? "À venda" : "Pausado"}
+        </Button>
 
-        <button
+        <Button
           onClick={() => set({ fav: !f.fav })}
           style={css(
             `display:flex;align-items:center;gap:9px;padding:12px 14px;border:1px solid ${f.fav ? "var(--warn)" : "var(--border2)"};` +
@@ -141,10 +143,10 @@ export function ProdutoModal() {
         >
           <span style={css(`font:600 15px/1 ${SANS}`)}>{f.fav ? "★" : "☆"}</span>
           {f.fav ? "Aparece primeiro no PDV" : "Marcar como mais vendido"}
-        </button>
+        </Button>
       </div>
 
-      {temAvancado && (
+      {hasAdvanced && (
         <div style={css("padding-top:12px;border-top:1px solid var(--border)")}>
           <div
             style={css(
@@ -154,56 +156,56 @@ export function ProdutoModal() {
             Detalhes do seu negócio
           </div>
           <div style={css(`display:grid;grid-template-columns:${cols};gap:12px`)}>
-            {temCodigo && (
-              <CampoRotulado
+            {hasCode && (
+              <LabeledField
                 label="Código de barras"
-                valor={f.codigo}
-                onMudar={(v) => set({ codigo: v })}
+                value={f.code}
+                onChange={(v) => set({ code: v })}
                 placeholder="Bipe ou digite o código"
-                nota="Serve para bipar o produto na venda."
+                note="Serve para bipar o produto na venda."
                 mono
               />
             )}
 
-            {temCusto && (
-              <CampoDinheiro
+            {hasCost && (
+              <MoneyField
                 label="Quanto você paga (custo)"
-                valor={f.custo}
-                onMudar={(v) => set({ custo: v })}
-                nota={
-                  margem == null
+                value={f.cost}
+                onChange={(v) => set({ cost: v })}
+                note={
+                  margin == null
                     ? "Com o custo, o portal calcula o seu lucro."
-                    : `Margem de ${margem.toFixed(0)}%`
+                    : `Margem de ${margin.toFixed(0)}%`
                 }
-                notaCor={margem == null ? "var(--muted)" : margem < 20 ? "var(--warn)" : "var(--pos)"}
+                noteColor={margin == null ? "var(--muted)" : margin < 20 ? "var(--warn)" : "var(--pos)"}
               />
             )}
 
-            {temEstoque && (
+            {hasStock && (
               <>
-                <CampoRotulado
+                <LabeledField
                   label="Quantidade em estoque"
-                  valor={f.estoque}
-                  onMudar={(v) => set({ estoque: v })}
+                  value={f.stock}
+                  onChange={(v) => set({ stock: v })}
                   placeholder="0"
                   inputMode="numeric"
-                  nota="Deixe vazio se for um serviço."
+                  note="Deixe vazio se for um serviço."
                 />
-                <CampoRotulado
+                <LabeledField
                   label="Avisar quando chegar em"
-                  valor={f.minimo}
-                  onMudar={(v) => set({ minimo: v })}
+                  value={f.minimum}
+                  onChange={(v) => set({ minimum: v })}
                   placeholder="0"
                   inputMode="numeric"
-                  nota="Você recebe um alerta de estoque baixo."
+                  note="Você recebe um alerta de estoque baixo."
                 />
                 <div>
-                  <label style={css(ROTULO_CAMPO)}>Vendido por</label>
-                  <SelecaoSimples
-                    valor={f.unidade}
-                    opcoes={UNIDADES}
-                    onMudar={(v) => set({ unidade: v })}
-                    estilo={campo(false, true)}
+                  <label style={css(FIELD_LABEL)}>Vendido por</label>
+                  <SimpleSelect
+                    value={f.unit}
+                    options={UNITS}
+                    onChange={(v) => set({ unit: v })}
+                    cssText={field(false, true)}
                   />
                 </div>
               </>
@@ -211,6 +213,6 @@ export function ProdutoModal() {
           </div>
         </div>
       )}
-    </ModalBase>
+    </ModalFrame>
   );
 }

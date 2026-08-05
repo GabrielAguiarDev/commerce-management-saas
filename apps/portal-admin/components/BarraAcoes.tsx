@@ -1,24 +1,32 @@
 "use client";
 
-import { css } from "@aguiar/ui";
+import { Button, css } from "@aguiar/ui";
 
-export type TomBarra = "alerta" | "neutro";
+export type BarTone = "warning" | "neutral";
 
-interface BarraAcoesProps {
+interface ActionBarProps {
   /** Texto de estado à esquerda. */
   estado: string;
   /** `alerta` pinta a barra de âmbar (há algo pendente). */
-  tom: TomBarra;
-  secundario: { rotulo: string; onClick: () => void; desabilitado?: boolean };
-  primario: { rotulo: string; onClick?: () => void; desabilitado?: boolean; submit?: boolean };
+  tone: BarTone;
+  secondary: { label: string; onClick: () => unknown; disabled?: boolean };
+  primary: {
+    label: string;
+    /** Returning a promise makes the button wait for it, spinner and all. */
+    onClick?: () => unknown;
+    disabled?: boolean;
+    submit?: boolean;
+    /** For a submit button, whose wait belongs to the form, not to the click. */
+    loading?: boolean;
+  };
 }
 
 /**
  * Barra fixa no rodapé com o estado do formulário e as duas ações. Mesma barra
  * da ficha do cliente, para as duas telas terminarem igual.
  */
-export function BarraAcoes({ estado, tom, secundario, primario }: BarraAcoesProps) {
-  const alerta = tom === "alerta";
+export function ActionBar({ estado, tone, secondary, primary }: ActionBarProps) {
+  const alert = tone === "warning";
 
   return (
     <div
@@ -26,54 +34,55 @@ export function BarraAcoes({ estado, tom, secundario, primario }: BarraAcoesProp
         "position:sticky;bottom:0;z-index:7;display:flex;align-items:center;" +
           "justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 20px;" +
           "border-radius:12px;border:1px solid " +
-          (alerta ? "var(--warn-line)" : "var(--border)") +
+          (alert ? "var(--warn-line)" : "var(--border)") +
           ";background:var(--surface);box-shadow:0 -2px 16px rgba(6,20,26,.1)",
       )}
     >
       <span
         style={css(
           "display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:" +
-            (alerta ? "var(--warn)" : "var(--muted)"),
+            (alert ? "var(--warn)" : "var(--muted)"),
         )}
       >
         <span
           style={css(
             "width:7px;height:7px;flex:none;border-radius:99px;background:" +
-              (alerta ? "var(--warn)" : "var(--border)"),
+              (alert ? "var(--warn)" : "var(--border)"),
           )}
         />
         {estado}
       </span>
 
       <div style={css("display:flex;align-items:center;gap:9px")}>
-        <button
+        <Button
           type="button"
-          onClick={secundario.onClick}
-          disabled={secundario.desabilitado}
+          onClick={secondary.onClick}
+          disabled={secondary.disabled}
           style={css(
             "font-size:13px;font-weight:500;padding:10px 16px;border-radius:9px;" +
               "border:1px solid var(--border);background:var(--surface);color:" +
-              (secundario.desabilitado ? "var(--muted)" : "var(--text2)") +
+              (secondary.disabled ? "var(--muted)" : "var(--text2)") +
               ";cursor:" +
-              (secundario.desabilitado ? "not-allowed" : "pointer"),
+              (secondary.disabled ? "not-allowed" : "pointer"),
           )}
         >
-          {secundario.rotulo}
-        </button>
-        <button
-          type={primario.submit ? "submit" : "button"}
-          onClick={primario.onClick}
-          disabled={primario.desabilitado}
-          className={primario.desabilitado ? undefined : "hv-brilho"}
+          {secondary.label}
+        </Button>
+        <Button
+          type={primary.submit ? "submit" : "button"}
+          onClick={primary.onClick}
+          disabled={primary.disabled}
+          loading={primary.loading}
+          className="hv-brilho"
           style={css(
             "font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px;" +
-              (primario.desabilitado
+              (primary.disabled
                 ? "border:1px solid var(--border);background:var(--surface3);color:var(--muted);cursor:not-allowed;"
                 : "border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;"),
           )}
         >
-          {primario.rotulo}
-        </button>
+          {primary.label}
+        </Button>
       </div>
     </div>
   );

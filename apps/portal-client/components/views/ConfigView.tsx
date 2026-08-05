@@ -1,37 +1,38 @@
 "use client";
 
 import {
-  botaoPrimario,
-  campo,
+  primaryButton,
+  Button,
+  field,
   css,
-  GrupoPilulas,
-  Interruptor,
+  PillGroup,
+  Switch,
   MONO,
-  Painel,
-  ROTULO_CAMPO,
-  ROTULO_KPI,
+  Panel,
+  FIELD_LABEL,
+  KPI_LABEL,
   SANS,
-  SUB_TELA,
-  TITULO_TELA,
+  SCREEN_SUBTITLE,
+  SCREEN_TITLE,
 } from "@aguiar/ui";
 import type { ReactNode } from "react";
-import { resumoPapel } from "@/components/modais/EquipeModais";
+import { roleSummary } from "@/components/modais/EquipeModais";
 import { usePortal } from "@/components/PortalProvider";
-import { MenuLinha } from "@/components/ui";
-import { MODULOS, MODULOS_PERM } from "@/lib/dados/perfis";
-import { categoriasDe } from "@/lib/dados/produtos";
-import { FORMAS, NOTA_FORMA } from "@/lib/dados/vendas";
-import { dadosSujos } from "@/lib/estado";
-import { siglaDe } from "@/lib/formato";
-import { ROTAS } from "@/lib/rotas";
-import type { AbaConfig } from "@/types/estado";
-import type { DadosNegocio, ModuloKey } from "@/types/types";
+import { RowMenu } from "@/components/ui";
+import { MODULES, PERMISSION_MODULES } from "@/lib/dados/perfis";
+import { categoriesOf } from "@/lib/dados/produtos";
+import { METHODS, METHOD_NOTE } from "@/lib/dados/vendas";
+import { dataDirty } from "@/lib/estado";
+import { initialsOf } from "@/lib/formato";
+import { ROUTES } from "@/lib/rotas";
+import type { SettingsTab } from "@/types/estado";
+import type { BusinessData, ModuleKey } from "@/types/types";
 
-const ABAS: { chave: AbaConfig; nome: string }[] = [
-  { chave: "dados", nome: "Dados do negócio" },
-  { chave: "prefs", nome: "Preferências" },
-  { chave: "equipe", nome: "Equipe e acessos" },
-  { chave: "conta", nome: "Conta e plano" },
+const TABS: { key: SettingsTab; name: string }[] = [
+  { key: "data", name: "Dados do negócio" },
+  { key: "prefs", name: "Preferências" },
+  { key: "team", name: "Equipe e acessos" },
+  { key: "account", name: "Conta e plano" },
 ];
 
 /**
@@ -43,29 +44,29 @@ const ABAS: { chave: AbaConfig; nome: string }[] = [
  */
 export function ConfigView() {
   const { s, a } = usePortal();
-  const aba = s.fConfig.aba;
+  const tab = s.fConfig.tab;
 
   return (
     <div>
       <div style={css("margin-bottom:16px")}>
-        <h1 style={css(TITULO_TELA)}>Configurações</h1>
-        <p style={css(SUB_TELA)}>
+        <h1 style={css(SCREEN_TITLE)}>Configurações</h1>
+        <p style={css(SCREEN_SUBTITLE)}>
           Ajuste os dados do seu negócio, como você trabalha e quem pode usar o portal.
         </p>
       </div>
 
       <div style={css("margin-bottom:16px")}>
-        <GrupoPilulas<AbaConfig>
-          opcoes={ABAS}
-          atual={aba}
-          onEscolher={(v) => a.set({ fConfig: { ...s.fConfig, aba: v } })}
+        <PillGroup<SettingsTab>
+          options={TABS}
+          current={tab}
+          onPick={(v) => a.set({ fConfig: { ...s.fConfig, tab: v } })}
         />
       </div>
 
-      {aba === "dados" && <AbaDados />}
-      {aba === "prefs" && <AbaPreferencias />}
-      {aba === "equipe" && <AbaEquipe />}
-      {aba === "conta" && <AbaConta />}
+      {tab === "data" && <DataTab />}
+      {tab === "prefs" && <PreferencesTab />}
+      {tab === "team" && <TeamTab />}
+      {tab === "account" && <AccountTab />}
     </div>
   );
 }
@@ -76,7 +77,7 @@ export function ConfigView() {
  * Existe porque a alternativa é pior: um interruptor que parece salvar e não
  * salva faz a pessoa descobrir sozinha, dias depois, que o portal mentiu.
  */
-function AvisoNaoSalvo({ children }: { children: ReactNode }) {
+function UnsavedNotice({ children }: { children: ReactNode }) {
   return (
     <div
       style={css(
@@ -100,17 +101,17 @@ function AvisoNaoSalvo({ children }: { children: ReactNode }) {
 /* Dados do negócio                                                            */
 /* -------------------------------------------------------------------------- */
 
-const CAMPOS: { chave: keyof DadosNegocio; label: string; placeholder: string }[] = [
-  { chave: "nome", label: "Nome do negócio", placeholder: "Como o cliente conhece você" },
-  { chave: "tipo", label: "Ramo", placeholder: "Ex.: petshop, lanchonete" },
-  { chave: "telefone", label: "Telefone", placeholder: "(00) 00000-0000" },
-  { chave: "cidade", label: "Cidade", placeholder: "Ex.: Salvador/BA" },
+const FIELDS: { key: keyof BusinessData; label: string; placeholder: string }[] = [
+  { key: "name", label: "Nome do negócio", placeholder: "Como o cliente conhece você" },
+  { key: "type", label: "Ramo", placeholder: "Ex.: petshop, lanchonete" },
+  { key: "phone", label: "Telefone", placeholder: "(00) 00000-0000" },
+  { key: "city", label: "Cidade", placeholder: "Ex.: Salvador/BA" },
 ];
 
-function AbaDados() {
+function DataTab() {
   const { s, a, isMobile, d } = usePortal();
-  const r = s.dadosRascunho;
-  const sujo = dadosSujos(s, d.dados);
+  const r = s.draftData;
+  const dirty = dataDirty(s, d.data);
   const cols = isMobile ? "1fr" : "1fr 1fr";
 
   return (
@@ -134,39 +135,39 @@ function AbaDados() {
                 `display:flex;align-items:center;justify-content:center;font:700 21px ${SANS}`,
             )}
           >
-            {siglaDe(r.nome) || d.negocio.sigla}
+            {initialsOf(r.name) || d.business.initials}
           </span>
           <div style={css("flex:1;min-width:180px")}>
             <div style={css(`font:600 13px ${SANS}`)}>Logo do negócio</div>
             <p style={css(`margin:3px 0 8px;font:400 11.5px/1.45 ${SANS};color:var(--muted)`)}>
               Enquanto você não enviar uma imagem, usamos as iniciais do nome.
             </p>
-            <button
-              onClick={() => a.avisar("O envio de imagem ainda não está disponível")}
+            <Button
+              onClick={() => a.notify("O envio de imagem ainda não está disponível")}
               className="hv-borda"
               style={css(
                 `padding:9px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font:600 12px ${SANS}`,
               )}
             >
               Enviar imagem
-            </button>
+            </Button>
           </div>
         </div>
 
         <div style={css(`display:grid;grid-template-columns:${cols};gap:13px`)}>
-          {CAMPOS.map((c) => {
+          {FIELDS.map((c) => {
             // Nome vazio quebraria o menu e o comprovante — é o único obrigatório.
-            const erro = c.chave === "nome" && !r.nome.trim();
+            const error = c.key === "name" && !r.name.trim();
             return (
-              <div key={c.chave}>
-                <label style={css(ROTULO_CAMPO)}>{c.label}</label>
+              <div key={c.key}>
+                <label style={css(FIELD_LABEL)}>{c.label}</label>
                 <input
-                  value={r[c.chave]}
-                  onChange={(e) => a.set({ dadosRascunho: { ...r, [c.chave]: e.target.value } })}
+                  value={r[c.key]}
+                  onChange={(e) => a.set({ draftData: { ...r, [c.key]: e.target.value } })}
                   placeholder={c.placeholder}
-                  style={css(campo(erro))}
+                  style={css(field(error))}
                 />
-                {erro && (
+                {error && (
                   <div style={css(`margin-top:5px;font:600 11.5px ${SANS};color:var(--danger)`)}>
                     O negócio precisa de um nome.
                   </div>
@@ -176,10 +177,10 @@ function AbaDados() {
           })}
         </div>
 
-        <AvisoNaoSalvo>
+        <UnsavedNotice>
           CNPJ/CPF e endereço completo ainda não têm onde ser guardados. Até lá, informe-os ao
-          suporte para constarem na nota.
-        </AvisoNaoSalvo>
+          support para constarem na nota.
+        </UnsavedNotice>
       </div>
 
       <div
@@ -187,15 +188,16 @@ function AbaDados() {
           "display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--border);background:var(--surface2)",
         )}
       >
-        <button
-          onClick={a.salvarDados}
-          disabled={s.salvando || !r.nome.trim()}
-          className={s.salvando ? undefined : "hv-brilho"}
-          style={css(botaoPrimario() + (s.salvando ? ";opacity:.6;cursor:progress" : ""))}
+        <Button
+          onClick={a.saveData}
+          disabled={!r.name.trim()}
+          loadingLabel="Salvando…"
+          className="hv-brilho"
+          style={css(primaryButton())}
         >
-          {s.salvando ? "Salvando…" : "Salvar alterações"}
-        </button>
-        {sujo && (
+          Salvar alterações
+        </Button>
+        {dirty && (
           <>
             <span
               style={css(
@@ -205,12 +207,12 @@ function AbaDados() {
               <span style={css("width:7px;height:7px;border-radius:50%;background:var(--warn)")} />
               Você tem alterações não salvas
             </span>
-            <button
-              onClick={a.descartarDados}
+            <Button
+              onClick={a.discardData}
               style={css(`padding:13px 16px;border-radius:11px;font:600 13px ${SANS};color:var(--text2)`)}
             >
               Descartar
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -222,44 +224,44 @@ function AbaDados() {
 /* Preferências                                                                */
 /* -------------------------------------------------------------------------- */
 
-function AbaPreferencias() {
-  const { s, a, tem, d } = usePortal();
-  const categorias = categoriasDe(d.produtos);
+function PreferencesTab() {
+  const { s, a, has, d } = usePortal();
+  const categories = categoriesOf(d.products);
 
   return (
     <div style={css("display:flex;flex-direction:column;gap:14px")}>
-      <Painel
-        titulo="Formas de pagamento que você aceita"
-        nota="Só as ligadas aparecem na hora de registrar a venda."
-        semPadding
+      <Panel
+        title="Formas de pagamento que você aceita"
+        note="Só as ligadas aparecem na hora de registrar a venda."
+        flush
       >
         <div style={css("display:flex;flex-direction:column")}>
-          {FORMAS.map((f) => (
-            <Interruptor
+          {METHODS.map((f) => (
+            <Switch
               key={f}
-              ligado={s.formasAceitas.includes(f)}
-              onToggle={() => a.toggleForma(f)}
-              titulo={f}
-              nota={NOTA_FORMA[f]}
-              estado={s.formasAceitas.includes(f) ? "Aceito" : "Desligado"}
+              on={s.acceptedMethods.includes(f)}
+              onToggle={() => a.toggleMethod(f)}
+              title={f}
+              note={METHOD_NOTE[f]}
+              state={s.acceptedMethods.includes(f) ? "Aceito" : "Desligado"}
             />
           ))}
         </div>
         <div style={css("padding:13px 18px;border-top:1px solid var(--border);background:var(--surface2)")}>
-          <AvisoNaoSalvo>
+          <UnsavedNotice>
             Esta escolha vale só nesta sessão — ainda não há onde guardá-la. No próximo login todas
             as formas voltam ligadas.
-          </AvisoNaoSalvo>
+          </UnsavedNotice>
         </div>
-      </Painel>
+      </Panel>
 
-      <Painel
-        titulo="Categorias do catálogo"
-        nota="Saem dos próprios produtos: uma categoria existe enquanto algum produto a usa."
-        semPadding
+      <Panel
+        title="Categorias do catálogo"
+        note="Saem dos próprios produtos: uma categoria existe enquanto algum produto a usa."
+        flush
       >
         <div style={css("display:flex;flex-direction:column")}>
-          {categorias.length === 0 ? (
+          {categories.length === 0 ? (
             <div
               style={css(
                 `padding:22px 18px;text-align:center;font:500 12.5px/1.5 ${SANS};color:var(--muted)`,
@@ -268,8 +270,8 @@ function AbaPreferencias() {
               Nenhuma categoria ainda. Ela nasce quando você cadastra um produto.
             </div>
           ) : (
-            categorias.map((c) => {
-              const uso = d.produtos.filter((p) => p.categoria === c).length;
+            categories.map((c) => {
+              const usage = d.products.filter((p) => p.category === c).length;
               return (
                 <div
                   key={c}
@@ -285,16 +287,16 @@ function AbaPreferencias() {
                     {c}
                   </span>
                   <span style={css(`flex:none;font:500 11.5px ${MONO};color:var(--muted)`)}>
-                    {uso} {uso === 1 ? "produto" : "produtos"}
+                    {usage} {usage === 1 ? "product" : "products"}
                   </span>
                 </div>
               );
             })
           )}
         </div>
-      </Painel>
+      </Panel>
 
-      <Painel titulo="Como você prefere usar" semPadding>
+      <Panel title="Como você prefere usar" flush>
         <div style={css("display:flex;flex-direction:column")}>
           <div
             style={css(
@@ -307,31 +309,31 @@ function AbaPreferencias() {
                 Escolha o que cansa menos a sua vista.
               </span>
             </span>
-            <GrupoPilulas
-              opcoes={[
-                { chave: "claro" as const, nome: "Claro" },
-                { chave: "escuro" as const, nome: "Escuro" },
+            <PillGroup
+              options={[
+                { key: "light" as const, name: "Claro" },
+                { key: "dark" as const, name: "Escuro" },
               ]}
-              atual={s.tema}
-              onEscolher={(v) => a.set({ tema: v })}
-              tamanho="sm"
+              current={s.theme}
+              onPick={(v) => a.set({ theme: v })}
+              size="sm"
             />
           </div>
 
-          <Interruptor
-            ligado={s.imprimirComprovante}
+          <Switch
+            on={s.imprimirComprovante}
             onToggle={() => a.set({ imprimirComprovante: !s.imprimirComprovante })}
-            titulo="Imprimir comprovante ao finalizar a venda"
-            nota="Se desligar, o comprovante fica só no histórico e pode ser reimpresso depois."
+            title="Imprimir comprovante ao finalizar a venda"
+            note="Se desligar, o comprovante fica só no histórico e pode ser reimpresso depois."
           />
-          <Interruptor
-            ligado={s.pedirCliente}
+          <Switch
+            on={s.pedirCliente}
             onToggle={() => a.set({ pedirCliente: !s.pedirCliente })}
-            titulo="Perguntar o nome do cliente na venda"
-            nota="Útil para encomendas e fiado. Deixa o balcão um pouco mais lento."
+            title="Perguntar o nome do cliente na venda"
+            note="Útil para encomendas e fiado. Deixa o balcão um pouco mais lento."
           />
 
-          {tem("estoque") && (
+          {has("stock") && (
             <div
               style={css(
                 `display:flex;align-items:center;gap:12px;padding:14px 18px;font:500 12.5px/1.5 ${SANS};color:var(--muted)`,
@@ -344,11 +346,11 @@ function AbaPreferencias() {
         </div>
 
         <div style={css("padding:13px 18px;border-top:1px solid var(--border);background:var(--surface2)")}>
-          <AvisoNaoSalvo>
-            Aparência e preferências de venda ainda valem só nesta sessão.
-          </AvisoNaoSalvo>
+          <UnsavedNotice>
+            Aparência e preferências de sale ainda valem só nesta sessão.
+          </UnsavedNotice>
         </div>
-      </Painel>
+      </Panel>
     </div>
   );
 }
@@ -357,24 +359,24 @@ function AbaPreferencias() {
 /* Equipe                                                                      */
 /* -------------------------------------------------------------------------- */
 
-function AbaEquipe() {
-  const { a, tem, isDesktop, d } = usePortal();
+function TeamTab() {
+  const { a, has, isDesktop, d } = usePortal();
 
-  const ativos = d.equipe.filter((x) => x.ativo).length;
-  const papelCols = isDesktop ? "1fr 1fr" : "1fr";
+  const active = d.team.filter((x) => x.active).length;
+  const roleCols = isDesktop ? "1fr 1fr" : "1fr";
 
   return (
     <div style={css("display:flex;flex-direction:column;gap:14px")}>
-      <Painel
-        titulo="Funcionários"
-        nota={
-          d.equipe.length <= 1
+      <Panel
+        title="Funcionários"
+        note={
+          d.team.length <= 1
             ? "Por enquanto só você tem acesso a este portal."
-            : `${d.equipe.length} pessoas cadastradas · ${ativos} com acesso liberado`
+            : `${d.team.length} pessoas cadastradas · ${active} com acesso liberado`
         }
-        semPadding
+        flush
       >
-        {d.equipe.length === 0 ? (
+        {d.team.length === 0 ? (
           <div
             style={css(
               "display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:36px 20px",
@@ -387,41 +389,41 @@ function AbaEquipe() {
           </div>
         ) : (
           <div style={css("display:flex;flex-direction:column")}>
-            {d.equipe.map((x) => (
+            {d.team.map((x) => (
               <div key={x.id} style={css("position:relative;border-bottom:1px solid var(--border)")}>
                 <div style={css("display:flex;align-items:center;gap:12px;padding:13px 18px")}>
                   <span
                     style={css(
                       "flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;" +
                         `font:700 12.5px ${SANS};` +
-                        (x.ativo
+                        (x.active
                           ? "background:var(--accent-soft);color:var(--accent)"
                           : "background:var(--surface3);color:var(--muted)"),
                     )}
                   >
-                    {siglaDe(x.nome)}
+                    {initialsOf(x.name)}
                   </span>
 
                   <span style={css("flex:1;min-width:0")}>
                     <span style={css("display:flex;align-items:center;gap:7px;flex-wrap:wrap")}>
                       <span
                         style={css(
-                          `font:600 13.5px ${SANS};color:${x.ativo ? "var(--text)" : "var(--muted)"}`,
+                          `font:600 13.5px ${SANS};color:${x.active ? "var(--text)" : "var(--muted)"}`,
                         )}
                       >
-                        {x.nome}
+                        {x.name}
                       </span>
                       <span
                         style={css(
                           `padding:2px 8px;border-radius:999px;font:600 10.5px ${SANS};` +
-                            (x.dono
+                            (x.owner
                               ? "background:var(--accent-soft);color:var(--accent)"
                               : "background:var(--surface3);color:var(--text2)"),
                         )}
                       >
-                        {x.papel}
+                        {x.role}
                       </span>
-                      {!x.ativo && (
+                      {!x.active && (
                         <span
                           style={css(
                             `padding:2px 8px;border-radius:999px;background:var(--surface3);color:var(--muted);font:600 10.5px ${SANS}`,
@@ -435,34 +437,34 @@ function AbaEquipe() {
 
                   {/* O dono não se remove nem se suspende: alguém tem de ficar
                       com a chave da casa. */}
-                  {x.dono ? (
+                  {x.owner ? (
                     <span style={css(`flex:none;font:500 11px ${SANS};color:var(--muted)`)}>é você</span>
                   ) : (
-                    <MenuLinha
-                      chave={`func:${x.id}`}
-                      largura={214}
-                      acoes={[
+                    <RowMenu
+                      key={`func:${x.id}`}
+                      width={214}
+                      actions={[
                         {
-                          texto: "Mudar tipo de acesso",
-                          onClick: () => a.abrirModal({ k: "funcionario", id: x.id }),
+                          text: "Mudar tipo de acesso",
+                          onClick: () => a.openModal({ k: "employee", id: x.id }),
                         },
                         {
-                          texto: x.ativo ? "Suspender acesso" : "Liberar acesso",
-                          cor: "var(--warn)",
+                          text: x.active ? "Suspender acesso" : "Liberar acesso",
+                          color: "var(--warn)",
                           onClick: () =>
-                            a.confirmar({
-                              titulo: x.ativo ? "Suspender o acesso?" : "Liberar o acesso?",
-                              texto: x.ativo
+                            a.confirm({
+                              title: x.active ? "Suspender o acesso?" : "Liberar o acesso?",
+                              text: x.active
                                 ? "A pessoa deixa de conseguir entrar no portal, mas continua cadastrada."
                                 : "A pessoa volta a conseguir entrar com o mesmo e-mail.",
-                              resumo: x.nome,
-                              sub: x.papel,
-                              reversao: "Dá para desfazer pelo mesmo menu.",
-                              btn: x.ativo ? "Suspender" : "Liberar",
-                              btnBg: "var(--warn)",
-                              btnFg: "#fff",
-                              cor: "var(--warn)",
-                              acao: () => a.toggleFuncionario(x.id),
+                              summary: x.name,
+                              detail: x.role,
+                              reversal: "Dá para desfazer pelo mesmo menu.",
+                              button: x.active ? "Suspender" : "Liberar",
+                              buttonBg: "var(--warn)",
+                              buttonInk: "#fff",
+                              color: "var(--warn)",
+                              action: () => a.toggleEmployee(x.id),
                             }),
                         },
                       ]}
@@ -475,30 +477,30 @@ function AbaEquipe() {
         )}
 
         <div style={css("padding:13px 18px;border-top:1px solid var(--border);background:var(--surface2)")}>
-          <AvisoNaoSalvo>
+          <UnsavedNotice>
             Cadastrar um funcionário novo cria um login, e isso ainda é feito pela nossa equipe. Aqui
             você muda o tipo de acesso e suspende quem já existe.
-          </AvisoNaoSalvo>
+          </UnsavedNotice>
         </div>
-      </Painel>
+      </Panel>
 
-      <Painel
-        titulo="Tipos de acesso"
-        nota="Cada tipo define o que a pessoa vê no portal. Só aparecem os módulos que o seu plano tem."
-        acao={
-          <button
-            onClick={() => a.abrirPapel(null)}
+      <Panel
+        title="Tipos de acesso"
+        note="Cada tipo define o que a pessoa vê no portal. Só aparecem os módulos que o seu plano tem."
+        action={
+          <Button
+            onClick={() => a.openRole(null)}
             className="hv-acc-borda"
             style={css(
               `padding:11px 18px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font:600 13px ${SANS}`,
             )}
           >
             + Novo tipo
-          </button>
+          </Button>
         }
-        semPadding
+        flush
       >
-        {d.papeis.length === 0 ? (
+        {d.roles.length === 0 ? (
           <div
             style={css(
               `padding:28px 20px;text-align:center;font:500 12.5px/1.5 ${SANS};color:var(--muted)`,
@@ -509,10 +511,10 @@ function AbaEquipe() {
           </div>
         ) : (
           <div
-            style={css(`display:grid;grid-template-columns:${papelCols};gap:1px;background:var(--border)`)}
+            style={css(`display:grid;grid-template-columns:${roleCols};gap:1px;background:var(--border)`)}
           >
-            {d.papeis.map((p) => {
-              const pessoas = d.equipe.filter((x) => x.papel === p.nome).length;
+            {d.roles.map((p) => {
+              const people = d.team.filter((x) => x.role === p.name).length;
               return (
                 <div
                   key={p.id}
@@ -521,8 +523,8 @@ function AbaEquipe() {
                   <div style={css("display:flex;align-items:flex-start;gap:10px")}>
                     <div style={css("flex:1;min-width:0")}>
                       <div style={css("display:flex;align-items:center;gap:7px;flex-wrap:wrap")}>
-                        <span style={css(`font:700 14px ${SANS}`)}>{p.nome}</span>
-                        {p.fixo && (
+                        <span style={css(`font:700 14px ${SANS}`)}>{p.name}</span>
+                        {p.fixed && (
                           <span
                             style={css(
                               `padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font:600 10.5px ${SANS}`,
@@ -533,39 +535,39 @@ function AbaEquipe() {
                         )}
                       </div>
                       <div style={css(`margin-top:5px;font:500 11.5px/1.45 ${SANS};color:var(--muted)`)}>
-                        {resumoPapel(p.modulos, p.fixo)}
+                        {roleSummary(p.modules, p.fixed)}
                       </div>
                       <div style={css(`margin-top:4px;font:500 11.5px ${SANS};color:var(--muted)`)}>
-                        {pessoas === 0
+                        {people === 0
                           ? "Ninguém usa este tipo"
-                          : `${pessoas} ${pessoas === 1 ? "pessoa usa" : "pessoas usam"}`}
+                          : `${people} ${people === 1 ? "pessoa usa" : "people usam"}`}
                       </div>
                     </div>
 
-                    {!p.fixo && (
-                      <MenuLinha
-                        chave={`papel:${p.id}`}
-                        largura={200}
-                        acoes={[
-                          { texto: "Editar acessos", onClick: () => a.abrirPapel(p.id) },
+                    {!p.fixed && (
+                      <RowMenu
+                        key={`papel:${p.id}`}
+                        width={200}
+                        actions={[
+                          { text: "Editar acessos", onClick: () => a.openRole(p.id) },
                           {
-                            texto: "Remover tipo",
-                            cor: "var(--danger)",
+                            text: "Remover tipo",
+                            color: "var(--danger)",
                             onClick: () =>
-                              a.confirmar({
-                                titulo: "Remover este tipo de acesso?",
-                                texto:
-                                  pessoas > 0
+                              a.confirm({
+                                title: "Remover este tipo de acesso?",
+                                text:
+                                  people > 0
                                     ? "Há pessoas usando este tipo — mova-as para outro antes de remover."
                                     : "Ele some da lista de escolhas ao definir o acesso de alguém.",
-                                resumo: p.nome,
-                                sub: resumoPapel(p.modulos, p.fixo),
-                                reversao: "Você pode criar de novo com os mesmos acessos.",
-                                btn: "Remover tipo",
-                                btnBg: "var(--danger)",
-                                btnFg: "#fff",
-                                cor: "var(--danger)",
-                                acao: () => a.removerPapel(p.id),
+                                summary: p.name,
+                                detail: roleSummary(p.modules, p.fixed),
+                                reversal: "Você pode criar de novo com os mesmos acessos.",
+                                button: "Remover tipo",
+                                buttonBg: "var(--danger)",
+                                buttonInk: "#fff",
+                                color: "var(--danger)",
+                                action: () => a.removeRole(p.id),
                               }),
                           },
                         ]}
@@ -574,14 +576,14 @@ function AbaEquipe() {
                   </div>
 
                   <div style={css("display:flex;gap:5px;flex-wrap:wrap;margin-top:11px")}>
-                    {(p.fixo ? MODULOS_PERM.filter((m) => tem(m)) : p.modulos).map((m) => (
+                    {(p.fixed ? PERMISSION_MODULES.filter((m) => has(m)) : p.modules).map((m) => (
                       <span
                         key={m}
                         style={css(
                           `padding:3px 9px;border-radius:999px;background:var(--surface3);color:var(--text2);font:600 10.5px ${SANS}`,
                         )}
                       >
-                        {MODULOS[m].nome}
+                        {MODULES[m].name}
                       </span>
                     ))}
                   </div>
@@ -590,14 +592,14 @@ function AbaEquipe() {
             })}
           </div>
         )}
-      </Painel>
+      </Panel>
 
-      <Painel titulo="O que aconteceu no portal" nota="Registro de quem fez o quê, para consulta.">
-        <AvisoNaoSalvo>
-          O histórico de ações ainda não é gravado. Quando existir, esta lista mostrará cada venda,
-          ajuste de estoque e alteração de acesso, com autor e horário.
-        </AvisoNaoSalvo>
-      </Painel>
+      <Panel title="O que aconteceu no portal" note="Registro de quem fez o quê, para consulta.">
+        <UnsavedNotice>
+          O histórico de ações ainda não é gravado. Quando existir, esta lista mostrará cada sale,
+          adjustment de estoque e alteração de acesso, com autor e horário.
+        </UnsavedNotice>
+      </Panel>
     </div>
   );
 }
@@ -606,15 +608,15 @@ function AbaEquipe() {
 /* Conta e plano                                                               */
 /* -------------------------------------------------------------------------- */
 
-function AbaConta() {
-  const { a, tem, isDesktop } = usePortal();
+function AccountTab() {
+  const { a, has, isDesktop } = usePortal();
 
   // `dashboard` e `config` não são vendidos: todo cliente os tem.
-  const todos = (Object.keys(MODULOS) as ModuloKey[]).filter(
-    (m) => m !== "dashboard" && m !== "config",
+  const all = (Object.keys(MODULES) as ModuleKey[]).filter(
+    (m) => m !== "dashboard" && m !== "settings",
   );
-  const modCols = isDesktop ? "repeat(3,minmax(0,1fr))" : "1fr 1fr";
-  const ligados = todos.filter((m) => tem(m)).length;
+  const moduleCols = isDesktop ? "repeat(3,minmax(0,1fr))" : "1fr 1fr";
+  const on = all.filter((m) => has(m)).length;
 
   return (
     <div style={css("display:flex;flex-direction:column;gap:14px")}>
@@ -629,12 +631,12 @@ function AbaConta() {
           )}
         >
           <div style={css("flex:1;min-width:200px")}>
-            <div style={css(ROTULO_KPI)}>Seu plano</div>
+            <div style={css(KPI_LABEL)}>Seu plano</div>
             <div style={css(`margin-top:6px;font:700 24px/1.1 ${SANS}`)}>
-              {ligados >= todos.length ? "Plano Completo" : "Plano Essencial"}
+              {on >= all.length ? "Plano Completo" : "Plano Essencial"}
             </div>
             <div style={css(`margin-top:5px;font:500 12.5px/1.45 ${SANS};color:var(--muted)`)}>
-              {ligados} de {todos.length} módulos ligados
+              {on} de {all.length} módulos ligados
             </div>
           </div>
           <span
@@ -647,44 +649,44 @@ function AbaConta() {
         </div>
 
         <div style={css("padding:18px")}>
-          <div style={css(`margin-bottom:11px;${ROTULO_KPI}`)}>Módulos do seu plano</div>
-          <div style={css(`display:grid;grid-template-columns:${modCols};gap:8px`)}>
-            {todos.map((m) => {
-              const ligado = tem(m);
+          <div style={css(`margin-bottom:11px;${KPI_LABEL}`)}>Módulos do seu plano</div>
+          <div style={css(`display:grid;grid-template-columns:${moduleCols};gap:8px`)}>
+            {all.map((m) => {
+              const on = has(m);
               return (
                 <div
                   key={m}
                   style={css(
                     "display:flex;align-items:center;gap:9px;padding:11px 13px;border-radius:11px;" +
                       "border:1px solid var(--border);" +
-                      `background:${ligado ? "var(--surface2)" : "transparent"}`,
+                      `background:${on ? "var(--surface2)" : "transparent"}`,
                   )}
                 >
                   <span
                     style={css(
                       "flex:none;width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;" +
                         `font:600 10px ${MONO};` +
-                        (ligado
+                        (on
                           ? "background:var(--accent);color:var(--accent-ink)"
                           : "background:var(--surface3);color:var(--muted)"),
                     )}
                   >
-                    {MODULOS[m].sigla}
+                    {MODULES[m].initials}
                   </span>
                   <span
                     style={css(
                       `flex:1;min-width:0;font:600 12.5px ${SANS};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;` +
-                        `color:${ligado ? "var(--text)" : "var(--muted)"}`,
+                        `color:${on ? "var(--text)" : "var(--muted)"}`,
                     )}
                   >
-                    {MODULOS[m].nome}
+                    {MODULES[m].name}
                   </span>
                   <span
                     style={css(
-                      `flex:none;white-space:nowrap;font:600 11px ${SANS};color:${ligado ? "var(--accent)" : "var(--muted)"}`,
+                      `flex:none;white-space:nowrap;font:600 11px ${SANS};color:${on ? "var(--accent)" : "var(--muted)"}`,
                     )}
                   >
-                    {ligado ? "ligado" : "não incluso"}
+                    {on ? "ligado" : "não incluso"}
                   </span>
                 </div>
               );
@@ -703,27 +705,27 @@ function AbaConta() {
             Quer ligar um módulo novo ou mudar de plano? Quem cuida disso é a nossa equipe — fale com
             a gente e ajustamos para você.
           </p>
-          <button
-            onClick={() => a.irPara(ROTAS.suporte)}
+          <Button
+            onClick={() => a.goTo(ROUTES.support)}
             className="hv-brilho"
-            style={css(`flex:none;${botaoPrimario("sm")}`)}
+            style={css(`flex:none;${primaryButton("sm")}`)}
           >
-            Falar com o suporte
-          </button>
+            Falar com o support
+          </Button>
         </div>
       </div>
 
-      <Painel titulo="Sua conta" nota="Encerrar a sessão neste dispositivo.">
-        <button
-          onClick={a.sair}
+      <Panel title="Sua conta" note="Encerrar a sessão neste dispositivo.">
+        <Button
+          onClick={a.signOut}
           className="hv-borda"
           style={css(
             `padding:12px 18px;border-radius:11px;border:1px solid var(--border2);background:var(--surface);color:var(--danger);font:600 13px ${SANS}`,
           )}
         >
-          Sair da conta
-        </button>
-      </Painel>
+          Sair da account
+        </Button>
+      </Panel>
     </div>
   );
 }

@@ -1,38 +1,38 @@
 "use client";
 
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@aguiar/ui";
-import { hojeRotulo } from "@/lib/datas";
+import { Button, css, MONO } from "@aguiar/ui";
+import { todayLabel } from "@/lib/datas";
 import { IdiomaIcone, LuaIcone, SinoIcone, SolIcone } from "@/lib/icons";
-import { ROTAS } from "@/lib/rotas";
-import { nomePlano } from "@/lib/styleKit";
+import { ROUTES } from "@/lib/rotas";
+import { planName } from "@/lib/styleKit";
 
 interface TopbarProps {
-  titulo: string;
-  subtitulo: string;
+  title: string;
+  subtitle: string;
 }
 
-type TipoNotif = "alerta" | "risco" | "ok" | "info";
+type NotificationType = "warning" | "risk" | "ok" | "info";
 
-interface Notificacao {
-  chave: string;
-  texto: string;
-  quando: string;
-  tipo: TipoNotif;
+interface Notification {
+  key: string;
+  text: string;
+  at: string;
+  type: NotificationType;
 }
 
-const CORES: Record<TipoNotif, string> = {
-  alerta: "var(--danger)",
-  risco: "var(--warn)",
+const COLORS: Record<NotificationType, string> = {
+  warning: "var(--danger)",
+  risk: "var(--warn)",
   ok: "var(--pos)",
   info: "var(--accent)",
 };
 
-export function Topbar({ titulo, subtitulo }: TopbarProps) {
+export function Topbar({ title, subtitle }: TopbarProps) {
   const { s, a, cs } = useAdmin();
   const { L } = a;
-  const id = s.idioma;
-  const escuro = s.tema === "escuro";
+  const id = s.language;
+  const dark = s.theme === "dark";
 
   /**
    * Notificações montadas a partir do banco.
@@ -43,31 +43,31 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
    * ainda não foram resolvidos e clientes recém-cadastrados. Quando houver uma
    * tabela de eventos, é esta lista que passa a sair de lá.
    */
-  const notificacoes: Notificacao[] = [
-    ...s.chamados
-      .filter((t) => t.status !== "resolvido")
+  const notifications: Notification[] = [
+    ...s.tickets
+      .filter((t) => t.status !== "resolved")
       .slice(0, 4)
       .map((t) => {
-        const cl = cs.find((x) => x.id === t.clienteId);
+        const cl = cs.find((x) => x.id === t.customerId);
         return {
-          chave: "chamado:" + t.id,
-          texto:
+          key: "chamado:" + t.id,
+          text:
             (id === "pt" ? "Chamado de " : "Ticket from ") +
-            (cl ? cl.nome : L.cliente) +
+            (cl ? cl.name : L.customer) +
             ": " +
-            t.assunto[id],
-          quando: t.data,
-          tipo: (t.prioridade === "alta" ? "alerta" : "info") as TipoNotif,
+            t.subject[id],
+          at: t.data,
+          type: (t.prioridade === "alta" ? "warning" : "info") as NotificationType,
         };
       }),
     ...cs.slice(0, 3).map((c) => ({
-      chave: "cliente:" + c.id,
-      texto:
+      key: "cliente:" + c.id,
+      text:
         id === "pt"
-          ? `${c.nome} cadastrada no plano ${nomePlano(s.planos, c.plano, id)}`
-          : `${c.nome} signed up on the ${nomePlano(s.planos, c.plano, id)} plan`,
-      quando: c.data,
-      tipo: "ok" as TipoNotif,
+          ? `${c.name} cadastrada no plano ${planName(s.plans, c.plan, id)}`
+          : `${c.name} signed up on the ${planName(s.plans, c.plan, id)} plan`,
+      at: c.data,
+      type: "ok" as NotificationType,
     })),
   ].slice(0, 6);
 
@@ -84,32 +84,32 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
             "margin:0;font-size:19px;font-weight:600;letter-spacing:-.015em;color:var(--text)",
           )}
         >
-          {titulo}
+          {title}
         </h1>
-        <p style={css("margin:0;font-size:12.5px;color:var(--text2)")}>{subtitulo}</p>
+        <p style={css("margin:0;font-size:12.5px;color:var(--text2)")}>{subtitle}</p>
       </div>
 
       <div style={css("display:flex;align-items:center;gap:10px;flex:none")}>
         <span style={css(`font-family:${MONO};font-size:11px;color:var(--muted)`)}>
-          {hojeRotulo(id)}
+          {todayLabel(id)}
         </span>
         <div style={css("width:1px;height:22px;background:var(--border)")} />
 
         <div style={css("position:relative;display:flex")}>
-          <button
-            onClick={() => a.set((st) => ({ notifAberta: !st.notifAberta }))}
-            aria-label={L.notificacoes}
-            title={L.notificacoes}
+          <Button
+            onClick={() => a.set((st) => ({ notificationsOpen: !st.notificationsOpen }))}
+            aria-label={L.notifications}
+            title={L.notifications}
             style={css(
               "position:relative;display:flex;align-items:center;justify-content:center;width:36px;" +
                 "height:36px;border-radius:8px;cursor:pointer;padding:0;" +
-                (s.notifAberta
+                (s.notificationsOpen
                   ? "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);"
                   : "border:1px solid var(--border);background:var(--surface);color:var(--text2);"),
             )}
           >
             <SinoIcone />
-            {!s.lidas && notificacoes.length > 0 && (
+            {!s.lidas && notifications.length > 0 && (
               <span
                 style={css(
                   "position:absolute;top:6px;right:7px;width:8px;height:8px;border-radius:99px;" +
@@ -117,13 +117,13 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
                 )}
               />
             )}
-          </button>
+          </Button>
 
-          {s.notifAberta && (
+          {s.notificationsOpen && (
             <>
               {/* Click-away layer behind the panel. */}
               <div
-                onClick={() => a.set({ notifAberta: false })}
+                onClick={() => a.set({ notificationsOpen: false })}
                 style={css("position:fixed;inset:0;z-index:20")}
               />
               <div
@@ -141,15 +141,15 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
                 >
                   <div style={css("display:flex;flex-direction:column;gap:2px")}>
                     <span style={css("font-size:13.5px;font-weight:600;color:var(--text)")}>
-                      {L.notificacoes}
+                      {L.notifications}
                     </span>
                     <span style={css("font-size:11px;color:var(--muted)")}>
-                      {s.lidas || notificacoes.length === 0
+                      {s.lidas || notifications.length === 0
                         ? L.tudoSalvo
-                        : notificacoes.length + " " + L.naoLidas}
+                        : notifications.length + " " + L.naoLidas}
                     </span>
                   </div>
-                  <button
+                  <Button
                     onClick={() => a.set({ lidas: true })}
                     style={css(
                       "border:none;background:none;color:var(--accent);font-size:11.5px;font-weight:500;" +
@@ -157,11 +157,11 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
                     )}
                   >
                     {L.marcarLidas}
-                  </button>
+                  </Button>
                 </div>
 
                 <div style={css("max-height:320px;overflow-y:auto")}>
-                  {notificacoes.length === 0 && (
+                  {notifications.length === 0 && (
                     <div
                       style={css(
                         "padding:22px 16px;text-align:center;font-size:12px;color:var(--muted)",
@@ -171,9 +171,9 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
                     </div>
                   )}
 
-                  {notificacoes.map((n) => (
+                  {notifications.map((n) => (
                     <div
-                      key={n.chave}
+                      key={n.key}
                       style={css(
                         "display:flex;gap:11px;align-items:flex-start;padding:12px 16px;" +
                           "border-bottom:1px solid var(--border-soft);" +
@@ -183,7 +183,7 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
                       <div
                         style={css(
                           "width:7px;height:7px;flex:none;margin-top:5px;border-radius:99px;background:" +
-                            CORES[n.tipo],
+                            COLORS[n.type],
                         )}
                       />
                       <div style={css("display:flex;flex-direction:column;gap:3px;min-width:0")}>
@@ -194,32 +194,32 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
                               ")",
                           )}
                         >
-                          {n.texto}
+                          {n.text}
                         </span>
                         <span style={css(`font-family:${MONO};font-size:10.5px;color:var(--muted)`)}>
-                          {n.quando}
+                          {n.at}
                         </span>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <button
-                  onClick={() => a.ir(ROTAS.suporte)}
+                <Button
+                  onClick={() => a.goTo(ROUTES.support)}
                   style={css(
                     "width:100%;border:none;border-top:1px solid var(--border-soft);background:var(--surface2);" +
                       "color:var(--accent);font-size:12px;font-weight:500;padding:11px;cursor:pointer",
                   )}
                 >
-                  {L.suporte}
-                </button>
+                  {L.support}
+                </Button>
               </div>
             </>
           )}
         </div>
 
-        <button
-          onClick={a.alternarIdioma}
+        <Button
+          onClick={a.toggleLanguage}
           title={id === "pt" ? "Mudar para inglês" : "Switch to Portuguese"}
           className="hv-acc-borda"
           style={css(
@@ -230,19 +230,19 @@ export function Topbar({ titulo, subtitulo }: TopbarProps) {
         >
           <IdiomaIcone />
           {id === "pt" ? "PT" : "EN"}
-        </button>
+        </Button>
 
-        <button
-          onClick={a.alternarTema}
-          title={escuro ? L.temaClaro : L.temaEscuro}
+        <Button
+          onClick={a.toggleTheme}
+          title={dark ? L.temaClaro : L.temaEscuro}
           style={css(
             "display:flex;align-items:center;justify-content:center;width:36px;height:36px;" +
               "background:var(--surface);border:1px solid var(--border);color:var(--text2);" +
               "border-radius:8px;cursor:pointer;padding:0",
           )}
         >
-          {escuro ? <SolIcone /> : <LuaIcone />}
-        </button>
+          {dark ? <SolIcone /> : <LuaIcone />}
+        </Button>
       </div>
     </header>
   );

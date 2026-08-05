@@ -1,25 +1,25 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { MenuLinha } from "@/components/ui";
-import { BotaoNovo, CABECALHO_TABELA, CabecalhoTela, css, GRUPO_PILULAS, LimparFiltros, LISTA, MONO, NUM, PAINEL, pilula, rotuloColuna, SANS, SelecaoSimples, TITULO_PAINEL, Vazio } from "@aguiar/ui";
-import { FORMAS } from "@/lib/dados/vendas";
-import { brl, qtdV, resumoItens, rotuloData, totalV } from "@/lib/formato";
-import { ROTA_PDV } from "@/lib/rotas";
-import { faturamento, itensVendidos } from "@/lib/selectors";
-import { SELO_NEUTRO, SELO_WARN } from "@/lib/styleKit";
-import type { PeriodoVendas } from "@/types/estado";
-import type { Venda } from "@/types/types";
+import { RowMenu } from "@/components/ui";
+import { NewButton, Button, TABLE_HEADER, ScreenHeader, css, PILL_GROUP, ClearFilters, LIST, MONO, NUM, PANEL, pill, columnLabel, SANS, SimpleSelect, PANEL_TITLE, Empty } from "@aguiar/ui";
+import { METHODS } from "@/lib/dados/vendas";
+import { brl, qtdV, itemSummary, dateLabel, totalV } from "@/lib/formato";
+import { POS_ROUTE } from "@/lib/rotas";
+import { totalRevenue, itemsSold } from "@/lib/selectors";
+import { BADGE_NEUTRAL, BADGE_WARN } from "@/lib/styleKit";
+import type { SalesPeriod } from "@/types/estado";
+import type { Sale } from "@/types/types";
 
-const PERIODOS: { chave: PeriodoVendas; nome: string; dias: number }[] = [
-  { chave: "hoje", nome: "Hoje", dias: 1 },
-  { chave: "7", nome: "7 dias", dias: 7 },
-  { chave: "30", nome: "30 dias", dias: 30 },
-  { chave: "tudo", nome: "Tudo", dias: 9999 },
+const PERIODS: { key: SalesPeriod; name: string; days: number }[] = [
+  { key: "today", name: "Hoje", days: 1 },
+  { key: "7", name: "7 dias", days: 7 },
+  { key: "30", name: "30 dias", days: 30 },
+  { key: "all", name: "Tudo", days: 9999 },
 ];
 
-const TODAS_FORMAS = "Todas as formas";
-const TODOS_PRODUTOS = "Todos os produtos";
+const ALL_METHODS = "Todas as formas";
+const ALL_PRODUCTS = "Todos os produtos";
 
 /**
  * O histórico de vendas.
@@ -28,60 +28,60 @@ const TODOS_PRODUTOS = "Todos os produtos";
  * permite explicar ao contador por que o caderno e o portal divergem.
  */
 export function VendasView() {
-  const { s, a, tem, isMobile, isDesktop, d } = usePortal();
+  const { s, a, has, isMobile, isDesktop, d } = usePortal();
   const f = s.fVendas;
 
-  const dias = PERIODOS.find((p) => p.chave === f.periodo)!.dias;
+  const days = PERIODS.find((p) => p.key === f.period)!.days;
 
-  const doPeriodo = d.vendas.filter((v) => v.d < dias);
-  const filtradas = doPeriodo.filter((v) => {
-    if (f.pag !== TODAS_FORMAS && v.pag !== f.pag) return false;
-    if (f.produto !== TODOS_PRODUTOS && !v.itens.some((i) => i.nome === f.produto)) return false;
-    if (f.busca.trim()) {
-      const alvo = `${resumoItens(v.itens)} ${v.pag} ${v.hora}`.toLowerCase();
-      if (!alvo.includes(f.busca.trim().toLowerCase())) return false;
+  const inPeriod = d.sales.filter((v) => v.d < days);
+  const filtered = inPeriod.filter((v) => {
+    if (f.payment !== ALL_METHODS && v.payment !== f.payment) return false;
+    if (f.product !== ALL_PRODUCTS && !v.items.some((i) => i.name === f.product)) return false;
+    if (f.search.trim()) {
+      const alvo = `${itemSummary(v.items)} ${v.payment} ${v.time}`.toLowerCase();
+      if (!alvo.includes(f.search.trim().toLowerCase())) return false;
     }
     return true;
   });
 
-  const ordenadas = [...filtradas].sort((x, y) => x.d - y.d || y.hora.localeCompare(x.hora));
+  const sorted = [...filtered].sort((x, y) => x.d - y.d || y.time.localeCompare(x.time));
 
-  const total = faturamento(filtradas);
-  const validas = filtradas.filter((v) => !v.estornada);
-  const ticket = validas.length ? total / validas.length : 0;
-  const estornadas = filtradas.filter((v) => v.estornada).length;
+  const total = totalRevenue(filtered);
+  const valid = filtered.filter((v) => !v.refunded);
+  const ticket = valid.length ? total / valid.length : 0;
+  const refunded = filtered.filter((v) => v.refunded).length;
 
-  const filtroAtivo =
-    f.pag !== TODAS_FORMAS || f.produto !== TODOS_PRODUTOS || f.busca.trim() !== "";
+  const filterActive =
+    f.payment !== ALL_METHODS || f.product !== ALL_PRODUCTS || f.search.trim() !== "";
 
-  const nomesProdutos = Array.from(new Set(d.vendas.flatMap((v) => v.itens.map((i) => i.nome)))).sort();
+  const productNames = Array.from(new Set(d.sales.flatMap((v) => v.items.map((i) => i.name)))).sort();
 
   const set = (p: Partial<typeof f>) => a.set({ fVendas: { ...f, ...p } });
-  const limpar = () => set({ pag: TODAS_FORMAS, produto: TODOS_PRODUTOS, busca: "" });
+  const clear = () => set({ payment: ALL_METHODS, product: ALL_PRODUCTS, search: "" });
 
   const kpis = [
-    { label: "Faturamento", valor: brl(total), nota: `${validas.length} vendas no período`, cor: "var(--text)" },
-    { label: "Ticket médio", valor: brl(ticket), nota: "Por venda", cor: "var(--text)" },
-    { label: "Itens vendidos", valor: String(itensVendidos(filtradas)), nota: "Somando as quantidades", cor: "var(--text)" },
+    { label: "Faturamento", value: brl(total), note: `${valid.length} vendas no período`, color: "var(--text)" },
+    { label: "Ticket médio", value: brl(ticket), note: "Por venda", color: "var(--text)" },
+    { label: "Itens vendidos", value: String(itemsSold(filtered)), note: "Somando as quantidades", color: "var(--text)" },
     {
       label: "Estornadas",
-      valor: String(estornadas),
-      nota: estornadas ? "Fora do faturamento" : "Nenhuma no período",
-      cor: estornadas ? "var(--warn)" : "var(--muted)",
+      value: String(refunded),
+      note: refunded ? "Fora do faturamento" : "Nenhuma no período",
+      color: refunded ? "var(--warn)" : "var(--muted)",
     },
   ];
 
   // Colunas escondidas quando não cabem: no celular a linha vira cartão.
-  const colQtd = isDesktop;
-  const colPag = isDesktop;
-  const histCols = `92px minmax(0,1fr)${colQtd ? " 60px" : ""}${colPag ? " 110px" : ""} 110px 44px`;
+  const qtyCol = isDesktop;
+  const paymentCol = isDesktop;
+  const historyCols = `92px minmax(0,1fr)${qtyCol ? " 60px" : ""}${paymentCol ? " 110px" : ""} 110px 44px`;
 
   return (
     <div>
-      <CabecalhoTela
-        titulo="Vendas"
-        subtitulo="Registre no balcão e consulte tudo o que já foi vendido."
-        acao={isDesktop ? <BotaoNovo texto="Registrar venda" onClick={() => a.irPara(ROTA_PDV)} /> : undefined}
+      <ScreenHeader
+        title="Vendas"
+        subtitle="Registre no balcão e consulte tudo o que já foi vendido."
+        action={isDesktop ? <NewButton text="Registrar venda" onClick={() => a.goTo(POS_ROUTE)} /> : undefined}
       />
 
       <div
@@ -109,92 +109,92 @@ export function VendasView() {
             </div>
             <div
               style={css(
-                `font:700 clamp(17px,1.7vw,21px)/1.2 ${SANS};${NUM};letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${k.cor}`,
+                `font:700 clamp(17px,1.7vw,21px)/1.2 ${SANS};${NUM};letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${k.color}`,
               )}
             >
-              {k.valor}
+              {k.value}
             </div>
             <div
               style={css(
                 `font:500 10.5px/1.3 ${SANS};color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis`,
               )}
             >
-              {k.nota}
+              {k.note}
             </div>
           </div>
         ))}
       </div>
 
-      <div style={css(`margin-top:12px;padding:18px;${PAINEL}`)}>
+      <div style={css(`margin-top:12px;padding:18px;${PANEL}`)}>
         <div
           style={css(
             "display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px",
           )}
         >
-          <h2 style={css(TITULO_PAINEL)}>Histórico de vendas</h2>
+          <h2 style={css(PANEL_TITLE)}>Histórico de vendas</h2>
           <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>
-            {filtradas.length} de {doPeriodo.length} vendas
+            {filtered.length} de {inPeriod.length} vendas
           </span>
         </div>
 
         <div style={css("display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px")}>
-          <div style={css(GRUPO_PILULAS)}>
-            {PERIODOS.map((p) => (
-              <button key={p.chave} onClick={() => set({ periodo: p.chave })} style={css(pilula(f.periodo === p.chave, "sm"))}>
-                {p.nome}
-              </button>
+          <div style={css(PILL_GROUP)}>
+            {PERIODS.map((p) => (
+              <Button key={p.key} onClick={() => set({ period: p.key })} style={css(pill(f.period === p.key, "sm"))}>
+                {p.name}
+              </Button>
             ))}
           </div>
 
-          <SelecaoSimples valor={f.pag} opcoes={[TODAS_FORMAS, ...FORMAS]} onMudar={(v) => set({ pag: v })} />
-          <SelecaoSimples
-            valor={f.produto}
-            opcoes={[TODOS_PRODUTOS, ...nomesProdutos]}
-            onMudar={(v) => set({ produto: v })}
+          <SimpleSelect value={f.payment} options={[ALL_METHODS, ...METHODS]} onChange={(v) => set({ payment: v })} />
+          <SimpleSelect
+            value={f.product}
+            options={[ALL_PRODUCTS, ...productNames]}
+            onChange={(v) => set({ product: v })}
           />
 
           <input
-            value={f.busca}
-            onChange={(e) => set({ busca: e.target.value })}
+            value={f.search}
+            onChange={(e) => set({ search: e.target.value })}
             placeholder="Buscar venda..."
             style={css(
               `flex:1;min-width:150px;padding:9px 13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);font:500 12.5px ${SANS};color:var(--text);outline:none`,
             )}
           />
 
-          {filtroAtivo && <LimparFiltros onClick={limpar} />}
+          {filterActive && <ClearFilters text="Limpar filtros" onClick={clear} />}
         </div>
 
-        {d.vendas.length === 0 ? (
-          <Vazio
-            titulo="Nenhuma venda por aqui ainda"
-            texto="Assim que você registrar a primeira venda, ela aparece aqui com valor, itens e forma de pagamento."
-            acao="Registrar primeira venda"
-            onAcao={() => a.irPara(ROTA_PDV)}
-            destaque
+        {d.sales.length === 0 ? (
+          <Empty
+            title="Nenhuma venda por aqui ainda"
+            text="Assim que você registrar a primeira venda, ela aparece aqui com valor, itens e forma de pagamento."
+            action="Registrar primeira venda"
+            onAction={() => a.goTo(POS_ROUTE)}
+            standout
           />
-        ) : ordenadas.length === 0 ? (
-          <Vazio
-            titulo="Nada encontrado com esses filtros"
-            texto="Tente outro período ou limpe os filtros para ver todas as vendas."
-            acao="Limpar filtros"
-            onAcao={limpar}
+        ) : sorted.length === 0 ? (
+          <Empty
+            title="Nada encontrado com esses filtros"
+            text="Tente outro período ou limpe os filtros para ver todas as vendas."
+            action="Limpar filtros"
+            onAction={clear}
           />
         ) : (
-          <div style={css(LISTA + ";overflow:visible")}>
+          <div style={css(LIST + ";overflow:visible")}>
             {isDesktop && (
-              <div style={css(`display:grid;grid-template-columns:${histCols};gap:10px;${CABECALHO_TABELA}`)}>
-                <span style={css(rotuloColuna())}>QUANDO</span>
-                <span style={css(rotuloColuna())}>ITENS</span>
-                {colQtd && <span style={css(rotuloColuna("center"))}>QTD</span>}
-                {colPag && <span style={css(rotuloColuna())}>PAGAMENTO</span>}
-                <span style={css(rotuloColuna("right"))}>TOTAL</span>
+              <div style={css(`display:grid;grid-template-columns:${historyCols};gap:10px;${TABLE_HEADER}`)}>
+                <span style={css(columnLabel())}>QUANDO</span>
+                <span style={css(columnLabel())}>ITENS</span>
+                {qtyCol && <span style={css(columnLabel("center"))}>QTD</span>}
+                {paymentCol && <span style={css(columnLabel())}>PAGAMENTO</span>}
+                <span style={css(columnLabel("right"))}>TOTAL</span>
                 <span />
               </div>
             )}
 
-            {ordenadas.map((v) => (
-              <LinhaVenda key={v.id} venda={v} cols={histCols} podeEditar={tem("vendas")} />
+            {sorted.map((v) => (
+              <SaleRow key={v.id} sale={v} cols={historyCols} podeEditar={has("sales")} />
             ))}
           </div>
         )}
@@ -203,62 +203,62 @@ export function VendasView() {
   );
 }
 
-function LinhaVenda({
-  venda: v,
+function SaleRow({
+  sale: v,
   cols,
   podeEditar,
 }: {
-  venda: Venda;
+  sale: Sale;
   cols: string;
   podeEditar: boolean;
 }) {
   const { a, isDesktop } = usePortal();
   const total = totalV(v);
-  const risco = v.estornada ? "text-decoration:line-through;" : "";
-  const cor = v.estornada ? "var(--muted)" : "var(--text)";
+  const risk = v.refunded ? "text-decoration:line-through;" : "";
+  const color = v.refunded ? "var(--muted)" : "var(--text)";
 
-  const acoes = [
-    { texto: "Ver detalhes", onClick: () => a.abrirModal({ k: "detalheVenda", id: v.id }) },
-    ...(podeEditar && !v.estornada
+  const actions = [
+    { text: "Ver detalhes", onClick: () => a.openModal({ k: "saleDetail", id: v.id }) },
+    ...(podeEditar && !v.refunded
       ? [
-          { texto: "Editar venda", onClick: () => a.editarVenda(v.id) },
+          { text: "Editar venda", onClick: () => a.editSale(v.id) },
           {
-            texto: "Estornar venda",
-            cor: "var(--danger)",
+            text: "Estornar venda",
+            color: "var(--danger)",
             onClick: () =>
-              a.confirmar({
-                titulo: "Estornar esta venda?",
-                texto:
+              a.confirm({
+                title: "Estornar esta venda?",
+                text:
                   "A venda sai do faturamento e o estoque dos itens volta. Ela continua no histórico, riscada.",
-                resumo: resumoItens(v.itens),
-                sub: `${rotuloData(v.d, v.hora)} · ${brl(total)} · ${v.pag}`,
-                reversao: "Dá para desfazer o estorno depois, pelo menu da própria venda.",
-                btn: "Estornar venda",
-                btnBg: "var(--danger)",
-                btnFg: "#fff",
-                cor: "var(--danger)",
-                acao: () => a.estornarVenda(v.id),
+                summary: itemSummary(v.items),
+                detail: `${dateLabel(v.d, v.time)} · ${brl(total)} · ${v.payment}`,
+                reversal: "Dá para desfazer o estorno depois, pelo menu da própria venda.",
+                button: "Estornar venda",
+                buttonBg: "var(--danger)",
+                buttonInk: "#fff",
+                color: "var(--danger)",
+                action: () => a.refundSale(v.id),
               }),
           },
         ]
       : []),
-    ...(v.estornada
+    ...(v.refunded
       ? [
           {
-            texto: "Desfazer estorno",
-            cor: "var(--warn)",
+            text: "Desfazer estorno",
+            color: "var(--warn)",
             onClick: () =>
-              a.confirmar({
-                titulo: "Desfazer o estorno?",
-                texto: "A venda volta a contar no faturamento e o estoque dos itens é baixado de novo.",
-                resumo: resumoItens(v.itens),
-                sub: `${rotuloData(v.d, v.hora)} · ${brl(total)}`,
-                reversao: "Você pode estornar de novo quando quiser.",
-                btn: "Desfazer estorno",
-                btnBg: "var(--warn)",
-                btnFg: "#fff",
-                cor: "var(--warn)",
-                acao: () => a.desfazerEstorno(v.id),
+              a.confirm({
+                title: "Desfazer o estorno?",
+                text: "A venda volta a contar no faturamento e o estoque dos itens é baixado de novo.",
+                summary: itemSummary(v.items),
+                detail: `${dateLabel(v.d, v.time)} · ${brl(total)}`,
+                reversal: "Você pode estornar de novo quando quiser.",
+                button: "Desfazer estorno",
+                buttonBg: "var(--warn)",
+                buttonInk: "#fff",
+                color: "var(--warn)",
+                action: () => a.undoRefund(v.id),
               }),
           },
         ]
@@ -270,55 +270,55 @@ function LinhaVenda({
       {isDesktop ? (
         <div style={css(`display:grid;grid-template-columns:${cols};gap:10px;align-items:center;padding:13px 14px`)}>
           <span style={css(`font:600 12px ${MONO};color:var(--text2);${NUM}`)}>
-            {rotuloData(v.d, v.hora)}
+            {dateLabel(v.d, v.time)}
           </span>
           <span style={css("min-width:0")}>
             <span
               style={css(
-                `display:block;font:500 13px/1.35 ${SANS};color:${cor};${risco}white-space:nowrap;overflow:hidden;text-overflow:ellipsis`,
+                `display:block;font:500 13px/1.35 ${SANS};color:${color};${risk}white-space:nowrap;overflow:hidden;text-overflow:ellipsis`,
               )}
             >
-              {resumoItens(v.itens)}
+              {itemSummary(v.items)}
             </span>
-            {v.estornada && (
+            {v.refunded && (
               <span style={css("display:flex;align-items:center;gap:6px;margin-top:4px")}>
-                <span style={css(SELO_WARN)}>Estornada</span>
+                <span style={css(BADGE_WARN)}>Estornada</span>
               </span>
             )}
           </span>
           <span style={css(`text-align:center;font:600 12.5px ${MONO};color:var(--text2)`)}>{qtdV(v)}</span>
           <span>
-            <span style={css(SELO_NEUTRO)}>{v.pag}</span>
+            <span style={css(BADGE_NEUTRAL)}>{v.payment}</span>
           </span>
-          <span style={css(`text-align:right;font:700 13.5px ${SANS};${NUM};color:${cor};${risco}`)}>
+          <span style={css(`text-align:right;font:700 13.5px ${SANS};${NUM};color:${color};${risk}`)}>
             {brl(total)}
           </span>
-          <MenuLinha chave={`venda:${v.id}`} acoes={acoes} />
+          <RowMenu key={`venda:${v.id}`} actions={actions} />
         </div>
       ) : (
         <div style={css("display:flex;gap:10px;padding:13px 14px")}>
           <div style={css("flex:1;min-width:0")}>
             <div style={css("display:flex;align-items:center;gap:7px;flex-wrap:wrap")}>
               <span style={css(`font:600 11.5px ${MONO};color:var(--muted)`)}>
-                {rotuloData(v.d, v.hora)}
+                {dateLabel(v.d, v.time)}
               </span>
-              {v.estornada && <span style={css(SELO_WARN)}>Estornada</span>}
+              {v.refunded && <span style={css(BADGE_WARN)}>Estornada</span>}
             </div>
-            <div style={css(`margin-top:4px;font:600 13.5px/1.35 ${SANS};color:${cor};${risco}`)}>
-              {resumoItens(v.itens)}
+            <div style={css(`margin-top:4px;font:600 13.5px/1.35 ${SANS};color:${color};${risk}`)}>
+              {itemSummary(v.items)}
             </div>
             <div style={css("margin-top:7px;display:flex;align-items:center;gap:8px")}>
-              <span style={css(SELO_NEUTRO)}>{v.pag}</span>
+              <span style={css(BADGE_NEUTRAL)}>{v.payment}</span>
               <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>
-                {qtdV(v)} {qtdV(v) === 1 ? "item" : "itens"}
+                {qtdV(v)} {qtdV(v) === 1 ? "item" : "items"}
               </span>
             </div>
           </div>
           <div
             style={css("flex:none;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:8px")}
           >
-            <span style={css(`font:700 15px ${SANS};${NUM};color:${cor};${risco}`)}>{brl(total)}</span>
-            <MenuLinha chave={`venda:${v.id}`} acoes={acoes} />
+            <span style={css(`font:700 15px ${SANS};${NUM};color:${color};${risk}`)}>{brl(total)}</span>
+            <RowMenu key={`venda:${v.id}`} actions={actions} />
           </div>
         </div>
       )}

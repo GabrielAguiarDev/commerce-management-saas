@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { EstadoFormulario, ResultadoCliente } from "@/app/clientes/estadoFormulario";
-import { modulosPadrao } from "@/lib/configuracoes";
-import { resolverModulos } from "@/lib/planos";
+import type { FormState, CustomerResult } from "@/app/clientes/estadoFormulario";
+import { defaultModules } from "@/lib/configuracoes";
+import { resolveModules } from "@/lib/planos";
 
 
 /**
@@ -15,20 +15,20 @@ import { resolverModulos } from "@/lib/planos";
  * afirmou. É o que impede uma requisição forjada de contratar o plano Pago
  * pagando o preço do Gratuito, ou de marcar módulos que o pacote não inclui.
  */
-async function lerPlano(
+async function readPlan(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  chave: string,
-): Promise<{ preco: number | null; custom: boolean; mods: string[] } | null> {
+  key: string,
+): Promise<{ price: number | null; custom: boolean; mods: string[] } | null> {
   const { data, error } = await supabase
     .from("plans")
     .select("price, is_custom, module_keys")
-    .eq("key", chave)
+    .eq("key", key)
     .eq("is_active", true)
     .maybeSingle();
 
   if (error || !data) return null;
   return {
-    preco: data.price === null ? null : Number(data.price),
+    price: data.price === null ? null : Number(data.price),
     custom: !!data.is_custom,
     mods: data.module_keys ?? [],
   };
@@ -37,8 +37,8 @@ async function lerPlano(
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function erro(mensagem: string, campo?: string): EstadoFormulario {
-  return { status: "erro", mensagem, campo };
+function error(message: string, field?: string): FormState {
+  return { status: "error", message, field };
 }
 
 /**
@@ -54,10 +54,10 @@ function erro(mensagem: string, campo?: string): EstadoFormulario {
  * outros clientes. Todo o trecho abaixo roda no servidor do Next.js.
  * ───────────────────────────────────────────────────────────────────────
  */
-export async function criarCliente(
-  _anterior: EstadoFormulario,
+export async function createCustomer(
+  _anterior: FormState,
   formData: FormData,
-): Promise<EstadoFormulario> {
+): Promise<FormState> {
   // =====================================================================
   // PASSO 0 — AUTORIZAÇÃO. Vem antes de tudo.
   //
@@ -70,7 +70,7 @@ export async function criarCliente(
   // de confirmar que é admin da plataforma.
   // =====================================================================
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return erro(
+    return error(
       "Supabase não configurado neste ambiente. Preencha o .env.local do portal-admin " +
         "(veja .env.local.example) e reinicie o servidor.",
     );
@@ -82,7 +82,7 @@ export async function criarCliente(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return erro("Sessão expirada. Entre novamente para continuar.");
+    return error("Sessão expirada. Entre novamente para continuar.");
   }
 
   const { data: perfil, error: erroPerfil } = await supabase
@@ -94,7 +94,7 @@ export async function criarCliente(
   if (erroPerfil || !perfil?.is_platform_admin) {
     // Mensagem deliberadamente seca: não confirmamos a quem não é admin se a
     // operação existe ou por que foi negada.
-    return erro("Você não tem permissão para cadastrar clientes.");
+    return error("Você não tem permissão para cadastrar clientes.");
   }
 
   // =====================================================================
@@ -103,61 +103,61 @@ export async function criarCliente(
   // O formulário também valida, mas aquilo é conveniência para quem digita.
   // ESTA validação é a que vale: é a única que um chamador não consegue pular.
   // =====================================================================
-  const nome = String(formData.get("nome") ?? "").trim();
-  const segmento = String(formData.get("segmento") ?? "").trim();
-  const responsavel = String(formData.get("responsavel") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const segment = String(formData.get("segment") ?? "").trim();
+  const owner = String(formData.get("owner") ?? "").trim();
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
-  const planoBruto = String(formData.get("plano") ?? "");
-  const mensalidadeBruta = String(formData.get("mensalidade") ?? "").trim();
-  const cidade = String(formData.get("cidade") ?? "").trim();
-  const telefone = String(formData.get("telefone") ?? "").trim();
+  const rawPlan = String(formData.get("plan") ?? "");
+  const rawMonthlyFee = String(formData.get("monthlyFee") ?? "").trim();
+  const city = String(formData.get("city") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
 
-  if (!nome) return erro("Informe o nome do negócio.", "nome");
-  if (!email) return erro("Informe o e-mail de acesso.", "email");
-  if (!EMAIL_RE.test(email)) return erro("E-mail inválido.", "email");
+  if (!name) return error("Informe o nome do negócio.", "name");
+  if (!email) return error("Informe o e-mail de acesso.", "email");
+  if (!EMAIL_RE.test(email)) return error("E-mail inválido.", "email");
   // O plano vem da tabela `plans`, não de uma lista em código. Se a chave não
   // existir (ou o plano tiver sido desativado), o cadastro para aqui.
-  const regra = await lerPlano(supabase, planoBruto);
-  if (!regra) return erro("Escolha um plano.", "plano");
+  const rule = await readPlan(supabase, rawPlan);
+  if (!rule) return error("Escolha um plano.", "plan");
 
-  const plano = planoBruto;
+  const plan = rawPlan;
 
   // A mensalidade só é informada no plano customizado; nos demais vale o preço
   // gravado em `plans.price`.
-  let mensalidade: number;
-  if (regra.custom) {
+  let monthlyFee: number;
+  if (rule.custom) {
     // Aceita "149", "149,90" e "R$ 149,90".
-    const numero = Number(mensalidadeBruta.replace(/[^\d,.-]/g, "").replace(",", "."));
-    if (!mensalidadeBruta || !Number.isFinite(numero) || numero <= 0) {
-      return erro("Informe a mensalidade do plano customizado.", "mensalidade");
+    const number = Number(rawMonthlyFee.replace(/[^\d,.-]/g, "").replace(",", "."));
+    if (!rawMonthlyFee || !Number.isFinite(number) || number <= 0) {
+      return error("Informe a mensalidade do plano customizado.", "monthlyFee");
     }
-    mensalidade = numero;
+    monthlyFee = number;
   } else {
-    mensalidade = regra.preco ?? 0;
+    monthlyFee = rule.price ?? 0;
   }
 
   // Os módulos marcados na grade só valem no plano Customizado. Nos planos de
   // pacote fechado, `resolverModulos` descarta o que veio no formulário e usa
   // `plans.module_keys` — assim uma requisição forjada não consegue "comprar"
   // módulos extras marcando caixinhas.
-  let modulos = resolverModulos(
-    regra.custom,
-    regra.mods,
+  let modules = resolveModules(
+    rule.custom,
+    rule.mods,
     formData.getAll("modulos").map(String),
   );
 
   // Plano de pacote fechado sem composição gravada cai nos módulos padrão da
   // plataforma (`platform_settings.default_modules`) em vez de barrar o
   // cadastro — antes isto era uma lista fixa em código.
-  if (modulos.length === 0 && !regra.custom) {
-    modulos = await modulosPadrao();
+  if (modules.length === 0 && !rule.custom) {
+    modules = await defaultModules();
   }
 
-  if (modulos.length === 0) {
-    return erro(
-      regra.custom
+  if (modules.length === 0) {
+    return error(
+      rule.custom
         ? "Selecione ao menos um módulo para o plano customizado."
         : "O plano escolhido não tem módulos configurados.",
       "modulos",
@@ -177,21 +177,21 @@ export async function criarCliente(
   // Requer SMTP configurado no projeto Supabase (Authentication → Emails).
   // =====================================================================
   const { data: convite, error: erroConvite } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: responsavel || null },
+    data: { full_name: owner || null },
   });
 
   if (erroConvite || !convite?.user) {
-    const jaExiste =
+    const alreadyExists =
       erroConvite?.status === 422 || /already|registered|exists/i.test(erroConvite?.message ?? "");
-    return erro(
-      jaExiste
+    return error(
+      alreadyExists
         ? "Já existe um usuário com este e-mail."
-        : `Não foi possível enviar o convite de acesso: ${erroConvite?.message ?? "erro desconhecido"}`,
+        : `Não foi possível enviar o convite de acesso: ${erroConvite?.message ?? "error desconhecido"}`,
       "email",
     );
   }
 
-  const usuarioId = convite.user.id;
+  const userId = convite.user.id;
 
   // =====================================================================
   // PASSO 3 a 6 — Tenant, papel Dono, perfil e módulos.
@@ -201,15 +201,15 @@ export async function criarCliente(
   // criado pela metade.
   // =====================================================================
   const { data: tenantId, error: erroRpc } = await admin.rpc("admin_create_tenant", {
-    p_user_id: usuarioId,
-    p_name: nome,
-    p_segment: segmento,
-    p_owner_name: responsavel,
-    p_plan: plano,
-    p_monthly_fee: mensalidade,
-    p_module_keys: modulos,
-    p_city: cidade,
-    p_phone: telefone,
+    p_user_id: userId,
+    p_name: name,
+    p_segment: segment,
+    p_owner_name: owner,
+    p_plan: plan,
+    p_monthly_fee: monthlyFee,
+    p_module_keys: modules,
+    p_city: city,
+    p_phone: phone,
   });
 
   // =====================================================================
@@ -221,22 +221,22 @@ export async function criarCliente(
   // impediria o admin de tentar de novo com o mesmo e-mail.
   // =====================================================================
   if (erroRpc || !tenantId) {
-    const { error: erroLimpeza } = await admin.auth.admin.deleteUser(usuarioId);
+    const { error: erroLimpeza } = await admin.auth.admin.deleteUser(userId);
 
     if (erroLimpeza) {
       // Caso raro e ruim: falhou criar E falhou limpar. Registramos o id para
       // que dê para remover o usuário à mão no painel do Supabase.
       console.error(
-        `[criarCliente] usuário órfão no Auth: ${usuarioId} (${email}). ` +
+        `[criarCliente] usuário órfão no Auth: ${userId} (${email}). ` +
           `Remova manualmente. Causa da limpeza falha: ${erroLimpeza.message}`,
       );
-      return erro(
+      return error(
         "Não foi possível concluir o cadastro e a limpeza automática falhou. " +
           "Verifique no Supabase se restou um usuário com este e-mail antes de tentar de novo.",
       );
     }
 
-    return erro(`Não foi possível criar o cliente: ${erroRpc?.message ?? "erro desconhecido"}`);
+    return error(`Não foi possível criar o cliente: ${erroRpc?.message ?? "error desconhecido"}`);
   }
 
   // =====================================================================
@@ -249,15 +249,15 @@ export async function criarCliente(
 
   return {
     status: "sucesso",
-    mensagem: `${nome} cadastrado. Convite de acesso enviado para ${email}.`,
-    cliente: {
+    message: `${name} cadastrado. Convite de acesso enviado para ${email}.`,
+    customer: {
       id: String(tenantId),
-      nome,
-      segmento,
-      responsavel,
-      plano,
-      mensalidade,
-      modulos,
+      name,
+      segment,
+      owner,
+      plan,
+      monthlyFee,
+      modules,
     },
   };
 }
@@ -277,11 +277,11 @@ export async function criarCliente(
 
 
 /** Confirma que quem chamou é admin da plataforma. */
-async function exigirAdmin(): Promise<
-  { ok: true; supabase: Awaited<ReturnType<typeof createClient>> } | ResultadoCliente
+async function requireAdmin(): Promise<
+  { ok: true; supabase: Awaited<ReturnType<typeof createClient>> } | CustomerResult
 > {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return { ok: false, mensagem: "Supabase não configurado neste ambiente." };
+    return { ok: false, message: "Supabase não configurado neste ambiente." };
   }
 
   const supabase = await createClient();
@@ -289,7 +289,7 @@ async function exigirAdmin(): Promise<
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { ok: false, mensagem: "Sessão expirada. Entre novamente para continuar." };
+  if (!user) return { ok: false, message: "Sessão expirada. Entre novamente para continuar." };
 
   const { data: perfil, error } = await supabase
     .from("profiles")
@@ -298,16 +298,16 @@ async function exigirAdmin(): Promise<
     .single();
 
   if (error || !perfil?.is_platform_admin) {
-    return { ok: false, mensagem: "Você não tem permissão para alterar clientes." };
+    return { ok: false, message: "Você não tem permissão para alterar clientes." };
   }
 
   return { ok: true, supabase };
 }
 
 /** "R$ 149,00" → 149. A interface guarda o valor já formatado. */
-function paraNumero(valor: string): number {
+function toNumber(amount: string): number {
   const n = Number(
-    String(valor)
+    String(amount)
       .replace(/[^\d,.-]/g, "")
       .replace(/\.(?=\d{3}\b)/g, "")
       .replace(",", "."),
@@ -323,41 +323,41 @@ function paraNumero(valor: string): number {
  * recalculados por `modulosDoPlano` — uma requisição forjada não compra plano
  * mais barato nem módulo extra.
  */
-export async function atualizarCliente(
-  clienteId: string,
-  plano: string,
+export async function updateCustomer(
+  customerId: string,
+  plan: string,
   valorFormatado: string,
   modulosEscolhidos: string[],
-): Promise<ResultadoCliente> {
-  const auth = await exigirAdmin();
+): Promise<CustomerResult> {
+  const auth = await requireAdmin();
   if (!("supabase" in auth)) return auth;
 
   // Mesma leitura do cadastro: preço e composição saem de `plans`, nunca do
   // que o navegador mandou.
-  const regra = await lerPlano(auth.supabase, plano);
-  if (!regra) return { ok: false, mensagem: "Plano inválido." };
+  const rule = await readPlan(auth.supabase, plan);
+  if (!rule) return { ok: false, message: "Plano inválido." };
 
-  const modulos = resolverModulos(regra.custom, regra.mods, modulosEscolhidos);
-  if (modulos.length === 0) {
-    return { ok: false, mensagem: "Selecione ao menos um módulo para este cliente." };
+  const modules = resolveModules(rule.custom, rule.mods, modulosEscolhidos);
+  if (modules.length === 0) {
+    return { ok: false, message: "Selecione ao menos um módulo para este cliente." };
   }
 
-  const mensalidade = regra.custom ? paraNumero(valorFormatado) : (regra.preco ?? 0);
+  const monthlyFee = rule.custom ? toNumber(valorFormatado) : (rule.price ?? 0);
 
-  if (regra.custom && mensalidade <= 0) {
-    return { ok: false, mensagem: "Informe a mensalidade do plano customizado." };
+  if (rule.custom && monthlyFee <= 0) {
+    return { ok: false, message: "Informe a mensalidade do plano customizado." };
   }
 
   const { error } = await auth.supabase.rpc("admin_update_tenant", {
-    p_tenant_id: clienteId,
-    p_plan: plano,
-    p_monthly_fee: mensalidade,
-    p_module_keys: modulos,
+    p_tenant_id: customerId,
+    p_plan: plan,
+    p_monthly_fee: monthlyFee,
+    p_module_keys: modules,
   });
 
   if (error) {
     console.error("[atualizarCliente] falha:", error.message);
-    return { ok: false, mensagem: `Não foi possível salvar: ${error.message}` };
+    return { ok: false, message: `Não foi possível salvar: ${error.message}` };
   }
 
   revalidatePath("/", "layout");
@@ -365,22 +365,22 @@ export async function atualizarCliente(
 }
 
 /** Desativa ou reativa um cliente. É um `update` de uma coluna só. */
-export async function mudarStatusCliente(
-  clienteId: string,
-  ativo: boolean,
-): Promise<ResultadoCliente> {
-  const auth = await exigirAdmin();
+export async function setCustomerStatus(
+  customerId: string,
+  active: boolean,
+): Promise<CustomerResult> {
+  const auth = await requireAdmin();
   if (!("supabase" in auth)) return auth;
 
   const { error } = await auth.supabase
     .from("tenants")
     // `lib/clientes.ts` lê exatamente este par: 'active' é ativo, o resto é inativo.
-    .update({ status: ativo ? "active" : "inactive" })
-    .eq("id", clienteId);
+    .update({ status: active ? "active" : "inactive" })
+    .eq("id", customerId);
 
   if (error) {
     console.error("[mudarStatusCliente] falha:", error.message);
-    return { ok: false, mensagem: `Não foi possível alterar o cliente: ${error.message}` };
+    return { ok: false, message: `Não foi possível alterar o cliente: ${error.message}` };
   }
 
   revalidatePath("/", "layout");
@@ -400,42 +400,42 @@ export async function mudarStatusCliente(
  * Auth. Registramos o id no log para remoção manual, como faz `criarCliente`,
  * em vez de fingir que a exclusão inteira falhou — ela não falhou.
  */
-export async function excluirCliente(
-  clienteId: string,
+export async function deleteCustomer(
+  customerId: string,
   nomeConfirmado: string,
-): Promise<ResultadoCliente> {
-  const auth = await exigirAdmin();
+): Promise<CustomerResult> {
+  const auth = await requireAdmin();
   if (!("supabase" in auth)) return auth;
 
   // A tela já exige digitar o nome; conferir de novo aqui é o que impede uma
   // chamada direta à Server Action de apagar um cliente sem essa barreira.
-  const { data: cliente, error: erroLeitura } = await auth.supabase
+  const { data: customer, error: erroLeitura } = await auth.supabase
     .from("tenants")
     .select("name")
-    .eq("id", clienteId)
+    .eq("id", customerId)
     .single();
 
-  if (erroLeitura || !cliente) return { ok: false, mensagem: "Cliente não encontrado." };
+  if (erroLeitura || !customer) return { ok: false, message: "Cliente não encontrado." };
 
-  if ((cliente.name ?? "").trim() !== nomeConfirmado.trim()) {
-    return { ok: false, mensagem: "O nome digitado não confere com o do cliente." };
+  if ((customer.name ?? "").trim() !== nomeConfirmado.trim()) {
+    return { ok: false, message: "O nome digitado não confere com o do cliente." };
   }
 
   const { data: usuarios, error } = await auth.supabase.rpc("admin_delete_tenant", {
-    p_tenant_id: clienteId,
+    p_tenant_id: customerId,
   });
 
   if (error) {
     console.error("[excluirCliente] falha:", error.message);
-    return { ok: false, mensagem: `Não foi possível excluir: ${error.message}` };
+    return { ok: false, message: `Não foi possível excluir: ${error.message}` };
   }
 
   const admin = createAdminClient();
-  for (const usuarioId of (usuarios as string[] | null) ?? []) {
-    const { error: erroAuth } = await admin.auth.admin.deleteUser(usuarioId);
+  for (const userId of (usuarios as string[] | null) ?? []) {
+    const { error: erroAuth } = await admin.auth.admin.deleteUser(userId);
     if (erroAuth) {
       console.error(
-        `[excluirCliente] usuário órfão no Auth: ${usuarioId}. ` +
+        `[excluirCliente] usuário órfão no Auth: ${userId}. ` +
           `Remova manualmente. Causa: ${erroAuth.message}`,
       );
     }

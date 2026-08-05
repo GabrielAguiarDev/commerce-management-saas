@@ -1,11 +1,11 @@
 "use client";
 
-import { ModalBase } from "@/components/modais/Base";
-import { CampoRotulado, css, MONO, RodapeModal, ROTULO_CAMPO, SANS } from "@aguiar/ui";
+import { ModalFrame } from "@/components/modais/Base";
+import { Button, LabeledField, css, MONO, ModalFooter, FIELD_LABEL, SANS } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { MODULOS, MODULOS_PERM } from "@/lib/dados/perfis";
+import { MODULES, PERMISSION_MODULES } from "@/lib/dados/perfis";
 import { useState } from "react";
-import type { ModuloKey } from "@/types/types";
+import type { ModuleKey } from "@/types/types";
 
 /* -------------------------------------------------------------------------- */
 /* Funcionário                                                                 */
@@ -19,78 +19,82 @@ import type { ModuloKey } from "@/types/types";
  * por decisão de segurança. Enquanto não houver um convite feito pelo admin (ou
  * uma Edge Function), o portal administra apenas quem já existe.
  */
-export function FuncionarioModal({ id }: { id: string }) {
+export function EmployeeModal({ id }: { id: string }) {
   const { a, d } = usePortal();
-  const funcionario = d.equipe.find((x) => x.id === id);
-  const [papelId, setPapelId] = useState(
-    () => d.papeis.find((p) => p.nome === funcionario?.papel)?.id ?? "",
+  const employee = d.team.find((x) => x.id === id);
+  const [roleId, setPapelId] = useState(
+    () => d.roles.find((p) => p.name === employee?.role)?.id ?? "",
   );
 
-  if (!funcionario) return null;
+  if (!employee) return null;
 
   return (
-    <ModalBase
-      titulo={funcionario.nome}
-      subtitulo="Escolha o que esta pessoa enxerga no portal."
-      largura={450}
-      onFechar={a.fecharModal}
-      rodape={
-        <RodapeModal
-          onCancelar={a.fecharModal}
-          onConfirmar={() => {
-            a.mudarPapelDoFuncionario(id, papelId);
-            a.fecharModal();
+    <ModalFrame
+      closeLabel="Fechar"
+      title={employee.name}
+      subtitle="Escolha o que esta pessoa enxerga no portal."
+      width={450}
+      onClose={a.closeModal}
+      footer={
+        <ModalFooter
+          cancelText="Cancelar"
+          onCancel={a.closeModal}
+          // O modal fica na tela até a gravação responder — é o botão dele que
+          // segura a espera, travado e girando.
+          onConfirm={async () => {
+            await a.changeEmployeeRole(id, roleId);
+            a.closeModal();
           }}
-          textoConfirmar="Salvar tipo de acesso"
+          confirmText="Salvar tipo de acesso"
         />
       }
     >
       <div>
-        <label style={css(ROTULO_CAMPO)}>Tipo de acesso</label>
+        <label style={css(FIELD_LABEL)}>Tipo de acesso</label>
         <div style={css("display:flex;flex-direction:column;gap:7px")}>
-          {d.papeis.map((p) => {
-            const ativo = papelId === p.id;
+          {d.roles.map((p) => {
+            const active = roleId === p.id;
             return (
-              <button
+              <Button
                 key={p.id}
                 onClick={() => setPapelId(p.id)}
                 style={css(
-                  `display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border:1.5px solid ${ativo ? "var(--accent)" : "var(--border2)"};` +
-                    `border-radius:11px;background:${ativo ? "var(--accent-soft)" : "var(--surface2)"};text-align:left`,
+                  `display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border:1.5px solid ${active ? "var(--accent)" : "var(--border2)"};` +
+                    `border-radius:11px;background:${active ? "var(--accent-soft)" : "var(--surface2)"};text-align:left`,
                 )}
               >
                 <span
                   style={css(
-                    `flex:none;width:17px;height:17px;margin-top:1px;border-radius:50%;border:2px solid ${ativo ? "var(--accent)" : "var(--border2)"};` +
+                    `flex:none;width:17px;height:17px;margin-top:1px;border-radius:50%;border:2px solid ${active ? "var(--accent)" : "var(--border2)"};` +
                       "display:flex;align-items:center;justify-content:center",
                   )}
                 >
                   <span
                     style={css(
-                      `width:7px;height:7px;border-radius:50%;background:${ativo ? "var(--accent)" : "transparent"}`,
+                      `width:7px;height:7px;border-radius:50%;background:${active ? "var(--accent)" : "transparent"}`,
                     )}
                   />
                 </span>
                 <span style={css("flex:1;min-width:0")}>
                   <span
                     style={css(
-                      `display:block;font:600 13px ${SANS};color:${ativo ? "var(--accent)" : "var(--text)"}`,
+                      `display:block;font:600 13px ${SANS};color:${active ? "var(--accent)" : "var(--text)"}`,
                     )}
                   >
-                    {p.nome}
+                    {p.name}
                   </span>
                   <span
                     style={css(`display:block;margin-top:2px;font:500 11.5px/1.4 ${SANS};color:var(--muted)`)}
                   >
-                    {resumoPapel(p.modulos, p.fixo)}
+                    {roleSummary(p.modules, p.fixed)}
                   </span>
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>
       </div>
-    </ModalBase>
+    </ModalFrame>
   );
 }
 
@@ -98,61 +102,63 @@ export function FuncionarioModal({ id }: { id: string }) {
 /* Tipo de acesso                                                              */
 /* -------------------------------------------------------------------------- */
 
-export function PapelModal() {
-  const { s, a, tem } = usePortal();
-  const f = s.formPapel;
-  const editando = f.id != null;
+export function RoleModal() {
+  const { s, a, has } = usePortal();
+  const f = s.roleForm;
+  const editing = f.id != null;
 
   // Só se libera o que o plano tem: mostrar "Estoque" a quem não contratou o
   // módulo prometeria um acesso que não existe.
-  const disponiveis = MODULOS_PERM.filter((m) => tem(m));
-  const todos = disponiveis.every((m) => f.modulos.includes(m));
+  const available = PERMISSION_MODULES.filter((m) => has(m));
+  const all = available.every((m) => f.modules.includes(m));
 
-  const set = (p: Partial<typeof f>) => a.set({ formPapel: { ...f, ...p } });
+  const set = (p: Partial<typeof f>) => a.set({ roleForm: { ...f, ...p } });
 
-  const alternar = (m: ModuloKey) =>
-    set({ modulos: f.modulos.includes(m) ? f.modulos.filter((x) => x !== m) : [...f.modulos, m] });
+  const toggle = (m: ModuleKey) =>
+    set({ modules: f.modules.includes(m) ? f.modules.filter((x) => x !== m) : [...f.modules, m] });
 
   return (
-    <ModalBase
-      titulo={editando ? "Editar tipo de acesso" : "Novo tipo de acesso"}
-      subtitulo="Marque o que este tipo de acesso pode abrir no portal."
-      onFechar={a.fecharModal}
-      rodape={
-        <RodapeModal
-          onCancelar={a.fecharModal}
-          onConfirmar={a.salvarPapel}
-          textoConfirmar={editando ? "Salvar alterações" : "Criar tipo"}
+    <ModalFrame
+      closeLabel="Fechar"
+      title={editing ? "Editar tipo de acesso" : "Novo tipo de acesso"}
+      subtitle="Marque o que este tipo de acesso pode abrir no portal."
+      onClose={a.closeModal}
+      footer={
+        <ModalFooter
+          cancelText="Cancelar"
+          onCancel={a.closeModal}
+          onConfirm={a.saveRole}
+          confirmText={editing ? "Salvar alterações" : "Criar tipo"}
         />
       }
     >
-      <CampoRotulado
+      <LabeledField
         label="Nome do tipo de acesso"
-        valor={f.nome}
-        onMudar={(v) => set({ nome: v })}
+        value={f.name}
+        onChange={(v) => set({ name: v })}
         placeholder="Ex.: Vendedor"
-        erro={f.tentouSalvar && !f.nome.trim()}
-        mensagem="Dê um nome ao tipo de acesso."
+        error={f.submitted && !f.name.trim()}
+        message="Dê um nome ao tipo de acesso."
       />
 
       <div>
         <div style={css("display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px")}>
           <span style={css(`font:600 11px ${SANS};color:var(--text2)`)}>O que pode acessar</span>
-          <button
-            onClick={() => set({ modulos: todos ? [] : disponiveis.slice() })}
+          <Button
+            onClick={() => set({ modules: all ? [] : available.slice() })}
             style={css(`font:600 11.5px ${SANS};color:var(--accent)`)}
           >
-            {todos ? "Desmarcar todos" : "Marcar todos"}
-          </button>
+            {all ? "Desmarcar todos" : "Marcar todos"}
+          </Button>
         </div>
 
         <div style={css("display:flex;flex-direction:column;gap:6px")}>
-          {disponiveis.map((m) => {
-            const marcado = f.modulos.includes(m);
+          {available.map((m) => {
+            const marcado = f.modules.includes(m);
             return (
-              <button
+              <Button
                 key={m}
-                onClick={() => alternar(m)}
+                onClick={() => toggle(m)}
                 style={css(
                   `display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid ${marcado ? "var(--accent)" : "var(--border)"};` +
                     `border-radius:11px;background:${marcado ? "var(--accent-soft)" : "var(--surface2)"};text-align:left`,
@@ -171,27 +177,27 @@ export function PapelModal() {
                     `flex:1;min-width:0;font:600 13px ${SANS};color:${marcado ? "var(--accent)" : "var(--text)"}`,
                   )}
                 >
-                  {MODULOS[m].nome}
+                  {MODULES[m].name}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>
 
         <p style={css(`margin:10px 0 0;font:500 11.5px/1.5 ${SANS};color:var(--muted)`)}>
-          Só aparecem os módulos que o seu plano tem. Para liberar outros, fale com o suporte na aba
+          Só aparecem os módulos que o seu plano tem. Para liberar outros, fale com o support na aba
           Conta.
         </p>
       </div>
-    </ModalBase>
+    </ModalFrame>
   );
 }
 
 /** "Vê Vendas, Produtos e mais 2" — o resumo curto de um tipo de acesso. */
-export function resumoPapel(modulos: ModuloKey[], fixo: boolean): string {
-  if (fixo) return "Vê tudo e pode mexer em tudo";
-  if (!modulos.length) return "Não vê nenhum módulo ainda";
-  const nomes = modulos.map((m) => MODULOS[m].nome);
-  if (nomes.length <= 2) return `Vê ${nomes.join(" e ")}`;
-  return `Vê ${nomes.slice(0, 2).join(", ")} e mais ${nomes.length - 2}`;
+export function roleSummary(modules: ModuleKey[], fixed: boolean): string {
+  if (fixed) return "Vê tudo e pode mexer em tudo";
+  if (!modules.length) return "Não vê nenhum módulo ainda";
+  const names = modules.map((m) => MODULES[m].name);
+  if (names.length <= 2) return `Vê ${names.join(" e ")}`;
+  return `Vê ${names.slice(0, 2).join(", ")} e mais ${names.length - 2}`;
 }

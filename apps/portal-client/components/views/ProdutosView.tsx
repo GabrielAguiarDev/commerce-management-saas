@@ -1,16 +1,16 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { MenuLinha } from "@/components/ui";
-import { BotaoNovo, CABECALHO_TABELA, CabecalhoTela, css, FaixaKpis, LimparFiltros, LISTA, MONO, NUM, rotuloColuna, SANS, SelecaoSimples, Vazio } from "@aguiar/ui";
-import { categoriasDe, estoqueBaixo } from "@/lib/dados/produtos";
+import { RowMenu } from "@/components/ui";
+import { NewButton, Button, TABLE_HEADER, ScreenHeader, css, KpiStrip, ClearFilters, LIST, MONO, NUM, columnLabel, SANS, SimpleSelect, Empty } from "@aguiar/ui";
+import { categoriesOf, lowStock } from "@/lib/dados/produtos";
 import { brl } from "@/lib/formato";
-import { valorDoEstoque } from "@/lib/selectors";
-import { campoFiltro, SELO_NEUTRO } from "@/lib/styleKit";
-import type { Produto } from "@/types/types";
+import { stockValue } from "@/lib/selectors";
+import { filterField, BADGE_NEUTRAL } from "@/lib/styleKit";
+import type { Product } from "@/types/types";
 
-const TODAS_CATS = "Todas as categorias";
-const TODOS_STATUS = "Todos";
+const ALL_CATEGORIES = "Todas as categorias";
+const ALL_STATUSES = "Todos";
 
 /**
  * O catálogo.
@@ -20,140 +20,140 @@ const TODOS_STATUS = "Todos";
  * se está à venda.
  */
 export function ProdutosView() {
-  const { s, a, tem, isDesktop, isMobile, d } = usePortal();
+  const { s, a, has, isDesktop, isMobile, d } = usePortal();
   const f = s.fProdutos;
 
-  const temEstoque = tem("estoque");
-  const colCategoria = isDesktop;
-  const colEstoque = isDesktop && temEstoque;
+  const hasStock = has("stock");
+  const categoryCol = isDesktop;
+  const stockCol = isDesktop && hasStock;
 
-  const busca = f.busca.trim().toLowerCase();
-  const filtrados = d.produtos.filter((p) => {
-    if (busca && !p.nome.toLowerCase().includes(busca) && !p.codigo.includes(busca)) return false;
-    if (f.cat !== TODAS_CATS && p.categoria !== f.cat) return false;
-    if (f.status === "À venda" && !p.ativo) return false;
-    if (f.status === "Pausados" && p.ativo) return false;
-    if (f.soBaixo && !estoqueBaixo(p)) return false;
+  const search = f.search.trim().toLowerCase();
+  const filtered = d.products.filter((p) => {
+    if (search && !p.name.toLowerCase().includes(search) && !p.code.includes(search)) return false;
+    if (f.cat !== ALL_CATEGORIES && p.category !== f.cat) return false;
+    if (f.status === "À venda" && !p.active) return false;
+    if (f.status === "Pausados" && p.active) return false;
+    if (f.onlyLow && !lowStock(p)) return false;
     return true;
   });
 
-  const ordenados = [...filtrados].sort(
-    (x, y) => Number(y.fav) - Number(x.fav) || x.nome.localeCompare(y.nome),
+  const sorted = [...filtered].sort(
+    (x, y) => Number(y.fav) - Number(x.fav) || x.name.localeCompare(y.name),
   );
 
-  const filtroAtivo =
-    busca !== "" || f.cat !== TODAS_CATS || f.status !== TODOS_STATUS || f.soBaixo;
+  const filterActive =
+    search !== "" || f.cat !== ALL_CATEGORIES || f.status !== ALL_STATUSES || f.onlyLow;
 
   const set = (p: Partial<typeof f>) => a.set({ fProdutos: { ...f, ...p } });
-  const limpar = () => set({ busca: "", cat: TODAS_CATS, status: TODOS_STATUS, soBaixo: false });
+  const clear = () => set({ search: "", cat: ALL_CATEGORIES, status: ALL_STATUSES, onlyLow: false });
 
-  const ativos = d.produtos.filter((p) => p.ativo);
-  const emFalta = d.produtos.filter((p) => p.ativo && estoqueBaixo(p));
-  const precoMedio = ativos.length ? ativos.reduce((x, p) => x + p.preco, 0) / ativos.length : 0;
+  const active = d.products.filter((p) => p.active);
+  const outOfStock = d.products.filter((p) => p.active && lowStock(p));
+  const averagePrice = active.length ? active.reduce((x, p) => x + p.price, 0) / active.length : 0;
 
   const kpis = [
-    { label: "No catálogo", valor: String(d.produtos.length), nota: `${ativos.length} à venda` },
-    { label: "Mais vendidos", valor: String(d.produtos.filter((p) => p.fav).length), nota: "Aparecem primeiro no PDV" },
-    { label: "Preço médio", valor: brl(precoMedio), nota: "Dos produtos à venda" },
-    temEstoque
+    { label: "No catálogo", value: String(d.products.length), note: `${active.length} à venda` },
+    { label: "Mais vendidos", value: String(d.products.filter((p) => p.fav).length), note: "Aparecem primeiro no PDV" },
+    { label: "Preço médio", value: brl(averagePrice), note: "Dos produtos à venda" },
+    hasStock
       ? {
           label: "Estoque baixo",
-          valor: String(emFalta.length),
-          nota: emFalta.length ? "Precisa repor" : "Nada para repor",
-          cor: emFalta.length ? "var(--warn)" : "var(--pos)",
+          value: String(outOfStock.length),
+          note: outOfStock.length ? "Precisa repor" : "Nada para repor",
+          color: outOfStock.length ? "var(--warn)" : "var(--pos)",
         }
-      : { label: "Categorias", valor: String(categoriasDe(d.produtos).length), nota: "Em uso no catálogo" },
+      : { label: "Categorias", value: String(categoriesOf(d.products).length), note: "Em uso no catálogo" },
   ];
 
   const cols =
-    `44px minmax(0,1fr)${colCategoria ? " 150px" : ""} 110px${colEstoque ? " 100px" : ""} 110px 44px`;
+    `44px minmax(0,1fr)${categoryCol ? " 150px" : ""} 110px${stockCol ? " 100px" : ""} 110px 44px`;
 
-  const subtitulo = temEstoque
+  const subtitle = hasStock
     ? "Cadastre o que você vende: preço, categoria e quantidade em estoque."
     : "Cadastre o que você vende para agilizar o balcão.";
 
   return (
     <div>
-      <CabecalhoTela
-        titulo="Produtos"
-        subtitulo={subtitulo}
-        acao={<BotaoNovo texto="Novo produto" onClick={() => a.abrirProduto(null)} largo={isMobile} />}
+      <ScreenHeader
+        title="Produtos"
+        subtitle={subtitle}
+        action={<NewButton text="Novo produto" onClick={() => a.openProduct(null)} wide={isMobile} />}
       />
 
-      <FaixaKpis kpis={kpis} colunas={isMobile ? "1fr 1fr" : "repeat(4,minmax(0,1fr))"} />
+      <KpiStrip kpis={kpis} columns={isMobile ? "1fr 1fr" : "repeat(4,minmax(0,1fr))"} />
 
       <div style={css("display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px")}>
         <input
-          value={f.busca}
-          onChange={(e) => set({ busca: e.target.value })}
+          value={f.search}
+          onChange={(e) => set({ search: e.target.value })}
           placeholder="Buscar por nome ou código de barras"
-          style={css(`flex:1;min-width:180px;${campoFiltro()}`)}
+          style={css(`flex:1;min-width:180px;${filterField()}`)}
         />
-        <SelecaoSimples valor={f.cat} opcoes={[TODAS_CATS, ...categoriasDe(d.produtos)]} onMudar={(v) => set({ cat: v })} />
-        <SelecaoSimples
-          valor={f.status}
-          opcoes={[TODOS_STATUS, "À venda", "Pausados"]}
-          onMudar={(v) => set({ status: v })}
+        <SimpleSelect value={f.cat} options={[ALL_CATEGORIES, ...categoriesOf(d.products)]} onChange={(v) => set({ cat: v })} />
+        <SimpleSelect
+          value={f.status}
+          options={[ALL_STATUSES, "À venda", "Pausados"]}
+          onChange={(v) => set({ status: v })}
         />
-        {temEstoque && (
-          <button
-            onClick={() => set({ soBaixo: !f.soBaixo })}
+        {hasStock && (
+          <Button
+            onClick={() => set({ onlyLow: !f.onlyLow })}
             style={css(
-              `padding:10px 13px;border:1px solid ${f.soBaixo ? "var(--warn)" : "var(--border)"};border-radius:10px;` +
-                `background:${f.soBaixo ? "var(--warn-soft)" : "var(--surface)"};` +
-                `color:${f.soBaixo ? "var(--warn)" : "var(--text2)"};font:600 12.5px ${SANS}`,
+              `padding:10px 13px;border:1px solid ${f.onlyLow ? "var(--warn)" : "var(--border)"};border-radius:10px;` +
+                `background:${f.onlyLow ? "var(--warn-soft)" : "var(--surface)"};` +
+                `color:${f.onlyLow ? "var(--warn)" : "var(--text2)"};font:600 12.5px ${SANS}`,
             )}
           >
             Só estoque baixo
-          </button>
+          </Button>
         )}
-        {filtroAtivo && <LimparFiltros onClick={limpar} />}
+        {filterActive && <ClearFilters text="Limpar filtros" onClick={clear} />}
       </div>
 
-      {d.produtos.length === 0 ? (
-        <Vazio
-          titulo="Seu catálogo está vazio"
-          texto="Cadastre o que você vende para agilizar o balcão: os produtos aparecem na tela de venda prontos para um toque."
-          acao="Cadastrar primeiro produto"
-          onAcao={() => a.abrirProduto(null)}
-          destaque
+      {d.products.length === 0 ? (
+        <Empty
+          title="Seu catálogo está vazio"
+          text="Cadastre o que você vende para agilizar o balcão: os produtos aparecem na tela de venda prontos para um toque."
+          action="Cadastrar primeiro produto"
+          onAction={() => a.openProduct(null)}
+          standout
         />
-      ) : ordenados.length === 0 ? (
-        <Vazio
-          titulo="Nenhum produto com esses filtros"
-          texto="Tente outro termo de busca ou limpe os filtros."
-          acao="Limpar filtros"
-          onAcao={limpar}
+      ) : sorted.length === 0 ? (
+        <Empty
+          title="Nenhum produto com esses filtros"
+          text="Tente outro termo de busca ou limpe os filtros."
+          action="Limpar filtros"
+          onAction={clear}
         />
       ) : (
         <>
-          <div style={css(LISTA + ";overflow:visible")}>
+          <div style={css(LIST + ";overflow:visible")}>
             {isDesktop && (
-              <div style={css(`display:grid;grid-template-columns:${cols};gap:10px;${CABECALHO_TABELA}`)}>
+              <div style={css(`display:grid;grid-template-columns:${cols};gap:10px;${TABLE_HEADER}`)}>
                 <span />
-                <span style={css(rotuloColuna())}>PRODUTO</span>
-                {colCategoria && <span style={css(rotuloColuna())}>CATEGORIA</span>}
-                <span style={css(rotuloColuna("right"))}>PREÇO</span>
-                {colEstoque && <span style={css(rotuloColuna("right"))}>ESTOQUE</span>}
-                <span style={css(rotuloColuna())}>STATUS</span>
+                <span style={css(columnLabel())}>PRODUTO</span>
+                {categoryCol && <span style={css(columnLabel())}>CATEGORIA</span>}
+                <span style={css(columnLabel("right"))}>PREÇO</span>
+                {stockCol && <span style={css(columnLabel("right"))}>ESTOQUE</span>}
+                <span style={css(columnLabel())}>STATUS</span>
                 <span />
               </div>
             )}
 
-            {ordenados.map((p) => (
-              <LinhaProduto
+            {sorted.map((p) => (
+              <ProductRow
                 key={p.id}
-                produto={p}
+                product={p}
                 cols={cols}
-                colCategoria={colCategoria}
-                colEstoque={colEstoque}
+                categoryCol={categoryCol}
+                stockCol={stockCol}
               />
             ))}
           </div>
 
           <p style={css(`margin:10px 0 0;font:500 12px ${SANS};color:var(--muted)`)}>
-            {ordenados.length} de {d.produtos.length} produtos
-            {temEstoque && ` · ${brl(valorDoEstoque(d.produtos))} parados na prateleira`}
+            {sorted.length} de {d.products.length} products
+            {hasStock && ` · ${brl(stockValue(d.products))} parados na prateleira`}
           </p>
         </>
       )}
@@ -161,78 +161,78 @@ export function ProdutosView() {
   );
 }
 
-function LinhaProduto({
-  produto: p,
+function ProductRow({
+  product: p,
   cols,
-  colCategoria,
-  colEstoque,
+  categoryCol,
+  stockCol,
 }: {
-  produto: Produto;
+  product: Product;
   cols: string;
-  colCategoria: boolean;
-  colEstoque: boolean;
+  categoryCol: boolean;
+  stockCol: boolean;
 }) {
-  const { a, tem, isDesktop } = usePortal();
+  const { a, has, isDesktop } = usePortal();
 
-  const baixo = estoqueBaixo(p);
-  const corEstoque = p.estoque == null
+  const low = lowStock(p);
+  const corEstoque = p.stock == null
     ? "var(--muted)"
-    : p.estoque === 0
+    : p.stock === 0
       ? "var(--danger)"
-      : baixo
+      : low
         ? "var(--warn)"
         : "var(--text2)";
 
-  const statusBg = p.ativo ? "var(--pos-soft)" : "var(--surface3)";
-  const statusCor = p.ativo ? "var(--pos)" : "var(--muted)";
+  const statusBg = p.active ? "var(--pos-soft)" : "var(--surface3)";
+  const statusColor = p.active ? "var(--pos)" : "var(--muted)";
 
-  const acoes = [
-    { texto: "Editar produto", onClick: () => a.abrirProduto(p.id) },
-    { texto: p.fav ? "Tirar dos mais vendidos" : "Marcar como mais vendido", onClick: () => a.toggleFav(p.id) },
-    ...(tem("estoque") && p.estoque != null
-      ? [{ texto: "Registrar movimentação", onClick: () => a.abrirMov(p.id) }]
+  const actions = [
+    { text: "Editar produto", onClick: () => a.openProduct(p.id) },
+    { text: p.fav ? "Tirar dos mais vendidos" : "Marcar como mais vendido", onClick: () => a.toggleFav(p.id) },
+    ...(has("stock") && p.stock != null
+      ? [{ text: "Registrar movimentação", onClick: () => a.openMovement(p.id) }]
       : []),
     {
-      texto: p.ativo ? "Pausar venda" : "Voltar a vender",
-      cor: "var(--warn)",
+      text: p.active ? "Pausar venda" : "Voltar a vender",
+      color: "var(--warn)",
       onClick: () =>
-        a.confirmar({
-          titulo: p.ativo ? "Pausar este produto?" : "Voltar a vender?",
-          texto: p.ativo
+        a.confirm({
+          title: p.active ? "Pausar este produto?" : "Voltar a vender?",
+          text: p.active
             ? "Ele some da tela de venda, mas continua no catálogo e no histórico."
             : "Ele volta a aparecer na tela de venda.",
-          resumo: p.nome,
-          sub: `${brl(p.preco)} · ${p.categoria}`,
-          reversao: "Dá para desfazer a qualquer momento pelo mesmo menu.",
-          btn: p.ativo ? "Pausar" : "Voltar a vender",
-          btnBg: "var(--warn)",
-          btnFg: "#fff",
-          cor: "var(--warn)",
-          acao: () => a.toggleAtivo(p.id),
+          summary: p.name,
+          detail: `${brl(p.price)} · ${p.category}`,
+          reversal: "Dá para desfazer a qualquer momento pelo mesmo menu.",
+          button: p.active ? "Pausar" : "Voltar a vender",
+          buttonBg: "var(--warn)",
+          buttonInk: "#fff",
+          color: "var(--warn)",
+          action: () => a.toggleActive(p.id),
         }),
     },
     {
-      texto: "Excluir produto",
-      cor: "var(--danger)",
+      text: "Excluir produto",
+      color: "var(--danger)",
       onClick: () =>
-        a.confirmar({
-          titulo: "Excluir este produto?",
-          texto:
+        a.confirm({
+          title: "Excluir este produto?",
+          text:
             "Ele sai do catálogo. As vendas já registradas continuam no histórico com o nome e o preço do dia.",
-          resumo: p.nome,
-          sub: `${brl(p.preco)} · ${p.categoria}`,
-          reversao: "Isto não pode ser desfeito. Se for temporário, prefira pausar a venda.",
-          btn: "Excluir produto",
-          btnBg: "var(--danger)",
-          btnFg: "#fff",
-          cor: "var(--danger)",
-          acao: () => a.excluirProduto(p.id),
+          summary: p.name,
+          detail: `${brl(p.price)} · ${p.category}`,
+          reversal: "Isto não pode ser desfeito. Se for temporário, prefira pausar a venda.",
+          button: "Excluir produto",
+          buttonBg: "var(--danger)",
+          buttonInk: "#fff",
+          color: "var(--danger)",
+          action: () => a.deleteProduct(p.id),
         }),
     },
   ];
 
   const botaoFav = (
-    <button
+    <Button
       onClick={() => a.toggleFav(p.id)}
       title={p.fav ? "Tirar dos mais vendidos" : "Marcar como mais vendido"}
       className="hv-linha2"
@@ -241,7 +241,7 @@ function LinhaProduto({
       )}
     >
       {p.fav ? "★" : "☆"}
-    </button>
+    </Button>
   );
 
   return (
@@ -253,36 +253,36 @@ function LinhaProduto({
             <span
               style={css(
                 `display:block;font:600 13.5px/1.3 ${SANS};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
-                  `color:${p.ativo ? "var(--text)" : "var(--muted)"}`,
+                  `color:${p.active ? "var(--text)" : "var(--muted)"}`,
               )}
             >
-              {p.nome}
+              {p.name}
             </span>
             <span style={css(`display:block;margin-top:3px;font:500 11px ${MONO};color:var(--muted)`)}>
-              {p.codigo || "sem código"} · {p.unidade}
+              {p.code || "sem código"} · {p.unit}
             </span>
           </span>
-          {colCategoria && (
+          {categoryCol && (
             <span>
-              <span style={css(SELO_NEUTRO)}>{p.categoria}</span>
+              <span style={css(BADGE_NEUTRAL)}>{p.category}</span>
             </span>
           )}
-          <span style={css(`text-align:right;font:700 13.5px ${SANS};${NUM}`)}>{brl(p.preco)}</span>
-          {colEstoque && (
+          <span style={css(`text-align:right;font:700 13.5px ${SANS};${NUM}`)}>{brl(p.price)}</span>
+          {stockCol && (
             <span style={css(`text-align:right;font:600 12.5px ${SANS};${NUM};color:${corEstoque}`)}>
-              {p.estoque == null ? "—" : p.estoque}
+              {p.stock == null ? "—" : p.stock}
             </span>
           )}
           <span>
             <span
               style={css(
-                `display:inline-flex;padding:3px 9px;border-radius:999px;background:${statusBg};color:${statusCor};font:600 11px ${SANS}`,
+                `display:inline-flex;padding:3px 9px;border-radius:999px;background:${statusBg};color:${statusColor};font:600 11px ${SANS}`,
               )}
             >
-              {p.ativo ? "À venda" : "Pausado"}
+              {p.active ? "À venda" : "Pausado"}
             </span>
           </span>
-          <MenuLinha chave={`produto:${p.id}`} acoes={acoes} largura={214} />
+          <RowMenu key={`produto:${p.id}`} actions={actions} width={214} />
         </div>
       ) : (
         <div style={css("display:flex;gap:9px;padding:12px 13px")}>
@@ -290,38 +290,38 @@ function LinhaProduto({
           <div style={css("flex:1;min-width:0")}>
             <div
               style={css(
-                `font:600 13.5px/1.3 ${SANS};color:${p.ativo ? "var(--text)" : "var(--muted)"}`,
+                `font:600 13.5px/1.3 ${SANS};color:${p.active ? "var(--text)" : "var(--muted)"}`,
               )}
             >
-              {p.nome}
+              {p.name}
             </div>
             <div style={css("display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px")}>
-              <span style={css(`font:700 13px ${SANS};${NUM}`)}>{brl(p.preco)}</span>
+              <span style={css(`font:700 13px ${SANS};${NUM}`)}>{brl(p.price)}</span>
               <span
                 style={css(
                   `padding:2px 8px;border-radius:999px;background:var(--surface3);color:var(--text2);font:600 10.5px ${SANS}`,
                 )}
               >
-                {p.categoria}
+                {p.category}
               </span>
-              {!p.ativo && (
+              {!p.active && (
                 <span
                   style={css(
-                    `padding:2px 8px;border-radius:999px;background:${statusBg};color:${statusCor};font:600 10.5px ${SANS}`,
+                    `padding:2px 8px;border-radius:999px;background:${statusBg};color:${statusColor};font:600 10.5px ${SANS}`,
                   )}
                 >
                   Pausado
                 </span>
               )}
             </div>
-            {colEstoque === false && p.estoque != null && (
+            {stockCol === false && p.stock != null && (
               <div style={css(`margin-top:5px;font:500 11.5px ${SANS};color:${corEstoque}`)}>
-                {p.estoque === 0 ? "Sem estoque" : `${p.estoque} ${p.unidade} em estoque`}
-                {p.minimo != null && ` · mín. ${p.minimo}`}
+                {p.stock === 0 ? "Sem estoque" : `${p.stock} ${p.unit} em estoque`}
+                {p.minimum != null && ` · mín. ${p.minimum}`}
               </div>
             )}
           </div>
-          <MenuLinha chave={`produto:${p.id}`} acoes={acoes} largura={214} />
+          <RowMenu key={`produto:${p.id}`} actions={actions} width={214} />
         </div>
       )}
     </div>

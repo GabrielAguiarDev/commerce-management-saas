@@ -1,6 +1,6 @@
 "use client";
 
-import { ModalBase as ModalBaseUI } from "@aguiar/ui";
+import { ModalFrame as ModalBaseUI } from "@aguiar/ui";
 import type { ComponentProps, ReactNode } from "react";
 import { usePortal } from "@/components/PortalProvider";
 
@@ -15,7 +15,7 @@ import { usePortal } from "@/components/PortalProvider";
  * `RodapeModal`, `EscolhaCartao` e `PilulaEscolha` também estão na lib —
  * importe-os direto de `@aguiar/ui`.
  */
-export function ModalBase({
+export function ModalFrame({
   children,
   ...props
 }: Omit<ComponentProps<typeof ModalBaseUI>, "mobile"> & { children?: ReactNode }) {

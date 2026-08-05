@@ -3,36 +3,37 @@
 import type { CSSProperties, ReactNode } from "react";
 import { css, MONO, SANS } from "../css";
 import {
-  botaoPrimario,
-  CAIXA_VAZIA,
-  faixaKpis,
-  GRUPO_PILULAS,
+  EMPTY_BOX,
+  KPI_LABEL,
+  kpiStrip,
   NUM,
-  pilula,
-  ROTULO_KPI,
-  SUB_TELA,
-  TITULO_TELA,
-  trilha,
+  PILL_GROUP,
+  pill,
+  primaryButton,
+  SCREEN_SUBTITLE,
+  SCREEN_TITLE,
+  track,
 } from "../styleKit";
+import { Button } from "./Button";
 
 /**
- * As peças de layout que se repetem em mais de uma tela dos dois portais. Nada
- * aqui decide regra de negócio — só desenha o que o design já resolveu, para
- * que as views fiquem sobre o que é próprio delas.
+ * The layout pieces that repeat across more than one screen of both portals.
+ * Nothing here decides a business rule — it only draws what the design already
+ * settled, so the views can be about what is theirs.
  */
 
 /* -------------------------------------------------------------------------- */
-/* Cabeçalho de tela                                                           */
+/* Screen header                                                               */
 /* -------------------------------------------------------------------------- */
 
-export function CabecalhoTela({
-  titulo,
-  subtitulo,
-  acao,
+export function ScreenHeader({
+  title,
+  subtitle,
+  action,
 }: {
-  titulo: string;
-  subtitulo?: string;
-  acao?: ReactNode;
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
 }) {
   return (
     <div
@@ -42,56 +43,58 @@ export function CabecalhoTela({
       )}
     >
       <div>
-        <h1 style={css(TITULO_TELA)}>{titulo}</h1>
-        {subtitulo && <p style={css(SUB_TELA)}>{subtitulo}</p>}
+        <h1 style={css(SCREEN_TITLE)}>{title}</h1>
+        {subtitle && <p style={css(SCREEN_SUBTITLE)}>{subtitle}</p>}
       </div>
-      {acao}
+      {action}
     </div>
   );
 }
 
-/** O verbo principal de uma tela, com o "+" que anuncia que algo será criado. */
-export function BotaoNovo({
-  texto,
+/** A screen's main verb, with the "+" that announces something will be created. */
+export function NewButton({
+  text,
   onClick,
-  largo,
+  wide,
 }: {
-  texto: string;
-  onClick: () => void;
-  largo?: boolean;
+  text: string;
+  /** Returning a promise makes the button wait for it, spinner and all. */
+  onClick: () => unknown;
+  wide?: boolean;
 }) {
   return (
-    <button
+    <Button
       onClick={onClick}
-      className="hv-brilho"
-      style={css(
+      className="hv-glow"
+      cssText={
         "display:flex;align-items:center;justify-content:center;gap:9px;" +
-          (largo ? "flex:1 0 100%;" : "") +
-          botaoPrimario(),
-      )}
+        (wide ? "flex:1 0 100%;" : "") +
+        primaryButton()
+      }
     >
       <span style={css(`font:600 16px/1 ${MONO}`)}>+</span>
-      {texto}
-    </button>
+      {text}
+    </Button>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Painéis                                                                     */
+/* Panels                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export function Painel({
-  titulo,
-  nota,
-  acao,
+export function Panel({
+  title,
+  note,
+  action,
   children,
-  semPadding,
+  flush,
 }: {
-  titulo?: string;
-  nota?: string;
-  acao?: ReactNode;
+  title?: string;
+  note?: string;
+  action?: ReactNode;
   children: ReactNode;
-  semPadding?: boolean;
+  /** Drop the inner padding — for a panel filled by a table of its own. */
+  flush?: boolean;
 }) {
   return (
     <div
@@ -100,7 +103,7 @@ export function Painel({
           "box-shadow:var(--shadow);overflow:hidden",
       )}
     >
-      {titulo && (
+      {title && (
         <div
           style={css(
             "display:flex;align-items:flex-end;justify-content:space-between;gap:12px;" +
@@ -108,49 +111,49 @@ export function Painel({
           )}
         >
           <div>
-            <h2 style={css(`margin:0;font:700 15.5px ${SANS}`)}>{titulo}</h2>
-            {nota && (
+            <h2 style={css(`margin:0;font:700 15.5px ${SANS}`)}>{title}</h2>
+            {note && (
               <p style={css(`margin:3px 0 0;font:400 12px/1.45 ${SANS};color:var(--muted)`)}>
-                {nota}
+                {note}
               </p>
             )}
           </div>
-          {acao}
+          {action}
         </div>
       )}
-      <div style={css(semPadding ? "" : "padding:18px")}>{children}</div>
+      <div style={css(flush ? "" : "padding:18px")}>{children}</div>
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Indicadores                                                                 */
+/* Indicators                                                                  */
 /* -------------------------------------------------------------------------- */
 
 export interface Kpi {
   label: string;
-  valor: string;
-  nota?: string;
-  cor?: string;
+  value: string;
+  note?: string;
+  color?: string;
 }
 
-/** A faixa de indicadores colados que abre as telas de lista. */
-export function FaixaKpis({ kpis, colunas }: { kpis: Kpi[]; colunas: string }) {
+/** The strip of glued indicators that opens the list screens. */
+export function KpiStrip({ kpis, columns }: { kpis: Kpi[]; columns: string }) {
   return (
-    <div style={css(faixaKpis(colunas) + ";margin-bottom:14px")}>
+    <div style={css(kpiStrip(columns) + ";margin-bottom:14px")}>
       {kpis.map((k) => (
         <div key={k.label} style={css("padding:12px 15px;background:var(--surface)")}>
-          <div style={css(ROTULO_KPI)}>{k.label}</div>
+          <div style={css(KPI_LABEL)}>{k.label}</div>
           <div
             style={css(
-              `margin-top:5px;font:700 19px/1.1 ${SANS};${NUM};color:${k.cor ?? "var(--text)"}`,
+              `margin-top:5px;font:700 19px/1.1 ${SANS};${NUM};color:${k.color ?? "var(--text)"}`,
             )}
           >
-            {k.valor}
+            {k.value}
           </div>
-          {k.nota && (
+          {k.note && (
             <div style={css(`margin-top:3px;font:500 11.5px/1.35 ${SANS};color:var(--muted)`)}>
-              {k.nota}
+              {k.note}
             </div>
           )}
         </div>
@@ -160,181 +163,177 @@ export function FaixaKpis({ kpis, colunas }: { kpis: Kpi[]; colunas: string }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Estados vazios                                                              */
+/* Empty states                                                                */
 /* -------------------------------------------------------------------------- */
 
-export function Vazio({
-  titulo,
-  texto,
-  acao,
-  onAcao,
-  destaque,
+export function Empty({
+  title,
+  text,
+  action,
+  onAction,
+  standout,
 }: {
-  titulo: string;
-  texto: string;
-  acao?: string;
-  onAcao?: () => void;
-  /** Vazio de tela inteira (nunca houve nada) x vazio de filtro (não achou). */
-  destaque?: boolean;
+  title: string;
+  text: string;
+  action?: string;
+  onAction?: () => unknown;
+  /** Whole-screen empty (there never was anything) vs. filter empty (no match). */
+  standout?: boolean;
 }) {
   return (
-    <div style={css(CAIXA_VAZIA + (destaque ? ";padding:44px 20px;border-radius:14px" : ""))}>
-      <div style={css(`font:700 ${destaque ? "16px" : "15px"} ${SANS}`)}>{titulo}</div>
+    <div style={css(EMPTY_BOX + (standout ? ";padding:44px 20px;border-radius:14px" : ""))}>
+      <div style={css(`font:700 ${standout ? "16px" : "15px"} ${SANS}`)}>{title}</div>
       <p style={css(`margin:0;max-width:360px;font:400 12.5px/1.5 ${SANS};color:var(--muted)`)}>
-        {texto}
+        {text}
       </p>
-      {acao && onAcao && (
-        <button
-          onClick={onAcao}
-          className="hv-brilho"
-          style={css(`margin-top:10px;${botaoPrimario()}`)}
-        >
-          {acao}
-        </button>
+      {action && onAction && (
+        <Button onClick={onAction} className="hv-glow" cssText={`margin-top:10px;${primaryButton()}`}>
+          {action}
+        </Button>
       )}
     </div>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Filtros                                                                     */
+/* Filters                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export function GrupoPilulas<T extends string>({
-  opcoes,
-  atual,
-  onEscolher,
-  tamanho = "md",
+export function PillGroup<T extends string>({
+  options,
+  current,
+  onPick,
+  size = "md",
 }: {
-  opcoes: { chave: T; nome: string }[];
-  atual: T;
-  onEscolher: (k: T) => void;
-  tamanho?: "sm" | "md";
+  options: { key: T; name: string }[];
+  current: T;
+  onPick: (k: T) => unknown;
+  size?: "sm" | "md";
 }) {
   return (
-    <div style={css(GRUPO_PILULAS)} role="tablist">
-      {opcoes.map((o) => (
-        <button
-          key={o.chave}
+    <div style={css(PILL_GROUP)} role="tablist">
+      {options.map((o) => (
+        <Button
+          key={o.key}
           role="tab"
-          aria-selected={atual === o.chave}
-          onClick={() => onEscolher(o.chave)}
-          style={css(pilula(atual === o.chave, tamanho))}
+          aria-selected={current === o.key}
+          onClick={() => onPick(o.key)}
+          cssText={pill(current === o.key, size)}
         >
-          {o.nome}
-        </button>
+          {o.name}
+        </Button>
       ))}
     </div>
   );
 }
 
-export function LimparFiltros({ onClick, texto = "Limpar filtros" }: { onClick: () => void; texto?: string }) {
+export function ClearFilters({ onClick, text }: { onClick: () => unknown; text: string }) {
   return (
-    <button
+    <Button
       onClick={onClick}
-      style={css(`padding:10px 13px;border-radius:10px;font:600 12.5px ${SANS};color:var(--accent)`)}
+      cssText={`padding:10px 13px;border-radius:10px;font:600 12.5px ${SANS};color:var(--accent)`}
     >
-      {texto}
-    </button>
+      {text}
+    </Button>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Interruptor                                                                 */
+/* Switch                                                                      */
 /* -------------------------------------------------------------------------- */
 
-/** Interruptor com título e explicação — o padrão das telas de preferências. */
-export function Interruptor({
-  ligado,
+/** A switch with a title and an explanation — the pattern of the settings screens. */
+export function Switch({
+  on,
   onToggle,
-  titulo,
-  nota,
-  estado,
+  title,
+  note,
+  state,
 }: {
-  ligado: boolean;
-  onToggle: () => void;
-  titulo: string;
-  nota?: string;
-  estado?: string;
+  on: boolean;
+  onToggle: () => unknown;
+  title: string;
+  note?: string;
+  state?: string;
 }) {
   return (
-    <button
+    <Button
       onClick={onToggle}
       role="switch"
-      aria-checked={ligado}
-      className="hv-linha2"
-      style={css(
+      aria-checked={on}
+      className="hv-row2"
+      cssText={
         "display:flex;align-items:center;gap:12px;padding:14px 18px;" +
-          "border-bottom:1px solid var(--border);text-align:left;background:transparent",
-      )}
+        "border-bottom:1px solid var(--border);text-align:left;background:transparent"
+      }
     >
-      <span style={css(trilha(ligado))}>
+      <span style={css(track(on))}>
         <span style={css("width:18px;height:18px;border-radius:50%;background:#fff")} />
       </span>
       <span style={css("flex:1;min-width:0")}>
         <span
           style={css(
-            `display:block;font:600 13.5px ${SANS};color:${ligado ? "var(--text)" : "var(--muted)"}`,
+            `display:block;font:600 13.5px ${SANS};color:${on ? "var(--text)" : "var(--muted)"}`,
           )}
         >
-          {titulo}
+          {title}
         </span>
-        {nota && (
+        {note && (
           <span
             style={css(
               `display:block;margin-top:2px;font:500 11.5px/1.4 ${SANS};color:var(--muted)`,
             )}
           >
-            {nota}
+            {note}
           </span>
         )}
       </span>
-      {estado && (
+      {state && (
         <span
           style={css(
-            `flex:none;font:600 11.5px ${SANS};color:${ligado ? "var(--accent)" : "var(--muted)"}`,
+            `flex:none;font:600 11.5px ${SANS};color:${on ? "var(--accent)" : "var(--muted)"}`,
           )}
         >
-          {estado}
+          {state}
         </span>
       )}
-    </button>
+    </Button>
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Diversos                                                                    */
+/* Misc                                                                        */
 /* -------------------------------------------------------------------------- */
 
-/** Sugestões de preenchimento rápido, abaixo de um campo. */
-export function Sugestoes({
-  itens,
-  onEscolher,
+/** Quick-fill suggestions, below a field. */
+export function Suggestions({
+  items,
+  onPick,
 }: {
-  itens: string[];
-  onEscolher: (v: string) => void;
+  items: string[];
+  onPick: (v: string) => unknown;
 }) {
-  if (!itens.length) return null;
+  if (!items.length) return null;
   return (
     <div style={css("display:flex;gap:7px;margin-top:9px;flex-wrap:wrap")}>
-      {itens.map((x) => (
-        <button
+      {items.map((x) => (
+        <Button
           key={x}
-          onClick={() => onEscolher(x)}
-          className="hv-acc-borda"
-          style={css(
+          onClick={() => onPick(x)}
+          className="hv-acc-border"
+          cssText={
             "padding:8px 12px;border-radius:999px;border:1px solid var(--border);" +
-              `background:var(--surface2);color:var(--text2);font:500 12px ${SANS}`,
-          )}
+            `background:var(--surface2);color:var(--text2);font:500 12px ${SANS}`
+          }
         >
           {x}
-        </button>
+        </Button>
       ))}
     </div>
   );
 }
 
-/** Rolagem horizontal para tabelas largas no celular. */
-export function RolagemH({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+/** Horizontal scrolling for wide tables on a phone. */
+export function HScroll({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return <div style={{ overflowX: "auto", ...style }}>{children}</div>;
 }

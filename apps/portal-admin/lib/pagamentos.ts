@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Pagamento, ReceitaMes, StatusPagamento } from "@/types/types";
+import type { Payment, MonthlyRevenue, PaymentStatus } from "@/types/types";
 
 /**
  * Financeiro da plataforma, lido de `platform_payments`.
@@ -14,7 +14,7 @@ import type { Pagamento, ReceitaMes, StatusPagamento } from "@/types/types";
  * `is_platform_admin`). Só leitura aqui; as escritas ficam nas Server Actions.
  */
 
-interface LinhaPagamento {
+interface PaymentRow {
   id: string;
   tenant_id: string;
   amount: number | string;
@@ -27,18 +27,18 @@ interface LinhaPagamento {
 const SELECT = "id, tenant_id, amount, reference_month, status, paid_at, due_date";
 
 /** Quantos meses o gráfico de receita mostra. */
-const MESES_NO_GRAFICO = 6;
+const CHART_MONTHS = 6;
 
-const MES_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-const MES_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MONTH_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function paraNumero(v: number | string | null): number {
+function toNumber(v: number | string | null): number {
   const n = typeof v === "string" ? Number(v) : (v ?? 0);
   return Number.isFinite(n) ? n : 0;
 }
 
 /** dd/mm/aaaa a partir de um `date` ou `timestamptz`. */
-function formatarData(iso: string | null): string {
+function formatDate(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso.length === 10 ? iso + "T00:00:00Z" : iso);
   if (Number.isNaN(d.getTime())) return "—";
@@ -47,13 +47,13 @@ function formatarData(iso: string | null): string {
 }
 
 /** mm/aaaa a partir do `reference_month` (aaaa-mm-dd). */
-function formatarMes(iso: string | null): string {
+function formatMonth(iso: string | null): string {
   if (!iso) return "—";
-  const [ano, mes] = iso.split("-");
-  return ano && mes ? `${mes}/${ano}` : "—";
+  const [ano, month] = iso.split("-");
+  return ano && month ? `${month}/${ano}` : "—";
 }
 
-function formatarValor(v: number): string {
+function formatAmount(v: number): string {
   return "R$ " + v.toFixed(2).replace(".", ",");
 }
 
@@ -65,30 +65,30 @@ function formatarValor(v: number): string {
  * isso na coluna. Confiar só no `status` deixaria inadimplência invisível até
  * alguém lembrar de atualizar o banco.
  */
-function paraStatus(linha: LinhaPagamento, hoje: Date): StatusPagamento {
+function paraStatus(linha: PaymentRow, today: Date): PaymentStatus {
   if (linha.status === "paid") return "emdia";
   if (linha.status === "overdue" || linha.status === "late") return "atrasado";
 
   if (linha.due_date) {
-    const venc = new Date(linha.due_date + "T00:00:00Z");
-    if (!Number.isNaN(venc.getTime()) && venc < hoje) return "atrasado";
+    const due = new Date(linha.due_date + "T00:00:00Z");
+    if (!Number.isNaN(due.getTime()) && due < today) return "atrasado";
   }
   return "pendente";
 }
 
-export interface ResultadoFinanceiro {
+export interface BillingResult {
   /** Situação atual de cada cliente, chaveada pelo id do tenant. */
-  pagamentos: Record<string, Pagamento>;
+  payments: Record<string, Payment>;
   /** Receita recebida por mês, para o gráfico. */
-  receita: ReceitaMes[];
-  erro: string | null;
+  revenue: MonthlyRevenue[];
+  error: string | null;
 }
 
-const VAZIO: Omit<ResultadoFinanceiro, "erro"> = { pagamentos: {}, receita: [] };
+const EMPTY: Omit<BillingResult, "error"> = { payments: {}, revenue: [] };
 
-export async function listarFinanceiro(): Promise<ResultadoFinanceiro> {
+export async function listBilling(): Promise<BillingResult> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return { ...VAZIO, erro: "Supabase não configurado." };
+    return { ...EMPTY, error: "Supabase não configurado." };
   }
 
   const supabase = await createClient();
@@ -101,32 +101,32 @@ export async function listarFinanceiro(): Promise<ResultadoFinanceiro> {
 
   if (error) {
     console.error("[listarFinanceiro] falha ao ler platform_payments:", error.message);
-    return { ...VAZIO, erro: `Não foi possível carregar o financeiro: ${error.message}` };
+    return { ...EMPTY, error: `Não foi possível carregar o financeiro: ${error.message}` };
   }
 
-  const linhas = (data as LinhaPagamento[]) ?? [];
-  const hoje = new Date();
+  const rows = (data as PaymentRow[]) ?? [];
+  const today = new Date();
 
   // ─── Situação por cliente ──────────────────────────────────────────
   // Como as linhas já vêm da mais recente para a mais antiga, a PRIMEIRA de
   // cada tenant é a que define o status atual; as demais viram histórico.
-  const pagamentos: Record<string, Pagamento> = {};
+  const payments: Record<string, Payment> = {};
 
-  for (const linha of linhas) {
-    const valor = formatarValor(paraNumero(linha.amount));
-    const parcela = {
-      pago: formatarData(linha.paid_at),
-      mes: formatarMes(linha.reference_month),
-      valor,
+  for (const linha of rows) {
+    const amount = formatAmount(toNumber(linha.amount));
+    const installment = {
+      paid: formatDate(linha.paid_at),
+      month: formatMonth(linha.reference_month),
+      amount,
     };
-    const atual = pagamentos[linha.tenant_id];
+    const current = payments[linha.tenant_id];
 
-    if (!atual) {
-      pagamentos[linha.tenant_id] = {
-        status: paraStatus(linha, hoje),
-        ultimo: linha.paid_at ? formatarData(linha.paid_at) : "—",
-        vencimento: formatarData(linha.due_date),
-        hist: linha.paid_at ? [parcela] : [],
+    if (!current) {
+      payments[linha.tenant_id] = {
+        status: paraStatus(linha, today),
+        latest: linha.paid_at ? formatDate(linha.paid_at) : "—",
+        vencimento: formatDate(linha.due_date),
+        hist: linha.paid_at ? [installment] : [],
       };
       continue;
     }
@@ -134,34 +134,34 @@ export async function listarFinanceiro(): Promise<ResultadoFinanceiro> {
     // Histórico é só do que foi efetivamente pago — uma cobrança em aberto não
     // é um pagamento e não pode entrar na lista de recibos.
     if (linha.paid_at) {
-      atual.hist.push(parcela);
+      current.hist.push(installment);
       // O "último pagamento" pode estar numa linha anterior, se o mês corrente
       // ainda estiver em aberto.
-      if (atual.ultimo === "—") atual.ultimo = formatarData(linha.paid_at);
+      if (current.latest === "—") current.latest = formatDate(linha.paid_at);
     }
   }
 
   // ─── Receita por mês ───────────────────────────────────────────────
   // Só o que foi pago conta como receita; pendente é promessa, não caixa.
-  const porMes = new Map<string, number>();
-  for (const linha of linhas) {
+  const byMonth = new Map<string, number>();
+  for (const linha of rows) {
     if (linha.status !== "paid") continue;
     // `reference_month` é um `date` (aaaa-mm-dd); a chave é o aaaa-mm.
-    const chave = linha.reference_month.slice(0, 7);
-    porMes.set(chave, (porMes.get(chave) ?? 0) + paraNumero(linha.amount));
+    const key = linha.reference_month.slice(0, 7);
+    byMonth.set(key, (byMonth.get(key) ?? 0) + toNumber(linha.amount));
   }
 
   // Os últimos seis meses SEMPRE aparecem, mesmo zerados: um mês sem receita é
   // informação, e some do gráfico se ele for montado só com o que existe.
-  const receita: ReceitaMes[] = [];
-  for (let i = MESES_NO_GRAFICO - 1; i >= 0; i--) {
-    const d = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() - i, 1));
-    const chave = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-    receita.push({
-      mes: { pt: MES_PT[d.getUTCMonth()], en: MES_EN[d.getUTCMonth()] },
-      valor: porMes.get(chave) ?? 0,
+  const revenue: MonthlyRevenue[] = [];
+  for (let i = CHART_MONTHS - 1; i >= 0; i--) {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - i, 1));
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    revenue.push({
+      month: { pt: MONTH_PT[d.getUTCMonth()], en: MONTH_EN[d.getUTCMonth()] },
+      amount: byMonth.get(key) ?? 0,
     });
   }
 
-  return { pagamentos, receita, erro: null };
+  return { payments, revenue, error: null };
 }

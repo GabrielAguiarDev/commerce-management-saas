@@ -16,20 +16,20 @@ import { createClient, supabaseConfigurado } from "@/lib/supabase/server";
  * está no `where`, quando está na política do banco.
  */
 
-export type Sessao =
+export type Session =
   | {
       ok: true;
       supabase: Awaited<ReturnType<typeof createClient>>;
-      usuarioId: string;
+      userId: string;
       tenantId: string;
-      nome: string;
-      papelId: string | null;
+      name: string;
+      roleId: string | null;
     }
-  | { ok: false; mensagem: string };
+  | { ok: false; message: string };
 
-export async function exigirCliente(acao = "usar o portal"): Promise<Sessao> {
+export async function requireCustomer(action = "usar o portal"): Promise<Session> {
   if (!supabaseConfigurado()) {
-    return { ok: false, mensagem: "Supabase não configurado neste ambiente." };
+    return { ok: false, message: "Supabase não configurado neste ambiente." };
   }
 
   const supabase = await createClient();
@@ -37,7 +37,7 @@ export async function exigirCliente(acao = "usar o portal"): Promise<Sessao> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { ok: false, mensagem: "Sessão expirada. Entre novamente para continuar." };
+  if (!user) return { ok: false, message: "Sessão expirada. Entre novamente para continuar." };
 
   const { data: perfil, error } = await supabase
     .from("profiles")
@@ -48,18 +48,18 @@ export async function exigirCliente(acao = "usar o portal"): Promise<Sessao> {
   // Mensagem deliberadamente seca: não explicamos a quem não pode entrar por
   // que foi negado.
   if (error || !perfil?.tenant_id || perfil.is_platform_admin) {
-    return { ok: false, mensagem: `Você não tem permissão para ${acao}.` };
+    return { ok: false, message: `Você não tem permissão para ${action}.` };
   }
 
   return {
     ok: true,
     supabase,
-    usuarioId: user.id,
+    userId: user.id,
     tenantId: perfil.tenant_id,
-    nome: perfil.full_name ?? user.email ?? "Você",
-    papelId: perfil.role_id ?? null,
+    name: perfil.full_name ?? user.email ?? "Você",
+    roleId: perfil.role_id ?? null,
   };
 }
 
 /** O que toda Server Action do portal devolve para a interface. */
-export type ResultadoAcao = { ok: true } | { ok: false; mensagem: string };
+export type ActionResult = { ok: true } | { ok: false; message: string };

@@ -1,89 +1,95 @@
 /**
- * A biblioteca de componentes dos portais Aguiar One.
+ * The component library of the Aguiar One portals.
  *
- * O que entra aqui é o que os dois portais desenham igual: o campo, o select, o
- * menu de ações, a moldura do modal, o painel, o selo. O que é próprio de um
- * produto — uma tela, um cartão de módulo, um item de navegação — continua no
- * `components/` do app, montado sobre estas peças.
+ * What lands here is what both portals draw the same way: the field, the
+ * select, the action menu, the modal frame, the panel, the badge. What belongs
+ * to a single product — a screen, a module card, a nav item — stays in that
+ * app's `components/`, built on top of these pieces.
  *
- * Os tokens vivem em `@aguiar/ui/tokens.css` e são importados uma vez pelo
- * `globals.css` de cada app.
+ * The tokens live in `@aguiar/ui/tokens.css` and are imported once by each
+ * app's `globals.css`.
+ *
+ * Everything here speaks English. Text the customer reads is never hardcoded in
+ * this library: it arrives as a prop, already translated by the app's
+ * dictionary.
  */
 
-export { css, fonte, MONO, SANS } from "./css";
-export { ChevronBaixoIcone, FecharIcone, LupaIcone, type IconeProps } from "./icons";
+export { css, font, MONO, SANS } from "./css";
+export { ChevronDownIcon, CloseIcon, SearchIcon, type IconProps } from "./icons";
 
 export {
-  BOTAO_MENU,
-  botaoPrimario,
-  botaoSecundario,
-  CABECA_PAINEL,
-  CABECALHO_TABELA,
-  CAIXA_VAZIA,
-  campo,
+  badge,
   chip,
-  corDoTom,
-  faixaKpis,
-  GRUPO_PILULAS,
-  iniciais,
-  ITEM_MENU,
-  itemMenuDestaque,
-  LISTA,
+  columnLabel,
+  dot,
+  EMPTY_BOX,
+  field,
+  FIELD_LABEL,
+  highlightedMenuItem,
+  initials,
+  KPI_LABEL,
+  kpiStrip,
+  LIST,
+  MENU_BUTTON,
+  MENU_ITEM,
+  MENU_PANEL,
+  MOBILE_BREAKPOINT,
   NUM,
-  PAINEL,
-  PAINEL_GRANDE,
-  PAINEL_MENU,
-  pilula,
-  ponto,
-  fundoDoTom,
-  QUEBRA_MOBILE,
-  ROTULO_CAMPO,
-  ROTULO_KPI,
-  rotuloColuna,
-  selo,
-  SUB_TELA,
-  TITULO_PAINEL,
-  TITULO_TELA,
-  trilha,
-  type Tom,
+  PANEL,
+  PANEL_HEADER,
+  PANEL_LARGE,
+  PANEL_TITLE,
+  PILL_GROUP,
+  pill,
+  primaryButton,
+  SCREEN_SUBTITLE,
+  SCREEN_TITLE,
+  secondaryButton,
+  TABLE_HEADER,
+  toneBackground,
+  toneColor,
+  track,
+  type Tone,
 } from "./styleKit";
 
-export {
-  AreaTexto,
-  Campo,
-  CampoBusca,
-  CampoDinheiro,
-  CampoRotulado,
-  Rotulado,
-  Selecao,
-  SelecaoSimples,
-} from "./components/Campos";
+export { Button, Spinner, type ButtonProps } from "./components/Button";
 
 export {
-  ItemMenu,
-  MenuAcoes,
-  MenuDeAcoes,
-  type AcaoMenu,
-} from "./components/MenuAcoes";
+  Field,
+  Labeled,
+  LabeledField,
+  MoneyField,
+  SearchField,
+  Select,
+  SimpleSelect,
+  TextArea,
+} from "./components/Fields";
 
 export {
-  EscolhaCartao,
-  IconeModal,
-  ModalBase,
-  PilulaEscolha,
-  RodapeModal,
+  ActionMenu,
+  ActionsMenu,
+  MenuItem,
+  type MenuAction,
+} from "./components/ActionsMenu";
+
+export {
+  ChoiceCard,
+  ChoicePill,
+  ModalFooter,
+  ModalFrame,
+  ModalIcon,
 } from "./components/Modal";
 
 export {
-  BotaoNovo,
-  CabecalhoTela,
-  FaixaKpis,
-  GrupoPilulas,
-  Interruptor,
-  LimparFiltros,
-  Painel,
-  RolagemH,
-  Sugestoes,
-  Vazio,
+  ClearFilters,
+  Empty,
+  HScroll,
+  KpiStrip,
+  NewButton,
+  Panel,
+  PillGroup,
+  ScreenHeader,
+  Suggestions,
+  Switch,
   type Kpi,
 } from "./components/Layout";

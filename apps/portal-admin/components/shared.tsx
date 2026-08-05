@@ -1,34 +1,34 @@
 "use client";
 
-import { css, iniciais, MONO } from "@aguiar/ui";
+import { css, initials, MONO } from "@aguiar/ui";
 import { AcessoIcone } from "@/lib/icons";
-import { avatar, CARD_METRICA } from "@/lib/styleKit";
-import type { Cliente, Idioma, Plano } from "@/types/types";
+import { avatar, METRIC_CARD } from "@/lib/styleKit";
+import type { Customer, Language, Plan } from "@/types/types";
 
-export interface Metrica {
-  rotulo: string;
-  valor: string | number;
+export interface Metric {
+  label: string;
+  value: string | number;
   delta: string;
   /** Declaration string from one of the `badge*` helpers. */
   deltaStyle: string;
-  ponto: string;
-  nota: string;
-  acao?: () => void;
+  dot: string;
+  note: string;
+  action?: () => void;
 }
 
 /** The KPI row that opens both the overview and the finance view. */
-export function MetricasGrid({ metricas }: { metricas: Metrica[] }) {
+export function MetricsGrid({ metrics }: { metrics: Metric[] }) {
   return (
     <div
       style={css(
         "display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:16px;align-items:stretch",
       )}
     >
-      {metricas.map((m) => (
+      {metrics.map((m) => (
         <div
-          key={m.rotulo}
-          onClick={m.acao}
-          style={css(CARD_METRICA + (m.acao ? "cursor:pointer;" : ""))}
+          key={m.label}
+          onClick={m.action}
+          style={css(METRIC_CARD + (m.action ? "cursor:pointer;" : ""))}
         >
           <div
             style={css(
@@ -40,7 +40,7 @@ export function MetricasGrid({ metricas }: { metricas: Metrica[] }) {
                 "font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600",
               )}
             >
-              {m.rotulo}
+              {m.label}
             </span>
             <span style={css(m.deltaStyle)}>{m.delta}</span>
           </div>
@@ -50,13 +50,13 @@ export function MetricasGrid({ metricas }: { metricas: Metrica[] }) {
                 "letter-spacing:-.03em;color:var(--text)",
             )}
           >
-            {m.valor}
+            {m.value}
           </span>
           <div
             style={css("display:flex;align-items:center;gap:7px;margin-top:auto;min-height:18px")}
           >
-            <div style={css(m.ponto)} />
-            <span style={css("font-size:11.5px;color:var(--text2);line-height:1.4")}>{m.nota}</span>
+            <div style={css(m.dot)} />
+            <span style={css("font-size:11.5px;color:var(--text2);line-height:1.4")}>{m.note}</span>
           </div>
         </div>
       ))}
@@ -65,21 +65,21 @@ export function MetricasGrid({ metricas }: { metricas: Metrica[] }) {
 }
 
 /** Avatar + business name + module count, the leading cell of every list. */
-export function CelulaNegocio({
-  cliente,
-  plano,
+export function BusinessCell({
+  customer,
+  plan,
   totalMods,
   id,
 }: {
-  cliente: Cliente;
+  customer: Customer;
   /** O plano do cliente, para a cor do avatar. Vem de `plans`. */
-  plano?: Plano;
+  plan?: Plan;
   totalMods: number;
-  id: Idioma;
+  id: Language;
 }) {
   return (
     <div style={css("display:flex;align-items:center;gap:11px;min-width:0")}>
-      <div style={css(avatar(plano))}>{iniciais(cliente.nome)}</div>
+      <div style={css(avatar(plan))}>{initials(customer.name)}</div>
       <div style={css("display:flex;flex-direction:column;gap:2px;min-width:0")}>
         <span
           style={css(
@@ -87,10 +87,10 @@ export function CelulaNegocio({
               "overflow:hidden;text-overflow:ellipsis",
           )}
         >
-          {cliente.nome}
+          {customer.name}
         </span>
         <span style={css("font-size:11px;color:var(--muted)")}>
-          {cliente.mods.length +
+          {customer.mods.length +
             (id === "pt" ? ` de ${totalMods} módulos ativos` : ` of ${totalMods} modules on`)}
         </span>
       </div>
@@ -99,12 +99,12 @@ export function CelulaNegocio({
 }
 
 /** Pill marking a module that unlocks the mobile app rather than a section. */
-export function TagAcesso({
-  rotulo,
+export function AccessTag({
+  label,
   ajuda,
   bloco,
 }: {
-  rotulo: string;
+  label: string;
   ajuda: string;
   bloco?: boolean;
 }) {
@@ -119,7 +119,7 @@ export function TagAcesso({
       )}
     >
       <AcessoIcone />
-      {rotulo}
+      {label}
     </span>
   );
 }

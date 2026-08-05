@@ -1,4 +1,4 @@
-import type { Plano } from "@/types/types";
+import type { Plan } from "@/types/types";
 
 /**
  * Regras de plano — as que sobraram em código depois que a oferta virou dado.
@@ -17,7 +17,7 @@ import type { Plano } from "@/types/types";
 // =====================================================================
 
 /** As duas letras do ícone de cada módulo. Decisão de interface, sem coluna. */
-export const SIGLA_MODULO: Record<string, string> = {
+export const MODULE_INITIALS: Record<string, string> = {
   sales: "VD",
   products: "PR",
   stock: "ES",
@@ -43,29 +43,29 @@ export const SIGLA_MODULO: Record<string, string> = {
  * Num plano de pacote fechado, `escolhidos` é ignorado: mesmo que alguém
  * forjasse a requisição marcando módulos extras, o pacote do plano prevalece.
  */
-export function resolverModulos(
+export function resolveModules(
   ehCustom: boolean,
-  modulosDoPlano: readonly string[],
-  escolhidos: readonly string[] = [],
+  planModules: readonly string[],
+  picked: readonly string[] = [],
 ): string[] {
-  if (!ehCustom) return [...modulosDoPlano];
+  if (!ehCustom) return [...planModules];
   // Customizado: só o que foi marcado, sem repetição.
-  return [...new Set(escolhidos)];
+  return [...new Set(picked)];
 }
 
 /** Plano de pacote fechado — a grade de módulos fica só de leitura. */
-export function ehPlanoFixo(plano: Plano | undefined): boolean {
-  return plano?.tipo === "fixo";
+export function isFixedPlan(plan: Plan | undefined): boolean {
+  return plan?.type === "fixed";
 }
 
-export function planoPorChave(planos: Plano[], k: string): Plano | undefined {
-  return planos.find((p) => p.k === k);
+export function planByKey(plans: Plan[], k: string): Plan | undefined {
+  return plans.find((p) => p.k === k);
 }
 
 /** Atalho para a interface, que trabalha com o formato de tela. */
-export function modulosDoPlano(plano: Plano | undefined, escolhidos: readonly string[] = []) {
-  if (!plano) return [];
-  return resolverModulos(plano.tipo === "custom", plano.mods, escolhidos);
+export function planModules(plan: Plan | undefined, picked: readonly string[] = []) {
+  if (!plan) return [];
+  return resolveModules(plan.type === "custom", plan.mods, picked);
 }
 
 /**
@@ -76,8 +76,8 @@ export function modulosDoPlano(plano: Plano | undefined, escolhidos: readonly st
  * anunciando "0 módulos inclusos", o que lê como erro. Aqui ele passa a
  * mostrar o catálogo inteiro, que é o que o admin de fato pode escolher.
  */
-export function planosComCatalogo(planos: Plano[], chavesDoBanco: string[]): Plano[] {
-  return planos.map((p) =>
-    p.tipo === "custom" && p.mods.length === 0 ? { ...p, mods: chavesDoBanco } : p,
+export function plansWithCatalog(plans: Plan[], chavesDoBanco: string[]): Plan[] {
+  return plans.map((p) =>
+    p.type === "custom" && p.mods.length === 0 ? { ...p, mods: chavesDoBanco } : p,
   );
 }

@@ -1,4 +1,4 @@
-import type { ItemVenda, Venda } from "@/types/types";
+import type { SaleItem, Sale } from "@/types/types";
 
 /**
  * Dinheiro, datas e siglas.
@@ -15,12 +15,12 @@ export function brl(n: number): string {
 }
 
 /** "R$ 1.284" — para eixos de gráfico, onde os centavos só poluem. */
-export function brlCurto(n: number): string {
+export function shortBrl(n: number): string {
   return "R$ " + Math.round(n).toLocaleString("pt-BR");
 }
 
-/** Lê o que a pessoa digitou num campo de dinheiro ("1.284,50" → 1284.5). */
-export function numBR(v: string | number | null | undefined): number {
+/** Lê o que a pessoa digitou num field de dinheiro ("1.284,50" → 1284.5). */
+export function parseBrNumber(v: string | number | null | undefined): number {
   const n = parseFloat(
     String(v == null ? "" : v)
       .replace(/\s/g, "")
@@ -31,39 +31,39 @@ export function numBR(v: string | number | null | undefined): number {
 }
 
 /** Diferença de conferência: o sinal é o recado, então vem antes do valor. */
-export function brlDif(n: number): string {
+export function brlDelta(n: number): string {
   if (Math.abs(n) < 0.005) return brl(0);
   return (n > 0 ? "+ " : "− ") + brl(Math.abs(n));
 }
 
-export interface EstiloDif {
-  cor: string;
+export interface DeltaStyle {
+  color: string;
   bg: string;
-  rotulo: string;
+  label: string;
 }
 
 /**
  * Sobra é aviso, não erro: dinheiro a mais na gaveta costuma ser troco não
  * lançado. Falta é o que pede atenção de verdade, e por isso vai em vermelho.
  */
-export function corDif(n: number): EstiloDif {
+export function deltaColor(n: number): DeltaStyle {
   if (Math.abs(n) < 0.005) {
-    return { cor: "var(--pos)", bg: "var(--pos-soft)", rotulo: "Bateu" };
+    return { color: "var(--pos)", bg: "var(--pos-soft)", label: "Bateu" };
   }
-  if (n > 0) return { cor: "var(--warn)", bg: "var(--warn-soft)", rotulo: "Sobra" };
-  return { cor: "var(--danger)", bg: "var(--warn-soft)", rotulo: "Falta" };
+  if (n > 0) return { color: "var(--warn)", bg: "var(--warn-soft)", label: "Sobra" };
+  return { color: "var(--danger)", bg: "var(--warn-soft)", label: "Falta" };
 }
 
-export function totalV(v: Venda): number {
-  return v.itens.reduce((a, i) => a + i.qtd * i.preco, 0);
+export function totalV(v: Sale): number {
+  return v.items.reduce((a, i) => a + i.qtd * i.price, 0);
 }
 
-export function qtdV(v: Venda): number {
-  return v.itens.reduce((a, i) => a + i.qtd, 0);
+export function qtdV(v: Sale): number {
+  return v.items.reduce((a, i) => a + i.qtd, 0);
 }
 
-export function resumoItens(itens: ItemVenda[]): string {
-  return itens.map((i) => (i.qtd > 1 ? `${i.qtd}× ${i.nome}` : i.nome)).join(", ");
+export function itemSummary(items: SaleItem[]): string {
+  return items.map((i) => (i.qtd > 1 ? `${i.qtd}× ${i.name}` : i.name)).join(", ");
 }
 
 /* -------------------------------------------------------------------------- */
@@ -78,7 +78,7 @@ export function resumoItens(itens: ItemVenda[]): string {
  * diferentes no servidor e no navegador se cruzarem a virada do dia. Só use
  * dentro de Client Components — que é o caso de todas as telas deste portal.
  */
-export function diaDe(d: number): Date {
+export function dayOf(d: number): Date {
   const base = new Date();
   base.setHours(0, 0, 0, 0);
   base.setDate(base.getDate() - d);
@@ -86,27 +86,27 @@ export function diaDe(d: number): Date {
 }
 
 export function ddmm(d: number): string {
-  const x = diaDe(d);
+  const x = dayOf(d);
   return (
     String(x.getDate()).padStart(2, "0") + "/" + String(x.getMonth() + 1).padStart(2, "0")
   );
 }
 
 /** "Hoje · 14:32", "Ontem · 09:10", "23/07 · 16:40". */
-export function rotuloData(d: number, hora: string): string {
-  const quando = d === 0 ? "Hoje" : d === 1 ? "Ontem" : ddmm(d);
-  return hora ? `${quando} · ${hora}` : quando;
+export function dateLabel(d: number, time: string): string {
+  const at = d === 0 ? "Hoje" : d === 1 ? "Ontem" : ddmm(d);
+  return time ? `${at} · ${time}` : at;
 }
 
-const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 /** Rótulo curto do eixo dos gráficos — "Hoje" ganha do nome do dia. */
-export function diaSemana(d: number): string {
-  return d === 0 ? "Hoje" : DIAS[diaDe(d).getDay()];
+export function weekday(d: number): string {
+  return d === 0 ? "Hoje" : DAYS[dayOf(d).getDay()];
 }
 
 /** "sábado, 2 de agosto" — o carimbo do topo. */
-export function dataPorExtenso(): string {
+export function longDate(): string {
   return new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "numeric",
@@ -114,13 +114,13 @@ export function dataPorExtenso(): string {
   });
 }
 
-export function agoraHora(): string {
+export function nowTime(): string {
   const d = new Date();
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
 
 /** Bom dia / boa tarde / boa noite, pelo relógio de quem está olhando. */
-export function saudacao(): string {
+export function greeting(): string {
   const h = new Date().getHours();
   if (h < 12) return "Bom dia";
   if (h < 18) return "Boa tarde";
@@ -128,8 +128,8 @@ export function saudacao(): string {
 }
 
 /** Até duas iniciais, ignorando pontuação e números. */
-export function siglaDe(nome: string): string {
-  const p = String(nome || "")
+export function initialsOf(name: string): string {
+  const p = String(name || "")
     .split(/\s+/)
     .filter((t) => /^[\p{L}]/u.test(t));
   if (!p.length) return "";

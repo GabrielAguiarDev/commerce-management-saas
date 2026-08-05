@@ -4,7 +4,7 @@ import { css, SANS } from "@aguiar/ui";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { Modais } from "@/components/modais/Modais";
-import { BarraInferior, Confirmacao, Toast, VeuNav } from "@/components/Overlays";
+import { BottomBar, Confirm, Toast, NavVeil } from "@/components/Overlays";
 import { usePortal } from "@/components/PortalProvider";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
@@ -24,7 +24,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
     <>
       <div style={css("display:flex;min-height:100vh;background:var(--bg)")}>
         <Sidebar />
-        <VeuNav />
+        <NavVeil />
 
         <div style={css("flex:1;min-width:0;display:flex;flex-direction:column")}>
           <Topbar />
@@ -35,7 +35,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
           >
             {/* Leitura que falhou não vira "lista vazia": a tela diz o que houve,
                 ou a pessoa passaria a tarde procurando vendas que existem. */}
-            {d.erro && (
+            {d.error && (
               <div
                 style={css(
                   "margin-bottom:16px;padding:13px 15px;border:1px solid var(--warn);border-radius:12px;" +
@@ -43,7 +43,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
                 )}
                 role="alert"
               >
-                Não foi possível carregar os dados do seu negócio. {d.erro}
+                Não foi possível carregar os dados do seu negócio. {d.error}
               </div>
             )}
 
@@ -54,9 +54,9 @@ export function PortalShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      <BarraInferior />
+      <BottomBar />
       <Modais />
-      <Confirmacao />
+      <Confirm />
       <Toast />
     </>
   );

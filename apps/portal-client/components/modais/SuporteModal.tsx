@@ -1,9 +1,9 @@
 "use client";
 
-import { ModalBase } from "@/components/modais/Base";
-import { CampoRotulado, css, MONO, RodapeModal, ROTULO_CAMPO, SANS } from "@aguiar/ui";
+import { ModalFrame } from "@/components/modais/Base";
+import { Button, LabeledField, css, MONO, ModalFooter, FIELD_LABEL, SANS } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { SP_CATS } from "@/lib/dados/chamados";
+import { SP_CATEGORIES } from "@/lib/dados/chamados";
 
 /**
  * Abrir chamado.
@@ -12,85 +12,87 @@ import { SP_CATS } from "@/lib/dados/chamados";
  * ou "Financeiro" muda o que a pessoa entende que precisa contar, e o exemplo
  * embaixo de cada opção faz esse trabalho melhor do que um texto de ajuda.
  */
-export function NovoChamadoModal() {
+export function NewTicketModal() {
   const { s, a } = usePortal();
-  const f = s.formChamado;
+  const f = s.ticketForm;
 
-  const erroAssunto = f.tentouEnviar && f.assunto.trim().length < 5;
-  const erroDescricao = f.tentouEnviar && f.descricao.trim().length < 15;
+  const subjectError = f.submitted && f.subject.trim().length < 5;
+  const descriptionError = f.submitted && f.description.trim().length < 15;
 
-  const set = (p: Partial<typeof f>) => a.set({ formChamado: { ...f, ...p } });
+  const set = (p: Partial<typeof f>) => a.set({ ticketForm: { ...f, ...p } });
 
   return (
-    <ModalBase
-      titulo="Abrir chamado"
-      subtitulo="Conte o que aconteceu. A resposta chega aqui no portal, normalmente em até 1 dia útil."
-      largura={540}
-      onFechar={a.fecharModal}
-      rodape={
-        <RodapeModal
-          onCancelar={a.fecharModal}
-          onConfirmar={a.enviarChamado}
-          textoConfirmar="Enviar chamado"
+    <ModalFrame
+      closeLabel="Fechar"
+      title="Abrir chamado"
+      subtitle="Conte o que aconteceu. A resposta chega aqui no portal, normalmente em até 1 dia útil."
+      width={540}
+      onClose={a.closeModal}
+      footer={
+        <ModalFooter
+          cancelText="Cancelar"
+          onCancel={a.closeModal}
+          onConfirm={a.sendTicket}
+          confirmText="Enviar chamado"
         />
       }
     >
-      <CampoRotulado
+      <LabeledField
         label="Assunto"
-        valor={f.assunto}
-        onMudar={(v) => set({ assunto: v })}
+        value={f.subject}
+        onChange={(v) => set({ subject: v })}
         placeholder="Ex.: não consigo fechar o caixa"
-        erro={erroAssunto}
-        mensagem="Escreva um assunto com pelo menos 5 letras."
+        error={subjectError}
+        message="Escreva um assunto com pelo menos 5 letras."
       />
 
       <div>
-        <label style={css(ROTULO_CAMPO)}>Categoria</label>
+        <label style={css(FIELD_LABEL)}>Categoria</label>
         <div style={css("display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px")}>
-          {SP_CATS.map(([nome, nota]) => {
-            const ativo = f.categoria === nome;
+          {SP_CATEGORIES.map(([name, note]) => {
+            const active = f.category === name;
             return (
-              <button
-                key={nome}
-                onClick={() => set({ categoria: nome })}
+              <Button
+                key={name}
+                onClick={() => set({ category: name })}
                 style={css(
-                  `display:flex;flex-direction:column;gap:3px;padding:11px 13px;border:1px solid ${ativo ? "var(--accent)" : "var(--border)"};` +
-                    `border-radius:11px;background:${ativo ? "var(--accent-soft)" : "var(--surface2)"};text-align:left`,
+                  `display:flex;flex-direction:column;gap:3px;padding:11px 13px;border:1px solid ${active ? "var(--accent)" : "var(--border)"};` +
+                    `border-radius:11px;background:${active ? "var(--accent-soft)" : "var(--surface2)"};text-align:left`,
                 )}
               >
                 <span
                   style={css(
-                    `font:600 12.5px ${SANS};color:${ativo ? "var(--accent)" : "var(--text)"}`,
+                    `font:600 12.5px ${SANS};color:${active ? "var(--accent)" : "var(--text)"}`,
                   )}
                 >
-                  {nome}
+                  {name}
                 </span>
                 <span
                   style={css(
-                    `font:400 11px/1.35 ${SANS};color:${ativo ? "var(--accent)" : "var(--muted)"}`,
+                    `font:400 11px/1.35 ${SANS};color:${active ? "var(--accent)" : "var(--muted)"}`,
                   )}
                 >
-                  {nota}
+                  {note}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>
       </div>
 
       <div>
-        <label style={css(ROTULO_CAMPO)}>O que aconteceu</label>
+        <label style={css(FIELD_LABEL)}>O que aconteceu</label>
         <textarea
-          value={f.descricao}
-          onChange={(e) => set({ descricao: e.target.value })}
+          value={f.description}
+          onChange={(e) => set({ description: e.target.value })}
           rows={5}
           placeholder="Descreva o passo a passo, o que você esperava e o que apareceu na tela."
           style={css(
-            `width:100%;box-sizing:border-box;resize:vertical;padding:12px 13px;border:1px solid ${erroDescricao ? "var(--danger)" : "var(--border)"};` +
+            `width:100%;box-sizing:border-box;resize:vertical;padding:12px 13px;border:1px solid ${descriptionError ? "var(--danger)" : "var(--border)"};` +
               `border-radius:11px;background:var(--surface2);font:400 13.5px/1.55 ${SANS};color:var(--text);outline:none`,
           )}
         />
-        {erroDescricao && (
+        {descriptionError && (
           <div style={css(`margin-top:6px;font:600 11.5px ${SANS};color:var(--danger)`)}>
             Conte com um pouco mais de detalhe — ajuda a resolver mais rápido.
           </div>
@@ -98,30 +100,30 @@ export function NovoChamadoModal() {
       </div>
 
       <div>
-        <label style={css(ROTULO_CAMPO)}>Anexo (opcional)</label>
-        {f.anexo ? (
+        <label style={css(FIELD_LABEL)}>Anexo (opcional)</label>
+        {f.attachment ? (
           <div
             style={css(
               `display:inline-flex;align-items:center;gap:9px;padding:9px 9px 9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);font:600 12px ${SANS};color:var(--text2)`,
             )}
           >
             <span style={css(`font:600 10px ${MONO};letter-spacing:.08em;color:var(--muted)`)}>IMG</span>
-            {f.anexo}
-            <button
-              onClick={() => set({ anexo: "" })}
+            {f.attachment}
+            <Button
+              onClick={() => set({ attachment: "" })}
               title="Remover anexo"
               style={css(
                 `width:22px;height:22px;border-radius:6px;background:var(--surface3);color:var(--muted);font:600 12px/1 ${MONO}`,
               )}
             >
               ×
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
+          <Button
             // Sem backend de upload nesta fase: o anexo é registrado pelo nome,
             // que é o que a conversa precisa mostrar.
-            onClick={() => set({ anexo: "print-da-tela.png" })}
+            onClick={() => set({ attachment: "print-da-tela.png" })}
             style={css(
               "display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:15px;" +
                 `border:1px dashed var(--border2);border-radius:11px;background:var(--surface2);color:var(--text2);font:600 12.5px ${SANS}`,
@@ -129,9 +131,9 @@ export function NovoChamadoModal() {
           >
             <span style={css(`font:600 12px/1 ${MONO};color:var(--muted)`)}>IMG</span>
             Anexar imagem ou print da tela
-          </button>
+          </Button>
         )}
       </div>
-    </ModalBase>
+    </ModalFrame>
   );
 }

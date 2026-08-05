@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { PortalProvider } from "@/components/PortalProvider";
 import { PortalShell } from "@/components/PortalShell";
-import { carregarPortal } from "@/lib/dados/carregar";
+import { loadPortal } from "@/lib/dados/carregar";
 import "./globals.css";
 
 /**
@@ -43,16 +43,16 @@ export default async function RootLayout({
   // A leitura acontece no SERVIDOR, com o cliente que carrega a sessão pelos
   // cookies — o RLS decide o que este usuário pode ver. Uma vez por navegação,
   // aqui, porque o menu e todas as telas leem do mesmo retrato.
-  const dados = await carregarPortal();
+  const data = await loadPortal();
 
   return (
     <html lang="pt-BR" className={`${sans.variable} ${mono.variable} h-full`}>
       {/* `data-tema` é trocado no cliente pelo portal; semeá-lo aqui mantém a
           marcação do servidor e a primeira pintura do cliente de acordo. */}
-      <body data-tema="claro">
+      <body data-theme="light">
         {/* A sessão vive acima do roteador, então filtros, carrinho, rascunhos
             e aparência sobrevivem à troca de tela. */}
-        <PortalProvider dados={dados}>
+        <PortalProvider data={data}>
           <PortalShell>{children}</PortalShell>
         </PortalProvider>
       </body>

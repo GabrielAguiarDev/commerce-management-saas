@@ -14,62 +14,62 @@
  * Todo `id` é o uuid do banco, em texto.
  */
 
-export type ModuloKey =
+export type ModuleKey =
   | "dashboard"
-  | "vendas"
-  | "produtos"
-  | "estoque"
-  | "caixa"
-  | "custos"
-  | "relatorios"
-  | "config"
-  | "suporte";
+  | "sales"
+  | "products"
+  | "stock"
+  | "register"
+  | "costs"
+  | "reports"
+  | "settings"
+  | "support";
 
-export type Tema = "claro" | "escuro";
+export type Theme = "light" | "dark";
 
-export type FormaPagamento = "Dinheiro" | "Pix" | "Débito" | "Crédito";
+export type PaymentMethod = "cash" | "pix" | "debit" | "credit";
 
-export type TipoCusto = "fixo" | "variavel";
+export type CostType = "fixed" | "variable";
 
-export type TipoMovEstoque = "entrada" | "saida" | "ajuste" | "venda";
+export type StockMovementType = "in" | "out" | "adjustment" | "sale";
 
-export type TipoMovCaixa = "sangria" | "reforco";
+export type RegisterMovementType = "withdrawal" | "deposit";
 
-export type StatusChamado = "aberto" | "andamento" | "aguardando" | "resolvido";
+export type TicketStatus = "open" | "inProgress" | "waiting" | "resolved";
 
-export type AutorMensagem = "cliente" | "suporte" | "sistema";
+export type MessageAuthor = "customer" | "support" | "system";
 
 /* -------------------------------------------------------------------------- */
 /* Negócio                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export interface Usuario {
-  nome: string;
-  sigla: string;
+export interface User {
+  name: string;
+  initials: string;
 }
 
 /** O negócio do cliente: identidade e módulos que o plano liga. */
-export interface Negocio {
+export interface Business {
   id: string;
-  nome: string;
-  sigla: string;
+  name: string;
+  initials: string;
   /** Ramo do comércio — `tenants.segment`. */
-  tipo: string;
-  user: Usuario;
-  modulos: ModuloKey[];
+  type: string;
+  user: User;
+  modules: ModuleKey[];
 }
 
 /* -------------------------------------------------------------------------- */
 /* Vendas                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export interface ItemVenda {
-  nome: string;
+export interface SaleItem {
+  name: string;
   qtd: number;
-  preco: number;
+  price: number;
 }
 
-export interface Venda {
+export interface Sale {
   id: string;
   /**
    * Dias atrás, calculado de `sales.sold_at` na leitura: 0 = hoje, 1 = ontem.
@@ -77,20 +77,20 @@ export interface Venda {
    * conta é feita uma vez, na borda, em vez de em cada tela.
    */
   d: number;
-  hora: string;
+  time: string;
   /** O carimbo original, para quando a escrita precisa da data exata. */
-  quando: string;
-  pag: FormaPagamento;
-  estornada: boolean;
-  itens: ItemVenda[];
+  at: string;
+  payment: PaymentMethod;
+  refunded: boolean;
+  items: SaleItem[];
 }
 
 /** Um item no carrinho do PDV. */
-export interface ItemCarrinho {
+export interface CartItem {
   /** `null` num item avulso, que não veio do catálogo. */
-  produtoId: string | null;
-  nome: string;
-  preco: number;
+  productId: string | null;
+  name: string;
+  price: number;
   qtd: number;
 }
 
@@ -98,95 +98,95 @@ export interface ItemCarrinho {
 /* Produtos e estoque                                                          */
 /* -------------------------------------------------------------------------- */
 
-export interface Produto {
+export interface Product {
   id: string;
-  nome: string;
-  preco: number;
-  codigo: string;
+  name: string;
+  price: number;
+  code: string;
   fav: boolean;
-  ativo: boolean;
-  categoria: string;
-  custo: number;
+  active: boolean;
+  category: string;
+  cost: number;
   /** `null` em quem não controla estoque — serviços e afins. */
-  estoque: number | null;
-  minimo: number | null;
-  unidade: string;
+  stock: number | null;
+  minimum: number | null;
+  unit: string;
   /** `products.is_service`: banho, consulta. Não tem prateleira. */
-  servico: boolean;
+  service: boolean;
 }
 
-export interface MovEstoque {
+export interface StockMovement {
   id: string;
   d: number;
-  hora: string;
-  produtoId: string;
-  produto: string;
-  tipo: TipoMovEstoque;
+  time: string;
+  productId: string;
+  product: string;
+  type: StockMovementType;
   /** Assinado: entrada é positiva, saída e perda são negativas. */
   delta: number;
-  motivo: string;
-  quem: string;
+  reason: string;
+  who: string;
   /** Custo unitário informado numa entrada, quando houver. */
-  custo?: number;
+  cost?: number;
 }
 
 /* -------------------------------------------------------------------------- */
 /* Custos                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export interface Custo {
+export interface Cost {
   id: string;
-  tipo: TipoCusto;
-  descricao: string;
-  categoria: string;
-  valor: number;
+  type: CostType;
+  description: string;
+  category: string;
+  amount: number;
   d: number;
   /** A data exata (`costs.cost_date`), para editar sem recalcular. */
   data: string;
-  recorrente: boolean;
+  recurring: boolean;
   /** `costs.origin = 'stock'`: veio de uma entrada de mercadoria. */
-  doEstoque: boolean;
+  fromStock: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
 /* Caixa                                                                       */
 /* -------------------------------------------------------------------------- */
 
-export interface MovCaixa {
+export interface RegisterMovement {
   id: string;
-  hora: string;
-  tipo: TipoMovCaixa;
-  valor: number;
-  motivo: string;
+  time: string;
+  type: RegisterMovementType;
+  amount: number;
+  reason: string;
 }
 
-export interface CaixaAberto {
+export interface OpenRegister {
   id: string;
-  abertura: string;
+  openedAt: string;
   /** Carimbo da abertura, para somar só as vendas deste turno. */
-  abertoEm: string;
-  inicial: number;
-  operador: string;
-  movs: MovCaixa[];
+  openedAtStamp: string;
+  opening: number;
+  operator: string;
+  movements: RegisterMovement[];
 }
 
-export interface CaixaFechado {
+export interface ClosedRegister {
   id: string;
   d: number;
-  abertura: string;
-  fechamento: string;
-  inicial: number;
-  operador: string;
+  openedAt: string;
+  closedAt: string;
+  opening: number;
+  operator: string;
   /** Quanto entrou por forma de pagamento durante o turno. */
-  vendas: Partial<Record<FormaPagamento, number>>;
+  sales: Partial<Record<PaymentMethod, number>>;
   /**
    * A conferência é só do dinheiro em espécie — é o único que fica numa gaveta
    * para ser contado. Pix e cartão são conferidos no extrato, fora do portal.
    */
-  esperadoDinheiro: number;
-  contadoDinheiro: number;
-  diferenca: number;
-  movs: MovCaixa[];
+  expectedCash: number;
+  countedCash: number;
+  difference: number;
+  movements: RegisterMovement[];
   obs: string;
 }
 
@@ -194,45 +194,45 @@ export interface CaixaFechado {
 /* Equipe                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export interface Papel {
+export interface Role {
   id: string;
-  nome: string;
-  modulos: ModuloKey[];
+  name: string;
+  modules: ModuleKey[];
   /** O dono não pode ser removido nem ter acessos tirados. */
-  fixo: boolean;
+  fixed: boolean;
 }
 
-export interface Funcionario {
+export interface Employee {
   id: string;
-  nome: string;
+  name: string;
   email: string;
-  papel: string;
-  ativo: boolean;
-  dono: boolean;
+  role: string;
+  active: boolean;
+  owner: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
 /* Suporte                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export interface MensagemChamado {
+export interface TicketMessage {
   id: string;
-  autor: AutorMensagem;
+  author: MessageAuthor;
   d: number;
-  hora: string;
-  texto: string;
-  anexo: string;
+  time: string;
+  text: string;
+  attachment: string;
 }
 
-export interface Chamado {
+export interface Ticket {
   id: string;
   /** Número curto mostrado como protocolo — os 6 primeiros dígitos do uuid. */
-  protocolo: string;
-  assunto: string;
-  categoria: string;
-  status: StatusChamado;
-  naoLido: boolean;
-  msgs: MensagemChamado[];
+  protocol: string;
+  subject: string;
+  category: string;
+  status: TicketStatus;
+  unread: boolean;
+  messages: TicketMessage[];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -240,9 +240,9 @@ export interface Chamado {
 /* -------------------------------------------------------------------------- */
 
 /** O que `tenants` guarda hoje. Documento e endereço ainda não têm coluna. */
-export interface DadosNegocio {
-  nome: string;
-  tipo: string;
-  telefone: string;
-  cidade: string;
+export interface BusinessData {
+  name: string;
+  type: string;
+  phone: string;
+  city: string;
 }

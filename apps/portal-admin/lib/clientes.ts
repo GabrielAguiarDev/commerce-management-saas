@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Cliente, StatusCliente } from "@/types/types";
+import type { Customer, CustomerStatus } from "@/types/types";
 
 /**
  * Leitura dos clientes (tenants) reais.
@@ -15,7 +15,7 @@ import type { Cliente, StatusCliente } from "@/types/types";
  */
 
 /** Uma linha de `tenants` com o dono e os módulos embutidos. */
-interface LinhaTenant {
+interface TenantRow {
   id: string;
   name: string | null;
   segment: string | null;
@@ -44,7 +44,7 @@ const SELECT = `
 `;
 
 /** dd/mm/aaaa. Roda só no servidor, então não há risco de divergir na hidratação. */
-function formatarData(iso: string | null): string {
+function formatDate(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
@@ -56,47 +56,47 @@ function formatarData(iso: string | null): string {
  * "R$ 89,00". Zero vira "—" porque o plano gratuito não é cobrado, e o painel
  * inteiro (MRR, financeiro, CSV) já lê valores nesse formato.
  */
-function formatarValor(fee: number | string | null): string {
+function formatAmount(fee: number | string | null): string {
   const n = typeof fee === "string" ? Number(fee) : (fee ?? 0);
   if (!Number.isFinite(n) || n <= 0) return "—";
   return "R$ " + n.toFixed(2).replace(".", ",");
 }
 
-function paraCliente(linha: LinhaTenant): Cliente {
+function toCustomer(linha: TenantRow): Customer {
   // v1 tem um usuário por tenant — o dono, criado junto com o cadastro.
   // Quando existirem funcionários, aqui passa a valer o papel `is_owner`.
-  const dono = linha.profiles?.[0]?.full_name;
+  const owner = linha.profiles?.[0]?.full_name;
 
   return {
     id: linha.id,
-    nome: linha.name ?? "—",
-    segmento: { pt: linha.segment || "—", en: linha.segment || "—" },
+    name: linha.name ?? "—",
+    segment: { pt: linha.segment || "—", en: linha.segment || "—" },
     // Sem fallback para "free": um tenant sem plano é anomalia de dado, e
     // chutar um plano faria a tela mentir. A chave vazia cai no selo neutro.
-    plano: linha.plan ?? "",
-    status: (linha.status === "active" ? "ativo" : "inativo") as StatusCliente,
-    data: formatarData(linha.created_at),
-    resp: dono || "—",
-    valor: formatarValor(linha.monthly_fee),
-    cidade: linha.city || "—",
-    telefone: linha.phone || "—",
+    plan: linha.plan ?? "",
+    status: (linha.status === "active" ? "active" : "inactive") as CustomerStatus,
+    data: formatDate(linha.created_at),
+    resp: owner || "—",
+    amount: formatAmount(linha.monthly_fee),
+    city: linha.city || "—",
+    phone: linha.phone || "—",
     mods: (linha.tenant_modules ?? []).filter((m) => m.enabled).map((m) => m.module_key),
   };
 }
 
-export interface ResultadoClientes {
-  clientes: Cliente[];
+export interface CustomersResult {
+  customers: Customer[];
   /** Mensagem para a interface mostrar em vez de fingir que a lista está vazia. */
-  erro: string | null;
+  error: string | null;
 }
 
-export async function listarClientes(): Promise<ResultadoClientes> {
+export async function listCustomers(): Promise<CustomersResult> {
   // Sem credenciais o painel continua navegável (as telas ainda não conectadas
   // seguem com dados de exemplo) — a lista é que fica honestamente vazia.
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return {
-      clientes: [],
-      erro: "Supabase não configurado. Preencha o .env.local (veja .env.local.example) e reinicie o servidor.",
+      customers: [],
+      error: "Supabase não configurado. Preencha o .env.local (veja .env.local.example) e reinicie o servidor.",
     };
   }
 
@@ -110,8 +110,8 @@ export async function listarClientes(): Promise<ResultadoClientes> {
   if (error) {
     // O erro vai para o log do servidor com o detalhe; a tela recebe o resumo.
     console.error("[listarClientes] falha ao ler tenants:", error.message);
-    return { clientes: [], erro: `Não foi possível carregar os clientes: ${error.message}` };
+    return { customers: [], error: `Não foi possível carregar os clientes: ${error.message}` };
   }
 
-  return { clientes: (data as unknown as LinhaTenant[]).map(paraCliente), erro: null };
+  return { customers: (data as unknown as TenantRow[]).map(toCustomer), error: null };
 }

@@ -2,25 +2,25 @@
 
 import { usePathname } from "next/navigation";
 import { usePortal } from "@/components/PortalProvider";
-import { botaoPrimario, css, MONO, NUM, SANS } from "@aguiar/ui";
-import { brl, dataPorExtenso } from "@/lib/formato";
-import { faturamento, produtosEmFalta } from "@/lib/selectors";
-import { ROTA_PDV, ROTAS } from "@/lib/rotas";
+import { primaryButton, Button, css, MONO, NUM, SANS } from "@aguiar/ui";
+import { brl, longDate } from "@/lib/formato";
+import { totalRevenue, productsOutOfStock } from "@/lib/selectors";
+import { POS_ROUTE, ROUTES } from "@/lib/rotas";
 
 /**
  * A barra de topo carrega o número que a pessoa mais quer ver — quanto vendeu
  * hoje — e os avisos que não podem esperar ela abrir uma tela.
  */
 export function Topbar() {
-  const { s, a, tem, isMobile, isDesktop, d } = usePortal();
+  const { s, a, has, isMobile, isDesktop, d } = usePortal();
   const pathname = usePathname();
 
-  const vendasHoje = brl(faturamento(d.vendas.filter((v) => v.d === 0)));
-  const alertas = produtosEmFalta(d.produtos);
-  const caixaAberto = !!d.caixaAberto;
+  const salesToday = brl(totalRevenue(d.sales.filter((v) => v.d === 0)));
+  const alerts = productsOutOfStock(d.products);
+  const openRegister = !!d.openRegister;
 
   // O PDV já é a tela de vender; oferecer "Nova venda" ali seria redundante.
-  const noPdv = pathname === ROTA_PDV;
+  const inPos = pathname === POS_ROUTE;
 
   return (
     <header
@@ -34,8 +34,8 @@ export function Topbar() {
         )}
       >
         {isMobile && (
-          <button
-            onClick={() => a.set({ navAberto: true })}
+          <Button
+            onClick={() => a.set({ navOpen: true })}
             title="Menu"
             style={css(
               "flex:none;width:36px;height:36px;border-radius:9px;border:1px solid var(--border);" +
@@ -43,7 +43,7 @@ export function Topbar() {
             )}
           >
             ≡
-          </button>
+          </Button>
         )}
 
         <div style={css("min-width:0;flex:1;display:flex;align-items:center;gap:10px;flex-wrap:wrap")}>
@@ -54,45 +54,45 @@ export function Topbar() {
               )}
             >
               <span style={css(`font:400 12px ${SANS};color:var(--muted)`)}>Vendas de hoje</span>
-              <span style={css(`font:700 19px/1 ${SANS};color:var(--text);${NUM}`)}>{vendasHoje}</span>
+              <span style={css(`font:700 19px/1 ${SANS};color:var(--text);${NUM}`)}>{salesToday}</span>
             </div>
           ) : (
             <div style={css("min-width:0")}>
               <div style={css(`font:400 10.5px/1.2 ${SANS};color:var(--muted)`)}>Vendas de hoje</div>
-              <div style={css(`font:700 17px/1.15 ${SANS};${NUM}`)}>{vendasHoje}</div>
+              <div style={css(`font:700 17px/1.15 ${SANS};${NUM}`)}>{salesToday}</div>
             </div>
           )}
 
-          {tem("caixa") && (
-            <button
-              onClick={() => a.irPara(ROTAS.caixa)}
+          {has("register") && (
+            <Button
+              onClick={() => a.goTo(ROUTES.register)}
               title="Ver o caixa"
               style={css(
                 "display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;" +
-                  `background:${caixaAberto ? "var(--pos-soft)" : "var(--surface3)"};` +
-                  `color:${caixaAberto ? "var(--pos)" : "var(--muted)"};font:600 11.5px ${SANS}`,
+                  `background:${openRegister ? "var(--pos-soft)" : "var(--surface3)"};` +
+                  `color:${openRegister ? "var(--pos)" : "var(--muted)"};font:600 11.5px ${SANS}`,
               )}
             >
               <span
                 style={css(
-                  `width:7px;height:7px;border-radius:50%;background:${caixaAberto ? "var(--pos)" : "var(--muted)"}`,
+                  `width:7px;height:7px;border-radius:50%;background:${openRegister ? "var(--pos)" : "var(--muted)"}`,
                 )}
               />
-              {caixaAberto ? `Caixa aberto desde ${d.caixaAberto?.abertura}` : "Caixa fechado"}
-            </button>
+              {openRegister ? `Caixa aberto desde ${d.openRegister?.openedAt}` : "Caixa fechado"}
+            </Button>
           )}
 
           {isDesktop && (
-            <span style={css(`font:500 12px ${SANS};color:var(--muted)`)}>{dataPorExtenso()}</span>
+            <span style={css(`font:500 12px ${SANS};color:var(--muted)`)}>{longDate()}</span>
           )}
         </div>
 
         <div style={css("flex:none;display:flex;align-items:center;gap:8px")}>
-          {tem("estoque") && alertas.length > 0 && (
-            <button
+          {has("stock") && alerts.length > 0 && (
+            <Button
               onClick={(e) => {
                 e.stopPropagation();
-                a.set({ notifAberto: !s.notifAberto });
+                a.set({ notificationsOpen: !s.notificationsOpen });
               }}
               title="Alertas do negócio"
               className="hv-borda"
@@ -108,36 +108,36 @@ export function Topbar() {
                     `border-radius:999px;background:var(--danger);color:#fff;font:700 10px/17px ${MONO}`,
                 )}
               >
-                {alertas.length}
+                {alerts.length}
               </span>
-            </button>
+            </Button>
           )}
 
-          <button
-            onClick={a.toggleTema}
-            title={s.tema === "claro" ? "Usar tema escuro" : "Usar tema claro"}
+          <Button
+            onClick={a.toggleTheme}
+            title={s.theme === "light" ? "Usar tema escuro" : "Usar tema claro"}
             className="hv-borda"
             style={css(
               "width:36px;height:36px;border-radius:9px;border:1px solid var(--border);" +
                 `background:var(--surface2);color:var(--text2);font:600 13px ${MONO}`,
             )}
           >
-            {s.tema === "claro" ? "☾" : "☀"}
-          </button>
+            {s.theme === "light" ? "☾" : "☀"}
+          </Button>
 
-          {isDesktop && tem("vendas") && !noPdv && (
-            <button
-              onClick={() => a.irPara(ROTA_PDV)}
+          {isDesktop && has("sales") && !inPos && (
+            <Button
+              onClick={() => a.goTo(POS_ROUTE)}
               className="hv-brilho"
-              style={css(`display:flex;align-items:center;gap:9px;${botaoPrimario("sm")}`)}
+              style={css(`display:flex;align-items:center;gap:9px;${primaryButton("sm")}`)}
             >
-              <span style={css(`font:600 15px/1 ${MONO}`)}>+</span>Nova venda
-            </button>
+              <span style={css(`font:600 15px/1 ${MONO}`)}>+</span>Nova sale
+            </Button>
           )}
         </div>
       </div>
 
-      {s.notifAberto && (
+      {s.notificationsOpen && (
         <div
           onClick={(e) => e.stopPropagation()}
           style={css(
@@ -149,7 +149,7 @@ export function Topbar() {
           <div style={css(`padding:11px 13px;border-bottom:1px solid var(--border);font:600 12.5px ${SANS}`)}>
             Alertas do negócio
           </div>
-          {alertas.map((p) => (
+          {alerts.map((p) => (
             <div
               key={p.id}
               style={css("display:flex;gap:10px;padding:11px 13px;border-bottom:1px solid var(--border)")}
@@ -158,21 +158,21 @@ export function Topbar() {
                 style={css("flex:none;width:6px;height:6px;margin-top:6px;border-radius:50%;background:var(--warn)")}
               />
               <span>
-                <span style={css(`display:block;font:600 12.5px/1.35 ${SANS}`)}>{p.nome}</span>
+                <span style={css(`display:block;font:600 12.5px/1.35 ${SANS}`)}>{p.name}</span>
                 <span style={css(`display:block;font:400 11.5px/1.4 ${SANS};color:var(--muted)`)}>
-                  {p.estoque === 0
+                  {p.stock === 0
                     ? "Acabou"
-                    : `Restam ${p.estoque} ${p.estoque === 1 ? "unidade" : "unidades"}`}
+                    : `Restam ${p.stock} ${p.stock === 1 ? "unit" : "unidades"}`}
                 </span>
               </span>
             </div>
           ))}
-          <button
-            onClick={() => a.set({ notifAberto: false })}
+          <Button
+            onClick={() => a.set({ notificationsOpen: false })}
             style={css(`width:100%;padding:10px;font:600 12px ${SANS};color:var(--accent)`)}
           >
             Fechar
-          </button>
+          </Button>
         </div>
       )}
     </header>

@@ -1,20 +1,20 @@
 "use client";
 
-import { ModalBase } from "@/components/modais/Base";
-import { CampoDinheiro, CampoRotulado, css, MONO, NUM, RodapeModal, SANS, Sugestoes } from "@aguiar/ui";
+import { ModalFrame } from "@/components/modais/Base";
+import { Button, MoneyField, LabeledField, css, MONO, NUM, ModalFooter, SANS, Suggestions } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
 import {
-  MOTIVOS_REFORCO,
-  MOTIVOS_SANGRIA,
-  MOV_CAIXA_ESTILO,
-  saldoMovs,
-  somaFormas,
-  TROCOS_RAPIDOS,
+  DEPOSIT_REASONS,
+  WITHDRAWAL_REASONS,
+  REGISTER_MOVEMENT_STYLE,
+  movementsBalance,
+  sumByMethod,
+  QUICK_CHANGE,
 } from "@/lib/dados/caixa";
-import { FORMAS, NOTA_FORMA } from "@/lib/dados/vendas";
-import { brl, brlDif, corDif, numBR, rotuloData } from "@/lib/formato";
-import { dinheiroNaGaveta, esperadoDoTurno, vendasDoTurno } from "@/lib/selectors";
-import type { CaixaFechado } from "@/types/types";
+import { METHODS, METHOD_NOTE } from "@/lib/dados/vendas";
+import { brl, brlDelta, deltaColor, parseBrNumber, dateLabel } from "@/lib/formato";
+import { cashInDrawer, expectedInShift, salesInShift } from "@/lib/selectors";
+import type { ClosedRegister } from "@/types/types";
 
 /* -------------------------------------------------------------------------- */
 /* Abrir o caixa                                                               */
@@ -22,35 +22,37 @@ import type { CaixaFechado } from "@/types/types";
 
 export function CaixaAbrirModal() {
   const { s, a } = usePortal();
-  const f = s.formCaixa;
+  const f = s.registerForm;
 
   return (
-    <ModalBase
-      titulo="Abrir o caixa"
-      subtitulo="Quanto tem de troco na gaveta agora? É com esse valor que o turno começa."
-      largura={400}
-      onFechar={a.fecharModal}
-      rodape={
-        <RodapeModal
-          onCancelar={a.fecharModal}
-          onConfirmar={a.abrirCaixa}
-          textoConfirmar="Abrir caixa"
+    <ModalFrame
+      closeLabel="Fechar"
+      title="Abrir o caixa"
+      subtitle="Quanto tem de troco na gaveta agora? É com esse valor que o turno começa."
+      width={400}
+      onClose={a.closeModal}
+      footer={
+        <ModalFooter
+          cancelText="Cancelar"
+          onCancel={a.closeModal}
+          onConfirm={a.openRegister}
+          confirmText="Abrir caixa"
         />
       }
     >
       <div>
-        <CampoDinheiro
+        <MoneyField
           label="Valor inicial (troco)"
-          valor={f.valor}
-          onMudar={(v) => a.set({ formCaixa: { ...f, valor: v } })}
-          grande
+          value={f.amount}
+          onChange={(v) => a.set({ registerForm: { ...f, amount: v } })}
+          large
         />
-        <Sugestoes
-          itens={TROCOS_RAPIDOS.map((v) => brl(v))}
-          onEscolher={(v) => a.set({ formCaixa: { ...f, valor: v.replace("R$ ", "") } })}
+        <Suggestions
+          items={QUICK_CHANGE.map((v) => brl(v))}
+          onPick={(v) => a.set({ registerForm: { ...f, amount: v.replace("R$ ", "") } })}
         />
       </div>
-    </ModalBase>
+    </ModalFrame>
   );
 }
 
@@ -58,65 +60,67 @@ export function CaixaAbrirModal() {
 /* Sangria e reforço                                                           */
 /* -------------------------------------------------------------------------- */
 
-export function CaixaMovModal({ tipo }: { tipo: "sangria" | "reforco" }) {
+export function CaixaMovModal({ type }: { type: "withdrawal" | "deposit" }) {
   const { s, a, d } = usePortal();
-  const f = s.formCaixa;
-  const estilo = MOV_CAIXA_ESTILO[tipo];
-  const naGaveta = dinheiroNaGaveta(d);
-  const valor = numBR(f.valor);
+  const f = s.registerForm;
+  const cssText = REGISTER_MOVEMENT_STYLE[type];
+  const inDrawer = cashInDrawer(d);
+  const amount = parseBrNumber(f.amount);
 
-  const sangriaAlta = tipo === "sangria" && valor > naGaveta;
+  const largeWithdrawal = type === "withdrawal" && amount > inDrawer;
 
   return (
-    <ModalBase
-      titulo={tipo === "sangria" ? "Fazer uma sangria" : "Fazer um reforço"}
-      subtitulo={
-        tipo === "sangria"
+    <ModalFrame
+      closeLabel="Fechar"
+      title={type === "withdrawal" ? "Fazer uma sangria" : "Fazer um reforço"}
+      subtitle={
+        type === "withdrawal"
           ? "Dinheiro que sai da gaveta sem ser troco de venda — para o cofre, o banco ou um fornecedor."
           : "Dinheiro que entra na gaveta sem ser venda — troco extra para o turno."
       }
-      largura={410}
-      onFechar={a.fecharModal}
-      rodape={
-        <RodapeModal
-          onCancelar={a.fecharModal}
-          onConfirmar={a.registrarMovCaixa}
-          textoConfirmar={tipo === "sangria" ? "Registrar sangria" : "Registrar reforço"}
-          corConfirmar={estilo.cor}
-          corTexto="#fff"
+      width={410}
+      onClose={a.closeModal}
+      footer={
+        <ModalFooter
+          cancelText="Cancelar"
+          onCancel={a.closeModal}
+          onConfirm={a.recordRegisterMovement}
+          confirmText={type === "withdrawal" ? "Registrar sangria" : "Registrar reforço"}
+          confirmColor={cssText.color}
+          confirmInk="#fff"
         />
       }
     >
-      <CampoDinheiro
+      <MoneyField
         label="Valor"
-        valor={f.valor}
-        onMudar={(v) => a.set({ formCaixa: { ...f, valor: v } })}
-        grande
-        nota={
-          sangriaAlta
-            ? `A gaveta tem ${brl(naGaveta)} — a retirada é maior do que isso.`
-            : `Há ${brl(naGaveta)} em dinheiro na gaveta.`
+        value={f.amount}
+        onChange={(v) => a.set({ registerForm: { ...f, amount: v } })}
+        large
+        note={
+          largeWithdrawal
+            ? `A gaveta tem ${brl(inDrawer)} — a retirada é maior do que isso.`
+            : `Há ${brl(inDrawer)} em dinheiro na gaveta.`
         }
-        notaCor={sangriaAlta ? "var(--warn)" : "var(--muted)"}
+        noteColor={largeWithdrawal ? "var(--warn)" : "var(--muted)"}
       />
 
       <div>
-        <CampoRotulado
+        <LabeledField
           label="Motivo"
-          valor={f.motivo}
-          onMudar={(v) => a.set({ formCaixa: { ...f, motivo: v } })}
-          placeholder={tipo === "sangria" ? "Ex.: retirada para o cofre" : "Ex.: troco extra do cofre"}
+          value={f.reason}
+          onChange={(v) => a.set({ registerForm: { ...f, reason: v } })}
+          placeholder={type === "withdrawal" ? "Ex.: retirada para o cofre" : "Ex.: troco extra do cofre"}
         />
-        <Sugestoes
-          itens={tipo === "sangria" ? MOTIVOS_SANGRIA : MOTIVOS_REFORCO}
-          onEscolher={(v) => a.set({ formCaixa: { ...f, motivo: v } })}
+        <Suggestions
+          items={type === "withdrawal" ? WITHDRAWAL_REASONS : DEPOSIT_REASONS}
+          onPick={(v) => a.set({ registerForm: { ...f, reason: v } })}
         />
       </div>
 
       <p style={css(`margin:0;font:500 11.5px/1.5 ${SANS};color:var(--muted)`)}>
         A movimentação entra na conferência do fechamento — o esperado em dinheiro já sai ajustado.
       </p>
-    </ModalBase>
+    </ModalFrame>
   );
 }
 
@@ -138,49 +142,50 @@ export function CaixaMovModal({ tipo }: { tipo: "sangria" | "reforco" }) {
  */
 export function CaixaFecharModal() {
   const { s, a, d } = usePortal();
-  const cx = d.caixaAberto;
-  const f = s.formCaixa;
+  const cx = d.openRegister;
+  const f = s.registerForm;
   if (!cx) return null;
 
-  const esperado = esperadoDoTurno(d);
-  const vendas = vendasDoTurno(d);
+  const expected = expectedInShift(d);
+  const sales = salesInShift(d);
 
-  const contado = numBR(f.contadoDinheiro);
-  const preenchido = f.contadoDinheiro.trim() !== "";
-  const dif = preenchido ? contado - esperado.Dinheiro : 0;
-  const estilo = corDif(dif);
+  const counted = parseBrNumber(f.countedCash);
+  const filled = f.countedCash.trim() !== "";
+  const delta = filled ? counted - expected.cash : 0;
+  const cssText = deltaColor(delta);
 
   return (
-    <ModalBase
-      titulo="Conferência do caixa"
-      subtitulo={`Turno aberto às ${cx.abertura} · conte o dinheiro da gaveta`}
-      largura={520}
-      onFechar={a.fecharModal}
-      rodape={
-        <RodapeModal
-          onCancelar={a.fecharModal}
-          onConfirmar={() =>
-            a.confirmar({
-              titulo: "Fechar o caixa?",
-              texto: "O turno é encerrado e a conferência fica guardada no histórico.",
-              resumo: !preenchido
+    <ModalFrame
+      closeLabel="Fechar"
+      title="Conferência do caixa"
+      subtitle={`Turno aberto às ${cx.openedAt} · conte o dinheiro da gaveta`}
+      width={520}
+      onClose={a.closeModal}
+      footer={
+        <ModalFooter
+          cancelText="Cancelar"
+          onCancel={a.closeModal}
+          onConfirm={() =>
+            a.confirm({
+              title: "Fechar o caixa?",
+              text: "O turno é encerrado e a conferência fica guardada no histórico.",
+              summary: !filled
                 ? "Sem contagem informada"
-                : Math.abs(dif) < 0.005
+                : Math.abs(delta) < 0.005
                   ? "O dinheiro bateu certinho"
-                  : `${dif > 0 ? "Sobra" : "Falta"} de ${brl(Math.abs(dif))}`,
-              sub: `Aberto às ${cx.abertura} · ${brl(somaFormas(vendas))} vendidos no turno`,
-              reversao: "Se fechar por engano, dá para reabrir pelo histórico de turnos.",
-              btn: "Fechar caixa",
-              btnBg: "var(--warn)",
-              btnFg: "#fff",
-              cor: "var(--warn)",
-              acao: a.fecharCaixa,
+                  : `${delta > 0 ? "Sobra" : "Falta"} de ${brl(Math.abs(delta))}`,
+              detail: `Aberto às ${cx.openedAt} · ${brl(sumByMethod(sales))} vendidos no turno`,
+              reversal: "Se fechar por engano, dá para reabrir pelo histórico de turnos.",
+              button: "Fechar caixa",
+              buttonBg: "var(--warn)",
+              buttonInk: "#fff",
+              color: "var(--warn)",
+              action: a.closeRegister,
             })
           }
-          textoCancelar="Continuar aberto"
-          textoConfirmar="Fechar caixa"
-          corConfirmar="var(--warn)"
-          corTexto="#fff"
+          confirmText="Fechar caixa"
+          confirmColor="var(--warn)"
+          confirmInk="#fff"
         />
       }
     >
@@ -191,7 +196,7 @@ export function CaixaFecharModal() {
         )}
       >
         <div style={css("display:flex;align-items:baseline;justify-content:space-between;gap:10px")}>
-          <span style={css(`font:700 14px ${SANS}`)}>Dinheiro na gaveta</span>
+          <span style={css(`font:700 14px ${SANS}`)}>cash na gaveta</span>
           <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>
             troco + vendas em espécie ± movimentações
           </span>
@@ -211,7 +216,7 @@ export function CaixaFecharModal() {
                 `margin-top:5px;padding:12px;border-radius:10px;background:var(--surface3);font:700 16px ${SANS};${NUM};color:var(--text2)`,
               )}
             >
-              {brl(esperado.Dinheiro)}
+              {brl(expected.cash)}
             </div>
           </div>
 
@@ -225,13 +230,13 @@ export function CaixaFecharModal() {
             </div>
             <div
               style={css(
-                `display:flex;align-items:center;gap:6px;margin-top:5px;padding:0 12px;border:1.5px solid ${preenchido ? "var(--accent)" : "var(--border2)"};border-radius:10px;background:var(--surface)`,
+                `display:flex;align-items:center;gap:6px;margin-top:5px;padding:0 12px;border:1.5px solid ${filled ? "var(--accent)" : "var(--border2)"};border-radius:10px;background:var(--surface)`,
               )}
             >
               <span style={css(`font:600 13px ${SANS};color:var(--muted)`)}>R$</span>
               <input
-                value={f.contadoDinheiro}
-                onChange={(e) => a.set({ formCaixa: { ...f, contadoDinheiro: e.target.value } })}
+                value={f.countedCash}
+                onChange={(e) => a.set({ registerForm: { ...f, countedCash: e.target.value } })}
                 placeholder="0,00"
                 inputMode="decimal"
                 autoFocus
@@ -245,21 +250,21 @@ export function CaixaFecharModal() {
 
         <div
           style={css(
-            `display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:12px;padding:11px 13px;border-radius:10px;background:${estilo.bg}`,
+            `display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:12px;padding:11px 13px;border-radius:10px;background:${cssText.bg}`,
           )}
         >
-          <span style={css(`font:700 13px ${SANS};color:${estilo.cor}`)}>Diferença</span>
-          <span style={css(`font:700 19px/1 ${SANS};${NUM};color:${estilo.cor}`)}>
-            {preenchido ? brlDif(dif) : "—"}
+          <span style={css(`font:700 13px ${SANS};color:${cssText.color}`)}>Diferença</span>
+          <span style={css(`font:700 19px/1 ${SANS};${NUM};color:${cssText.color}`)}>
+            {filled ? brlDelta(delta) : "—"}
           </span>
         </div>
 
         <p style={css(`margin:8px 0 0;font:500 11.5px/1.45 ${SANS};color:var(--muted)`)}>
-          {!preenchido
+          {!filled
             ? "Conte o que está na gaveta e digite acima."
-            : Math.abs(dif) < 0.005
+            : Math.abs(delta) < 0.005
               ? "Tudo conferido. Pode fechar tranquilo."
-              : dif > 0
+              : delta > 0
                 ? "Sobrou dinheiro. Costuma ser troco não lançado ou uma venda registrada a menos."
                 : "Faltou dinheiro. Confira a gaveta de novo e as sangrias do turno."}
         </p>
@@ -275,7 +280,7 @@ export function CaixaFecharModal() {
           Confira no extrato
         </div>
         <div style={css("display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:11px;overflow:hidden")}>
-          {FORMAS.filter((x) => x !== "Dinheiro").map((forma) => (
+          {METHODS.filter((x) => x !== "cash").map((forma) => (
             <div
               key={forma}
               style={css(
@@ -285,24 +290,24 @@ export function CaixaFecharModal() {
               <span style={css("flex:1;min-width:0")}>
                 <span style={css(`display:block;font:600 12.5px ${SANS}`)}>{forma}</span>
                 <span style={css(`display:block;margin-top:2px;font:500 11px ${SANS};color:var(--muted)`)}>
-                  {NOTA_FORMA[forma]}
+                  {METHOD_NOTE[forma]}
                 </span>
               </span>
               <span style={css(`flex:none;font:700 13.5px ${SANS};${NUM};color:var(--text2)`)}>
-                {brl(vendas[forma] ?? 0)}
+                {brl(sales[forma] ?? 0)}
               </span>
             </div>
           ))}
         </div>
       </div>
 
-      <CampoRotulado
+      <LabeledField
         label="Observação (opcional)"
-        valor={f.obs}
-        onMudar={(v) => a.set({ formCaixa: { ...f, obs: v } })}
+        value={f.obs}
+        onChange={(v) => a.set({ registerForm: { ...f, obs: v } })}
         placeholder="Ex.: faltou troco de R$ 5 na gaveta"
       />
-    </ModalBase>
+    </ModalFrame>
   );
 }
 
@@ -310,43 +315,44 @@ export function CaixaFecharModal() {
 /* Resumo de um turno já fechado                                               */
 /* -------------------------------------------------------------------------- */
 
-export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
+export function CaixaDetalheModal({ register }: { register: ClosedRegister }) {
   const { a } = usePortal();
-  const estilo = corDif(caixa.diferenca);
+  const cssText = deltaColor(register.difference);
 
   return (
-    <ModalBase
-      titulo="Resumo do turno"
-      subtitulo={`${rotuloData(caixa.d, "")} · ${caixa.abertura} às ${caixa.fechamento} · ${caixa.operador}`}
-      largura={460}
-      onFechar={a.fecharModal}
-      rodape={
+    <ModalFrame
+      closeLabel="Fechar"
+      title="Resumo do turno"
+      subtitle={`${dateLabel(register.d, "")} · ${register.openedAt} às ${register.closedAt} · ${register.operator}`}
+      width={460}
+      onClose={a.closeModal}
+      footer={
         <div
           style={css(
             "display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--border);background:var(--surface2)",
           )}
         >
-          <button
-            onClick={a.fecharModal}
+          <Button
+            onClick={a.closeModal}
             style={css(
               `flex:1;padding:13px;border-radius:11px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font:600 13.5px ${SANS}`,
             )}
           >
             Fechar
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() =>
-              a.confirmar({
-                titulo: "Reabrir este caixa?",
-                texto: "O turno volta a ficar aberto e aceita novas vendas e movimentações.",
-                resumo: `Turno de ${rotuloData(caixa.d, "")}`,
-                sub: `${caixa.abertura} às ${caixa.fechamento} · ${caixa.operador}`,
-                reversao: "Você pode fechar de novo a qualquer momento.",
-                btn: "Reabrir caixa",
-                btnBg: "var(--warn)",
-                btnFg: "#fff",
-                cor: "var(--warn)",
-                acao: () => a.reabrirCaixa(caixa.id),
+              a.confirm({
+                title: "Reabrir este caixa?",
+                text: "O turno volta a ficar aberto e aceita novas vendas e movimentações.",
+                summary: `Turno de ${dateLabel(register.d, "")}`,
+                detail: `${register.openedAt} às ${register.closedAt} · ${register.operator}`,
+                reversal: "Você pode fechar de novo a qualquer momento.",
+                button: "Reabrir caixa",
+                buttonBg: "var(--warn)",
+                buttonInk: "#fff",
+                color: "var(--warn)",
+                action: () => a.reopenRegister(register.id),
               })
             }
             className="hv-brilho"
@@ -355,7 +361,7 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
             )}
           >
             Reabrir caixa
-          </button>
+          </Button>
         </div>
       }
     >
@@ -365,29 +371,29 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
         )}
       >
         {[
-          { nome: "Troco inicial", valor: caixa.inicial, nota: "Com o que o turno começou" },
+          { name: "Troco inicial", amount: register.opening, note: "Com o que o turno começou" },
           {
-            nome: "Vendas em dinheiro",
-            valor: caixa.vendas.Dinheiro ?? 0,
-            nota: "Entraram na gaveta",
+            name: "Vendas em dinheiro",
+            amount: register.sales.cash ?? 0,
+            note: "Entraram na gaveta",
           },
           {
-            nome: "Movimentações",
-            valor: saldoMovs(caixa.movs),
-            nota: `${caixa.movs.length} no turno`,
+            name: "Movimentações",
+            amount: movementsBalance(register.movements),
+            note: `${register.movements.length} no turno`,
           },
         ].map((l) => (
           <div
-            key={l.nome}
+            key={l.name}
             style={css("display:flex;align-items:center;gap:12px;padding:12px 13px;background:var(--surface)")}
           >
             <span style={css("flex:1;min-width:0")}>
-              <span style={css(`display:block;font:600 12.5px ${SANS}`)}>{l.nome}</span>
+              <span style={css(`display:block;font:600 12.5px ${SANS}`)}>{l.name}</span>
               <span style={css(`display:block;margin-top:2px;font:500 11px ${SANS};color:var(--muted)`)}>
-                {l.nota}
+                {l.note}
               </span>
             </span>
-            <span style={css(`flex:none;font:700 13.5px ${SANS};${NUM}`)}>{brl(l.valor)}</span>
+            <span style={css(`flex:none;font:700 13.5px ${SANS};${NUM}`)}>{brl(l.amount)}</span>
           </div>
         ))}
       </div>
@@ -396,24 +402,24 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
         style={css("display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:11px;overflow:hidden")}
       >
         {[
-          { nome: "Esperado na gaveta", valor: caixa.esperadoDinheiro, forte: false },
-          { nome: "Contado no fechamento", valor: caixa.contadoDinheiro, forte: true },
+          { name: "Esperado na gaveta", amount: register.expectedCash, forte: false },
+          { name: "Contado no fechamento", amount: register.countedCash, forte: true },
         ].map((l) => (
           <div
-            key={l.nome}
+            key={l.name}
             style={css("display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;background:var(--surface)")}
           >
             <span style={css(`font:${l.forte ? "700" : "500"} 12.5px ${SANS};color:var(--text2)`)}>
-              {l.nome}
+              {l.name}
             </span>
             <span style={css(`font:${l.forte ? "700" : "600"} 13.5px ${SANS};${NUM}`)}>
-              {brl(l.valor)}
+              {brl(l.amount)}
             </span>
           </div>
         ))}
       </div>
 
-      {caixa.movs.length > 0 && (
+      {register.movements.length > 0 && (
         <div>
           <div
             style={css(
@@ -422,8 +428,8 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
           >
             Movimentações
           </div>
-          {caixa.movs.map((m) => {
-            const e = MOV_CAIXA_ESTILO[m.tipo];
+          {register.movements.map((m) => {
+            const e = REGISTER_MOVEMENT_STYLE[m.type];
             return (
               <div
                 key={m.id}
@@ -431,21 +437,21 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
               >
                 <span
                   style={css(
-                    `flex:none;padding:3px 8px;border-radius:999px;background:${e.bg};color:${e.cor};font:600 10.5px ${SANS}`,
+                    `flex:none;padding:3px 8px;border-radius:999px;background:${e.bg};color:${e.color};font:600 10.5px ${SANS}`,
                   )}
                 >
-                  {e.rotulo}
+                  {e.label}
                 </span>
                 <span
                   style={css(
                     `flex:1;min-width:0;font:500 12px ${SANS};overflow:hidden;text-overflow:ellipsis;white-space:nowrap`,
                   )}
                 >
-                  {m.motivo}
+                  {m.reason}
                 </span>
-                <span style={css(`flex:none;font:700 12.5px ${SANS};${NUM};color:${e.cor}`)}>
-                  {m.tipo === "reforco" ? "+ " : "− "}
-                  {brl(m.valor)}
+                <span style={css(`flex:none;font:700 12.5px ${SANS};${NUM};color:${e.color}`)}>
+                  {m.type === "deposit" ? "+ " : "− "}
+                  {brl(m.amount)}
                 </span>
               </div>
             );
@@ -453,13 +459,13 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
         </div>
       )}
 
-      {caixa.obs && (
+      {register.obs && (
         <div
           style={css(
             `padding:11px 13px;border-radius:11px;background:var(--warn-soft);color:var(--warn);font:500 12.5px/1.45 ${SANS}`,
           )}
         >
-          {caixa.obs}
+          {register.obs}
         </div>
       )}
 
@@ -469,10 +475,10 @@ export function CaixaDetalheModal({ caixa }: { caixa: CaixaFechado }) {
         )}
       >
         <span style={css(`font:600 13px ${SANS};color:var(--text2)`)}>Diferença do turno</span>
-        <span style={css(`font:700 22px/1 ${SANS};${NUM};color:${estilo.cor}`)}>
-          {brlDif(caixa.diferenca)}
+        <span style={css(`font:700 22px/1 ${SANS};${NUM};color:${cssText.color}`)}>
+          {brlDelta(register.difference)}
         </span>
       </div>
-    </ModalBase>
+    </ModalFrame>
   );
 }

@@ -1,110 +1,110 @@
 "use client";
 
 import { useAdmin } from "@/components/AdminProvider";
-import { CampoBusca, css, ITEM_MENU, MenuAcoes, MONO } from "@aguiar/ui";
+import { Button, SearchField, css, MENU_ITEM, ActionsMenu, MONO } from "@aguiar/ui";
 import { BaixarIcone, FinanceiroIcone } from "@/lib/icons";
 import {
-  calcMrr,
-  cobraveis,
-  contaPorStatus,
-  ehCobravel,
-  fmtDin,
-  fmtMrr,
-  infoPag,
-  somaPorStatus,
+  computeMrr,
+  billable,
+  countByStatus,
+  isBillable,
+  formatCash,
+  formatMrr,
+  paymentInfo,
+  sumByStatus,
 } from "@/lib/money";
-import { planoPorChave } from "@/lib/planos";
-import { MetricasGrid, type Metrica } from "@/components/shared";
-import { avatar, nomePlano, planoBadge, seloPainel } from "@/lib/styleKit";
-import { chip, iniciais, ponto } from "@aguiar/ui";
+import { planByKey } from "@/lib/planos";
+import { MetricsGrid, type Metric } from "@/components/shared";
+import { avatar, planName, planBadge, panelBadge } from "@/lib/styleKit";
+import { chip, initials, dot } from "@aguiar/ui";
 
-const GRADE_PAG =
+const PAYMENT_GRID =
   "minmax(190px,1.7fr) 110px 110px 110px 120px 120px 74px";
 
 export function FinanceiroView() {
-  const { s, a, cs, vazio } = useAdmin();
+  const { s, a, cs, empty } = useAdmin();
   const { L } = a;
-  const id = s.idioma;
+  const id = s.language;
 
   // Below this width the table becomes a stack of cards.
-  const compacto = s.larguraTela < 1000;
+  const compact = s.screenWidth < 1000;
 
-  const mrr = calcMrr(cs);
-  const faturaveis = cobraveis(cs);
-  const recebido = somaPorStatus(cs, s.pagamentos, "emdia");
-  const aberto = somaPorStatus(cs, s.pagamentos, "pendente");
-  const atrasadoTotal = somaPorStatus(cs, s.pagamentos, "atrasado");
-  const emDiaN = contaPorStatus(cs, s.pagamentos, "emdia");
-  const pendenteN = contaPorStatus(cs, s.pagamentos, "pendente");
-  const atrasadoN = contaPorStatus(cs, s.pagamentos, "atrasado");
-  const neutro = seloPainel("neutro");
+  const mrr = computeMrr(cs);
+  const billableCustomers = billable(cs);
+  const recebido = sumByStatus(cs, s.payments, "emdia");
+  const open = sumByStatus(cs, s.payments, "pendente");
+  const overdueTotal = sumByStatus(cs, s.payments, "atrasado");
+  const onTimeCount = countByStatus(cs, s.payments, "emdia");
+  const pendingCount = countByStatus(cs, s.payments, "pendente");
+  const overdueCount = countByStatus(cs, s.payments, "atrasado");
+  const neutro = panelBadge("neutral");
 
-  const metricas: Metrica[] = [
+  const metrics: Metric[] = [
     {
-      rotulo: L.mrrAtual,
-      valor: fmtMrr(mrr),
+      label: L.mrrAtual,
+      value: formatMrr(mrr),
       // Sem histórico de faturamento no banco não existe "vs mês anterior" —
       // o protótipo mostrava +18,7% fixo. Aqui vai a fração da base que paga.
-      delta: vazio ? "—" : `${faturaveis.length}/${cs.length}`,
-      nota: faturaveis.length + " " + L.clientesCobraveis,
-      ponto: ponto(vazio ? "var(--border)" : "var(--pos)"),
-      deltaStyle: vazio ? neutro : seloPainel("pos"),
+      delta: empty ? "—" : `${billableCustomers.length}/${cs.length}`,
+      note: billableCustomers.length + " " + L.clientesCobraveis,
+      dot: dot(empty ? "var(--border)" : "var(--pos)"),
+      deltaStyle: empty ? neutro : panelBadge("pos"),
     },
     {
-      rotulo: L.recebidoMes,
-      valor: fmtDin(recebido),
+      label: L.recebidoMes,
+      value: formatCash(recebido),
       delta: Math.round((recebido / Math.max(1, mrr)) * 100) + "%",
-      nota: emDiaN + " " + L.recebidoNota,
-      ponto: ponto(vazio ? "var(--border)" : "var(--pos)"),
-      deltaStyle: vazio ? neutro : seloPainel("acc"),
+      note: onTimeCount + " " + L.recebidoNota,
+      dot: dot(empty ? "var(--border)" : "var(--pos)"),
+      deltaStyle: empty ? neutro : panelBadge("acc"),
     },
     {
-      rotulo: L.aReceber,
-      valor: fmtDin(aberto),
-      delta: String(pendenteN),
-      nota: id === "pt" ? "pagamentos pendentes no período" : "pending payments in the period",
-      ponto: ponto(vazio ? "var(--border)" : "var(--warn)"),
-      deltaStyle: vazio ? neutro : seloPainel("warn"),
+      label: L.aReceber,
+      value: formatCash(open),
+      delta: String(pendingCount),
+      note: id === "pt" ? "pagamentos pendentes no período" : "pending payments in the period",
+      dot: dot(empty ? "var(--border)" : "var(--warn)"),
+      deltaStyle: empty ? neutro : panelBadge("warn"),
     },
     {
-      rotulo: L.inadimplentes,
-      valor: atrasadoN,
-      delta: fmtDin(atrasadoTotal),
-      nota: id === "pt" ? "clientes com vencimento passado" : "customers past due",
-      ponto: ponto(vazio ? "var(--border)" : "var(--danger)"),
-      deltaStyle: vazio ? neutro : seloPainel("danger"),
+      label: L.inadimplentes,
+      value: overdueCount,
+      delta: formatCash(overdueTotal),
+      note: id === "pt" ? "clientes com vencimento passado" : "customers past due",
+      dot: dot(empty ? "var(--border)" : "var(--danger)"),
+      deltaStyle: empty ? neutro : panelBadge("danger"),
     },
   ];
 
   // Todo mês do período aparece no gráfico, inclusive os zerados (ver
   // `lib/pagamentos.ts`). Sem o piso de 1, um período inteiro sem receita daria
   // divisão por zero e barras com altura NaN.
-  const maxReceita = Math.max(1, ...s.receita.map((g) => g.valor));
+  const maxRevenue = Math.max(1, ...s.revenue.map((g) => g.amount));
 
   const qp = s.buscaPag.trim().toLowerCase();
-  const linhas = cs.filter((x) => {
-    if (qp && !x.nome.toLowerCase().includes(qp)) return false;
-    if (s.filtroPag === "todos") return true;
+  const rows = cs.filter((x) => {
+    if (qp && !x.name.toLowerCase().includes(qp)) return false;
+    if (s.paymentFilter === "all") return true;
     // Quem não é cobrado não tem status de pagamento para filtrar.
-    return ehCobravel(x) && infoPag(s.pagamentos, x.id).status === s.filtroPag;
+    return isBillable(x) && paymentInfo(s.payments, x.id).status === s.paymentFilter;
   });
 
   const exportar = () => {
     const cabecalho = [
-      L.negocio,
-      L.plano,
+      L.business,
+      L.plan,
       L.valorMensal,
       L.statusPagamento,
       L.ultimoPagamento,
       L.proxVencimento,
     ].join(";");
-    const corpo = linhas.map((x) => {
-      const p = infoPag(s.pagamentos, x.id);
-      const grat = !ehCobravel(x);
+    const corpo = rows.map((x) => {
+      const p = paymentInfo(s.payments, x.id);
+      const grat = !isBillable(x);
       return [
-        x.nome,
-        nomePlano(s.planos, x.plano, id),
-        grat ? "-" : x.valor,
+        x.name,
+        planName(s.plans, x.plan, id),
+        grat ? "-" : x.amount,
         grat
           ? L.semCobranca
           : p.status === "emdia"
@@ -112,7 +112,7 @@ export function FinanceiroView() {
             : p.status === "atrasado"
               ? L.atrasado
               : L.pendente,
-        grat ? "-" : p.ultimo,
+        grat ? "-" : p.latest,
         grat ? "-" : p.vencimento,
       ].join(";");
     });
@@ -122,35 +122,35 @@ export function FinanceiroView() {
   const rotuloCampo =
     "font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600";
 
-  const menuPagamento = (clienteId: string, pago: boolean) => (
-    <MenuAcoes
-      aberto={s.menuPag === clienteId}
-      onAbertoChange={(v) => a.set({ menuPag: v ? clienteId : null })}
-      rotulo={L.acoes}
-      larguraMin={184}
+  const paymentMenu = (customerId: string, paid: boolean) => (
+    <ActionsMenu
+      open={s.paymentMenu === customerId}
+      onOpenChange={(v) => a.set({ paymentMenu: v ? customerId : null })}
+      label={L.actions}
+      minWidth={184}
     >
-      <button
-        onClick={() => a.abrirModal(pago ? "reverter" : "pagar", clienteId)}
+      <Button
+        onClick={() => a.openModal(paid ? "undo" : "pay", customerId)}
         role="menuitem"
         className="hv-menu"
-        style={css(ITEM_MENU + "color:var(--text2)")}
+        style={css(MENU_ITEM + "color:var(--text2)")}
       >
-        {pago ? L.reverterPagamento : L.marcarPago}
-      </button>
-      <button
-        onClick={() => a.abrirModal("historico", clienteId)}
+        {paid ? L.undoPayment : L.markPaid}
+      </Button>
+      <Button
+        onClick={() => a.openModal("history", customerId)}
         role="menuitem"
         className="hv-menu"
-        style={css(ITEM_MENU + "color:var(--text2)")}
+        style={css(MENU_ITEM + "color:var(--text2)")}
       >
         {L.verHistorico}
-      </button>
-    </MenuAcoes>
+      </Button>
+    </ActionsMenu>
   );
 
   return (
     <div style={css("display:flex;flex-direction:column;gap:20px")}>
-      <MetricasGrid metricas={metricas} />
+      <MetricsGrid metrics={metrics} />
 
       <section
         style={css(
@@ -165,24 +165,24 @@ export function FinanceiroView() {
           <span style={css("font-size:11.5px;color:var(--muted)")}>{L.receitaSub}</span>
         </div>
         <div style={css("display:flex;align-items:flex-end;gap:14px;height:172px;padding-top:6px")}>
-          {(vazio ? [] : s.receita).map((g, i) => (
+          {(empty ? [] : s.revenue).map((g, i) => (
             <div
-              key={g.mes.pt}
+              key={g.month.pt}
               style={css(
                 "flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;" +
                   "height:100%;justify-content:flex-end",
               )}
             >
               <span style={css(`font-family:${MONO};font-size:11px;color:var(--text2)`)}>
-                {fmtDin(g.valor)}
+                {formatCash(g.amount)}
               </span>
               <div
                 style={css(
                   "width:100%;max-width:54px;border-radius:7px 7px 3px 3px;background:" +
                     // The most recent month is the filled bar.
-                    (i === s.receita.length - 1 ? "var(--accent)" : "var(--accent-soft)") +
+                    (i === s.revenue.length - 1 ? "var(--accent)" : "var(--accent-soft)") +
                     ";border:1px solid var(--accent-line);height:" +
-                    Math.round((g.valor / maxReceita) * 118) +
+                    Math.round((g.amount / maxRevenue) * 118) +
                     "px",
                 )}
               />
@@ -191,7 +191,7 @@ export function FinanceiroView() {
                   "font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em",
                 )}
               >
-                {g.mes[id]}
+                {g.month[id]}
               </span>
             </div>
           ))}
@@ -225,35 +225,35 @@ export function FinanceiroView() {
             </span>
           </div>
 
-          <CampoBusca
-            valor={s.buscaPag}
+          <SearchField
+            value={s.buscaPag}
             onChange={(v) => a.set({ buscaPag: v })}
             placeholder={L.buscarPagamento}
-            estiloCaixa="flex:1;min-width:180px;max-width:260px;"
-            compacto
+            boxCssText="flex:1;min-width:180px;max-width:260px;"
+            compact
           />
 
           <div style={css("display:flex;gap:6px;flex-wrap:wrap")}>
             {(
               [
-                ["todos", L.todosChamados],
+                ["all", L.todosChamados],
                 ["emdia", L.emDia],
                 ["atrasado", L.atrasado],
                 ["pendente", L.pendente],
               ] as const
-            ).map(([k, rotulo]) => (
-              <button
+            ).map(([k, label]) => (
+              <Button
                 key={k}
-                onClick={() => a.set({ filtroPag: k })}
-                style={css(chip(s.filtroPag === k))}
+                onClick={() => a.set({ paymentFilter: k })}
+                style={css(chip(s.paymentFilter === k))}
               >
-                {rotulo}
-              </button>
+                {label}
+              </Button>
             ))}
           </div>
 
           <div style={css("margin-left:auto")}>
-            <button
+            <Button
               onClick={exportar}
               className="hv-acc-borda"
               style={css(
@@ -264,135 +264,135 @@ export function FinanceiroView() {
             >
               <BaixarIcone />
               {L.exportarCsv}
-            </button>
+            </Button>
           </div>
         </div>
 
-        {!compacto && (
+        {!compact && (
           <div
             style={css(
               "display:grid;grid-template-columns:" +
-                GRADE_PAG +
+                PAYMENT_GRID +
                 ";gap:12px;padding:10px 20px;background:var(--surface2);" +
                 "border-bottom:1px solid var(--border-soft);font-size:10.5px;letter-spacing:.07em;" +
                 "text-transform:uppercase;color:var(--muted);font-weight:600",
             )}
           >
-            <span>{L.negocio}</span>
-            <span>{L.plano}</span>
+            <span>{L.business}</span>
+            <span>{L.plan}</span>
             <span>{L.valorMensal}</span>
             <span>{L.statusPagamento}</span>
             <span>{L.ultimoPagamento}</span>
             <span>{L.proxVencimento}</span>
-            <span style={css("text-align:right")}>{L.acoes}</span>
+            <span style={css("text-align:right")}>{L.actions}</span>
           </div>
         )}
 
-        {(vazio ? [] : linhas).map((x) => {
-          const p = infoPag(s.pagamentos, x.id);
+        {(empty ? [] : rows).map((x) => {
+          const p = paymentInfo(s.payments, x.id);
           // "Gratuito" é não ter mensalidade — não é a chave do plano.
-          const grat = !ehCobravel(x);
-          const pago = p.status === "emdia";
+          const grat = !isBillable(x);
+          const paid = p.status === "emdia";
 
-          const statusTexto = grat
+          const statusText = grat
             ? L.semCobranca
-            : pago
+            : paid
               ? L.emDia
               : p.status === "atrasado"
                 ? L.atrasado
                 : L.pendente;
-          const statusEstilo = grat
-            ? seloPainel("neutro")
-            : pago
-              ? seloPainel("pos")
+          const statusStyle = grat
+            ? panelBadge("neutral")
+            : paid
+              ? panelBadge("pos")
               : p.status === "atrasado"
-                ? seloPainel("danger")
-                : seloPainel("warn");
-          const vencEstilo =
+                ? panelBadge("danger")
+                : panelBadge("warn");
+          const dueStyle =
             `font-family:${MONO};font-size:11.5px;color:` +
             (!grat && p.status === "atrasado" ? "var(--danger)" : "var(--muted)");
-          const destaque = !grat && p.status === "atrasado" ? "background:var(--surface2);" : "";
+          const standout = !grat && p.status === "atrasado" ? "background:var(--surface2);" : "";
 
           return (
             <div
               key={x.id}
               className="hv-linha"
               style={css(
-                compacto
+                compact
                   ? "display:flex;flex-direction:column;gap:12px;padding:15px 16px;" +
                       "border-bottom:1px solid var(--border-soft);" +
-                      destaque
+                      standout
                   : "display:grid;grid-template-columns:" +
-                      GRADE_PAG +
+                      PAYMENT_GRID +
                       ";gap:12px;align-items:center;padding:13px 20px;" +
                       "border-bottom:1px solid var(--border-soft);" +
-                      destaque,
+                      standout,
               )}
             >
               <div style={css("display:flex;align-items:center;gap:11px;min-width:0")}>
-                <div style={css(avatar(planoPorChave(s.planos, x.plano)))}>{iniciais(x.nome)}</div>
+                <div style={css(avatar(planByKey(s.plans, x.plan)))}>{initials(x.name)}</div>
                 <span
                   style={css(
                     "font-size:13.5px;font-weight:500;color:var(--text);white-space:nowrap;" +
                       "overflow:hidden;text-overflow:ellipsis",
                   )}
                 >
-                  {x.nome}
+                  {x.name}
                 </span>
-                {compacto && (
+                {compact && (
                   <div style={css("margin-left:auto;display:flex")}>
-                    {menuPagamento(x.id, pago)}
+                    {paymentMenu(x.id, paid)}
                   </div>
                 )}
               </div>
 
-              {!compacto && (
+              {!compact && (
                 <>
-                  <span style={css(planoBadge(planoPorChave(s.planos, x.plano)))}>{nomePlano(s.planos, x.plano, id)}</span>
+                  <span style={css(planBadge(planByKey(s.plans, x.plan)))}>{planName(s.plans, x.plan, id)}</span>
                   <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--text)`)}>
-                    {grat ? "—" : x.valor}
+                    {grat ? "—" : x.amount}
                   </span>
-                  <span style={css(statusEstilo)}>{statusTexto}</span>
+                  <span style={css(statusStyle)}>{statusText}</span>
                   <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
-                    {grat ? "—" : p.ultimo}
+                    {grat ? "—" : p.latest}
                   </span>
-                  <span style={css(vencEstilo)}>{grat ? "—" : p.vencimento}</span>
+                  <span style={css(dueStyle)}>{grat ? "—" : p.vencimento}</span>
                   <div style={css("display:flex;justify-content:flex-end")}>
                     {/* Free customers are never billed, so they have no actions. */}
-                    {!grat && menuPagamento(x.id, pago)}
+                    {!grat && paymentMenu(x.id, paid)}
                   </div>
                 </>
               )}
 
-              {compacto && (
+              {compact && (
                 <div
                   style={css(
                     "display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:12px 16px",
                   )}
                 >
                   <div style={css("display:flex;flex-direction:column;gap:4px")}>
-                    <span style={css(rotuloCampo)}>{L.plano}</span>
-                    <span style={css(planoBadge(planoPorChave(s.planos, x.plano)))}>{nomePlano(s.planos, x.plano, id)}</span>
+                    <span style={css(rotuloCampo)}>{L.plan}</span>
+                    <span style={css(planBadge(planByKey(s.plans, x.plan)))}>{planName(s.plans, x.plan, id)}</span>
                   </div>
                   <div style={css("display:flex;flex-direction:column;gap:4px")}>
                     <span style={css(rotuloCampo)}>{L.valorMensal}</span>
                     <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--text)`)}>
-                      {grat ? "—" : x.valor}
+                      {grat ? "—" : x.amount}
                     </span>
                   </div>
                   <div style={css("display:flex;flex-direction:column;gap:4px")}>
                     <span style={css(rotuloCampo)}>{L.statusPagamento}</span>
-                    <span style={css(statusEstilo)}>{statusTexto}</span>
+                    <span style={css(statusStyle)}>{statusText}</span>
                   </div>
                   <div style={css("display:flex;flex-direction:column;gap:4px")}>
                     <span style={css(rotuloCampo)}>{L.ultimoPagamento}</span>
                     <span style={css(`font-family:${MONO};font-size:12px;color:var(--text2)`)}>
-                      {grat ? "—" : p.ultimo}
+                      {grat ? "—" : p.latest}
                     </span>
                   </div>
                   <div style={css("display:flex;flex-direction:column;gap:4px")}>
                     <span style={css(rotuloCampo)}>{L.proxVencimento}</span>
-                    <span style={css(vencEstilo)}>{grat ? "—" : p.vencimento}</span>
+                    <span style={css(dueStyle)}>{grat ? "—" : p.vencimento}</span>
                   </div>
                 </div>
               )}
@@ -400,7 +400,7 @@ export function FinanceiroView() {
           );
         })}
 
-        {(vazio || linhas.length === 0) && (
+        {(empty || rows.length === 0) && (
           <div
             style={css(
               "display:flex;flex-direction:column;align-items:center;gap:12px;padding:58px 24px;" +
@@ -419,10 +419,10 @@ export function FinanceiroView() {
             {/* Uma leitura que falhou não é "nenhum pagamento": dizer que está
                 tudo vazio esconderia o problema. */}
             <span style={css("font-size:14px;font-weight:600;color:var(--text)")}>
-              {s.erroFinanceiro ? L.erroFinanceiroTitulo : L.vazioFinanceiroTitulo}
+              {s.billingError ? L.erroFinanceiroTitulo : L.vazioFinanceiroTitulo}
             </span>
             <span style={css("font-size:12.5px;color:var(--text2);line-height:1.55;max-width:40ch")}>
-              {s.erroFinanceiro || L.vazioFinanceiroTexto}
+              {s.billingError || L.vazioFinanceiroTexto}
             </span>
           </div>
         )}

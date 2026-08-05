@@ -1,22 +1,22 @@
 "use client";
 
-import { css, MONO, SANS } from "@aguiar/ui";
+import { Button, css, MONO, SANS } from "@aguiar/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const CARTAO =
+const CARD =
   "background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;" +
   "display:flex;flex-direction:column;gap:16px;box-shadow:var(--shadow-lg)";
 
-const CAMPO =
+const FIELD =
   "width:100%;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);" +
   `border-radius:11px;padding:13px 14px;font:500 14px ${SANS};outline:none`;
 
-const ROTULO = `display:block;margin-bottom:6px;font:600 11px ${SANS};color:var(--text2)`;
+const LABEL = `display:block;margin-bottom:6px;font:600 11px ${SANS};color:var(--text2)`;
 
 /** O motivo pelo qual o middleware devolveu a pessoa para cá. */
-const MOTIVOS: Record<string, string> = {
+const REASONS: Record<string, string> = {
   "e-admin":
     "Esta conta é de administrador da plataforma. Use o painel admin, não o portal do cliente.",
   "sem-negocio":
@@ -28,9 +28,9 @@ export function LoginView() {
   const params = useSearchParams();
 
   const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState<string | null>(MOTIVOS[params.get("erro") ?? ""] ?? null);
+  const [password, setSenha] = useState("");
+  const [loading, setCarregando] = useState(false);
+  const [error, setErro] = useState<string | null>(REASONS[params.get("error") ?? ""] ?? null);
 
   /**
    * Entra com e-mail e senha.
@@ -39,9 +39,9 @@ export function LoginView() {
    * valida a credencial e devolve a sessão num cookie. Quem decide se esta
    * conta pode usar o portal é o middleware, no próximo carregamento.
    */
-  const entrar = async () => {
+  const signIn = async () => {
     const e = email.trim();
-    if (!e || !senha) {
+    if (!e || !password) {
       setErro("Informe e-mail e senha.");
       return;
     }
@@ -50,7 +50,7 @@ export function LoginView() {
     setErro(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email: e, password: senha });
+    const { error } = await supabase.auth.signInWithPassword({ email: e, password: password });
 
     if (error) {
       // Não distinguimos "e-mail não existe" de "senha errada": isso contaria a
@@ -91,10 +91,10 @@ export function LoginView() {
         </div>
 
         <form
-          style={css(CARTAO)}
+          style={css(CARD)}
           onSubmit={(ev) => {
             ev.preventDefault();
-            if (!carregando) void entrar();
+            if (!loading) void signIn();
           }}
         >
           <div>
@@ -105,7 +105,7 @@ export function LoginView() {
           </div>
 
           <div>
-            <label style={css(ROTULO)} htmlFor="email">
+            <label style={css(LABEL)} htmlFor="email">
               E-mail
             </label>
             <input
@@ -115,26 +115,26 @@ export function LoginView() {
               value={email}
               onChange={(ev) => setEmail(ev.target.value)}
               placeholder="voce@seunegocio.com.br"
-              style={css(CAMPO)}
+              style={css(FIELD)}
             />
           </div>
 
           <div>
-            <label style={css(ROTULO)} htmlFor="senha">
+            <label style={css(LABEL)} htmlFor="senha">
               Senha
             </label>
             <input
               id="senha"
               type="password"
               autoComplete="current-password"
-              value={senha}
+              value={password}
               onChange={(ev) => setSenha(ev.target.value)}
               placeholder="••••••••"
-              style={css(CAMPO)}
+              style={css(FIELD)}
             />
           </div>
 
-          {erro && (
+          {error && (
             <div
               style={css(
                 "padding:11px 13px;border-radius:10px;background:var(--warn-soft);" +
@@ -142,23 +142,24 @@ export function LoginView() {
               )}
               role="alert"
             >
-              {erro}
+              {error}
             </div>
           )}
 
-          <button
+          {/* Quem espera aqui é o `onSubmit` do formulário — o Enter no field
+              de senha também entra —, então o carregamento vem de fora. */}
+          <Button
             type="submit"
-            disabled={carregando}
-            className={carregando ? undefined : "hv-brilho"}
+            loading={loading}
+            loadingLabel="Entrando…"
+            className="hv-brilho"
             style={css(
               `padding:14px;border-radius:11px;font:700 14px ${SANS};` +
-                (carregando
-                  ? "background:var(--surface3);color:var(--muted);cursor:progress"
-                  : "background:var(--accent);color:var(--accent-ink)"),
+                "background:var(--accent);color:var(--accent-ink)",
             )}
           >
-            {carregando ? "Entrando…" : "Entrar"}
-          </button>
+            Entrar
+          </Button>
 
           <p style={css(`margin:0;text-align:center;font:400 11.5px/1.5 ${SANS};color:var(--muted)`)}>
             Esqueceu a senha ou não consegue entrar? Fale com a nossa equipe.

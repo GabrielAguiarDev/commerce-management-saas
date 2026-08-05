@@ -3,38 +3,38 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@aguiar/ui";
-import { BarraAcoes } from "@/components/BarraAcoes";
-import { GradeModulos, ModuloCard } from "@/components/ModuloCard";
-import { ROTAS } from "@/lib/rotas";
+import { Button, css, MONO } from "@aguiar/ui";
+import { ActionBar } from "@/components/BarraAcoes";
+import { ModuleGrid, ModuleCard } from "@/components/ModuloCard";
+import { ROUTES } from "@/lib/rotas";
 import { num } from "@/lib/money";
-import { planoPorChave } from "@/lib/planos";
-import { clientePorId, estaSujo } from "@/lib/state";
-import { nomePlano, planoBadge, statusBadge } from "@/lib/styleKit";
-import { iniciais } from "@aguiar/ui";
+import { planByKey } from "@/lib/planos";
+import { customerById, isDirty } from "@/lib/state";
+import { planName, planBadge, statusBadge } from "@/lib/styleKit";
+import { initials } from "@aguiar/ui";
 
 // Chaves do banco (tabela `tenants`, coluna `plan`), na ordem em que o botão
 
 
-export function DetalheView({ clienteId }: { clienteId: string }) {
-  const { s, a, opts } = useAdmin();
+export function DetalheView({ customerId }: { customerId: string }) {
+  const { s, a, options } = useAdmin();
   const { L } = a;
   const router = useRouter();
-  const id = s.idioma;
-  const c = clientePorId(s, clienteId);
-  const existe = !!c;
+  const id = s.language;
+  const c = customerById(s, customerId);
+  const exists = !!c;
 
   // Opening the record — or arriving back on it via the browser — must find a
   // draft to edit. `garantirRascunho` keeps an existing one for this customer.
   // Depende só de referências estáveis: `garantirRascunho` é memoizado.
-  const garantirRascunho = a.garantirRascunho;
+  const ensureDraft = a.ensureDraft;
   useEffect(() => {
-    if (existe) garantirRascunho(clienteId);
-  }, [existe, clienteId, garantirRascunho]);
+    if (exists) ensureDraft(customerId);
+  }, [exists, customerId, ensureDraft]);
 
   // A deleted customer leaves a dead URL; send it back to the list.
   useEffect(() => {
-    if (!c) router.replace(ROTAS.clientes);
+    if (!c) router.replace(ROUTES.customers);
   }, [c, router]);
 
   if (!c) return null;
@@ -42,12 +42,12 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
   // The draft only applies to the customer it was opened for; otherwise the
   // saved record is what we render.
   const r =
-    s.rascunho && s.rascunho.id === c.id
-      ? s.rascunho
-      : { plano: c.plano, mods: c.mods, valor: c.valor };
-  const sujo = estaSujo(s);
-  const planoAtual = planoPorChave(s.planos, r.plano);
-  const custom = planoAtual?.tipo === "custom";
+    s.draft && s.draft.id === c.id
+      ? s.draft
+      : { plan: c.plan, mods: c.mods, amount: c.amount };
+  const dirty = isDirty(s);
+  const currentPlan = planByKey(s.plans, r.plan);
+  const custom = currentPlan?.type === "custom";
 
   const rotuloCampo =
     "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600";
@@ -61,42 +61,42 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
    * Agora o preço sai de `plans.price`; no plano sob medida o valor é negociado,
    * então preserva-se o que o cliente já pagava.
    */
-  const trocarPlano = () =>
-    a.editarRascunho((d) => {
-      if (s.planos.length === 0) return d;
-      const i = s.planos.findIndex((p) => p.k === d.plano);
-      const novo = s.planos[(i + 1) % s.planos.length];
+  const switchPlan = () =>
+    a.editDraft((d) => {
+      if (s.plans.length === 0) return d;
+      const i = s.plans.findIndex((p) => p.k === d.plan);
+      const nextPlan = s.plans[(i + 1) % s.plans.length];
       return {
         ...d,
-        plano: novo.k,
-        valor:
-          novo.tipo === "custom"
+        plan: nextPlan.k,
+        amount:
+          nextPlan.type === "custom"
             ? // Negociado por cliente: mantém o valor atual em vez de zerar.
-              c.valor !== "—"
-              ? c.valor
-              : d.valor
+              c.amount !== "—"
+              ? c.amount
+              : d.amount
             : // Plano sem cobrança mostra "—", e não "R$ 0,00": é a mesma regra
               // que `lib/clientes.ts` aplica ao ler `tenants.monthly_fee`. Sem
               // isto, o rascunho exibia "R$ 0,00" e, depois de salvar e
               // recarregar, a mesma ficha passava a exibir "—".
-              novo.preco && num(novo.preco) > 0
-              ? novo.preco
+              nextPlan.price && num(nextPlan.price) > 0
+              ? nextPlan.price
               : "—",
       };
     });
 
   return (
     <div style={css("display:flex;flex-direction:column;gap:16px")}>
-      <button
-        onClick={() => a.ir(ROTAS.clientes)}
+      <Button
+        onClick={() => a.goTo(ROUTES.customers)}
         className="hv-acc"
         style={css(
           "align-self:flex-start;background:none;border:none;color:var(--text2);font-size:12.5px;" +
             "cursor:pointer;padding:0",
         )}
       >
-        ← {L.voltar}
-      </button>
+        ← {L.back}
+      </Button>
 
       <section
         style={css(
@@ -110,7 +110,7 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
               "justify-content:center;font-size:18px;font-weight:600;background:var(--accent-soft);color:var(--accent)",
           )}
         >
-          {iniciais(c.nome)}
+          {initials(c.name)}
         </div>
 
         <div style={css("flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px")}>
@@ -120,11 +120,11 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
                 "margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--text)",
               )}
             >
-              {c.nome}
+              {c.name}
             </h2>
-            <span style={css(planoBadge(planoAtual))}>{nomePlano(s.planos, r.plano, id)}</span>
+            <span style={css(planBadge(currentPlan))}>{planName(s.plans, r.plan, id)}</span>
             <span style={css(statusBadge(c.status))}>
-              {c.status === "ativo"
+              {c.status === "active"
                 ? id === "pt"
                   ? "Ativo"
                   : "Active"
@@ -136,22 +136,22 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
 
           <div style={css("display:flex;gap:26px;flex-wrap:wrap")}>
             <div style={css("display:flex;flex-direction:column;gap:3px")}>
-              <span style={css(rotuloCampo)}>{L.segmento}</span>
-              <span style={css("font-size:13px;color:var(--text)")}>{c.segmento[id]}</span>
+              <span style={css(rotuloCampo)}>{L.segment}</span>
+              <span style={css("font-size:13px;color:var(--text)")}>{c.segment[id]}</span>
             </div>
             <div style={css("display:flex;flex-direction:column;gap:3px")}>
-              <span style={css(rotuloCampo)}>{L.responsavel}</span>
+              <span style={css(rotuloCampo)}>{L.owner}</span>
               <span style={css("font-size:13px;color:var(--text)")}>{c.resp}</span>
             </div>
             {/* Cidade e telefone vêm de `tenants.city` / `tenants.phone`. O
                 cadastro já os pedia; agora o banco guarda e a ficha mostra. */}
             <div style={css("display:flex;flex-direction:column;gap:3px")}>
-              <span style={css(rotuloCampo)}>{L.cidade}</span>
-              <span style={css("font-size:13px;color:var(--text)")}>{c.cidade}</span>
+              <span style={css(rotuloCampo)}>{L.city}</span>
+              <span style={css("font-size:13px;color:var(--text)")}>{c.city}</span>
             </div>
             <div style={css("display:flex;flex-direction:column;gap:3px")}>
-              <span style={css(rotuloCampo)}>{L.telefone}</span>
-              <span style={css("font-size:13px;color:var(--text)")}>{c.telefone}</span>
+              <span style={css(rotuloCampo)}>{L.phone}</span>
+              <span style={css("font-size:13px;color:var(--text)")}>{c.phone}</span>
             </div>
             <div style={css("display:flex;flex-direction:column;gap:3px")}>
               <span style={css(rotuloCampo)}>{L.cadastro}</span>
@@ -160,17 +160,17 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
               </span>
             </div>
 
-            {opts.mostrarValorMensal && (
+            {options.mostrarValorMensal && (
               <div style={css("display:flex;flex-direction:column;gap:3px")}>
-                <span style={css(rotuloCampo)}>{L.mensalidade}</span>
+                <span style={css(rotuloCampo)}>{L.monthlyFee}</span>
                 {/* Only a custom plan has a negotiable fee; the others are fixed. */}
                 {custom ? (
                   <input
-                    value={r.valor}
+                    value={r.amount}
                     onChange={(e) =>
-                      a.editarRascunho((d) => ({ ...d, valor: e.target.value }))
+                      a.editDraft((d) => ({ ...d, amount: e.target.value }))
                     }
-                    aria-label={L.mensalidade}
+                    aria-label={L.monthlyFee}
                     title={L.mensalidadeAjuda}
                     style={css(
                       `width:104px;font-family:${MONO};font-size:12.5px;color:var(--text);` +
@@ -180,7 +180,7 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
                   />
                 ) : (
                   <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--muted)`)}>
-                    {r.valor}
+                    {r.amount}
                   </span>
                 )}
               </div>
@@ -189,8 +189,8 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
         </div>
 
         <div style={css("display:flex;gap:8px;align-items:center;flex-wrap:wrap")}>
-          <button
-            onClick={trocarPlano}
+          <Button
+            onClick={switchPlan}
             className="hv-acc-borda"
             style={css(
               "border:1px solid var(--border);background:var(--surface);color:var(--text2);" +
@@ -198,18 +198,18 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
             )}
           >
             {L.mudarPlano}
-          </button>
-          <button
-            onClick={() => a.abrirModal(c.status === "ativo" ? "desativar" : "reativar", c.id)}
+          </Button>
+          <Button
+            onClick={() => a.openModal(c.status === "active" ? "deactivate" : "reactivate", c.id)}
             style={css(
               "font-size:12.5px;font-weight:500;padding:9px 14px;border-radius:9px;cursor:pointer;" +
-                (c.status === "ativo"
+                (c.status === "active"
                   ? "border:1px solid var(--danger-line);background:var(--danger-soft);color:var(--danger);"
                   : "border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);"),
             )}
           >
-            {c.status === "ativo" ? L.desativar : L.reativar}
-          </button>
+            {c.status === "active" ? L.deactivate : L.reactivate}
+          </Button>
         </div>
       </section>
 
@@ -240,13 +240,13 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
                   `font-family:${MONO};font-size:20px;font-weight:600;color:var(--accent);line-height:1`,
                 )}
               >
-                {r.mods.length}/{s.modulos.length}
+                {r.mods.length}/{s.modules.length}
               </span>
               <span style={css("font-size:11px;color:var(--muted)")}>{L.modulosAtivos}</span>
             </div>
             <div style={css("display:flex;gap:6px")}>
-              <button
-                onClick={() => a.abrirModal("todos")}
+              <Button
+                onClick={() => a.openModal("all")}
                 className="hv-acc-borda"
                 style={css(
                   "border:1px solid var(--border);background:var(--surface);color:var(--text2);" +
@@ -254,45 +254,45 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
                 )}
               >
                 {L.ativarTodos}
-              </button>
-              <button
-                onClick={() => a.abrirModal("limpar")}
+              </Button>
+              <Button
+                onClick={() => a.openModal("clear")}
                 className="hv-texto"
                 style={css(
                   "border:1px solid var(--border);background:var(--surface);color:var(--muted);" +
                     "font-size:11.5px;padding:7px 11px;border-radius:7px;cursor:pointer",
                 )}
               >
-                {L.limpar}
-              </button>
+                {L.clear}
+              </Button>
             </div>
           </div>
         </div>
 
-        <GradeModulos colunas={opts.colunasModulos}>
-          {s.modulos.map((m) => {
+        <ModuleGrid columns={options.colunasModulos}>
+          {s.modules.map((m) => {
             const on = r.mods.includes(m.k);
             return (
-              <ModuloCard
+              <ModuleCard
                 key={m.k}
-                sigla={m.sigla}
-                nome={m.nome[id]}
-                descricao={m.desc[id]}
-                ligado={on}
+                initials={m.initials}
+                name={m.name[id]}
+                description={m.desc[id]}
+                on={on}
                 estado={on ? L.ativoPara : L.desativado}
-                acesso={m.tipo === "acesso"}
+                acesso={m.type === "acesso"}
                 tagAcesso={L.tagAcesso}
                 ajudaAcesso={L.acessoAjuda}
                 // Desligar pede confirmação; ligar é reversível, então vai direto.
-                alternar={() =>
+                toggle={() =>
                   on
-                    ? a.abrirModal("modOff", null, null, m.k)
-                    : a.editarRascunho((d) => ({ ...d, mods: [...d.mods, m.k] }))
+                    ? a.openModal("moduleOff", null, null, m.k)
+                    : a.editDraft((d) => ({ ...d, mods: [...d.mods, m.k] }))
                 }
               />
             );
           })}
-        </GradeModulos>
+        </ModuleGrid>
 
         <div
           style={css(
@@ -301,15 +301,15 @@ export function DetalheView({ clienteId }: { clienteId: string }) {
           )}
         >
           <div style={css("width:6px;height:6px;border-radius:99px;background:var(--pos)")} />
-          <span style={css("font-size:12px;color:var(--text2)")}>{s.ultimaAcao || L.semAcao}</span>
+          <span style={css("font-size:12px;color:var(--text2)")}>{s.lastAction || L.semAcao}</span>
         </div>
       </section>
 
-      <BarraAcoes
-        estado={sujo ? L.naoSalvo : L.tudoSalvo}
-        tom={sujo ? "alerta" : "neutro"}
-        secundario={{ rotulo: L.descartar, onClick: a.descartarRascunho, desabilitado: !sujo }}
-        primario={{ rotulo: L.salvar, onClick: a.salvarRascunho, desabilitado: !sujo }}
+      <ActionBar
+        estado={dirty ? L.naoSalvo : L.tudoSalvo}
+        tone={dirty ? "warning" : "neutral"}
+        secondary={{ label: L.discard, onClick: a.discardDraft, disabled: !dirty }}
+        primary={{ label: L.save, onClick: a.saveDraft, disabled: !dirty }}
       />
     </div>
   );

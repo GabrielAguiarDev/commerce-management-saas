@@ -52,24 +52,24 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const emLogin = request.nextUrl.pathname === LOGIN;
+  const inLogin = request.nextUrl.pathname === LOGIN;
 
   /**
    * Redireciona preservando os cookies que o `setAll` acabou de gravar em
    * `response`. Um `NextResponse.redirect` novo nasce sem eles — e perder o
    * token recém-renovado jogaria o usuário num laço de logins.
    */
-  const redirecionar = (destino: string, erro?: string) => {
+  const redirect = (destination: string, error?: string) => {
     const url = request.nextUrl.clone();
-    url.pathname = destino;
-    url.search = erro ? `erro=${erro}` : "";
-    const saida = NextResponse.redirect(url);
-    response.cookies.getAll().forEach((c) => saida.cookies.set(c));
-    return saida;
+    url.pathname = destination;
+    url.search = error ? `erro=${error}` : "";
+    const out = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((c) => out.cookies.set(c));
+    return out;
   };
 
   if (!user) {
-    return emLogin ? response : redirecionar(LOGIN);
+    return inLogin ? response : redirect(LOGIN);
   }
 
   // Logado — falta saber se é o admin da plataforma. A consulta passa pelo RLS
@@ -83,14 +83,14 @@ export async function middleware(request: NextRequest) {
   if (!perfil?.is_platform_admin) {
     // Dono de comércio logando no painel errado: fica na tela de login, que
     // explica o motivo, em vez de ver o painel vazio por conta do RLS.
-    return emLogin ? response : redirecionar(LOGIN, "nao-admin");
+    return inLogin ? response : redirect(LOGIN, "nao-admin");
   }
 
   // Admin já logado não precisa da tela de login.
-  return emLogin ? redirecionar("/") : response;
+  return inLogin ? redirect("/") : response;
 }
 
-export const config = {
+export const settings = {
   matcher: [
     // Roda em tudo, menos assets estáticos e imagens.
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",

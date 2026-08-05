@@ -1,24 +1,24 @@
-import type { ModuloKey } from "@/types/types";
+import type { ModuleKey } from "@/types/types";
 
 /** Sigla e nome de cada módulo, para o menu e os selos de acesso. */
-export const MODULOS: Record<ModuloKey, { sigla: string; nome: string }> = {
-  dashboard: { sigla: "DS", nome: "Dashboard" },
-  vendas: { sigla: "VD", nome: "Vendas" },
-  produtos: { sigla: "PR", nome: "Produtos" },
-  estoque: { sigla: "ET", nome: "Estoque" },
-  caixa: { sigla: "CX", nome: "Caixa" },
-  custos: { sigla: "CU", nome: "Custos" },
-  relatorios: { sigla: "RL", nome: "Relatórios" },
-  config: { sigla: "CF", nome: "Configurações" },
-  suporte: { sigla: "SP", nome: "Suporte" },
+export const MODULES: Record<ModuleKey, { initials: string; name: string }> = {
+  dashboard: { initials: "DS", name: "Dashboard" },
+  sales: { initials: "VD", name: "Vendas" },
+  products: { initials: "PR", name: "Produtos" },
+  stock: { initials: "ET", name: "Estoque" },
+  register: { initials: "CX", name: "Caixa" },
+  costs: { initials: "CU", name: "Custos" },
+  reports: { initials: "RL", name: "Relatórios" },
+  settings: { initials: "CF", name: "Configurações" },
+  support: { initials: "SP", name: "Suporte" },
 };
 
 /** A ordem do menu lateral, agrupada pelo que a pessoa vem fazer no portal. */
-export const GRUPOS: { titulo: string; itens: ModuloKey[] }[] = [
-  { titulo: "Operação", itens: ["dashboard", "vendas", "caixa"] },
-  { titulo: "Catálogo", itens: ["produtos", "estoque"] },
-  { titulo: "Gestão", itens: ["custos", "relatorios"] },
-  { titulo: "Sistema", itens: ["config", "suporte"] },
+export const GROUPS: { title: string; items: ModuleKey[] }[] = [
+  { title: "Operação", items: ["dashboard", "sales", "register"] },
+  { title: "Catálogo", items: ["products", "stock"] },
+  { title: "Gestão", items: ["costs", "reports"] },
+  { title: "Sistema", items: ["settings", "support"] },
 ];
 
 /**
@@ -28,11 +28,11 @@ export const GRUPOS: { titulo: string; itens: ModuloKey[] }[] = [
  * permissão, são o mínimo para a pessoa conseguir usar o portal. `suporte`
  * idem: quem trabalha no negócio precisa poder pedir ajuda.
  */
-export const MODULOS_PERM: ModuloKey[] = [
-  "vendas",
-  "produtos",
-  "estoque",
-  "caixa",
-  "custos",
-  "relatorios",
+export const PERMISSION_MODULES: ModuleKey[] = [
+  "sales",
+  "products",
+  "stock",
+  "register",
+  "costs",
+  "reports",
 ];

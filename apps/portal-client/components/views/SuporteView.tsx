@@ -1,18 +1,18 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { BotaoNovo, CabecalhoTela, css, FaixaKpis, GrupoPilulas, MONO, SANS, Vazio } from "@aguiar/ui";
+import { NewButton, Button, ScreenHeader, css, KpiStrip, PillGroup, MONO, SANS, Empty } from "@aguiar/ui";
 import { SP_STATUS } from "@/lib/dados/chamados";
-import { rotuloData } from "@/lib/formato";
-import { rotaChamado } from "@/lib/rotas";
-import { campoFiltro } from "@/lib/styleKit";
-import type { StatusChamado } from "@/types/types";
+import { dateLabel } from "@/lib/formato";
+import { ticketRoute } from "@/lib/rotas";
+import { filterField } from "@/lib/styleKit";
+import type { TicketStatus } from "@/types/types";
 
-const FILTROS: { chave: string; nome: string }[] = [
-  { chave: "todos", nome: "Todos" },
-  { chave: "abertos", nome: "Em aberto" },
-  { chave: "aguardando", nome: "Aguardando você" },
-  { chave: "resolvido", nome: "Resolvidos" },
+const FILTERS: { key: string; name: string }[] = [
+  { key: "all", name: "Todos" },
+  { key: "abertos", name: "Em aberto" },
+  { key: "waiting", name: "Aguardando você" },
+  { key: "resolved", name: "Resolvidos" },
 ];
 
 /**
@@ -27,38 +27,38 @@ export function SuporteView() {
   const f = s.fSuporte;
   const set = (p: Partial<typeof f>) => a.set({ fSuporte: { ...f, ...p } });
 
-  const busca = f.busca.trim().toLowerCase();
-  const filtrados = d.chamados.filter((c) => {
-    if (busca && !c.assunto.toLowerCase().includes(busca) && !c.id.includes(busca)) return false;
-    if (f.status === "abertos" && c.status === "resolvido") return false;
-    if (f.status === "aguardando" && c.status !== "aguardando") return false;
-    if (f.status === "resolvido" && c.status !== "resolvido") return false;
+  const search = f.search.trim().toLowerCase();
+  const filtered = d.tickets.filter((c) => {
+    if (search && !c.subject.toLowerCase().includes(search) && !c.id.includes(search)) return false;
+    if (f.status === "abertos" && c.status === "resolved") return false;
+    if (f.status === "waiting" && c.status !== "waiting") return false;
+    if (f.status === "resolved" && c.status !== "resolved") return false;
     return true;
   });
 
-  const contar = (st: StatusChamado) => d.chamados.filter((c) => c.status === st).length;
-  const emAberto = d.chamados.filter((c) => c.status !== "resolvido").length;
+  const count = (st: TicketStatus) => d.tickets.filter((c) => c.status === st).length;
+  const open = d.tickets.filter((c) => c.status !== "resolved").length;
 
   const kpis = [
-    { label: "Em aberto", valor: String(emAberto), nota: emAberto ? "Ainda em atendimento" : "Nada pendente" },
+    { label: "Em aberto", value: String(open), note: open ? "Ainda em atendimento" : "Nada pendente" },
     {
       label: "Aguardando você",
-      valor: String(contar("aguardando")),
-      nota: contar("aguardando") ? "O suporte espera sua resposta" : "Nenhuma resposta pendente",
-      cor: contar("aguardando") ? "var(--warn)" : "var(--pos)",
+      value: String(count("waiting")),
+      note: count("waiting") ? "O suporte espera sua resposta" : "Nenhuma resposta pendente",
+      color: count("waiting") ? "var(--warn)" : "var(--pos)",
     },
-    { label: "Resolvidos", valor: String(contar("resolvido")), nota: "No histórico", cor: "var(--pos)" },
+    { label: "Resolvidos", value: String(count("resolved")), note: "No histórico", color: "var(--pos)" },
   ];
 
   return (
     <div>
-      <CabecalhoTela
-        titulo="Suporte"
-        subtitulo="Precisa de ajuda? Abra um chamado e a gente responde por aqui — normalmente em até 1 dia útil."
-        acao={<BotaoNovo texto="Abrir chamado" onClick={a.abrirNovoChamado} largo={isMobile} />}
+      <ScreenHeader
+        title="Suporte"
+        subtitle="Precisa de ajuda? Abra um chamado e a gente responde por aqui — normalmente em até 1 dia útil."
+        action={<NewButton text="Abrir chamado" onClick={a.openNewTicket} wide={isMobile} />}
       />
 
-      {d.chamados.length === 0 ? (
+      {d.tickets.length === 0 ? (
         <div
           style={css(
             "display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px;padding:48px 20px;" +
@@ -75,44 +75,44 @@ export function SuporteView() {
           </span>
           <div style={css(`margin-top:2px;font:700 16px ${SANS}`)}>Nenhum chamado ainda</div>
           <p style={css(`margin:0;max-width:380px;font:400 13px/1.5 ${SANS};color:var(--muted)`)}>
-            Travou em algo, apareceu um erro ou ficou com dúvida? Abra um chamado contando o que
+            Travou em algo, apareceu um error ou ficou com dúvida? Abra um chamado contando o que
             aconteceu — a gente responde aqui mesmo.
           </p>
-          <button
-            onClick={a.abrirNovoChamado}
+          <Button
+            onClick={a.openNewTicket}
             className="hv-brilho"
             style={css(
               `margin-top:10px;padding:14px 24px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font:700 14px ${SANS}`,
             )}
           >
             Abrir chamado
-          </button>
+          </Button>
         </div>
       ) : (
         <>
-          <FaixaKpis kpis={kpis} colunas={isMobile ? "1fr 1fr" : "repeat(3,minmax(0,1fr))"} />
+          <KpiStrip kpis={kpis} columns={isMobile ? "1fr 1fr" : "repeat(3,minmax(0,1fr))"} />
 
           <div style={css("display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px")}>
             <input
-              value={f.busca}
-              onChange={(e) => set({ busca: e.target.value })}
+              value={f.search}
+              onChange={(e) => set({ search: e.target.value })}
               placeholder="Buscar pelo assunto do chamado"
-              style={css(`flex:1;min-width:180px;${campoFiltro()}`)}
+              style={css(`flex:1;min-width:180px;${filterField()}`)}
             />
-            <GrupoPilulas
-              opcoes={FILTROS}
-              atual={f.status}
-              onEscolher={(v) => set({ status: v })}
-              tamanho="sm"
+            <PillGroup
+              options={FILTERS}
+              current={f.status}
+              onPick={(v) => set({ status: v })}
+              size="sm"
             />
           </div>
 
-          {filtrados.length === 0 ? (
-            <Vazio
-              titulo="Nenhum chamado com esse filtro"
-              texto="Tente outro termo de busca ou veja todos os chamados."
-              acao="Ver todos"
-              onAcao={() => set({ busca: "", status: "todos" })}
+          {filtered.length === 0 ? (
+            <Empty
+              title="Nenhum chamado com esse filtro"
+              text="Tente outro termo de busca ou veja todos os chamados."
+              action="Ver todos"
+              onAction={() => set({ search: "", status: "all" })}
             />
           ) : (
             <>
@@ -121,15 +121,15 @@ export function SuporteView() {
                   "display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden",
                 )}
               >
-                {filtrados.map((c) => {
+                {filtered.map((c) => {
                   const st = SP_STATUS[c.status];
-                  const ultima = c.msgs[c.msgs.length - 1];
+                  const latest = c.messages[c.messages.length - 1];
                   return (
-                    <button
+                    <Button
                       key={c.id}
                       onClick={() => {
-                        a.marcarLido(c.id);
-                        a.irPara(rotaChamado(c.id));
+                        a.markRead(c.id);
+                        a.goTo(ticketRoute(c.id));
                       }}
                       className="hv-linha2"
                       style={css(
@@ -137,18 +137,18 @@ export function SuporteView() {
                       )}
                     >
                       <span
-                        style={css(`flex:none;width:8px;height:8px;border-radius:50%;background:${st.ponto}`)}
+                        style={css(`flex:none;width:8px;height:8px;border-radius:50%;background:${st.dot}`)}
                       />
                       <span style={css("flex:1;min-width:0")}>
                         <span style={css("display:flex;align-items:center;gap:8px;flex-wrap:wrap")}>
                           <span
                             style={css(
-                              `font:${c.naoLido ? "700" : "600"} 13.5px ${SANS};color:var(--text)`,
+                              `font:${c.unread ? "700" : "600"} 13.5px ${SANS};color:var(--text)`,
                             )}
                           >
-                            {c.assunto}
+                            {c.subject}
                           </span>
-                          {c.naoLido && (
+                          {c.unread && (
                             <span
                               style={css(
                                 `padding:2px 8px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font:600 10px ${SANS}`,
@@ -163,25 +163,25 @@ export function SuporteView() {
                             `display:block;margin-top:4px;font:500 11.5px/1.4 ${SANS};color:var(--muted)`,
                           )}
                         >
-                          #{c.id} · {c.categoria} · {c.msgs.length}{" "}
-                          {c.msgs.length === 1 ? "mensagem" : "mensagens"} · última{" "}
-                          {rotuloData(ultima.d, ultima.hora)}
+                          #{c.id} · {c.category} · {c.messages.length}{" "}
+                          {c.messages.length === 1 ? "mensagem" : "mensagens"} · última{" "}
+                          {dateLabel(latest.d, latest.time)}
                         </span>
                       </span>
                       <span
                         style={css(
-                          `flex:none;padding:4px 10px;border-radius:999px;background:${st.bg};color:${st.cor};font:600 11px ${SANS};white-space:nowrap`,
+                          `flex:none;padding:4px 10px;border-radius:999px;background:${st.bg};color:${st.color};font:600 11px ${SANS};white-space:nowrap`,
                         )}
                       >
-                        {st.rotulo}
+                        {st.label}
                       </span>
                       <span style={css(`flex:none;color:var(--muted);font:600 14px/1 ${MONO}`)}>›</span>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
               <p style={css(`margin:10px 0 0;font:500 12px ${SANS};color:var(--muted)`)}>
-                {filtrados.length} de {d.chamados.length} chamados
+                {filtered.length} de {d.tickets.length} chamados
               </p>
             </>
           )}

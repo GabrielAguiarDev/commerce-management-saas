@@ -62,18 +62,15 @@ de uma venda antiga.
 
 ## 3. Falta criar
 
-### 3.1 Bloqueadores
+### 3.1 Resolvido durante o levantamento
 
-**1. Não existe usuário de portal.** Nenhum `profiles` tem `tenant_id`
-preenchido — o único perfil é o admin da plataforma. **É impossível entrar no
-portal hoje**, e por isso o caminho de dados não pôde ser verificado ponta a
-ponta. Precisa de um usuário no Auth + um `profiles` com `tenant_id` e
-`role_id`.
+**1. Usuário de portal — criado.** Não havia nenhum `profiles` com `tenant_id`,
+então era impossível entrar. Foi criado `dono@petshopamigofiel.com.br` para o
+tenant `Petshop Amigo Fiel`, com o papel "Dono" e um `profiles` ligando os dois.
 
-**2. A tabela `roles` está vazia.** Nem o papel do dono existe. Sem ele,
-`profiles.role_id` fica nulo e a aba Equipe não tem o que mostrar. O
-`admin_create_tenant` provavelmente deveria criar o papel "Dono" junto com o
-tenant.
+**2. `roles` estava vazia — o papel "Dono" foi criado.** Vale investigar por que
+`admin_create_tenant` não o cria junto com o tenant: todo negócio novo vai nascer
+com o mesmo problema.
 
 ### 3.2 Integridade
 
@@ -89,12 +86,23 @@ Como o admin e o portal escrevem nas mesmas colunas, um vocabulário divergente
 que o portal usa está em `lib/dados/*.ts`; vale transformá-lo em CHECK, ou em
 enum, antes que os dois lados divirjam.
 
-**4. `create_sale` transacional.** Registrar uma venda hoje são três escritas em
-sequência (`sales`, `sale_items`, baixa de estoque) sem transação — o PostgREST
-não tem uma entre chamadas. Se a segunda falhar, a primeira já está gravada.
-Uma função no banco resolveria de vez.
+**4. `create_sale` transacional.** Registrar uma venda hoje são duas escritas em
+sequência (`sales` e `sale_items`) sem transação — o PostgREST não tem uma entre
+chamadas. Se a segunda falhar, fica uma venda sem itens. Uma função no banco
+resolveria de vez, e de quebra levaria a baixa de estoque para dentro dela.
 
-**5. `apply_stock_movement` ignora o `p_type`.** Verificado na prática: a função
+**5. Existe um trigger de baixa em `sale_items` — não documentado.** Inserir um
+item de venda **já desconta** `products.stock_quantity` e grava o
+`stock_movements` do tipo `sale` (verificado: saldo 100 → 97 ao inserir 3
+unidades). Descobrir isso tarde custa caro: a primeira versão desta integração
+descontava de novo pela aplicação e tirava o dobro de cada venda.
+
+O trigger **não** reage à mudança de `sales.status`: estornar uma venda não
+devolve o estoque sozinho. Hoje quem devolve é `app/vendas/actions.ts`, à mão.
+Convém decidir de que lado fica a regra — as duas metades em lugares diferentes
+é o que torna isso fácil de errar.
+
+**6. `apply_stock_movement` ignora o `p_type`.** Verificado na prática: a função
 **soma** o `p_quantity` que recebe, seja o tipo `in`, `out` ou `adjustment`
 (10 → `out` 3 → 13). Quem carrega o significado é o sinal, e quem o decide é o
 chamador. Ela também **não** atualiza `products.cost` quando recebe
@@ -119,34 +127,46 @@ parece salvar e não salva é pior do que um que se assume incompleto.
 | Logo do negócio | Configurações › Dados | bucket + coluna `tenants.logo_url` |
 | Cadastrar funcionário | Configurações › Equipe | criar usuário no Auth exige `service_role`, que o portal não tem por decisão de segurança — precisa de convite pelo admin ou de uma Edge Function |
 
-### 3.4 RLS não verificado
+### 3.4 RLS — verificado com sessão real
 
-Sem um usuário de portal, **nenhuma política foi exercitada**. Estas são as que
-o portal precisa e que podem não existir:
+Com o login criado, cada política foi exercitada com a chave pública e o token
+do dono (exatamente o que o portal faz). Resultado:
 
-- `tenants` — UPDATE pelo dono (a tela de Dados do negócio salva ali);
-- `roles` — INSERT/UPDATE/DELETE pelo tenant;
-- `profiles` — SELECT dos outros perfis do mesmo tenant (lista da equipe) e
-  UPDATE de `status`/`role_id`;
-- `products`, `sales`, `sale_items`, `stock_movements`, `costs`,
-  `cash_registers`, `cash_movements` — INSERT/UPDATE/DELETE pelo tenant;
-- `support_tickets` / `support_messages` — INSERT pelo cliente, e UPDATE de
-  `read_by_recipient`.
+| Operação | Resultado |
+|---|---|
+| Leitura de `tenants`, `v_active_modules`, `products`, `sales`, `costs`, `cash_registers`, `stock_movements`, `support_tickets`, `profiles`, `roles` | ✅ todas passam |
+| `products` INSERT / UPDATE | ✅ |
+| `sales` + `sale_items` INSERT | ✅ |
+| `costs` INSERT | ✅ |
+| `cash_registers` + `cash_movements` INSERT | ✅ |
+| `support_tickets` INSERT | ✅ |
+| `roles` INSERT | ✅ |
+| RPC `apply_stock_movement`, `expected_cash_for_register`, `close_cash_register` | ✅ |
+| **`tenants` UPDATE** | ❌ **bloqueado — 0 linhas afetadas** |
 
-Se alguma faltar, a tela não mostra lista vazia: `lib/dados/carregar.ts`
-devolve o erro e a casca exibe um aviso.
+**A única política que falta é o UPDATE de `tenants` pelo dono.** É o que a aba
+Configurações › Dados do negócio salva. Hoje a tela avisa "Não foi possível
+salvar, fale com o suporte" em vez de fingir sucesso, mas o certo é a política:
+
+```sql
+create policy "dono atualiza o próprio negócio" on tenants
+  for update using (id = current_tenant_id())
+  with check (id = current_tenant_id());
+```
+
+(Convém restringir as colunas — nome, ramo, telefone e cidade — para o cliente
+não conseguir mexer em `plan`, `monthly_fee` ou `status`.)
 
 ---
 
 ## 4. Ordem sugerida
 
-1. Criar o papel "Dono" e um usuário de portal para o tenant existente — sem
-   isso nada mais pode ser testado.
-2. Rodar o portal logado e conferir cada tela; corrigir as políticas de RLS que
-   faltarem.
-3. Pôr CHECK (ou enum) nas colunas de estado, com o vocabulário de
-   `lib/dados/*.ts`.
-4. `create_sale` transacional e acertar `apply_stock_movement`.
-5. Migrar Dashboard e Relatórios para as views.
+1. **Política de UPDATE em `tenants`** — é a única coisa quebrada hoje.
+2. **CHECK (ou enum) nas colunas de estado**, com o vocabulário de
+   `lib/dados/*.ts`, antes que admin e portal divirjam.
+3. **Decidir de que lado fica a baixa de estoque** e documentar o trigger.
+   Junto disso, `create_sale` transacional.
+4. Fazer `admin_create_tenant` criar o papel "Dono" do tenant novo.
+5. Migrar Dashboard e Relatórios para as views de leitura.
 6. `tenant_settings`, colunas de documento/endereço e log de auditoria.
 7. Storage para anexos e logo.

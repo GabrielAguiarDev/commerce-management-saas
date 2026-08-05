@@ -1,15 +1,15 @@
 "use client";
 
 import { css } from "@aguiar/ui";
-import { iconeMod } from "@/lib/styleKit";
-import { TagAcesso } from "@/components/shared";
+import { moduleIcon } from "@/lib/styleKit";
+import { AccessTag } from "@/components/shared";
 
 /** Grade de módulos — mesma medida usada na ficha do cliente. */
-export function GradeModulos({
-  colunas = 3,
+export function ModuleGrid({
+  columns = 3,
   children,
 }: {
-  colunas?: number;
+  columns?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -17,7 +17,7 @@ export function GradeModulos({
       style={css(
         "display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px;" +
           "padding:20px 24px;max-width:" +
-          Math.min(4, Math.max(2, colunas)) * 400 +
+          Math.min(4, Math.max(2, columns)) * 400 +
           "px",
       )}
     >
@@ -26,11 +26,11 @@ export function GradeModulos({
   );
 }
 
-interface ModuloCardProps {
-  sigla: string;
-  nome: string;
-  descricao: string;
-  ligado: boolean;
+interface ModuleCardProps {
+  initials: string;
+  name: string;
+  description: string;
+  on: boolean;
   /** Texto do estado, ex.: "Ativo para este cliente" / "Incluído". */
   estado: string;
   /** Módulo de acesso (app mobile): ganha a etiqueta ao lado do nome. */
@@ -38,8 +38,8 @@ interface ModuloCardProps {
   tagAcesso?: string;
   ajudaAcesso?: string;
   /** Sem `alternar`, o card fica somente leitura (plano de pacote fechado). */
-  alternar?: () => void;
-  bloqueado?: boolean;
+  toggle?: () => void;
+  blocked?: boolean;
 }
 
 /**
@@ -47,61 +47,61 @@ interface ModuloCardProps {
  * de cadastro — manter os dois com a mesma aparência é justamente o motivo de
  * ele existir separado.
  */
-export function ModuloCard({
-  sigla,
-  nome,
-  descricao,
-  ligado,
+export function ModuleCard({
+  initials,
+  name,
+  description,
+  on,
   estado,
   acesso,
   tagAcesso,
   ajudaAcesso,
-  alternar,
-  bloqueado,
-}: ModuloCardProps) {
-  const somenteLeitura = bloqueado || !alternar;
+  toggle,
+  blocked,
+}: ModuleCardProps) {
+  const readOnly = blocked || !toggle;
 
   return (
     <div
-      onClick={somenteLeitura ? undefined : alternar}
-      role={somenteLeitura ? undefined : "switch"}
-      aria-checked={somenteLeitura ? undefined : ligado}
-      aria-disabled={somenteLeitura || undefined}
-      tabIndex={somenteLeitura ? undefined : 0}
+      onClick={readOnly ? undefined : toggle}
+      role={readOnly ? undefined : "switch"}
+      aria-checked={readOnly ? undefined : on}
+      aria-disabled={readOnly || undefined}
+      tabIndex={readOnly ? undefined : 0}
       onKeyDown={
-        somenteLeitura
+        readOnly
           ? undefined
           : (e) => {
               // Um card clicável precisa responder ao teclado como um controle.
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                alternar?.();
+                toggle?.();
               }
             }
       }
       style={css(
         "display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:11px;" +
           "transition:border-color .12s,background .12s;" +
-          (ligado
+          (on
             ? "border:1px solid var(--accent-line);background:var(--accent-soft);"
             : "border:1px solid var(--border-soft);background:var(--surface);") +
-          (somenteLeitura ? "cursor:default;" : "cursor:pointer;"),
+          (readOnly ? "cursor:default;" : "cursor:pointer;"),
       )}
     >
       <div style={css("display:flex;align-items:flex-start;justify-content:space-between;gap:14px")}>
         <div style={css("display:flex;align-items:center;gap:11px;min-width:0")}>
-          <div style={css(iconeMod(ligado))}>{sigla}</div>
+          <div style={css(moduleIcon(on))}>{initials}</div>
           <div style={css("display:flex;flex-direction:column;gap:3px;min-width:0")}>
             <span style={css("display:flex;align-items:center;gap:7px;min-width:0")}>
-              <span style={css("font-size:14px;font-weight:600;color:var(--text)")}>{nome}</span>
+              <span style={css("font-size:14px;font-weight:600;color:var(--text)")}>{name}</span>
               {acesso && tagAcesso && (
-                <TagAcesso rotulo={tagAcesso} ajuda={ajudaAcesso ?? tagAcesso} />
+                <AccessTag label={tagAcesso} ajuda={ajudaAcesso ?? tagAcesso} />
               )}
             </span>
             <span
               style={css(
                 "font-size:11px;font-weight:500;white-space:nowrap;color:" +
-                  (ligado ? "var(--pos)" : "var(--muted)"),
+                  (on ? "var(--pos)" : "var(--muted)"),
               )}
             >
               {estado}
@@ -113,8 +113,8 @@ export function ModuloCard({
           style={css(
             "width:44px;height:24px;flex:none;border-radius:99px;padding:3px;display:flex;" +
               "transition:background .15s;background:" +
-              (ligado ? "var(--accent)" : "var(--border)") +
-              (somenteLeitura ? ";opacity:.65" : ""),
+              (on ? "var(--accent)" : "var(--border)") +
+              (readOnly ? ";opacity:.65" : ""),
           )}
         >
           <div
@@ -122,13 +122,13 @@ export function ModuloCard({
               "width:18px;height:18px;border-radius:99px;background:#fff;" +
                 "box-shadow:0 1px 2px rgba(0,0,0,.28);transition:transform .15s;" +
                 "transform:translateX(" +
-                (ligado ? "20px" : "0") +
+                (on ? "20px" : "0") +
                 ")",
             )}
           />
         </div>
       </div>
-      <p style={css("margin:0;font-size:12px;color:var(--text2);line-height:1.5")}>{descricao}</p>
+      <p style={css("margin:0;font-size:12px;color:var(--text2);line-height:1.5")}>{description}</p>
     </div>
   );
 }

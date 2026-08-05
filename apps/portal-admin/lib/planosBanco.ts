@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Plano } from "@/types/types";
+import type { Plan } from "@/types/types";
 
 /**
  * Catálogo de planos, lido da tabela `plans`.
@@ -16,7 +16,7 @@ import type { Plano } from "@/types/types";
  */
 
 /** A linha crua, para quem precisa da regra e não do formato de tela. */
-export interface LinhaPlano {
+export interface PlanRow {
   key: string;
   name: string;
   description: string | null;
@@ -37,33 +37,33 @@ const umTexto = (t: string) => ({ pt: t, en: t });
  * R$ 0,89. É o mesmo formato de `Cliente.valor`, e os dois se cruzam quando a
  * ficha do cliente troca de plano.
  */
-function formatarPreco(preco: number | string | null): string | null {
-  if (preco === null || preco === undefined) return null;
-  const n = typeof preco === "string" ? Number(preco) : preco;
+function formatPrice(price: number | string | null): string | null {
+  if (price === null || price === undefined) return null;
+  const n = typeof price === "string" ? Number(price) : price;
   if (!Number.isFinite(n)) return null;
   return "R$ " + n.toFixed(2).replace(".", ",");
 }
 
-export function paraPlano(linha: LinhaPlano): Plano {
+export function toPlan(linha: PlanRow): Plan {
   return {
     k: linha.key,
-    nome: umTexto(linha.name),
+    name: umTexto(linha.name),
     // `is_custom` é a coluna que decide se a grade de módulos é editável.
-    tipo: linha.is_custom ? ("custom" as const) : ("fixo" as const),
-    preco: linha.is_custom ? null : formatarPreco(linha.price),
+    type: linha.is_custom ? ("custom" as const) : ("fixed" as const),
+    price: linha.is_custom ? null : formatPrice(linha.price),
     desc: umTexto(linha.description ?? "—"),
     mods: linha.module_keys ?? [],
   };
 }
 
-export interface ResultadoPlanos {
-  planos: Plano[];
-  erro: string | null;
+export interface PlansResult {
+  plans: Plan[];
+  error: string | null;
 }
 
-export async function listarPlanos(): Promise<ResultadoPlanos> {
+export async function listPlans(): Promise<PlansResult> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return { planos: [], erro: "Supabase não configurado." };
+    return { plans: [], error: "Supabase não configurado." };
   }
 
   const supabase = await createClient();
@@ -78,8 +78,8 @@ export async function listarPlanos(): Promise<ResultadoPlanos> {
 
   if (error) {
     console.error("[listarPlanos] falha ao ler plans:", error.message);
-    return { planos: [], erro: `Não foi possível carregar os planos: ${error.message}` };
+    return { plans: [], error: `Não foi possível carregar os planos: ${error.message}` };
   }
 
-  return { planos: (data as LinhaPlano[]).map(paraPlano), erro: null };
+  return { plans: (data as PlanRow[]).map(toPlan), error: null };
 }

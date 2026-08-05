@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { permissoesParaBanco } from "@/lib/dados/equipe";
-import { PORTAL_PARA_DB } from "@/lib/modulos";
-import { exigirCliente, type ResultadoAcao } from "@/lib/sessao";
-import type { DadosNegocio, ModuloKey } from "@/types/types";
+import { permissionsToDb } from "@/lib/dados/equipe";
+import { PORTAL_TO_DB } from "@/lib/modulos";
+import { requireCustomer, type ActionResult } from "@/lib/sessao";
+import type { BusinessData, ModuleKey } from "@/types/types";
 
 /**
  * Salva os dados do negócio.
@@ -13,28 +13,28 @@ import type { DadosNegocio, ModuloKey } from "@/types/types";
  * (CNPJ/CPF) e endereço completo ainda não têm coluna — ver a análise do que
  * falta criar.
  */
-export async function salvarDadosNegocio(d: DadosNegocio): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("alterar os dados do negócio");
-  if (!sessao.ok) return sessao;
+export async function saveBusinessData(d: BusinessData): Promise<ActionResult> {
+  const session = await requireCustomer("alterar os dados do negócio");
+  if (!session.ok) return session;
 
-  if (!d.nome.trim()) return { ok: false, mensagem: "O negócio precisa de um nome." };
+  if (!d.name.trim()) return { ok: false, message: "O negócio precisa de um nome." };
 
-  const { error } = await sessao.supabase
+  const { error } = await session.supabase
     .from("tenants")
     .update({
-      name: d.nome.trim(),
-      segment: d.tipo.trim() || null,
-      phone: d.telefone.trim() || null,
-      city: d.cidade.trim() || null,
+      name: d.name.trim(),
+      segment: d.type.trim() || null,
+      phone: d.phone.trim() || null,
+      city: d.city.trim() || null,
     })
-    .eq("id", sessao.tenantId);
+    .eq("id", session.tenantId);
 
   if (error) {
     // O RLS pode recusar a escrita se a política de `tenants` for só de
     // leitura para o dono — ver a análise.
     return {
       ok: false,
-      mensagem: "Não foi possível salvar. Fale com o suporte para alterar os dados do negócio.",
+      message: "Não foi possível salvar. Fale com o suporte para alterar os dados do negócio.",
     };
   }
 
@@ -46,36 +46,36 @@ export async function salvarDadosNegocio(d: DadosNegocio): Promise<ResultadoAcao
 /* Tipos de acesso                                                             */
 /* -------------------------------------------------------------------------- */
 
-export async function salvarPapel(p: {
+export async function saveRole(p: {
   id: string | null;
-  nome: string;
-  modulos: ModuloKey[];
-}): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("alterar os tipos de acesso");
-  if (!sessao.ok) return sessao;
+  name: string;
+  modules: ModuleKey[];
+}): Promise<ActionResult> {
+  const session = await requireCustomer("alterar os tipos de acesso");
+  if (!session.ok) return session;
 
-  if (!p.nome.trim()) return { ok: false, mensagem: "Dê um nome ao tipo de acesso." };
+  if (!p.name.trim()) return { ok: false, message: "Dê um nome ao tipo de acesso." };
 
-  const { supabase, tenantId } = sessao;
-  const campos = {
-    name: p.nome.trim(),
-    permissions: permissoesParaBanco(p.modulos, PORTAL_PARA_DB),
+  const { supabase, tenantId } = session;
+  const fields = {
+    name: p.name.trim(),
+    permissions: permissionsToDb(p.modules, PORTAL_TO_DB),
   };
 
   const { error } = p.id
-    ? await supabase.from("roles").update(campos).eq("id", p.id).eq("is_owner", false)
-    : await supabase.from("roles").insert({ tenant_id: tenantId, is_owner: false, ...campos });
+    ? await supabase.from("roles").update(fields).eq("id", p.id).eq("is_owner", false)
+    : await supabase.from("roles").insert({ tenant_id: tenantId, is_owner: false, ...fields });
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
-export async function removerPapel(id: string): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("remover um tipo de acesso");
-  if (!sessao.ok) return sessao;
-  const { supabase } = sessao;
+export async function removeRole(id: string): Promise<ActionResult> {
+  const session = await requireCustomer("remover um tipo de acesso");
+  if (!session.ok) return session;
+  const { supabase } = session;
 
   const { count } = await supabase
     .from("profiles")
@@ -83,12 +83,12 @@ export async function removerPapel(id: string): Promise<ResultadoAcao> {
     .eq("role_id", id);
 
   if (count) {
-    return { ok: false, mensagem: "Há funcionários usando este tipo de acesso." };
+    return { ok: false, message: "Há funcionários usando este tipo de acesso." };
   }
 
   // `is_owner = false` na condição: o tipo do dono não sai nem por engano.
   const { error } = await supabase.from("roles").delete().eq("id", id).eq("is_owner", false);
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -105,33 +105,33 @@ export async function removerPapel(id: string): Promise<ResultadoAcao> {
  * Auth, e isso precisa da `service_role`, que não existe neste projeto por
  * decisão de segurança. Ver a análise.
  */
-export async function alternarFuncionario(id: string, ativo: boolean): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("alterar o acesso de um funcionário");
-  if (!sessao.ok) return sessao;
+export async function setEmployeeActive(id: string, active: boolean): Promise<ActionResult> {
+  const session = await requireCustomer("alterar o acesso de um funcionário");
+  if (!session.ok) return session;
 
-  if (id === sessao.usuarioId) {
-    return { ok: false, mensagem: "Você não pode suspender o seu próprio acesso." };
+  if (id === session.userId) {
+    return { ok: false, message: "Você não pode suspender o seu próprio acesso." };
   }
 
-  const { error } = await sessao.supabase
+  const { error } = await session.supabase
     .from("profiles")
-    .update({ status: ativo ? "active" : "suspended" })
+    .update({ status: active ? "active" : "suspended" })
     .eq("id", id);
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 /** Troca o tipo de acesso de alguém da equipe. */
-export async function mudarPapelDoFuncionario(id: string, papelId: string): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("alterar o acesso de um funcionário");
-  if (!sessao.ok) return sessao;
+export async function changeEmployeeRole(id: string, roleId: string): Promise<ActionResult> {
+  const session = await requireCustomer("alterar o acesso de um funcionário");
+  if (!session.ok) return session;
 
-  const { error } = await sessao.supabase.from("profiles").update({ role_id: papelId }).eq("id", id);
+  const { error } = await session.supabase.from("profiles").update({ role_id: roleId }).eq("id", id);
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/", "layout");
   return { ok: true };

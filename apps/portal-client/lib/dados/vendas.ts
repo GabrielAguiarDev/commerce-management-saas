@@ -1,13 +1,13 @@
-import type { FormaPagamento } from "@/types/types";
+import type { PaymentMethod } from "@/types/types";
 
-export const FORMAS: FormaPagamento[] = ["Dinheiro", "Pix", "Débito", "Crédito"];
+export const METHODS: PaymentMethod[] = ["cash", "pix", "debit", "credit"];
 
 /** O que a pessoa precisa lembrar de conferir em cada forma, no fechamento. */
-export const NOTA_FORMA: Record<FormaPagamento, string> = {
-  Dinheiro: "Entra na gaveta automaticamente",
-  Pix: "Cai na conta, não na gaveta",
-  Débito: "Confira na maquininha",
-  Crédito: "Confira na maquininha",
+export const METHOD_NOTE: Record<PaymentMethod, string> = {
+  cash: "Entra na gaveta automaticamente",
+  pix: "Cai na conta, não na gaveta",
+  debit: "Confira na maquininha",
+  credit: "Confira na maquininha",
 };
 
 /**
@@ -15,24 +15,24 @@ export const NOTA_FORMA: Record<FormaPagamento, string> = {
  * português. A tradução mora aqui para o banco não depender do idioma da
  * interface — e para trocar o rótulo não virar migração.
  */
-export const PAGAMENTO_DB: Record<FormaPagamento, string> = {
-  Dinheiro: "cash",
-  Pix: "pix",
-  Débito: "debit",
-  Crédito: "credit",
+export const PAYMENT_DB: Record<PaymentMethod, string> = {
+  cash: "cash",
+  pix: "pix",
+  debit: "debit",
+  credit: "credit",
 };
 
-const DB_PARA_PORTAL: Record<string, FormaPagamento> = Object.fromEntries(
-  Object.entries(PAGAMENTO_DB).map(([pt, db]) => [db, pt as FormaPagamento]),
-) as Record<string, FormaPagamento>;
+const DB_TO_PORTAL: Record<string, PaymentMethod> = Object.fromEntries(
+  Object.entries(PAYMENT_DB).map(([pt, db]) => [db, pt as PaymentMethod]),
+) as Record<string, PaymentMethod>;
 
 /** Forma desconhecida cai em Dinheiro — não vale perder a venda por um rótulo. */
-export function pagamentoDoBanco(v: string | null): FormaPagamento {
-  return DB_PARA_PORTAL[v ?? ""] ?? "Dinheiro";
+export function paymentFromDb(v: string | null): PaymentMethod {
+  return DB_TO_PORTAL[v ?? ""] ?? "cash";
 }
 
 /**
  * Venda estornada continua no histórico, riscada, fora do faturamento —
  * `sales.status`.
  */
-export const STATUS_VENDA = { normal: "completed", estornada: "refunded" } as const;
+export const SALE_STATUS = { normal: "completed", refunded: "refunded" } as const;

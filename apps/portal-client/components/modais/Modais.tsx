@@ -2,10 +2,10 @@
 
 import { CaixaAbrirModal, CaixaDetalheModal, CaixaFecharModal, CaixaMovModal } from "@/components/modais/CaixaModais";
 import { CustoModal } from "@/components/modais/CustoModal";
-import { FuncionarioModal, PapelModal } from "@/components/modais/EquipeModais";
+import { EmployeeModal, RoleModal } from "@/components/modais/EquipeModais";
 import { MovEstoqueModal } from "@/components/modais/MovEstoqueModal";
 import { ProdutoModal } from "@/components/modais/ProdutoModal";
-import { NovoChamadoModal } from "@/components/modais/SuporteModal";
+import { NewTicketModal } from "@/components/modais/SuporteModal";
 import { VendaDetalheModal } from "@/components/modais/VendaDetalhe";
 import { usePortal } from "@/components/PortalProvider";
 
@@ -19,31 +19,31 @@ export function Modais() {
   if (!m) return null;
 
   switch (m.k) {
-    case "detalheVenda": {
-      const venda = d.vendas.find((v) => v.id === m.id);
-      return venda ? <VendaDetalheModal venda={venda} /> : null;
+    case "saleDetail": {
+      const sale = d.sales.find((v) => v.id === m.id);
+      return sale ? <VendaDetalheModal sale={sale} /> : null;
     }
-    case "produto":
+    case "product":
       return <ProdutoModal />;
-    case "movEstoque":
+    case "stockMovement":
       return <MovEstoqueModal />;
-    case "custo":
+    case "cost":
       return <CustoModal />;
-    case "caixaAbrir":
+    case "openRegister":
       return <CaixaAbrirModal />;
-    case "caixaMov":
-      return <CaixaMovModal tipo={m.tipo} />;
-    case "caixaFechar":
+    case "registerMovement":
+      return <CaixaMovModal type={m.type} />;
+    case "closeRegister":
       return <CaixaFecharModal />;
-    case "caixaDetalhe": {
-      const caixa = d.caixasFechados.find((c) => c.id === m.id);
-      return caixa ? <CaixaDetalheModal caixa={caixa} /> : null;
+    case "registerDetail": {
+      const register = d.caixasFechados.find((c) => c.id === m.id);
+      return register ? <CaixaDetalheModal register={register} /> : null;
     }
-    case "funcionario":
-      return <FuncionarioModal id={m.id} />;
-    case "papel":
-      return <PapelModal />;
-    case "novoChamado":
-      return <NovoChamadoModal />;
+    case "employee":
+      return <EmployeeModal id={m.id} />;
+    case "role":
+      return <RoleModal />;
+    case "newTicket":
+      return <NewTicketModal />;
   }
 }

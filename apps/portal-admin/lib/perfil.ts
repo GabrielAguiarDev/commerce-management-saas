@@ -9,12 +9,12 @@ import { createClient } from "@/lib/supabase/server";
  * real está em `profiles.full_name`, e o RLS já garante que a consulta só
  * enxergue o próprio perfil.
  */
-export interface PerfilAdmin {
-  nome: string | null;
+export interface AdminProfile {
+  name: string | null;
   email: string | null;
 }
 
-export async function perfilAtual(): Promise<PerfilAdmin | null> {
+export async function currentProfile(): Promise<AdminProfile | null> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return null;
   }
@@ -35,8 +35,8 @@ export async function perfilAtual(): Promise<PerfilAdmin | null> {
   if (error) {
     // Não é motivo para derrubar o painel: a barra lateral cai no e-mail.
     console.error("[perfilAtual] falha ao ler o perfil:", error.message);
-    return { nome: null, email: user.email ?? null };
+    return { name: null, email: user.email ?? null };
   }
 
-  return { nome: data?.full_name ?? null, email: user.email ?? null };
+  return { name: data?.full_name ?? null, email: user.email ?? null };
 }

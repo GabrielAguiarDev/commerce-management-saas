@@ -52,23 +52,23 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const emLogin = request.nextUrl.pathname === LOGIN;
+  const inLogin = request.nextUrl.pathname === LOGIN;
 
   /**
    * Redireciona preservando os cookies que o `setAll` acabou de gravar em
    * `response`. Um `NextResponse.redirect` novo nasce sem eles — e perder o
    * token recém-renovado jogaria o usuário num laço de logins.
    */
-  const redirecionar = (destino: string, erro?: string) => {
+  const redirect = (destino: string, error?: string) => {
     const alvo = request.nextUrl.clone();
     alvo.pathname = destino;
-    alvo.search = erro ? `erro=${erro}` : "";
-    const saida = NextResponse.redirect(alvo);
-    response.cookies.getAll().forEach((c) => saida.cookies.set(c));
-    return saida;
+    alvo.search = error ? `erro=${error}` : "";
+    const out = NextResponse.redirect(alvo);
+    response.cookies.getAll().forEach((c) => out.cookies.set(c));
+    return out;
   };
 
-  if (!user) return emLogin ? response : redirecionar(LOGIN);
+  if (!user) return inLogin ? response : redirect(LOGIN);
 
   // Logado — falta saber se este usuário é de um comércio. A consulta passa
   // pelo RLS com a sessão dele, que enxerga apenas o próprio perfil.
@@ -80,17 +80,17 @@ export async function middleware(request: NextRequest) {
 
   if (perfil?.is_platform_admin) {
     // Admin da plataforma entrou no portal errado: a tela de login explica.
-    return emLogin ? response : redirecionar(LOGIN, "e-admin");
+    return inLogin ? response : redirect(LOGIN, "e-admin");
   }
 
   if (!perfil?.tenant_id) {
-    return emLogin ? response : redirecionar(LOGIN, "sem-negocio");
+    return inLogin ? response : redirect(LOGIN, "sem-negocio");
   }
 
-  return emLogin ? redirecionar("/") : response;
+  return inLogin ? redirect("/") : response;
 }
 
-export const config = {
+export const settings = {
   matcher: [
     // Roda em tudo, menos assets estáticos e imagens.
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",

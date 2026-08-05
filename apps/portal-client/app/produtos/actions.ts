@@ -1,79 +1,79 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { exigirCliente, type ResultadoAcao } from "@/lib/sessao";
+import { requireCustomer, type ActionResult } from "@/lib/sessao";
 
-export interface ProdutoParaSalvar {
+export interface ProductToSave {
   id: string | null;
-  nome: string;
-  preco: number;
-  categoria: string;
-  codigo: string;
-  custo: number;
+  name: string;
+  price: number;
+  category: string;
+  code: string;
+  cost: number;
   /** `null` quando o produto não controla estoque. */
-  estoque: number | null;
-  minimo: number | null;
-  unidade: string;
-  ativo: boolean;
+  stock: number | null;
+  minimum: number | null;
+  unit: string;
+  active: boolean;
   fav: boolean;
-  servico: boolean;
+  service: boolean;
 }
 
-export async function salvarProduto(p: ProdutoParaSalvar): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("cadastrar um produto");
-  if (!sessao.ok) return sessao;
+export async function saveProduct(p: ProductToSave): Promise<ActionResult> {
+  const session = await requireCustomer("cadastrar um produto");
+  if (!session.ok) return session;
 
-  if (!p.nome.trim()) return { ok: false, mensagem: "O produto precisa de um nome." };
-  if (!(p.preco > 0)) return { ok: false, mensagem: "Informe um preço maior que zero." };
+  if (!p.name.trim()) return { ok: false, message: "O produto precisa de um nome." };
+  if (!(p.price > 0)) return { ok: false, message: "Informe um preço maior que zero." };
 
-  const { supabase, tenantId } = sessao;
+  const { supabase, tenantId } = session;
 
-  const campos = {
-    name: p.nome.trim(),
-    price: p.preco,
-    cost: p.custo || null,
-    category: p.categoria.trim() || null,
-    barcode: p.codigo.trim() || null,
-    unit: p.unidade,
-    is_service: p.servico,
+  const fields = {
+    name: p.name.trim(),
+    price: p.price,
+    cost: p.cost || null,
+    category: p.category.trim() || null,
+    barcode: p.code.trim() || null,
+    unit: p.unit,
+    is_service: p.service,
     is_favorite: p.fav,
-    is_active: p.ativo,
-    tracks_stock: p.estoque != null,
-    stock_quantity: p.estoque,
-    stock_min: p.minimo,
+    is_active: p.active,
+    tracks_stock: p.stock != null,
+    stock_quantity: p.stock,
+    stock_min: p.minimum,
   };
 
   const { error } = p.id
-    ? await supabase.from("products").update(campos).eq("id", p.id)
-    : await supabase.from("products").insert({ tenant_id: tenantId, ...campos });
+    ? await supabase.from("products").update(fields).eq("id", p.id)
+    : await supabase.from("products").insert({ tenant_id: tenantId, ...fields });
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
-export async function alternarFavorito(id: string, fav: boolean): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("alterar um produto");
-  if (!sessao.ok) return sessao;
+export async function setFav(id: string, fav: boolean): Promise<ActionResult> {
+  const session = await requireCustomer("alterar um produto");
+  if (!session.ok) return session;
 
-  const { error } = await sessao.supabase
+  const { error } = await session.supabase
     .from("products")
     .update({ is_favorite: fav })
     .eq("id", id);
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
-export async function alternarAtivo(id: string, ativo: boolean): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("alterar um produto");
-  if (!sessao.ok) return sessao;
+export async function setActive(id: string, active: boolean): Promise<ActionResult> {
+  const session = await requireCustomer("alterar um produto");
+  if (!session.ok) return session;
 
-  const { error } = await sessao.supabase.from("products").update({ is_active: ativo }).eq("id", id);
+  const { error } = await session.supabase.from("products").update({ is_active: active }).eq("id", id);
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -86,16 +86,16 @@ export async function alternarAtivo(id: string, ativo: boolean): Promise<Resulta
  * mesmo sem o produto. Se o banco recusar por causa de uma referência, a
  * mensagem sugere pausar em vez de excluir.
  */
-export async function excluirProduto(id: string): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("excluir um produto");
-  if (!sessao.ok) return sessao;
+export async function deleteProduct(id: string): Promise<ActionResult> {
+  const session = await requireCustomer("excluir um produto");
+  if (!session.ok) return session;
 
-  const { error } = await sessao.supabase.from("products").delete().eq("id", id);
+  const { error } = await session.supabase.from("products").delete().eq("id", id);
 
   if (error) {
     return {
       ok: false,
-      mensagem:
+      message:
         "Este produto tem movimentações ligadas a ele e não pode ser excluído. Pause a venda para tirá-lo do balcão.",
     };
   }

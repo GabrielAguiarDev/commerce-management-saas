@@ -16,15 +16,15 @@ import { createClient } from "@/lib/supabase/server";
  * administrar o Auth, em `app/clientes/actions.ts`.
  */
 
-export type ResultadoAcao = { ok: true } | { ok: false; mensagem: string };
+export type ActionResult = { ok: true } | { ok: false; message: string };
 
-export type Autorizado =
-  | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; usuarioId: string }
-  | { ok: false; mensagem: string };
+export type Authorized =
+  | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; userId: string }
+  | { ok: false; message: string };
 
-export async function exigirAdmin(acao = "executar esta operação"): Promise<Autorizado> {
+export async function requireAdmin(action = "executar esta operação"): Promise<Authorized> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return { ok: false, mensagem: "Supabase não configurado neste ambiente." };
+    return { ok: false, message: "Supabase não configurado neste ambiente." };
   }
 
   const supabase = await createClient();
@@ -32,7 +32,7 @@ export async function exigirAdmin(acao = "executar esta operação"): Promise<Au
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { ok: false, mensagem: "Sessão expirada. Entre novamente para continuar." };
+  if (!user) return { ok: false, message: "Sessão expirada. Entre novamente para continuar." };
 
   const { data: perfil, error } = await supabase
     .from("profiles")
@@ -43,8 +43,8 @@ export async function exigirAdmin(acao = "executar esta operação"): Promise<Au
   if (error || !perfil?.is_platform_admin) {
     // Mensagem deliberadamente seca: não confirmamos a quem não é admin se a
     // operação existe ou por que foi negada.
-    return { ok: false, mensagem: `Você não tem permissão para ${acao}.` };
+    return { ok: false, message: `Você não tem permissão para ${action}.` };
   }
 
-  return { ok: true, supabase, usuarioId: user.id };
+  return { ok: true, supabase, userId: user.id };
 }

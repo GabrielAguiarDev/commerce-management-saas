@@ -1,18 +1,18 @@
 import "server-only";
 
 import {
-  lerCaixa,
-  lerChamados,
-  lerCustos,
-  lerEquipe,
-  lerMovsEstoque,
-  lerNegocio,
-  lerProdutos,
-  lerVendas,
+  readRegister,
+  readTickets,
+  readCosts,
+  readTeam,
+  readStockMovements,
+  readBusiness,
+  readProducts,
+  readSales,
 } from "@/lib/dados/leitura";
-import { DADOS_VAZIOS } from "@/lib/estado";
-import { exigirCliente } from "@/lib/sessao";
-import type { DadosPortal } from "@/types/estado";
+import { EMPTY_DATA } from "@/lib/estado";
+import { requireCustomer } from "@/lib/sessao";
+import type { PortalData } from "@/types/estado";
 
 /**
  * O retrato completo do negócio, montado uma vez por navegação no layout.
@@ -26,49 +26,49 @@ import type { DadosPortal } from "@/types/estado";
  * `lerCaixa`, que precisa das vendas para dizer quanto entrou em cada turno, e
  * `lerVendas`, que ela consome.
  */
-export async function carregarPortal(): Promise<DadosPortal> {
-  const sessao = await exigirCliente();
+export async function loadPortal(): Promise<PortalData> {
+  const session = await requireCustomer();
 
   // Sem sessão o middleware já redirecionou; chegar aqui significa ambiente sem
   // credenciais. A casca renderiza vazia em vez de estourar.
-  if (!sessao.ok) return { ...DADOS_VAZIOS, erro: sessao.mensagem };
+  if (!session.ok) return { ...EMPTY_DATA, error: session.message };
 
-  const { supabase, tenantId, nome } = sessao;
+  const { supabase, tenantId, name } = session;
 
   try {
-    const [{ negocio, dados }, produtos, vendas, movs, custos, equipe, chamados] =
+    const [{ business, data }, products, sales, movements, costs, team, tickets] =
       await Promise.all([
-        lerNegocio(supabase, tenantId, nome),
-        lerProdutos(supabase),
-        lerVendas(supabase),
-        lerMovsEstoque(supabase),
-        lerCustos(supabase),
-        lerEquipe(supabase),
-        lerChamados(supabase),
+        readBusiness(supabase, tenantId, name),
+        readProducts(supabase),
+        readSales(supabase),
+        readStockMovements(supabase),
+        readCosts(supabase),
+        readTeam(supabase),
+        readTickets(supabase),
       ]);
 
-    const caixa = await lerCaixa(supabase, vendas);
+    const register = await readRegister(supabase, sales);
 
     return {
-      negocio,
-      dados,
-      produtos,
-      vendas,
-      movs,
-      custos,
-      caixaAberto: caixa.aberto,
-      caixasFechados: caixa.fechados,
-      papeis: equipe.papeis,
-      equipe: equipe.equipe,
-      chamados,
-      erro: null,
+      business,
+      data,
+      products,
+      sales,
+      movements,
+      costs,
+      openRegister: register.open,
+      caixasFechados: register.closed,
+      roles: team.roles,
+      team: team.team,
+      tickets,
+      error: null,
     };
   } catch (e) {
     // Uma tabela sem política de leitura devolve erro, não lista vazia. Dizer
     // "você não tem nada" seria mentira — a tela mostra o aviso.
     return {
-      ...DADOS_VAZIOS,
-      erro: e instanceof Error ? e.message : "Não foi possível carregar os dados do negócio.",
+      ...EMPTY_DATA,
+      error: e instanceof Error ? e.message : "Não foi possível carregar os dados do negócio.",
     };
   }
 }

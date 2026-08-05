@@ -1,17 +1,18 @@
 /**
- * Os poucos ícones que pertencem aos componentes desta lib, e não a uma tela.
+ * The few icons that belong to this library's components rather than to a
+ * screen.
  *
- * Todos desenham em `currentColor` e herdam o tamanho por prop: assim seguem o
- * tema claro/escuro sozinhos, sem precisar de uma segunda cópia do traço.
- * Ícones de navegação e de módulo continuam em cada app, porque dizem respeito
- * ao vocabulário daquele produto.
+ * They all draw in `currentColor` and take their size from a prop, so they
+ * follow the light/dark theme on their own, with no second copy of the artwork.
+ * Navigation and module icons stay in each app, because they speak that
+ * product's vocabulary.
  */
 
-export interface IconeProps {
+export interface IconProps {
   size?: number;
 }
 
-export function ChevronBaixoIcone({ size = 13 }: IconeProps) {
+export function ChevronDownIcon({ size = 13 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
       <path
@@ -25,7 +26,7 @@ export function ChevronBaixoIcone({ size = 13 }: IconeProps) {
   );
 }
 
-export function LupaIcone({ size = 14 }: IconeProps) {
+export function SearchIcon({ size = 14 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
       <circle cx="8" cy="8" r="5" stroke="currentColor" strokeWidth="1.7" />
@@ -34,15 +35,10 @@ export function LupaIcone({ size = 14 }: IconeProps) {
   );
 }
 
-export function FecharIcone({ size = 15 }: IconeProps) {
+export function CloseIcon({ size = 15 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <path
-        d="m5 5 8 8M13 5l-8 8"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
+      <path d="m5 5 8 8M13 5l-8 8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }

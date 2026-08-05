@@ -2,43 +2,46 @@
 
 import type { ReactNode } from "react";
 import { css, SANS } from "../css";
-import { FecharIcone } from "../icons";
-import { botaoSecundario, fundoDoTom, type Tom } from "../styleKit";
+import { CloseIcon } from "../icons";
+import { secondaryButton, toneBackground, type Tone } from "../styleKit";
+import { Button } from "./Button";
 
 /**
- * A moldura de todo modal dos portais.
+ * The frame of every modal in the portals.
  *
- * No celular ele sobe do rodapé e encosta nas bordas — uma folha, não uma
- * caixinha centrada com o teclado por cima. No desktop fica no meio da tela.
+ * On a phone it rises from the bottom and touches the edges — a sheet, not a
+ * little centered box with the keyboard on top of it. On a desktop it sits in
+ * the middle of the screen.
  *
- * `mobile` vem de fora porque cada app já sabe o seu ponto de quebra; a lib não
- * observa a janela por conta própria para não duplicar esse listener.
+ * `mobile` comes from outside because each app already knows its breakpoint;
+ * the library does not watch the window itself, to avoid duplicating that
+ * listener.
  */
-export function ModalBase({
-  titulo,
-  subtitulo,
-  icone,
-  largura = 470,
-  onFechar,
-  rodape,
+export function ModalFrame({
+  title,
+  subtitle,
+  icon,
+  width = 470,
+  onClose,
+  footer,
   mobile,
-  rotuloFechar = "Fechar",
+  closeLabel,
   children,
 }: {
-  titulo: string;
-  subtitulo?: string;
-  /** Marca visual à esquerda do título — o aviso do que a ação vai fazer. */
-  icone?: ReactNode;
-  largura?: number;
-  onFechar: () => void;
-  rodape?: ReactNode;
+  title: string;
+  subtitle?: string;
+  /** The visual mark left of the title — a warning of what the action will do. */
+  icon?: ReactNode;
+  width?: number;
+  onClose: () => void;
+  footer?: ReactNode;
   mobile?: boolean;
-  rotuloFechar?: string;
+  closeLabel: string;
   children?: ReactNode;
 }) {
   return (
     <div
-      onClick={onFechar}
+      onClick={onClose}
       style={css(
         "position:fixed;inset:0;z-index:105;display:flex;justify-content:center;" +
           `align-items:${mobile ? "flex-end" : "center"};padding:${mobile ? "0" : "20px"};` +
@@ -49,9 +52,9 @@ export function ModalBase({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal
-        aria-label={titulo}
+        aria-label={title}
         style={css(
-          `width:100%;max-width:${largura}px;max-height:94vh;overflow-y:auto;` +
+          `width:100%;max-width:${width}px;max-height:94vh;overflow-y:auto;` +
             `background:var(--surface);border:1px solid var(--border);` +
             `border-radius:${mobile ? "16px 16px 0 0" : "16px"};` +
             "box-shadow:var(--shadow-lg);animation:rise .2s ease",
@@ -64,28 +67,28 @@ export function ModalBase({
           )}
         >
           <div style={css("display:flex;align-items:flex-start;gap:13px;min-width:0")}>
-            {icone}
+            {icon}
             <div style={css("min-width:0")}>
-              <h2 style={css(`margin:0;font:700 17.5px/1.2 ${SANS}`)}>{titulo}</h2>
-              {subtitulo && (
+              <h2 style={css(`margin:0;font:700 17.5px/1.2 ${SANS}`)}>{title}</h2>
+              {subtitle && (
                 <p style={css(`margin:3px 0 0;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
-                  {subtitulo}
+                  {subtitle}
                 </p>
               )}
             </div>
           </div>
-          <button
-            onClick={onFechar}
-            aria-label={rotuloFechar}
-            className="hv-texto"
-            style={css(
+          <Button
+            onClick={onClose}
+            aria-label={closeLabel}
+            className="hv-text"
+            cssText={
               "flex:none;width:32px;height:32px;display:flex;align-items:center;" +
-                "justify-content:center;border-radius:8px;border:1px solid var(--border);" +
-                "background:var(--surface2);color:var(--muted)",
-            )}
+              "justify-content:center;border-radius:8px;border:1px solid var(--border);" +
+              "background:var(--surface2);color:var(--muted)"
+            }
           >
-            <FecharIcone />
-          </button>
+            <CloseIcon />
+          </Button>
         </div>
 
         {children && (
@@ -94,32 +97,37 @@ export function ModalBase({
           </div>
         )}
 
-        {rodape}
+        {footer}
       </div>
     </div>
   );
 }
 
-/** Cancelar à esquerda, confirmar à direita — e grudado no fundo ao rolar. */
-export function RodapeModal({
-  onCancelar,
-  onConfirmar,
-  textoConfirmar,
-  textoCancelar = "Cancelar",
-  corConfirmar = "var(--accent)",
-  corTexto = "var(--accent-ink)",
-  bloqueado,
+/** Cancel on the left, confirm on the right — and stuck to the bottom on scroll. */
+export function ModalFooter({
+  onCancel,
+  onConfirm,
+  confirmText,
+  cancelText,
+  confirmColor = "var(--accent)",
+  confirmInk = "var(--accent-ink)",
+  blocked,
   extra,
 }: {
-  onCancelar: () => void;
-  onConfirmar: () => void;
-  textoConfirmar: string;
-  textoCancelar?: string;
-  corConfirmar?: string;
-  corTexto?: string;
-  /** Confirmação pendente — o verbo principal fica inerte até liberar. */
-  bloqueado?: boolean;
-  /** Uma terceira ação, à esquerda das outras duas (exportar, por exemplo). */
+  onCancel: () => unknown;
+  /**
+   * The main verb. When it returns a promise — the usual case, since almost
+   * every modal writes something — the button waits with a spinner in place of
+   * its label.
+   */
+  onConfirm: () => unknown;
+  confirmText: string;
+  cancelText: string;
+  confirmColor?: string;
+  confirmInk?: string;
+  /** Confirmation pending — the main verb stays inert until it is released. */
+  blocked?: boolean;
+  /** A third action, to the left of the other two (an export, for instance). */
   extra?: ReactNode;
 }) {
   return (
@@ -130,95 +138,95 @@ export function RodapeModal({
       )}
     >
       {extra}
-      <button onClick={onCancelar} style={css(`flex:1;padding:14px;${botaoSecundario()}`)}>
-        {textoCancelar}
-      </button>
-      <button
-        onClick={onConfirmar}
-        disabled={bloqueado}
-        className={bloqueado ? undefined : "hv-brilho"}
-        style={css(
-          `flex:1;padding:14px;border-radius:11px;background:${corConfirmar};color:${corTexto};` +
-            `font:700 13.5px ${SANS};` +
-            (bloqueado ? "opacity:.5;cursor:not-allowed;" : ""),
-        )}
+      <Button onClick={onCancel} cssText={`flex:1;padding:14px;${secondaryButton()}`}>
+        {cancelText}
+      </Button>
+      <Button
+        onClick={onConfirm}
+        disabled={blocked}
+        className="hv-glow"
+        cssText={
+          `flex:1;padding:14px;border-radius:11px;background:${confirmColor};color:${confirmInk};` +
+          `font:700 13.5px ${SANS};` +
+          (blocked ? "opacity:.5;" : "")
+        }
       >
-        {textoConfirmar}
-      </button>
+        {confirmText}
+      </Button>
     </div>
   );
 }
 
-/** Botão de escolha exclusiva — tipo de custo, tipo de movimentação. */
-export function EscolhaCartao({
-  nome,
-  nota,
-  ativo,
+/** An exclusive-choice button — cost type, stock movement type. */
+export function ChoiceCard({
+  name,
+  note,
+  active,
   onClick,
 }: {
-  nome: string;
-  nota?: string;
-  ativo: boolean;
-  onClick: () => void;
+  name: string;
+  note?: string;
+  active: boolean;
+  onClick: () => unknown;
 }) {
   return (
-    <button
+    <Button
       onClick={onClick}
-      aria-pressed={ativo}
-      style={css(
-        `padding:12px 10px;border:1.5px solid ${ativo ? "var(--accent)" : "var(--border2)"};` +
-          `border-radius:11px;background:${ativo ? "var(--accent-soft)" : "var(--surface2)"};` +
-          `color:${ativo ? "var(--accent)" : "var(--text2)"};text-align:left`,
-      )}
+      aria-pressed={active}
+      cssText={
+        `padding:12px 10px;border:1.5px solid ${active ? "var(--accent)" : "var(--border2)"};` +
+        `border-radius:11px;background:${active ? "var(--accent-soft)" : "var(--surface2)"};` +
+        `color:${active ? "var(--accent)" : "var(--text2)"};text-align:left`
+      }
     >
-      <span style={css(`display:block;font:700 13px ${SANS}`)}>{nome}</span>
-      {nota && (
+      <span style={css(`display:block;font:700 13px ${SANS}`)}>{name}</span>
+      {note && (
         <span style={css(`display:block;margin-top:3px;font:500 11px/1.35 ${SANS};opacity:.85`)}>
-          {nota}
+          {note}
         </span>
       )}
-    </button>
+    </Button>
   );
 }
 
-/** Pílula de escolha — categorias, dentro de um modal. */
-export function PilulaEscolha({
-  nome,
-  ativo,
+/** A choice pill — categories, inside a modal. */
+export function ChoicePill({
+  name,
+  active,
   onClick,
 }: {
-  nome: string;
-  ativo: boolean;
-  onClick: () => void;
+  name: string;
+  active: boolean;
+  onClick: () => unknown;
 }) {
   return (
-    <button
+    <Button
       onClick={onClick}
-      aria-pressed={ativo}
-      style={css(
-        `padding:9px 13px;border-radius:999px;border:1px solid ${ativo ? "var(--accent)" : "var(--border)"};` +
-          `background:${ativo ? "var(--accent-soft)" : "var(--surface2)"};` +
-          `color:${ativo ? "var(--accent)" : "var(--text2)"};font:600 12px ${SANS}`,
-      )}
+      aria-pressed={active}
+      cssText={
+        `padding:9px 13px;border-radius:999px;border:1px solid ${active ? "var(--accent)" : "var(--border)"};` +
+        `background:${active ? "var(--accent-soft)" : "var(--surface2)"};` +
+        `color:${active ? "var(--accent)" : "var(--text2)"};font:600 12px ${SANS}`
+      }
     >
-      {nome}
-    </button>
+      {name}
+    </Button>
   );
 }
 
 /**
- * O selo quadrado ao lado do título de um modal de confirmação.
+ * The square mark next to a confirmation modal's title.
  *
- * O tom diz o peso da ação antes de o texto ser lido: vermelho para o que não
- * volta atrás, âmbar para o que dá trabalho desfazer, destaque para o resto.
+ * The tone tells the weight of the action before the text is read: red for what
+ * cannot be undone, amber for what is a chore to undo, accent for the rest.
  */
-export function IconeModal({ tom, children }: { tom: Tom; children: ReactNode }) {
+export function ModalIcon({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
     <div
       style={css(
         "flex:none;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;" +
           "justify-content:center;font-size:15px;font-weight:700;" +
-          fundoDoTom(tom),
+          toneBackground(tone),
       )}
     >
       {children}

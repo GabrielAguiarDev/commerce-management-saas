@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { StatusChamado } from "@/types/types";
+import type { TicketStatus } from "@/types/types";
 
 /**
  * Ações do Suporte: responder um chamado e mudar o status.
@@ -25,20 +25,20 @@ import type { StatusChamado } from "@/types/types";
  */
 
 /** Tradução inversa da leitura em `lib/chamados.ts`. */
-const PARA_ESCRITA: Record<StatusChamado, string> = {
-  aberto: "open",
-  andamento: "in_progress",
-  resolvido: "resolved",
+const TO_DB: Record<TicketStatus, string> = {
+  open: "open",
+  inProgress: "in_progress",
+  resolved: "resolved",
 };
 
-export type ResultadoAcao = { ok: true } | { ok: false; mensagem: string };
+export type ActionResult = { ok: true } | { ok: false; message: string };
 
 /** Confirma que quem chamou é admin da plataforma. Devolve o id do usuário. */
-async function exigirAdmin(): Promise<
-  { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; usuarioId: string } | ResultadoAcao
+async function requireAdmin(): Promise<
+  { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; userId: string } | ActionResult
 > {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return { ok: false, mensagem: "Supabase não configurado neste ambiente." };
+    return { ok: false, message: "Supabase não configurado neste ambiente." };
   }
 
   const supabase = await createClient();
@@ -46,7 +46,7 @@ async function exigirAdmin(): Promise<
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { ok: false, mensagem: "Sessão expirada. Entre novamente para continuar." };
+  if (!user) return { ok: false, message: "Sessão expirada. Entre novamente para continuar." };
 
   const { data: perfil, error } = await supabase
     .from("profiles")
@@ -55,10 +55,10 @@ async function exigirAdmin(): Promise<
     .single();
 
   if (error || !perfil?.is_platform_admin) {
-    return { ok: false, mensagem: "Você não tem permissão para responder chamados." };
+    return { ok: false, message: "Você não tem permissão para responder chamados." };
   }
 
-  return { ok: true, supabase, usuarioId: user.id };
+  return { ok: true, supabase, userId: user.id };
 }
 
 /**
@@ -69,49 +69,49 @@ async function exigirAdmin(): Promise<
  * defeito aceitável aqui — o oposto (perder a resposta já escrita) seria pior,
  * e o carimbo se corrige na resposta seguinte.
  */
-export async function responderChamado(
+export async function replyToTicket(
   chamadoId: string,
-  texto: string,
-): Promise<ResultadoAcao> {
-  const corpo = texto.trim();
-  if (!corpo) return { ok: false, mensagem: "Escreva uma resposta antes de enviar." };
+  text: string,
+): Promise<ActionResult> {
+  const corpo = text.trim();
+  if (!corpo) return { ok: false, message: "Escreva uma resposta antes de enviar." };
 
-  const auth = await exigirAdmin();
+  const auth = await requireAdmin();
   if (!("supabase" in auth)) return auth;
-  const { supabase, usuarioId } = auth;
+  const { supabase, userId } = auth;
 
   // `support_messages.tenant_id` é obrigatório e precisa ser o do chamado —
   // ler daqui evita confiar num id vindo do navegador.
-  const { data: chamado, error: erroLeitura } = await supabase
+  const { data: ticket, error: erroLeitura } = await supabase
     .from("support_tickets")
     .select("tenant_id, status")
     .eq("id", chamadoId)
     .single();
 
-  if (erroLeitura || !chamado) {
-    return { ok: false, mensagem: "Chamado não encontrado." };
+  if (erroLeitura || !ticket) {
+    return { ok: false, message: "Chamado não encontrado." };
   }
 
   const { error: erroInsert } = await supabase.from("support_messages").insert({
     ticket_id: chamadoId,
-    tenant_id: chamado.tenant_id,
-    sender_id: usuarioId,
+    tenant_id: ticket.tenant_id,
+    sender_id: userId,
     sender_side: "admin",
     body: corpo,
   });
 
   if (erroInsert) {
     console.error("[responderChamado] falha ao gravar mensagem:", erroInsert.message);
-    return { ok: false, mensagem: `Não foi possível enviar a resposta: ${erroInsert.message}` };
+    return { ok: false, message: `Não foi possível enviar a resposta: ${erroInsert.message}` };
   }
 
   // Responder reabre o trabalho no chamado, a menos que ele já esteja fechado.
-  const novoStatus =
-    chamado.status === PARA_ESCRITA.resolvido ? chamado.status : PARA_ESCRITA.andamento;
+  const newStatus =
+    ticket.status === TO_DB.resolved ? ticket.status : TO_DB.inProgress;
 
   const { error: erroUpdate } = await supabase
     .from("support_tickets")
-    .update({ status: novoStatus, last_message_at: new Date().toISOString() })
+    .update({ status: newStatus, last_message_at: new Date().toISOString() })
     .eq("id", chamadoId);
 
   if (erroUpdate) {
@@ -123,21 +123,21 @@ export async function responderChamado(
   return { ok: true };
 }
 
-export async function mudarStatusChamado(
+export async function setTicketStatus(
   chamadoId: string,
-  status: StatusChamado,
-): Promise<ResultadoAcao> {
-  const auth = await exigirAdmin();
+  status: TicketStatus,
+): Promise<ActionResult> {
+  const auth = await requireAdmin();
   if (!("supabase" in auth)) return auth;
 
   const { error } = await auth.supabase
     .from("support_tickets")
-    .update({ status: PARA_ESCRITA[status] })
+    .update({ status: TO_DB[status] })
     .eq("id", chamadoId);
 
   if (error) {
     console.error("[mudarStatusChamado] falha ao atualizar:", error.message);
-    return { ok: false, mensagem: `Não foi possível atualizar o chamado: ${error.message}` };
+    return { ok: false, message: `Não foi possível atualizar o chamado: ${error.message}` };
   }
 
   revalidatePath("/", "layout");

@@ -1,99 +1,99 @@
-import { FORMAS } from "@/lib/dados/vendas";
+import { METHODS } from "@/lib/dados/vendas";
 import type {
-  DadosPortal,
-  FormCaixa,
-  FormChamado,
-  FormCusto,
-  FormMov,
-  FormPapel,
-  FormProduto,
-  FormResposta,
+  PortalData,
+  RegisterForm,
+  TicketForm,
+  CostForm,
+  MovementForm,
+  RoleForm,
+  ProductForm,
+  ReplyForm,
   PortalState,
 } from "@/types/estado";
-import type { DadosNegocio, Tema } from "@/types/types";
+import type { BusinessData, Theme } from "@/types/types";
 
-export const FORM_PRODUTO_VAZIO: FormProduto = {
+export const EMPTY_PRODUCT_FORM: ProductForm = {
   id: null,
-  nome: "",
-  preco: "",
-  categoria: "",
-  catNova: false,
-  ativo: true,
+  name: "",
+  price: "",
+  category: "",
+  newCategory: false,
+  active: true,
   fav: false,
-  servico: false,
-  codigo: "",
-  custo: "",
-  estoque: "",
-  minimo: "",
-  unidade: "un",
-  tentouSalvar: false,
+  service: false,
+  code: "",
+  cost: "",
+  stock: "",
+  minimum: "",
+  unit: "un",
+  submitted: false,
 };
 
-export const FORM_CUSTO_VAZIO: FormCusto = {
+export const EMPTY_COST_FORM: CostForm = {
   id: null,
-  tipo: "variavel",
-  descricao: "",
-  categoria: "",
-  valor: "",
+  type: "variable",
+  description: "",
+  category: "",
+  amount: "",
   d: 0,
-  recorrente: false,
-  tentouSalvar: false,
+  recurring: false,
+  submitted: false,
 };
 
-export const FORM_MOV_VAZIO: FormMov = {
-  tipo: "entrada",
-  produtoId: null,
+export const EMPTY_MOVEMENT_FORM: MovementForm = {
+  type: "in",
+  productId: null,
   qtd: "",
-  custo: "",
-  motivo: "",
-  tentouSalvar: false,
+  cost: "",
+  reason: "",
+  submitted: false,
 };
 
-export const FORM_CAIXA_VAZIO: FormCaixa = {
-  valor: "",
-  motivo: "",
+export const EMPTY_REGISTER_FORM: RegisterForm = {
+  amount: "",
+  reason: "",
   obs: "",
-  contadoDinheiro: "",
+  countedCash: "",
 };
 
-export const FORM_PAPEL_VAZIO: FormPapel = {
+export const EMPTY_ROLE_FORM: RoleForm = {
   id: null,
-  nome: "",
-  modulos: [],
-  tentouSalvar: false,
+  name: "",
+  modules: [],
+  submitted: false,
 };
 
-export const FORM_CHAMADO_VAZIO: FormChamado = {
-  assunto: "",
-  categoria: "Dúvida",
-  descricao: "",
-  anexo: "",
-  tentouEnviar: false,
+export const EMPTY_TICKET_FORM: TicketForm = {
+  subject: "",
+  category: "Dúvida",
+  description: "",
+  attachment: "",
+  submitted: false,
 };
 
-export const FORM_RESPOSTA_VAZIA: FormResposta = { texto: "", anexo: "" };
+export const EMPTY_REPLY_FORM: ReplyForm = { text: "", attachment: "" };
 
 /** O retrato vazio, usado enquanto a leitura falha ou o ambiente não tem banco. */
-export const DADOS_VAZIOS: DadosPortal = {
-  negocio: {
+export const EMPTY_DATA: PortalData = {
+  business: {
     id: "",
-    nome: "Seu negócio",
-    sigla: "?",
-    tipo: "",
-    user: { nome: "Você", sigla: "?" },
-    modulos: ["dashboard", "config"],
+    name: "Seu negócio",
+    initials: "?",
+    type: "",
+    user: { name: "Você", initials: "?" },
+    modules: ["dashboard", "settings"],
   },
-  dados: { nome: "", tipo: "", telefone: "", cidade: "" },
-  produtos: [],
-  vendas: [],
-  movs: [],
-  custos: [],
-  caixaAberto: null,
+  data: { name: "", type: "", phone: "", city: "" },
+  products: [],
+  sales: [],
+  movements: [],
+  costs: [],
+  openRegister: null,
   caixasFechados: [],
-  papeis: [],
-  equipe: [],
-  chamados: [],
-  erro: null,
+  roles: [],
+  team: [],
+  tickets: [],
+  error: null,
 };
 
 /**
@@ -103,37 +103,37 @@ export const DADOS_VAZIOS: DadosPortal = {
  * lido direto. Copiá-lo para o estado criaria duas verdades, e a do cliente
  * ficaria velha no instante seguinte a uma escrita.
  */
-export function estadoInicial(
-  dados: DadosNegocio,
-  manter?: { tema: Tema; larguraTela: number; colapsada: boolean },
+export function initialState(
+  data: BusinessData,
+  manter?: { theme: Theme; screenWidth: number; collapsed: boolean },
 ): PortalState {
   return {
-    tema: manter?.tema ?? "claro",
-    larguraTela: manter?.larguraTela ?? 1440,
-    colapsada: manter?.colapsada ?? false,
-    navAberto: false,
-    notifAberto: false,
-    logoutAberto: false,
-    dica: null,
+    theme: manter?.theme ?? "light",
+    screenWidth: manter?.screenWidth ?? 1440,
+    collapsed: manter?.collapsed ?? false,
+    navOpen: false,
+    notificationsOpen: false,
+    signOutOpen: false,
+    hint: null,
 
-    formasAceitas: FORMAS.slice(),
+    acceptedMethods: METHODS.slice(),
     imprimirComprovante: true,
     pedirCliente: false,
 
-    dadosRascunho: { ...dados },
+    draftData: { ...data },
 
-    carrinho: [],
-    pagAtual: "Dinheiro",
-    buscaProd: "",
-    codigo: "",
-    carrinhoAberto: false,
-    editandoVenda: null,
+    cart: [],
+    currentMethod: "cash",
+    productSearch: "",
+    code: "",
+    cartOpen: false,
+    editingSale: null,
 
-    fVendas: { periodo: "hoje", pag: "Todas as formas", produto: "Todos os produtos", busca: "" },
-    fProdutos: { busca: "", cat: "Todas as categorias", status: "Todos", soBaixo: false },
+    fVendas: { period: "today", payment: "Todas as formas", product: "Todos os produtos", search: "" },
+    fProdutos: { search: "", cat: "Todas as categorias", status: "Todos", onlyLow: false },
     fEstoque: {
-      aba: "itens",
-      busca: "",
+      tab: "items",
+      search: "",
       status: "Todas as situações",
       cat: "Todas as categorias",
       ordem: "Estoque mais baixo",
@@ -141,30 +141,30 @@ export function estadoInicial(
       movProduto: "Todos os produtos",
       movPeriodo: "Últimos 30 dias",
     },
-    fCustos: { tipo: "Todos", cat: "Todas as categorias", periodo: "Este mês" },
-    fRel: { periodo: "30", comparar: false },
-    fConfig: { aba: "dados" },
-    fSuporte: { busca: "", status: "todos" },
+    fCustos: { type: "Todos", cat: "Todas as categorias", period: "Este mês" },
+    fRel: { period: "30", compare: false },
+    fConfig: { tab: "data" },
+    fSuporte: { search: "", status: "all" },
 
-    menuLinha: null,
+    rowMenu: null,
     modal: null,
-    conf: null,
+    confirmDialog: null,
     toast: "",
-    salvando: false,
+    saving: false,
 
-    formProduto: { ...FORM_PRODUTO_VAZIO },
-    formCusto: { ...FORM_CUSTO_VAZIO },
-    formMov: { ...FORM_MOV_VAZIO },
-    formCaixa: { ...FORM_CAIXA_VAZIO },
-    formPapel: { ...FORM_PAPEL_VAZIO },
-    formChamado: { ...FORM_CHAMADO_VAZIO },
-    formResposta: { ...FORM_RESPOSTA_VAZIA },
+    productForm: { ...EMPTY_PRODUCT_FORM },
+    costForm: { ...EMPTY_COST_FORM },
+    movementForm: { ...EMPTY_MOVEMENT_FORM },
+    registerForm: { ...EMPTY_REGISTER_FORM },
+    roleForm: { ...EMPTY_ROLE_FORM },
+    ticketForm: { ...EMPTY_TICKET_FORM },
+    replyForm: { ...EMPTY_REPLY_FORM },
   };
 }
 
 /** Rascunho de dados do negócio diferente do que está salvo. */
-export function dadosSujos(s: PortalState, salvo: DadosNegocio): boolean {
-  return (Object.keys(salvo) as (keyof DadosNegocio)[]).some(
-    (k) => salvo[k] !== s.dadosRascunho[k],
+export function dataDirty(s: PortalState, saved: BusinessData): boolean {
+  return (Object.keys(saved) as (keyof BusinessData)[]).some(
+    (k) => saved[k] !== s.draftData[k],
   );
 }

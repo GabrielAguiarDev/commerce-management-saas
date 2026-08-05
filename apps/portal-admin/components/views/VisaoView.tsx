@@ -1,108 +1,108 @@
 "use client";
 
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@aguiar/ui";
-import { ehDoMesCorrente } from "@/lib/datas";
-import { planoPorChave } from "@/lib/planos";
-import { calcMrr, cobraveis, fmtMrr } from "@/lib/money";
-import { ROTAS } from "@/lib/rotas";
-import { CelulaNegocio, MetricasGrid, type Metrica } from "@/components/shared";
-import { nomePlano, planoBadge, seloPainel, ts } from "@/lib/styleKit";
-import { ponto } from "@aguiar/ui";
+import { Button, css, MONO } from "@aguiar/ui";
+import { isCurrentMonth } from "@/lib/datas";
+import { planByKey } from "@/lib/planos";
+import { computeMrr, billable, formatMrr } from "@/lib/money";
+import { ROUTES } from "@/lib/rotas";
+import { BusinessCell, MetricsGrid, type Metric } from "@/components/shared";
+import { planName, planBadge, panelBadge, ts } from "@/lib/styleKit";
+import { dot } from "@aguiar/ui";
 
 export function VisaoView() {
-  const { s, a, cs, vazio, opts } = useAdmin();
+  const { s, a, cs, empty, options } = useAdmin();
   const { L } = a;
-  const id = s.idioma;
+  const id = s.language;
 
-  const ativos = cs.filter((x) => x.status === "ativo");
-  const pagos = cobraveis(cs);
-  const mrr = fmtMrr(calcMrr(cs));
-  const abertos = (vazio ? [] : s.chamados).filter((t) => t.status === "aberto").length;
-  const andamento = (vazio ? [] : s.chamados).filter((t) => t.status === "andamento").length;
-  const altaPrioridade = (vazio ? [] : s.chamados).filter(
-    (t) => t.prioridade === "alta" && t.status !== "resolvido",
+  const active = cs.filter((x) => x.status === "active");
+  const paid = billable(cs);
+  const mrr = formatMrr(computeMrr(cs));
+  const open = (empty ? [] : s.tickets).filter((t) => t.status === "open").length;
+  const inProgress = (empty ? [] : s.tickets).filter((t) => t.status === "inProgress").length;
+  const highPriority = (empty ? [] : s.tickets).filter(
+    (t) => t.prioridade === "alta" && t.status !== "resolved",
   ).length;
   // Cadastrados neste mês, contados a partir de `tenants.created_at` — antes
   // era o número 2 escrito na mão.
-  const novos = vazio ? [] : cs.filter((x) => ehDoMesCorrente(x.data));
-  const neutro = seloPainel("neutro");
+  const createdThisMonth = empty ? [] : cs.filter((x) => isCurrentMonth(x.data));
+  const neutro = panelBadge("neutral");
 
-  const metricas: Metrica[] = [
+  const metrics: Metric[] = [
     {
-      rotulo: L.mrrLabel,
-      valor: mrr,
+      label: L.mrrLabel,
+      value: mrr,
       // Sem histórico de MRR no banco não há com o que comparar, então o
       // "delta" mostra a composição do valor em vez de um percentual fictício.
-      delta: vazio ? "—" : `${pagos.length}/${cs.length}`,
-      nota: vazio
+      delta: empty ? "—" : `${paid.length}/${cs.length}`,
+      note: empty
         ? id === "pt"
           ? "nenhum cliente cobrável ainda"
           : "no billable customer yet"
-        : pagos.length + " " + L.mrrNota,
-      ponto: ponto(vazio ? "var(--border)" : "var(--pos)"),
-      deltaStyle: vazio ? neutro : seloPainel("pos"),
-      acao: () => a.ir(ROTAS.planos),
+        : paid.length + " " + L.mrrNota,
+      dot: dot(empty ? "var(--border)" : "var(--pos)"),
+      deltaStyle: empty ? neutro : panelBadge("pos"),
+      action: () => a.goTo(ROUTES.plans),
     },
     {
-      rotulo: L.clientesAtivosLabel,
-      valor: ativos.length,
-      delta: (vazio ? 0 : Math.round((ativos.length / Math.max(1, cs.length)) * 100)) + "%",
-      nota: vazio
+      label: L.clientesAtivosLabel,
+      value: active.length,
+      delta: (empty ? 0 : Math.round((active.length / Math.max(1, cs.length)) * 100)) + "%",
+      note: empty
         ? id === "pt"
           ? "nenhum cliente cadastrado"
           : "no customer registered"
-        : cs.length - ativos.length + " " + L.ativosNota,
-      ponto: ponto(vazio ? "var(--border)" : "var(--danger)"),
-      deltaStyle: vazio ? neutro : seloPainel("acc"),
-      acao: () => {
-        a.set({ status: "inativo" });
-        a.ir(ROTAS.clientes);
+        : cs.length - active.length + " " + L.ativosNota,
+      dot: dot(empty ? "var(--border)" : "var(--danger)"),
+      deltaStyle: empty ? neutro : panelBadge("acc"),
+      action: () => {
+        a.set({ status: "inactive" });
+        a.goTo(ROUTES.customers);
       },
     },
     {
-      rotulo: L.novosLabel,
-      valor: novos.length,
-      delta: novos.length === 0 ? "—" : `+${novos.length}`,
-      nota:
-        novos.length === 0
+      label: L.novosLabel,
+      value: createdThisMonth.length,
+      delta: createdThisMonth.length === 0 ? "—" : `+${createdThisMonth.length}`,
+      note:
+        createdThisMonth.length === 0
           ? id === "pt"
             ? "nada no período"
             : "nothing in the period"
-          : novos.length === 1
+          : createdThisMonth.length === 1
             ? id === "pt"
               ? "cadastro neste mês"
               : "signup this month"
             : id === "pt"
               ? "cadastros neste mês"
               : "signups this month",
-      ponto: ponto(novos.length === 0 ? "var(--border)" : "var(--warn)"),
-      deltaStyle: novos.length === 0 ? neutro : seloPainel("warn"),
-      acao: () => a.ir(ROTAS.clientes),
+      dot: dot(createdThisMonth.length === 0 ? "var(--border)" : "var(--warn)"),
+      deltaStyle: createdThisMonth.length === 0 ? neutro : panelBadge("warn"),
+      action: () => a.goTo(ROUTES.customers),
     },
     {
-      rotulo: L.chamadosLabel,
-      valor: abertos,
+      label: L.chamadosLabel,
+      value: open,
       // Era "SLA 4h" fixo — não existe SLA configurado em lugar nenhum. No
       // lugar vai um número que o banco sabe: os chamados de prioridade alta.
-      delta: altaPrioridade > 0 ? `${altaPrioridade} ${L.altaCurto}` : "—",
-      nota: vazio
+      delta: highPriority > 0 ? `${highPriority} ${L.altaCurto}` : "—",
+      note: empty
         ? id === "pt"
           ? "nenhum chamado aberto"
           : "no open ticket"
-        : andamento + " " + L.chamadosNota,
-      ponto: ponto(vazio ? "var(--border)" : "var(--accent)"),
+        : inProgress + " " + L.chamadosNota,
+      dot: dot(empty ? "var(--border)" : "var(--accent)"),
       deltaStyle: neutro,
-      acao: () => a.ir(ROTAS.suporte),
+      action: () => a.goTo(ROUTES.support),
     },
   ];
 
-  const recentes = cs
+  const recent = cs
     .slice()
     .sort((x, y) => ts(y.data) - ts(x.data))
     .slice(0, 6);
 
-  const grade =
+  const grid =
     "display:grid;grid-template-columns:minmax(180px,1.9fr) minmax(110px,1fr) 92px 100px;" +
     "gap:12px;min-width:560px;";
 
@@ -115,39 +115,39 @@ export function VisaoView() {
    * e chamados abertos (`support_tickets.created_at`). Se um dia existir uma
    * tabela de eventos, é aqui que ela entra.
    */
-  const atividade = vazio
+  const activity = empty
     ? []
     : [
-        ...recentes.slice(0, 3).map((c) => ({
-          chave: "cliente:" + c.id,
-          texto:
+        ...recent.slice(0, 3).map((c) => ({
+          key: "cliente:" + c.id,
+          text:
             id === "pt"
-              ? `${c.nome} cadastrada no plano ${nomePlano(s.planos, c.plano, id)}`
-              : `${c.nome} signed up on the ${nomePlano(s.planos, c.plano, id)} plan`,
-          quando: c.data,
-          cor: "var(--pos)",
+              ? `${c.name} cadastrada no plano ${planName(s.plans, c.plan, id)}`
+              : `${c.name} signed up on the ${planName(s.plans, c.plan, id)} plan`,
+          at: c.data,
+          color: "var(--pos)",
         })),
-        ...s.chamados.slice(0, 2).map((t) => {
-          const cl = cs.find((x) => x.id === t.clienteId);
+        ...s.tickets.slice(0, 2).map((t) => {
+          const cl = cs.find((x) => x.id === t.customerId);
           return {
-            chave: "chamado:" + t.id,
-            texto:
+            key: "chamado:" + t.id,
+            text:
               (id === "pt" ? "Chamado de " : "Ticket from ") +
-              (cl ? cl.nome : L.cliente) +
+              (cl ? cl.name : L.customer) +
               ": " +
-              t.assunto[id],
-            quando: t.data,
-            cor: t.status === "resolvido" ? "var(--accent)" : "var(--warn)",
+              t.subject[id],
+            at: t.data,
+            color: t.status === "resolved" ? "var(--accent)" : "var(--warn)",
           };
         }),
       ]
         // Mais recente primeiro, misturando as duas origens.
-        .sort((x, y) => ts(y.quando) - ts(x.quando))
+        .sort((x, y) => ts(y.at) - ts(x.at))
         .slice(0, 4);
 
   return (
     <div style={css("display:flex;flex-direction:column;gap:20px")}>
-      {vazio && (
+      {empty && (
         <div
           style={css(
             "display:flex;align-items:center;gap:14px;padding:16px 20px;" +
@@ -171,8 +171,8 @@ export function VisaoView() {
               {L.vazioVisaoTexto}
             </span>
           </div>
-          <button
-            onClick={() => a.ir(ROTAS.clientes)}
+          <Button
+            onClick={() => a.goTo(ROUTES.customers)}
             className="hv-brilho"
             style={css(
               "margin-left:auto;flex:none;background:var(--accent);border:1px solid var(--accent);" +
@@ -181,11 +181,11 @@ export function VisaoView() {
             )}
           >
             {L.vazioClientesBotao}
-          </button>
+          </Button>
         </div>
       )}
 
-      <MetricasGrid metricas={metricas} />
+      <MetricsGrid metrics={metrics} />
 
       <div
         style={css(
@@ -207,48 +207,48 @@ export function VisaoView() {
             <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--text)")}>
               {L.clientesRecentes}
             </h2>
-            <button
-              onClick={() => a.ir(ROTAS.clientes)}
+            <Button
+              onClick={() => a.goTo(ROUTES.customers)}
               style={css(
                 "background:none;border:none;color:var(--accent);font-size:12.5px;font-weight:500;" +
                   "cursor:pointer;padding:0",
               )}
             >
               {L.verTodos}
-            </button>
+            </Button>
           </div>
 
           <div
             style={css(
-              grade +
+              grid +
                 "padding:9px 20px;background:var(--surface2);border-bottom:1px solid var(--border-soft);" +
                 "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600",
             )}
           >
-            <span>{L.negocio}</span>
-            <span>{L.segmento}</span>
-            <span>{L.plano}</span>
+            <span>{L.business}</span>
+            <span>{L.segment}</span>
+            <span>{L.plan}</span>
             <span>{L.cadastro}</span>
           </div>
 
-          {recentes.map((c) => (
+          {recent.map((c) => (
             <div
               key={c.id}
-              onClick={() => a.abrirCliente(c.id)}
+              onClick={() => a.openCustomer(c.id)}
               className="hv-linha"
               style={css(
-                grade +
+                grid +
                   "align-items:center;padding:12px 20px;border-bottom:1px solid var(--border-soft);cursor:pointer",
               )}
             >
-              <CelulaNegocio
-                cliente={c}
-                plano={planoPorChave(s.planos, c.plano)}
-                totalMods={s.modulos.length}
+              <BusinessCell
+                customer={c}
+                plan={planByKey(s.plans, c.plan)}
+                totalMods={s.modules.length}
                 id={id}
               />
-              <span style={css("font-size:12.5px;color:var(--text2)")}>{c.segmento[id]}</span>
-              <span style={css(planoBadge(planoPorChave(s.planos, c.plano)))}>{nomePlano(s.planos, c.plano, id)}</span>
+              <span style={css("font-size:12.5px;color:var(--text2)")}>{c.segment[id]}</span>
+              <span style={css(planBadge(planByKey(s.plans, c.plan)))}>{planName(s.plans, c.plan, id)}</span>
               <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
                 {c.data}
               </span>
@@ -268,13 +268,13 @@ export function VisaoView() {
           <p style={css("margin:0 0 16px;font-size:11.5px;color:var(--muted)")}>{L.adocaoSub}</p>
 
           <div style={css("display:flex;flex-direction:column;gap:13px")}>
-            {s.modulos.map((m) => {
+            {s.modules.map((m) => {
               const n = cs.filter((x) => x.mods.includes(m.k)).length;
               return (
                 <div key={m.k} style={css("display:flex;flex-direction:column;gap:6px")}>
                   <div style={css("display:flex;justify-content:space-between;align-items:baseline")}>
                     <span style={css("font-size:12.5px;color:var(--text2);font-weight:500")}>
-                      {m.nome[id]}
+                      {m.name[id]}
                     </span>
                     <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
                       {n}/{cs.length}
@@ -298,7 +298,7 @@ export function VisaoView() {
             })}
           </div>
 
-          {!vazio && opts.mostrarPainelAtividade && atividade.length > 0 && (
+          {!empty && options.mostrarPainelAtividade && activity.length > 0 && (
             <div
               style={css(
                 "margin-top:20px;padding-top:16px;border-top:1px solid var(--border-soft);" +
@@ -306,17 +306,17 @@ export function VisaoView() {
               )}
             >
               <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--text)")}>
-                {L.atividade}
+                {L.activity}
               </h2>
-              {atividade.map((e) => (
-                <div key={e.chave} style={css("display:flex;gap:11px;align-items:flex-start")}>
-                  <div style={css(ponto(e.cor) + ";margin-top:5px")} />
+              {activity.map((e) => (
+                <div key={e.key} style={css("display:flex;gap:11px;align-items:flex-start")}>
+                  <div style={css(dot(e.color) + ";margin-top:5px")} />
                   <div style={css("display:flex;flex-direction:column;gap:2px")}>
                     <span style={css("font-size:12.5px;color:var(--text2);line-height:1.4")}>
-                      {e.texto}
+                      {e.text}
                     </span>
                     <span style={css(`font-family:${MONO};font-size:10.5px;color:var(--muted)`)}>
-                      {e.quando}
+                      {e.at}
                     </span>
                   </div>
                 </div>

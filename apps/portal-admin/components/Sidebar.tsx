@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useAdmin } from "@/components/AdminProvider";
-import { css, MONO } from "@aguiar/ui";
+import { Button, css, MONO } from "@aguiar/ui";
 import {
   ClientesIcone,
   ColapsarIcone,
@@ -15,34 +15,34 @@ import {
   SuporteIcone,
   VisaoIcone,
 } from "@/lib/icons";
-import { ROTAS, rotaAtiva } from "@/lib/rotas";
+import { ROUTES, isActiveRoute } from "@/lib/rotas";
 import { navStyle } from "@/lib/styleKit";
 
 interface SidebarProps {
-  totalClientes: number;
+  customerCount: number;
   chamadosAbertos: number;
   mrrValor: string;
   mrrDelta: string;
 }
 
-export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: SidebarProps) {
+export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: SidebarProps) {
   const { s, a } = useAdmin();
   const { L } = a;
   const pathname = usePathname();
-  const col = s.colapsada;
+  const col = s.collapsed;
 
-  const rotulo = col ? "display:none" : "white-space:nowrap";
-  const grupo = col
+  const label = col ? "display:none" : "white-space:nowrap";
+  const group = col
     ? "display:block;height:1px;margin:12px 14px;background:var(--side-border);font-size:0;line-height:0;overflow:hidden;color:transparent"
     : "font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--side-text2);padding:14px 11px 5px";
 
   // Hover and focus both raise the tooltip, so the collapsed rail stays usable
   // from the keyboard.
-  const dica = {
-    onMouseEnter: a.mostrarDica,
-    onMouseLeave: a.ocultarDica,
-    onFocus: a.mostrarDica,
-    onBlur: a.ocultarDica,
+  const hint = {
+    onMouseEnter: a.showHint,
+    onMouseLeave: a.hideHint,
+    onFocus: a.showHint,
+    onBlur: a.hideHint,
   };
 
   /**
@@ -56,22 +56,22 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
   const item = (
     href: string,
     etiqueta: string,
-    icone: React.ReactNode,
+    icon: React.ReactNode,
     contador?: React.ReactNode,
   ) => {
-    const ativo = rotaAtiva(pathname, href);
+    const active = isActiveRoute(pathname, href);
     return (
-      <button
-        onClick={() => a.ir(href)}
-        style={css(navStyle(ativo, col))}
+      <Button
+        onClick={() => a.goTo(href)}
+        style={css(navStyle(active, col))}
         aria-label={etiqueta}
-        aria-current={ativo ? "page" : undefined}
-        {...dica}
+        aria-current={active ? "page" : undefined}
+        {...hint}
       >
-        <span style={{ display: "flex", flex: "none" }}>{icone}</span>
-        <span style={css(rotulo)}>{etiqueta.split(" · ")[0]}</span>
+        <span style={{ display: "flex", flex: "none" }}>{icon}</span>
+        <span style={css(label)}>{etiqueta.split(" · ")[0]}</span>
         {contador}
-      </button>
+      </Button>
     );
   };
 
@@ -122,8 +122,8 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
             {L.console}
           </span>
         </div>
-        <button
-          onClick={() => a.set((st) => ({ colapsada: !st.colapsada, dica: null }))}
+        <Button
+          onClick={() => a.set((st) => ({ collapsed: !st.collapsed, hint: null }))}
           className="hv-side"
           style={css(
             "position:absolute;top:18px;right:0;width:26px;height:30px;border-radius:8px 0 0 8px;" +
@@ -132,18 +132,18 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
               "padding:0;transition:color .12s,background .12s",
           )}
           aria-label={col ? L.expandir : L.colapsar}
-          {...dica}
+          {...hint}
         >
           <ColapsarIcone />
-        </button>
+        </Button>
       </div>
 
       <nav style={{ display: "flex", flexDirection: "column", gap: "2px", padding: "12px 12px 0" }}>
-        <span style={css(grupo)}>{L.gestao}</span>
-        {item(ROTAS.visao, L.visao, <VisaoIcone />)}
+        <span style={css(group)}>{L.gestao}</span>
+        {item(ROUTES.overview, L.overview, <VisaoIcone />)}
         {item(
-          ROTAS.clientes,
-          L.clientes + " · " + totalClientes,
+          ROUTES.customers,
+          L.customers + " · " + customerCount,
           <ClientesIcone />,
           <span
             style={css(
@@ -153,13 +153,13 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
                     "border-radius:99px;background:rgba(255,255,255,.07);color:var(--side-text)",
             )}
           >
-            {totalClientes}
+            {customerCount}
           </span>,
         )}
-        {item(ROTAS.financeiro, L.financeiro, <FinanceiroIcone />)}
+        {item(ROUTES.financeiro, L.financeiro, <FinanceiroIcone />)}
         {item(
-          ROTAS.suporte,
-          L.suporte + " · " + chamadosAbertos,
+          ROUTES.support,
+          L.support + " · " + chamadosAbertos,
           <SuporteIcone />,
           <span
             style={css(
@@ -173,12 +173,12 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
           </span>,
         )}
 
-        <span style={css(grupo)}>{L.catalogo}</span>
-        {item(ROTAS.planos, L.planos, <PlanosIcone />)}
-        {item(ROTAS.modulos, L.modulos, <ModulosIcone />)}
+        <span style={css(group)}>{L.catalogo}</span>
+        {item(ROUTES.plans, L.plans, <PlanosIcone />)}
+        {item(ROUTES.modules, L.modules, <ModulosIcone />)}
 
-        <span style={css(grupo)}>{L.sistema}</span>
-        {item(ROTAS.config, L.config, <ConfigIcone />)}
+        <span style={css(group)}>{L.system}</span>
+        {item(ROUTES.settings, L.settings, <ConfigIcone />)}
       </nav>
 
       <div
@@ -240,12 +240,12 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
             >
               {/* `profiles.full_name` do usuário logado; cai no e-mail, e
                   depois no rótulo genérico, se o perfil não tiver nome. */}
-              {s.adminNome || L.admin}
+              {s.adminName || L.admin}
             </span>
             <span style={css("font-size:10.5px;color:var(--side-text2)")}>{L.admin}</span>
           </div>
-          <button
-            onClick={() => a.abrirModal("sair")}
+          <Button
+            onClick={() => a.openModal("signOut")}
             style={css(
               col
                 ? "display:none"
@@ -253,11 +253,11 @@ export function Sidebar({ totalClientes, chamadosAbertos, mrrValor, mrrDelta }: 
                     "height:30px;margin-left:6px;border:none;background:none;color:var(--side-text2);" +
                     "border-radius:7px;cursor:pointer;padding:0",
             )}
-            aria-label={L.sair}
-            title={L.sair}
+            aria-label={L.signOut}
+            title={L.signOut}
           >
             <SairIcone />
-          </button>
+          </Button>
         </div>
       </div>
     </aside>

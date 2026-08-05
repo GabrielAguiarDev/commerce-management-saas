@@ -1,12 +1,12 @@
 import type { CSSProperties } from "react";
 
 /**
- * Os portais vestem-se com strings de declaração CSS — a mesma forma que o
- * design usa, e a que os seus auxiliares de estilo produzem naturalmente por
- * concatenação. `css()` transforma uma delas no objeto que o React quer.
+ * The portals dress themselves with CSS declaration strings — the same shape
+ * the design uses, and the one its style helpers produce naturally by
+ * concatenation. `css()` turns one of those into the object React wants.
  *
- * O resultado fica em cache: o mesmo punhado de strings é reconstruído a cada
- * render, e analisá-las uma única vez torna isso de graça.
+ * The result is cached: the same handful of strings is rebuilt on every render,
+ * and parsing them once makes that free.
  */
 const cache = new Map<string, CSSProperties>();
 
@@ -20,7 +20,7 @@ export function css(text: string): CSSProperties {
     if (i < 0) continue;
     const prop = decl.slice(0, i).trim();
     if (!prop) continue;
-    // Propriedades customizadas mantêm o nome literal; o resto vira camelCase.
+    // Custom properties keep their literal name; everything else is camelCased.
     out[prop.startsWith("--") ? prop : kebabToCamel(prop)] = decl.slice(i + 1).trim();
   }
 
@@ -34,17 +34,17 @@ function kebabToCamel(prop: string): string {
 }
 
 /**
- * As pilhas de fonte.
+ * The font stacks.
  *
- * Apontam para `--fonte-sans` / `--fonte-mono`, montadas em `tokens.css` a
- * partir das variáveis que cada app carrega em `layout.tsx` sob os mesmos
- * nomes (`--font-sans` e `--font-mono`). É por isso que a lib nunca precisa
- * saber qual portal a está usando.
+ * They point at `--sans-stack` / `--mono-stack`, assembled in `tokens.css` from
+ * the variables each app loads in its `layout.tsx` under the standard names
+ * (`--font-sans` and `--font-mono`). That is why the library never needs to
+ * know which portal is using it.
  */
-export const SANS = "var(--fonte-sans)";
-export const MONO = "var(--fonte-mono)";
+export const SANS = "var(--sans-stack)";
+export const MONO = "var(--mono-stack)";
 
-/** `font:` do design, já apontando para a fonte certa. */
-export function fonte(peso: number, tamanho: string, mono = false): string {
-  return `${peso} ${tamanho} ${mono ? MONO : SANS}`;
+/** The design's `font:` shorthand, already pointing at the right stack. */
+export function font(weight: number, size: string, mono = false): string {
+  return `${weight} ${size} ${mono ? MONO : SANS}`;
 }

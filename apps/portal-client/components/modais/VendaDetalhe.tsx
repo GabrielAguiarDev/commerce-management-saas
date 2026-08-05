@@ -1,36 +1,37 @@
 "use client";
 
-import { ModalBase } from "@/components/modais/Base";
+import { ModalFrame } from "@/components/modais/Base";
 import { usePortal } from "@/components/PortalProvider";
 import { css, MONO, NUM, SANS } from "@aguiar/ui";
-import { brl, rotuloData, totalV } from "@/lib/formato";
-import type { Venda } from "@/types/types";
+import { brl, dateLabel, totalV } from "@/lib/formato";
+import type { Sale } from "@/types/types";
 
-export function VendaDetalheModal({ venda }: { venda: Venda }) {
+export function VendaDetalheModal({ sale }: { sale: Sale }) {
   const { a } = usePortal();
-  const total = totalV(venda);
+  const total = totalV(sale);
 
   return (
-    <ModalBase
-      titulo="Detalhes da venda"
-      subtitulo={`${rotuloData(venda.d, venda.hora)} · ${venda.pag}`}
-      largura={440}
-      onFechar={a.fecharModal}
+    <ModalFrame
+      closeLabel="Fechar"
+      title="Detalhes da venda"
+      subtitle={`${dateLabel(sale.d, sale.time)} · ${sale.payment}`}
+      width={440}
+      onClose={a.closeModal}
     >
-      {venda.estornada && (
+      {sale.refunded && (
         <div
           style={css(
             `padding:11px 13px;border-radius:11px;background:var(--warn-soft);color:var(--warn);font:600 12.5px/1.45 ${SANS}`,
           )}
         >
-          Esta venda foi estornada e não conta no faturamento. Ela continua no histórico para você ter
+          Esta sale foi estornada e não account no faturamento. Ela continua no histórico para você ter
           o registro.
         </div>
       )}
 
-      {venda.itens.map((l) => (
+      {sale.items.map((l) => (
         <div
-          key={l.nome}
+          key={l.name}
           style={css(
             "display:flex;align-items:center;gap:12px;padding:12px 13px;border:1px solid var(--border);border-radius:11px;background:var(--surface2)",
           )}
@@ -43,8 +44,8 @@ export function VendaDetalheModal({ venda }: { venda: Venda }) {
           >
             {l.qtd}×
           </span>
-          <span style={css(`flex:1;min-width:0;font:500 13px/1.35 ${SANS}`)}>{l.nome}</span>
-          <span style={css(`flex:none;font:700 13px ${SANS};${NUM}`)}>{brl(l.qtd * l.preco)}</span>
+          <span style={css(`flex:1;min-width:0;font:500 13px/1.35 ${SANS}`)}>{l.name}</span>
+          <span style={css(`flex:none;font:700 13px ${SANS};${NUM}`)}>{brl(l.qtd * l.price)}</span>
         </div>
       ))}
 
@@ -56,12 +57,12 @@ export function VendaDetalheModal({ venda }: { venda: Venda }) {
         <span style={css(`font:600 13px ${SANS};color:var(--text2)`)}>Total</span>
         <span
           style={css(
-            `font:700 24px/1 ${SANS};${NUM};color:${venda.estornada ? "var(--muted)" : "var(--text)"}`,
+            `font:700 24px/1 ${SANS};${NUM};color:${sale.refunded ? "var(--muted)" : "var(--text)"}`,
           )}
         >
           {brl(total)}
         </span>
       </div>
-    </ModalBase>
+    </ModalFrame>
   );
 }

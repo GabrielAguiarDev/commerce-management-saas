@@ -1,22 +1,22 @@
 import type {
-  CaixaAberto,
-  CaixaFechado,
-  Chamado,
-  Custo,
-  DadosNegocio,
-  FormaPagamento,
-  Funcionario,
-  ItemCarrinho,
-  ModuloKey,
-  MovEstoque,
-  Negocio,
-  Papel,
-  Produto,
-  Tema,
-  TipoCusto,
-  TipoMovCaixa,
-  TipoMovEstoque,
-  Venda,
+  OpenRegister,
+  ClosedRegister,
+  Ticket,
+  Cost,
+  BusinessData,
+  PaymentMethod,
+  Employee,
+  CartItem,
+  ModuleKey,
+  StockMovement,
+  Business,
+  Role,
+  Product,
+  Theme,
+  CostType,
+  RegisterMovementType,
+  StockMovementType,
+  Sale,
 } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -28,38 +28,43 @@ import type {
  * comportamento do design e o que evita duas camadas empilhadas no celular.
  */
 export type Modal =
-  | { k: "detalheVenda"; id: string }
-  | { k: "produto"; id: string | null }
-  | { k: "movEstoque" }
-  | { k: "custo"; id: string | null }
-  | { k: "caixaAbrir" }
-  | { k: "caixaMov"; tipo: TipoMovCaixa }
-  | { k: "caixaFechar" }
-  | { k: "caixaDetalhe"; id: string }
-  | { k: "funcionario"; id: string }
-  | { k: "papel"; id: string | null }
-  | { k: "novoChamado" };
+  | { k: "saleDetail"; id: string }
+  | { k: "product"; id: string | null }
+  | { k: "stockMovement" }
+  | { k: "cost"; id: string | null }
+  | { k: "openRegister" }
+  | { k: "registerMovement"; type: RegisterMovementType }
+  | { k: "closeRegister" }
+  | { k: "registerDetail"; id: string }
+  | { k: "employee"; id: string }
+  | { k: "role"; id: string | null }
+  | { k: "newTicket" };
 
 /**
  * A confirmação é sempre a mesma caixa: o que vai acontecer, sobre o quê, e se
  * dá para voltar atrás. `acao` é o que roda quando a pessoa confirma.
  */
-export interface Confirmacao {
-  titulo: string;
-  texto: string;
-  resumo: string;
-  sub: string;
+export interface Confirm {
+  title: string;
+  text: string;
+  summary: string;
+  detail: string;
   /** "Dá para desfazer depois" — o que tira o medo de clicar. */
-  reversao: string;
-  btn: string;
-  btnBg: string;
-  btnFg: string;
-  cor: string;
-  acao: () => void;
+  reversal: string;
+  button: string;
+  buttonBg: string;
+  buttonInk: string;
+  color: string;
+  /**
+   * O que roda ao confirmar. Devolvendo uma promessa — o caso de toda ação que
+   * grava —, a caixa fica na tela com o botão travado e girando até o servidor
+   * responder, em vez de sumir antes de haver resposta.
+   */
+  action: () => unknown;
 }
 
-export interface Dica {
-  texto: string;
+export interface Hint {
+  text: string;
   x: number;
   y: number;
 }
@@ -68,102 +73,102 @@ export interface Dica {
 /* Rascunhos dos formulários                                                   */
 /* -------------------------------------------------------------------------- */
 
-export interface FormProduto {
+export interface ProductForm {
   id: string | null;
-  nome: string;
-  preco: string;
-  categoria: string;
+  name: string;
+  price: string;
+  category: string;
   /** Digitando uma categoria nova em vez de escolher da lista. */
-  catNova: boolean;
-  ativo: boolean;
+  newCategory: boolean;
+  active: boolean;
   fav: boolean;
-  servico: boolean;
-  codigo: string;
-  custo: string;
-  estoque: string;
-  minimo: string;
-  unidade: string;
-  tentouSalvar: boolean;
+  service: boolean;
+  code: string;
+  cost: string;
+  stock: string;
+  minimum: string;
+  unit: string;
+  submitted: boolean;
 }
 
-export interface FormCusto {
+export interface CostForm {
   id: string | null;
-  tipo: TipoCusto;
-  descricao: string;
-  categoria: string;
-  valor: string;
+  type: CostType;
+  description: string;
+  category: string;
+  amount: string;
   /** Dias atrás, escolhido na lista. Vira `cost_date` na hora de salvar. */
   d: number;
-  recorrente: boolean;
-  tentouSalvar: boolean;
+  recurring: boolean;
+  submitted: boolean;
 }
 
-export interface FormMov {
-  tipo: TipoMovEstoque;
-  produtoId: string | null;
+export interface MovementForm {
+  type: StockMovementType;
+  productId: string | null;
   qtd: string;
-  custo: string;
-  motivo: string;
-  tentouSalvar: boolean;
+  cost: string;
+  reason: string;
+  submitted: boolean;
 }
 
-export interface FormCaixa {
-  valor: string;
-  motivo: string;
+export interface RegisterForm {
+  amount: string;
+  reason: string;
   obs: string;
   /**
    * Quanto foi contado na gaveta. Só dinheiro: Pix e cartão caem na conta e são
    * conferidos no extrato — é o que `close_cash_register` espera.
    */
-  contadoDinheiro: string;
+  countedCash: string;
 }
 
-export interface FormPapel {
+export interface RoleForm {
   id: string | null;
-  nome: string;
-  modulos: ModuloKey[];
-  tentouSalvar: boolean;
+  name: string;
+  modules: ModuleKey[];
+  submitted: boolean;
 }
 
-export interface FormChamado {
-  assunto: string;
-  categoria: string;
-  descricao: string;
-  anexo: string;
-  tentouEnviar: boolean;
+export interface TicketForm {
+  subject: string;
+  category: string;
+  description: string;
+  attachment: string;
+  submitted: boolean;
 }
 
-export interface FormResposta {
-  texto: string;
-  anexo: string;
+export interface ReplyForm {
+  text: string;
+  attachment: string;
 }
 
 /* -------------------------------------------------------------------------- */
 /* Filtros                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export type PeriodoVendas = "hoje" | "7" | "30" | "tudo";
-export type PeriodoRel = "hoje" | "7" | "30" | "90";
-export type AbaEstoque = "itens" | "movs";
-export type AbaConfig = "dados" | "prefs" | "equipe" | "conta";
+export type SalesPeriod = "today" | "7" | "30" | "all";
+export type ReportPeriod = "today" | "7" | "30" | "90";
+export type StockTab = "items" | "movements";
+export type SettingsTab = "data" | "prefs" | "team" | "account";
 
-export interface FiltrosVendas {
-  periodo: PeriodoVendas;
-  pag: string;
-  produto: string;
-  busca: string;
+export interface SalesFilters {
+  period: SalesPeriod;
+  payment: string;
+  product: string;
+  search: string;
 }
 
-export interface FiltrosProdutos {
-  busca: string;
+export interface ProductFilters {
+  search: string;
   cat: string;
   status: string;
-  soBaixo: boolean;
+  onlyLow: boolean;
 }
 
-export interface FiltrosEstoque {
-  aba: AbaEstoque;
-  busca: string;
+export interface StockFilters {
+  tab: StockTab;
+  search: string;
   status: string;
   cat: string;
   ordem: string;
@@ -172,18 +177,18 @@ export interface FiltrosEstoque {
   movPeriodo: string;
 }
 
-export interface FiltrosCustos {
-  tipo: string;
+export interface CostFilters {
+  type: string;
   cat: string;
-  periodo: string;
+  period: string;
 }
 
-export interface FiltrosConfig {
-  aba: AbaConfig;
+export interface SettingsFilters {
+  tab: SettingsTab;
 }
 
-export interface FiltrosSuporte {
-  busca: string;
+export interface SupportFilters {
+  search: string;
   status: string;
 }
 
@@ -198,20 +203,20 @@ export interface FiltrosSuporte {
  * `router.refresh()` traz o retrato novo. É o que garante que a tela mostre o
  * que está no banco, e não o que o navegador acha que gravou.
  */
-export interface DadosPortal {
-  negocio: Negocio;
-  dados: DadosNegocio;
-  produtos: Produto[];
-  vendas: Venda[];
-  movs: MovEstoque[];
-  custos: Custo[];
-  caixaAberto: CaixaAberto | null;
-  caixasFechados: CaixaFechado[];
-  papeis: Papel[];
-  equipe: Funcionario[];
-  chamados: Chamado[];
+export interface PortalData {
+  business: Business;
+  data: BusinessData;
+  products: Product[];
+  sales: Sale[];
+  movements: StockMovement[];
+  costs: Cost[];
+  openRegister: OpenRegister | null;
+  caixasFechados: ClosedRegister[];
+  roles: Role[];
+  team: Employee[];
+  tickets: Ticket[];
   /** Preenchido quando a leitura falhou — a tela avisa em vez de mentir "vazio". */
-  erro: string | null;
+  error: string | null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -220,17 +225,17 @@ export interface DadosPortal {
 
 export interface PortalState {
   /* Aparência e ambiente */
-  tema: Tema;
+  theme: Theme;
   /**
    * Assume desktop até o listener de resize contar a verdade, para que o
    * render do servidor e o primeiro render do cliente concordem.
    */
-  larguraTela: number;
-  colapsada: boolean;
-  navAberto: boolean;
-  notifAberto: boolean;
-  logoutAberto: boolean;
-  dica: Dica | null;
+  screenWidth: number;
+  collapsed: boolean;
+  navOpen: boolean;
+  notificationsOpen: boolean;
+  signOutOpen: boolean;
+  hint: Hint | null;
 
   /**
    * Preferências de uso.
@@ -238,7 +243,7 @@ export interface PortalState {
    * Ainda NÃO têm tabela: valem só nesta sessão e voltam ao padrão no próximo
    * login. A tela de Configurações diz isso em voz alta. Ver a análise.
    */
-  formasAceitas: FormaPagamento[];
+  acceptedMethods: PaymentMethod[];
   imprimirComprovante: boolean;
   pedirCliente: boolean;
 
@@ -246,110 +251,118 @@ export interface PortalState {
    * Rascunho dos dados do negócio. O salvo vive no retrato do servidor (`d`);
    * este é só o que está sendo digitado.
    */
-  dadosRascunho: DadosNegocio;
+  draftData: BusinessData;
 
   /* PDV */
-  carrinho: ItemCarrinho[];
-  pagAtual: FormaPagamento;
-  buscaProd: string;
-  codigo: string;
-  carrinhoAberto: boolean;
+  cart: CartItem[];
+  currentMethod: PaymentMethod;
+  productSearch: string;
+  code: string;
+  cartOpen: boolean;
   /** Venda em edição no PDV — `null` quando é uma venda nova. */
-  editandoVenda: string | null;
+  editingSale: string | null;
 
   /* Filtros */
-  fVendas: FiltrosVendas;
-  fProdutos: FiltrosProdutos;
-  fEstoque: FiltrosEstoque;
-  fCustos: FiltrosCustos;
-  fRel: { periodo: PeriodoRel; comparar: boolean };
-  fConfig: FiltrosConfig;
-  fSuporte: FiltrosSuporte;
+  fVendas: SalesFilters;
+  fProdutos: ProductFilters;
+  fEstoque: StockFilters;
+  fCustos: CostFilters;
+  fRel: { period: ReportPeriod; compare: boolean };
+  fConfig: SettingsFilters;
+  fSuporte: SupportFilters;
 
   /* Sobreposições */
-  menuLinha: string | null;
+  rowMenu: string | null;
   modal: Modal | null;
-  conf: Confirmacao | null;
+  confirmDialog: Confirm | null;
   toast: string;
   /** Uma escrita em andamento — trava os botões que a disparariam de novo. */
-  salvando: boolean;
+  saving: boolean;
 
   /* Rascunhos */
-  formProduto: FormProduto;
-  formCusto: FormCusto;
-  formMov: FormMov;
-  formCaixa: FormCaixa;
-  formPapel: FormPapel;
-  formChamado: FormChamado;
-  formResposta: FormResposta;
+  productForm: ProductForm;
+  costForm: CostForm;
+  movementForm: MovementForm;
+  registerForm: RegisterForm;
+  roleForm: RoleForm;
+  ticketForm: TicketForm;
+  replyForm: ReplyForm;
 }
 
 export type Patch = Partial<PortalState>;
 
+/**
+ * As ações do portal.
+ *
+ * Toda ação que fala com o servidor devolve a sua promessa em vez de disparar e
+ * esquecer. Quem chama decide o que fazer com ela — e o `Button` de `@aguiar/ui`
+ * usa isso para se travar e mostrar o girador exatamente enquanto a gravação
+ * acontece, sem que cada tela precise inventar o seu próprio "salvando".
+ */
 export interface PortalActions {
   set: (p: Patch) => void;
-  toggleTema: () => void;
-  irPara: (rota: string) => void;
-  avisar: (texto: string) => void;
-  confirmar: (c: Confirmacao) => void;
-  fecharConf: () => void;
-  fecharModal: () => void;
-  abrirModal: (m: Modal) => void;
+  toggleTheme: () => void;
+  goTo: (rota: string) => void;
+  notify: (text: string) => void;
+  confirm: (c: Confirm) => void;
+  closeConfirm: () => void;
+  closeModal: () => void;
+  openModal: (m: Modal) => void;
   /** Abre o menu de linha da chave dada, ou fecha o que estiver aberto. */
-  abrirMenu: (chave: string | null) => void;
-  sair: () => void;
+  openMenu: (key: string | null) => void;
+  signOut: () => Promise<void>;
 
   /* Vendas e PDV */
-  addCarrinho: (p: Produto) => void;
-  mudarQtd: (nome: string, delta: number) => void;
-  removerItem: (nome: string) => void;
-  limparCarrinho: () => void;
-  registrarVenda: () => void;
-  editarVenda: (id: string) => void;
-  estornarVenda: (id: string) => void;
-  desfazerEstorno: (id: string) => void;
+  addToCart: (p: Product) => void;
+  changeQty: (name: string, delta: number) => void;
+  removeItem: (name: string) => void;
+  clearCart: () => void;
+  recordSale: () => Promise<void>;
+  editSale: (id: string) => void;
+  refundSale: (id: string) => Promise<void>;
+  undoRefund: (id: string) => Promise<void>;
 
   /* Produtos */
-  abrirProduto: (id: string | null) => void;
-  salvarProduto: () => void;
-  toggleFav: (id: string) => void;
-  toggleAtivo: (id: string) => void;
-  excluirProduto: (id: string) => void;
+  openProduct: (id: string | null) => void;
+  saveProduct: () => Promise<void>;
+  toggleFav: (id: string) => Promise<void>;
+  toggleActive: (id: string) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 
   /* Estoque */
-  abrirMov: (produtoId?: string, tipo?: TipoMovEstoque) => void;
-  salvarMov: () => void;
-  reverterMov: (id: string) => void;
+  openMovement: (productId?: string, type?: StockMovementType) => void;
+  saveMovement: () => Promise<void>;
+  undoMovement: (id: string) => Promise<void>;
 
   /* Custos */
-  abrirCusto: (id: string | null) => void;
-  salvarCusto: () => void;
-  excluirCusto: (id: string) => void;
+  openCost: (id: string | null) => void;
+  saveCost: () => Promise<void>;
+  deleteCost: (id: string) => Promise<void>;
 
   /* Caixa */
-  abrirCaixa: () => void;
-  registrarMovCaixa: () => void;
-  reverterMovCaixa: (id: string) => void;
-  fecharCaixa: () => void;
-  reabrirCaixa: (id: string) => void;
+  openRegister: () => Promise<void>;
+  recordRegisterMovement: () => Promise<void>;
+  undoRegisterMovement: (id: string) => Promise<void>;
+  closeRegister: () => Promise<void>;
+  reopenRegister: (id: string) => Promise<void>;
 
   /* Configurações */
-  salvarDados: () => void;
-  descartarDados: () => void;
-  toggleForma: (f: FormaPagamento) => void;
-  abrirPapel: (id: string | null) => void;
-  salvarPapel: () => void;
-  removerPapel: (id: string) => void;
-  toggleFuncionario: (id: string) => void;
-  mudarPapelDoFuncionario: (id: string, papelId: string) => void;
+  saveData: () => Promise<void>;
+  discardData: () => void;
+  toggleMethod: (f: PaymentMethod) => void;
+  openRole: (id: string | null) => void;
+  saveRole: () => Promise<void>;
+  removeRole: (id: string) => Promise<void>;
+  toggleEmployee: (id: string) => Promise<void>;
+  changeEmployeeRole: (id: string, roleId: string) => Promise<void>;
 
   /* Suporte */
-  abrirNovoChamado: () => void;
-  enviarChamado: () => void;
-  responderChamado: (id: string) => void;
-  resolverChamado: (id: string) => void;
-  reabrirChamado: (id: string) => void;
-  marcarLido: (id: string) => void;
+  openNewTicket: () => void;
+  sendTicket: () => Promise<void>;
+  replyToTicket: (id: string) => Promise<void>;
+  resolveTicket: (id: string) => Promise<void>;
+  reopenTicket: (id: string) => Promise<void>;
+  markRead: (id: string) => Promise<void>;
 }
 
 /** O que toda tela recebe — a forma que `usePortal()` devolve. */
@@ -357,10 +370,10 @@ export interface ViewProps {
   s: PortalState;
   a: PortalActions;
   /** Módulos que o plano deste cliente liga. */
-  modulos: ModuloKey[];
-  tem: (m: ModuloKey) => boolean;
+  modules: ModuleKey[];
+  has: (m: ModuleKey) => boolean;
   isMobile: boolean;
   isDesktop: boolean;
   /** Atalhos para o retrato do servidor, para as telas não escreverem `s.dados.` */
-  d: DadosPortal;
+  d: PortalData;
 }

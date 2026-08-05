@@ -12,20 +12,20 @@
  * `lib/chamados.ts`.
  */
 
-const MESES_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-const MESES_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** "1 ago 2026" — o carimbo discreto do topo do painel. */
-export function hojeRotulo(idioma: "pt" | "en" = "pt"): string {
+export function todayLabel(language: "pt" | "en" = "pt"): string {
   const d = new Date();
-  const mes = (idioma === "pt" ? MESES_PT : MESES_EN)[d.getMonth()];
-  return `${d.getDate()} ${mes} ${d.getFullYear()}`;
+  const month = (language === "pt" ? MONTHS_PT : MONTHS_EN)[d.getMonth()];
+  return `${d.getDate()} ${month} ${d.getFullYear()}`;
 }
 
 /** Mês corrente por extenso, para os títulos das telas ("agosto de 2026"). */
-export function mesCorrente(idioma: "pt" | "en" = "pt"): string {
+export function currentMonth(language: "pt" | "en" = "pt"): string {
   const d = new Date();
-  return idioma === "pt"
+  return language === "pt"
     ? `${d.toLocaleDateString("pt-BR", { month: "long" })} de ${d.getFullYear()}`
     : `${d.toLocaleDateString("en-US", { month: "long" })} ${d.getFullYear()}`;
 }
@@ -35,9 +35,9 @@ export function mesCorrente(idioma: "pt" | "en" = "pt"): string {
  * `Cliente.data` já chega da camada de leitura — evita ter de arrastar o ISO
  * cru até a interface só por causa de uma contagem.
  */
-export function ehDoMesCorrente(ddmmaaaa: string): boolean {
+export function isCurrentMonth(ddmmaaaa: string): boolean {
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(ddmmaaaa);
   if (!m) return false;
-  const hoje = new Date();
-  return Number(m[2]) === hoje.getMonth() + 1 && Number(m[3]) === hoje.getFullYear();
+  const today = new Date();
+  return Number(m[2]) === today.getMonth() + 1 && Number(m[3]) === today.getFullYear();
 }

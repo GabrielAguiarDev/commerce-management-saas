@@ -1,32 +1,32 @@
 import type { SyntheticEvent } from "react";
 import type { Dic } from "@/lib/dictionary";
 
-export type Idioma = "pt" | "en";
-export type Tema = "claro" | "escuro";
+export type Language = "pt" | "en";
+export type Theme = "light" | "dark";
 
 /** A string translated into both panel languages. */
 export type Loc = { pt: string; en: string };
 
-export type StatusCliente = "ativo" | "inativo";
-export type StatusChamado = "aberto" | "andamento" | "resolvido";
-export type Prioridade = "alta" | "media" | "baixa";
-export type StatusPagamento = "emdia" | "atrasado" | "pendente";
+export type CustomerStatus = "active" | "inactive";
+export type TicketStatus = "open" | "inProgress" | "resolved";
+export type Priority = "alta" | "media" | "baixa";
+export type PaymentStatus = "emdia" | "atrasado" | "pendente";
 
-export interface Modulo {
+export interface Module {
   k: string;
   /** `acesso` modules unlock a channel (the mobile app) rather than a section. */
-  tipo?: "acesso";
-  nome: Loc;
-  sigla: string;
+  type?: "acesso";
+  name: Loc;
+  initials: string;
   desc: Loc;
-  planos: string[];
+  plans: string[];
 }
 
-export interface Plano {
+export interface Plan {
   k: string;
-  nome: Loc;
-  tipo: "fixo" | "custom";
-  preco: string | null;
+  name: Loc;
+  type: "fixed" | "custom";
+  price: string | null;
   desc: Loc;
   mods: string[];
 }
@@ -39,143 +39,143 @@ export interface Plano {
  * dois idiomas porque o banco tem uma coluna só; a forma `Loc` fica para o dia
  * em que houver tradução de verdade.
  */
-export interface Cliente {
+export interface Customer {
   id: string;
-  nome: string;
-  segmento: Loc;
+  name: string;
+  segment: Loc;
   /** Chave do plano no banco: "free" | "paid" | "custom". */
-  plano: string;
-  status: StatusCliente;
+  plan: string;
+  status: CustomerStatus;
   /** Data de cadastro em dd/mm/aaaa, formatada no servidor. */
   data: string;
   /** Nome do dono do comércio, vindo de `profiles.full_name`. */
   resp: string;
   /** Mensalidade formatada ("R$ 89,00"), ou "—" quando não há cobrança. */
-  valor: string;
+  amount: string;
   /** Cidade / UF informada no cadastro (`tenants.city`). */
-  cidade: string;
+  city: string;
   /** Telefone de contato (`tenants.phone`). */
-  telefone: string;
+  phone: string;
   /** Chaves dos módulos ativos, as mesmas da tabela `modules`. */
   mods: string[];
 }
 
-export interface Mensagem {
-  de: "cliente" | "admin";
+export interface Message {
+  from: "customer" | "admin";
   /**
    * Mensagens do banco vêm num idioma só (`string`); a forma `Loc` fica de pé
    * para textos do próprio painel que tenham tradução.
    */
-  texto: Loc | string;
-  quando: string;
+  text: Loc | string;
+  at: string;
 }
 
 /**
  * Um chamado de suporte, já traduzido da linha do banco para o vocabulário da
  * interface. Ver `lib/chamados.ts` para o mapeamento.
  */
-export interface Chamado {
+export interface Ticket {
   id: string;
   /** UUID do tenant que abriu o chamado (`support_tickets.tenant_id`). */
-  clienteId: string;
-  assunto: Loc;
-  status: StatusChamado;
-  prioridade: Prioridade;
+  customerId: string;
+  subject: Loc;
+  status: TicketStatus;
+  prioridade: Priority;
   data: string;
-  msgs: Mensagem[];
+  messages: Message[];
 }
 
 /** Uma parcela efetivamente paga, como aparece no histórico do cliente. */
-export interface PagamentoHist {
+export interface PaymentHistory {
   /** Data do pagamento em dd/mm/aaaa. */
-  pago: string;
+  paid: string;
   /** Mês de competência da cobrança em mm/aaaa. */
-  mes: string;
+  month: string;
   /** Valor pago formatado ("R$ 89,00"). */
-  valor: string;
+  amount: string;
 }
 
-export interface Pagamento {
-  status: StatusPagamento;
-  ultimo: string;
+export interface Payment {
+  status: PaymentStatus;
+  latest: string;
   vencimento: string;
-  hist: PagamentoHist[];
+  hist: PaymentHistory[];
 }
 
-export interface ConfigItem {
+export interface SettingItem {
   id: string;
-  rotulo: Loc;
-  tipo: "mods" | "numero" | "select";
-  valor: string | number | string[];
-  opcoes?: [string, Loc][];
+  label: Loc;
+  type: "mods" | "numero" | "select";
+  value: string | number | string[];
+  options?: [string, Loc][];
 }
 
-export interface ReceitaMes {
-  mes: Loc;
-  valor: number;
+export interface MonthlyRevenue {
+  month: Loc;
+  amount: number;
 }
 
 /** Pending edits on a customer record, applied only on "Salvar alterações". */
-export interface Rascunho {
+export interface Draft {
   id: string;
-  plano: string;
+  plan: string;
   mods: string[];
-  valor: string;
+  amount: string;
 }
 
 export type ModalTipo =
-  | "sair"
-  | "descartar"
-  | "modOff"
-  | "limpar"
-  | "todos"
-  | "pagar"
-  | "reverter"
-  | "historico"
-  | "plano"
-  | "modulo"
-  | "excluirPlano"
-  | "excluir"
-  | "desativar"
-  | "reativar";
+  | "signOut"
+  | "discard"
+  | "moduleOff"
+  | "clear"
+  | "all"
+  | "pay"
+  | "undo"
+  | "history"
+  | "plan"
+  | "module"
+  | "deletePlan"
+  | "delete"
+  | "deactivate"
+  | "reactivate";
 
 export interface ModalEstado {
-  tipo: ModalTipo;
-  alvo?: string | null;
+  type: ModalTipo;
+  target?: string | null;
   /** Where to go once a "discard changes" prompt is confirmed — an href. */
-  destino?: string | null;
+  destination?: string | null;
   mod?: string | null;
 }
 
-export interface FormEstado {
-  tipo: "plano" | "modulo";
+export interface FormState {
+  type: "plan" | "module";
   k: string | null;
-  novo: boolean;
-  nome: string;
-  preco: string;
+  new: boolean;
+  name: string;
+  price: string;
   desc: string;
   /** Modules for a plan form, plans for a module form. */
   sel: string[];
-  fixo: boolean;
+  fixed: boolean;
 }
 
-export interface ToastEstado {
+export interface ToastState {
   id: string;
   msg: string;
-  tipo: "ok" | "erro" | "alerta";
+  type: "ok" | "error" | "warning";
 }
 
-export interface DicaEstado {
-  texto: string;
+export interface HintState {
+  text: string;
   top: number;
   left: number;
 }
 
-export type AuthView = "login" | "esqueci" | "enviado" | "redefinir";
+export type AuthView = "login" | "forgot" | "sent" | "reset";
 
 /** Presentation knobs the design exposes; set once on `<AdminProvider>`. */
-export interface AdminOpcoes {
-  mostrarEstadosVazios: boolean;
+export interface AdminOptions {
+  showEmptyStates: boolean;
   mostrarPainelAtividade: boolean;
   colunasModulos: number;
   mostrarValorMensal: boolean;
@@ -188,60 +188,60 @@ export interface AdminOpcoes {
  */
 export interface AdminState {
   /** Formulário de novo cliente com algo preenchido — usado pelo guard de saída. */
-  novoClienteSujo: boolean;
-  busca: string;
-  plano: string;
+  newCustomerDirty: boolean;
+  search: string;
+  plan: string;
   status: string;
-  menuLinha: string | null;
-  tema: Tema;
-  idioma: Idioma;
-  colapsada: boolean;
+  rowMenu: string | null;
+  theme: Theme;
+  language: Language;
+  collapsed: boolean;
   modal: ModalEstado | null;
-  confirmacao: string;
-  dica: DicaEstado | null;
-  rascunho: Rascunho | null;
-  notifAberta: boolean;
+  confirmation: string;
+  hint: HintState | null;
+  draft: Draft | null;
+  notificationsOpen: boolean;
   lidas: boolean;
-  form: FormEstado | null;
-  cfgEditando: string | null;
-  cfgRascunho: string | number | string[] | null;
-  filtroPag: string;
+  form: FormState | null;
+  editingSetting: string | null;
+  settingDraft: string | number | string[] | null;
+  paymentFilter: string;
   buscaPag: string;
-  menuPag: string | null;
-  larguraTela: number;
-  toasts: ToastEstado[];
+  paymentMenu: string | null;
+  screenWidth: number;
+  toasts: ToastState[];
   authView: AuthView;
-  senha1: string;
-  senha2: string;
-  emailRec: string;
-  receita: ReceitaMes[];
-  pagamentos: Record<string, Pagamento>;
+  password1: string;
+  password2: string;
+  recoveryEmail: string;
+  revenue: MonthlyRevenue[];
+  payments: Record<string, Payment>;
   /** Falha ao ler `platform_payments`. */
-  erroFinanceiro: string | null;
-  modulos: Modulo[];
+  billingError: string | null;
+  modules: Module[];
   /** Falha ao ler o catálogo de módulos no Supabase. */
-  erroModulos: string | null;
-  planos: Plano[];
+  modulesError: string | null;
+  plans: Plan[];
   /** Falha ao ler `plans`. */
-  erroPlanos: string | null;
-  config: ConfigItem[];
+  plansError: string | null;
+  settings: SettingItem[];
   /** Falha ao ler `platform_settings`. */
-  erroConfig: string | null;
+  settingsError: string | null;
   chamadoSel: string;
-  filtroChamado: string;
-  buscaChamado: string;
+  ticketFilter: string;
+  ticketSearch: string;
   resposta: string;
   loginEmail: string;
-  loginSenha: string;
-  ultimaAcao: string | null;
+  loginPassword: string;
+  lastAction: string | null;
   /** Nome do admin logado (`profiles.full_name`), para a barra lateral. */
-  adminNome: string | null;
-  clientes: Cliente[];
+  adminName: string | null;
+  customers: Customer[];
   /** Falha ao ler os clientes no Supabase, para a lista poder explicar o vazio. */
-  erroClientes: string | null;
-  chamados: Chamado[];
+  customersError: string | null;
+  tickets: Ticket[];
   /** Falha ao ler os chamados no Supabase, pelo mesmo motivo. */
-  erroChamados: string | null;
+  ticketsError: string | null;
 }
 
 /** Returning `null` from an updater leaves the state untouched. */
@@ -250,32 +250,37 @@ export type Patch = Partial<AdminState> | ((s: AdminState) => Partial<AdminState
 export interface AdminActions {
   set: (patch: Patch) => void;
   L: Dic;
-  toast: (msg: string, tipo?: ToastEstado["tipo"]) => void;
-  abrirModal: (
-    tipo: ModalTipo,
-    alvo?: string | null,
-    destino?: string | null,
+  toast: (msg: string, type?: ToastState["type"]) => void;
+  openModal: (
+    type: ModalTipo,
+    target?: string | null,
+    destination?: string | null,
     mod?: string | null,
   ) => void;
-  fecharModal: () => void;
-  confirmarModal: () => void;
+  closeModal: () => void;
+  /**
+   * Roda o verbo do diálogo aberto e devolve a promessa da gravação — é dela
+   * que o `Button` de `@aguiar/ui` tira o girador e a trava contra o segundo
+   * clique, sem que cada diálogo precise do seu próprio "salvando".
+   */
+  confirmModal: () => Promise<void>;
   /** Navigate, prompting first when a customer record has unsaved edits. */
-  ir: (href: string) => void;
-  abrirCliente: (id: string) => void;
+  goTo: (href: string) => void;
+  openCustomer: (id: string) => void;
   /** Makes sure a draft exists for the customer the detail route is showing. */
-  garantirRascunho: (id: string) => void;
-  editarRascunho: (fn: (r: Rascunho) => Rascunho) => void;
-  descartarRascunho: () => void;
-  salvarRascunho: () => void;
-  abrirFormPlano: (k: string | null) => void;
-  abrirFormModulo: (k: string) => void;
+  ensureDraft: (id: string) => void;
+  editDraft: (fn: (r: Draft) => Draft) => void;
+  discardDraft: () => void;
+  saveDraft: () => Promise<void>;
+  openPlanForm: (k: string | null) => void;
+  openModuleForm: (k: string) => void;
   /** Move um cliente para outro plano, recalculando módulos e mensalidade. */
-  moverClienteDePlano: (clienteId: string, novoPlano: string) => void;
-  editarForm: (campo: "nome" | "preco" | "desc", valor: string) => void;
-  alternarSel: (v: string) => void;
-  baixarCsv: (linhas: string[], nome: string) => void;
-  alternarTema: () => void;
-  alternarIdioma: () => void;
-  mostrarDica: (e: SyntheticEvent<HTMLElement>) => void;
-  ocultarDica: () => void;
+  moveCustomerToPlan: (customerId: string, novoPlano: string) => Promise<void>;
+  editForm: (field: "name" | "preco" | "desc", amount: string) => void;
+  toggleSelected: (v: string) => void;
+  baixarCsv: (rows: string[], name: string) => void;
+  toggleTheme: () => void;
+  toggleLanguage: () => void;
+  showHint: (e: SyntheticEvent<HTMLElement>) => void;
+  hideHint: () => void;
 }

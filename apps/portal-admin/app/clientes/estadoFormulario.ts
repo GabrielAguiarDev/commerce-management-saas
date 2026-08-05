@@ -1,4 +1,4 @@
-import type { Plano } from "@/types/types";
+import type { Plan } from "@/types/types";
 
 /**
  * Estado do formulário de cadastro de cliente.
@@ -16,27 +16,27 @@ import type { Plano } from "@/types/types";
  * Dados do cliente recém-criado, para a interface navegar direto para a ficha
  * sem esperar um novo carregamento.
  */
-export interface ClienteCriado {
+export interface CustomerCreated {
   id: string;
-  nome: string;
-  segmento: string;
-  responsavel: string;
+  name: string;
+  segment: string;
+  owner: string;
   /** Chave do plano em `plans`. */
-  plano: string;
-  mensalidade: number;
-  modulos: readonly string[];
+  plan: string;
+  monthlyFee: number;
+  modules: readonly string[];
 }
 
-export type EstadoFormulario =
+export type FormState =
   | { status: "inicial" }
-  | { status: "erro"; mensagem: string; campo?: string }
-  | { status: "sucesso"; mensagem: string; cliente: ClienteCriado };
+  | { status: "error"; message: string; field?: string }
+  | { status: "sucesso"; message: string; customer: CustomerCreated };
 
 /** Ponto de partida do `useActionState` na tela de cadastro. */
-export const ESTADO_INICIAL: EstadoFormulario = { status: "inicial" };
+export const INITIAL_STATE: FormState = { status: "inicial" };
 
 /** Resultado das mutações de um cliente já existente. */
-export type ResultadoCliente = { ok: true } | { ok: false; mensagem: string };
+export type CustomerResult = { ok: true } | { ok: false; message: string };
 
 // `Plano` é reexportado por conveniência de quem monta o formulário.
-export type { Plano };
+export type { Plan };

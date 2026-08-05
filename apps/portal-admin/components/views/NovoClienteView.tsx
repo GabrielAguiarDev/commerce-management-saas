@@ -2,20 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
-import { criarCliente } from "@/app/clientes/actions";
-import { ESTADO_INICIAL } from "@/app/clientes/estadoFormulario";
+import { createCustomer } from "@/app/clientes/actions";
+import { INITIAL_STATE } from "@/app/clientes/estadoFormulario";
 import { useAdmin } from "@/components/AdminProvider";
-import { BarraAcoes } from "@/components/BarraAcoes";
-import { GradeModulos, ModuloCard } from "@/components/ModuloCard";
-import { Campo, css, MONO, Selecao } from "@aguiar/ui";
-import { ehPlanoFixo, modulosDoPlano, planoPorChave } from "@/lib/planos";
-import { clienteHref, ROTAS } from "@/lib/rotas";
+import { ActionBar } from "@/components/BarraAcoes";
+import { ModuleGrid, ModuleCard } from "@/components/ModuloCard";
+import { Button, Field, css, MONO, Select } from "@aguiar/ui";
+import { isFixedPlan, planModules, planByKey } from "@/lib/planos";
+import { customerHref, ROUTES } from "@/lib/rotas";
 
-const ROTULO_CAMPO =
+const FIELD_LABEL =
   "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600";
 
 /** Campos que a interface exige antes de deixar enviar. */
-type CampoObrigatorio = "nome" | "responsavel" | "email";
+type RequiredField = "name" | "owner" | "email";
 
 /**
  * Tela cheia de cadastro de cliente — mesmo padrão da ficha do cliente.
@@ -25,88 +25,88 @@ type CampoObrigatorio = "nome" | "responsavel" | "email";
  * A validação daqui é conveniência para quem digita; a que vale é a do servidor.
  */
 export function NovoClienteView() {
-  const { s, a, opts } = useAdmin();
+  const { s, a, options } = useAdmin();
   // `set` e `toast` são memoizados no provider; o objeto `a` NÃO é (ele é
   // recriado a cada render). Efeitos abaixo dependem só destes dois.
   const { L, set, toast } = a;
-  const id = s.idioma;
+  const id = s.language;
   const router = useRouter();
 
-  const [estado, enviar, enviando] = useActionState(criarCliente, ESTADO_INICIAL);
+  const [estado, enviar, enviando] = useActionState(createCustomer, INITIAL_STATE);
 
-  const [campos, setCampos] = useState({
-    nome: "",
-    segmento: "",
-    responsavel: "",
-    cidade: "",
-    telefone: "",
+  const [fields, setCampos] = useState({
+    name: "",
+    segment: "",
+    owner: "",
+    city: "",
+    phone: "",
     email: "",
-    mensalidade: "",
+    monthlyFee: "",
   });
   // O plano inicial é o primeiro do catálogo lido de `plans` (ordenado por
   // `sort_order`), não a chave "free" escrita à mão. Como o catálogo chega do
   // servidor, o padrão é DERIVADO no render em vez de gravado por um efeito —
   // um efeito renderizaria uma vez com o seletor vazio antes de corrigir.
-  const [planoEscolhido, setPlano] = useState<string>("");
-  const [escolhidos, setEscolhidos] = useState<string[]>([]);
-  const plano = planoEscolhido || (s.planos[0]?.k ?? "");
+  const [planoEscolhido, setPlan] = useState<string>("");
+  const [picked, setPicked] = useState<string[]>([]);
+  const plan = planoEscolhido || (s.plans[0]?.k ?? "");
   // Só destacamos o que falta depois da primeira tentativa de envio, para não
   // pintar a tela de vermelho enquanto a pessoa ainda está preenchendo.
-  const [tentouEnviar, setTentouEnviar] = useState(false);
+  const [submitted, setTentouEnviar] = useState(false);
 
   // `planoAtual` fica indefinido só no primeiro render, antes do efeito que
   // escolhe o padrão; a tela lida com isso mostrando a grade vazia.
-  const planoAtual = planoPorChave(s.planos, plano);
-  const planoFixo = ehPlanoFixo(planoAtual);
-  const ativos = modulosDoPlano(planoAtual, escolhidos);
+  const currentPlan = planByKey(s.plans, plan);
+  const fixedPlan = isFixedPlan(currentPlan);
+  const active = planModules(currentPlan, picked);
 
-  const preenchido = Object.values(campos).some((v) => v.trim() !== "");
-  const faltando: CampoObrigatorio[] = (["nome", "responsavel", "email"] as const).filter(
-    (k) => campos[k].trim() === "",
+  const filled = Object.values(fields).some((v) => v.trim() !== "");
+  const faltando: RequiredField[] = (["name", "owner", "email"] as const).filter(
+    (k) => fields[k].trim() === "",
   );
-  const custoFaltando = planoAtual?.tipo === "custom" && campos.mensalidade.trim() === "";
-  const modulosFaltando = ativos.length === 0;
-  const podeEnviar = faltando.length === 0 && !custoFaltando && !modulosFaltando;
+  const missingCost = currentPlan?.type === "custom" && fields.monthlyFee.trim() === "";
+  const missingModules = active.length === 0;
+  const canSubmit = faltando.length === 0 && !missingCost && !missingModules;
 
-  const editar = (k: keyof typeof campos, v: string) =>
-    setCampos((atual) => ({ ...atual, [k]: v }));
+  const edit = (k: keyof typeof fields, v: string) =>
+    setCampos((current) => ({ ...current, [k]: v }));
 
   // Mantém o guard de saída do painel sabendo que há algo digitado aqui.
   useEffect(() => {
-    set({ novoClienteSujo: preenchido });
-  }, [preenchido, set]);
+    set({ newCustomerDirty: filled });
+  }, [filled, set]);
 
   // Ao sair da tela, o formulário deixa de existir — nada mais a proteger.
-  useEffect(() => () => set({ novoClienteSujo: false }), [set]);
+  useEffect(() => () => set({ newCustomerDirty: false }), [set]);
 
   /**
    * Ao entrar num plano customizado, a grade começa com o que o plano anterior
    * já dava — é o ponto de partida mais útil, e o admin ajusta a partir daí.
    */
-  const trocarPlano = (novo: string) => {
-    const alvo = planoPorChave(s.planos, novo);
-    if (alvo?.tipo === "custom" && planoFixo) setEscolhidos(modulosDoPlano(planoAtual));
-    setPlano(novo);
+  const switchPlan = (key: string) => {
+    const target = planByKey(s.plans, key);
+    if (target?.type === "custom" && fixedPlan) setPicked(planModules(currentPlan));
+    setPlan(key);
   };
 
-  const alternarModulo = (chave: string) =>
-    setEscolhidos((atual) =>
-      atual.includes(chave) ? atual.filter((k) => k !== chave) : [...atual, chave],
+  const toggleModule = (key: string) =>
+    setPicked((current) =>
+      current.includes(key) ? current.filter((k) => k !== key) : [...current, key],
     );
 
-  const limpar = () => {
+  const clear = () => {
     setCampos({
-      nome: "",
-      segmento: "",
-      responsavel: "",
-      cidade: "",
-      telefone: "",
+      name: "",
+      segment: "",
+      owner: "",
+      city: "",
+      phone: "",
       email: "",
-      mensalidade: "",
+      monthlyFee: "",
     });
     // "" volta ao padrão derivado, seja ele qual for.
-    setPlano("");
-    setEscolhidos([]);
+    setPlan("");
+    setPicked([]);
     setTentouEnviar(false);
   };
 
@@ -117,49 +117,49 @@ export function NovoClienteView() {
   useEffect(() => {
     if (estado.status !== "sucesso") return;
 
-    toast(estado.mensagem);
-    set({ novoClienteSujo: false });
+    toast(estado.message);
+    set({ newCustomerDirty: false });
     // `refresh` antes do `push` para a ficha já abrir com o registro do banco.
     router.refresh();
-    router.push(clienteHref(estado.cliente.id));
+    router.push(customerHref(estado.customer.id));
     // `estado` só muda quando a action responde, então isto roda uma vez por envio.
   }, [estado, set, toast, router]);
 
-  /** Um campo do card de dados, com destaque quando obrigatório e vazio. */
-  const campo = (
-    chave: keyof typeof campos,
-    rotulo: string,
+  /** Um field do card de dados, com destaque quando obrigatório e vazio. */
+  const field = (
+    key: keyof typeof fields,
+    label: string,
     props: React.InputHTMLAttributes<HTMLInputElement> = {},
     obrigatorio = false,
   ) => {
-    const vazio = obrigatorio && tentouEnviar && campos[chave].trim() === "";
+    const empty = obrigatorio && submitted && fields[key].trim() === "";
     return (
       <label style={css("display:flex;flex-direction:column;gap:6px;min-width:0")}>
-        <span style={css(ROTULO_CAMPO)}>
-          {rotulo}
+        <span style={css(FIELD_LABEL)}>
+          {label}
           {obrigatorio && <span style={css("color:var(--danger);margin-left:3px")}>*</span>}
         </span>
-        <Campo
-          name={chave}
-          value={campos[chave]}
-          onChange={(e) => editar(chave, e.target.value)}
+        <Field
+          name={key}
+          value={fields[key]}
+          onChange={(e) => edit(key, e.target.value)}
           disabled={enviando}
-          aria-invalid={vazio || undefined}
+          aria-invalid={empty || undefined}
           {...props}
         />
       </label>
     );
   };
 
-  const estadoBarra = enviando
+  const barState = enviando
     ? id === "pt"
       ? "Cadastrando cliente…"
       : "Creating customer…"
-    : modulosFaltando
+    : missingModules
       ? id === "pt"
         ? "Selecione ao menos um módulo"
         : "Select at least one module"
-      : !podeEnviar
+      : !canSubmit
         ? id === "pt"
           ? "Preencha os campos obrigatórios"
           : "Fill in the required fields"
@@ -174,21 +174,21 @@ export function NovoClienteView() {
         setTentouEnviar(true);
         // A action revalida tudo de novo; isto só evita uma ida ao servidor
         // quando já dá para ver que falta coisa.
-        if (!podeEnviar) e.preventDefault();
+        if (!canSubmit) e.preventDefault();
       }}
       style={css("display:flex;flex-direction:column;gap:16px")}
     >
-      <button
+      <Button
         type="button"
-        onClick={() => a.ir(ROTAS.clientes)}
+        onClick={() => a.goTo(ROUTES.customers)}
         className="hv-acc"
         style={css(
           "align-self:flex-start;background:none;border:none;color:var(--text2);font-size:12.5px;" +
             "cursor:pointer;padding:0",
         )}
       >
-        ← {L.voltar}
-      </button>
+        ← {L.back}
+      </Button>
 
       {/* ---------------------------------------------------------------
           CARD 1 — dados do negócio e acesso
@@ -224,25 +224,25 @@ export function NovoClienteView() {
               "display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 20px",
             )}
           >
-            {campo(
-              "nome",
+            {field(
+              "name",
               id === "pt" ? "Nome do negócio" : "Business name",
               { autoFocus: true, placeholder: id === "pt" ? "Padaria da Esquina" : "Corner Bakery" },
               true,
             )}
-            {campo("segmento", L.segmento, {
+            {field("segment", L.segment, {
               placeholder: id === "pt" ? "Alimentação · Padaria" : "Food · Bakery",
             })}
-            {campo(
-              "responsavel",
-              L.responsavel,
+            {field(
+              "owner",
+              L.owner,
               { placeholder: id === "pt" ? "Nome do dono" : "Owner name" },
               true,
             )}
-            {campo("cidade", id === "pt" ? "Cidade / UF" : "City / State", {
+            {field("city", id === "pt" ? "Cidade / UF" : "City / State", {
               placeholder: "Salvador, BA",
             })}
-            {campo("telefone", id === "pt" ? "Telefone / contato" : "Phone / contact", {
+            {field("phone", id === "pt" ? "Telefone / contato" : "Phone / contact", {
               type: "tel",
               placeholder: "(71) 90000-0000",
             })}
@@ -253,7 +253,7 @@ export function NovoClienteView() {
               "grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 20px;align-items:start")}
           >
             <div style={css("display:flex;flex-direction:column;gap:6px;min-width:0")}>
-              {campo(
+              {field(
                 "email",
                 id === "pt" ? "E-mail de acesso" : "Access email",
                 { type: "email", placeholder: "dono@negocio.com.br" },
@@ -267,40 +267,40 @@ export function NovoClienteView() {
             </div>
 
             <label style={css("display:flex;flex-direction:column;gap:6px;min-width:0")}>
-              <span style={css(ROTULO_CAMPO)}>{L.plano}</span>
-              <Selecao
-                name="plano"
-                value={plano}
-                onChange={(e) => trocarPlano(e.target.value)}
+              <span style={css(FIELD_LABEL)}>{L.plan}</span>
+              <Select
+                name="plan"
+                value={plan}
+                onChange={(e) => switchPlan(e.target.value)}
                 disabled={enviando}
-                estiloCaixa="width:100%"
+                boxCssText="width:100%"
               >
                 {/* Opções vindas de `plans`, na ordem de `sort_order`. */}
-                {s.planos.map((p) => (
+                {s.plans.map((p) => (
                   <option key={p.k} value={p.k}>
-                    {p.nome[id] || p.nome.pt}
+                    {p.name[id] || p.name.pt}
                   </option>
                 ))}
-              </Selecao>
+              </Select>
             </label>
 
             {/* A mensalidade só existe no plano sob medida (`plans.is_custom`);
                 nos demais vale o preço gravado em `plans.price`. */}
-            {planoAtual?.tipo === "custom" && (
+            {currentPlan?.type === "custom" && (
               <label style={css("display:flex;flex-direction:column;gap:6px;min-width:0")}>
-                <span style={css(ROTULO_CAMPO)}>
-                  {L.mensalidade}
+                <span style={css(FIELD_LABEL)}>
+                  {L.monthlyFee}
                   <span style={css("color:var(--danger);margin-left:3px")}>*</span>
                 </span>
-                <Campo
-                  name="mensalidade"
-                  value={campos.mensalidade}
-                  onChange={(e) => editar("mensalidade", e.target.value)}
+                <Field
+                  name="monthlyFee"
+                  value={fields.monthlyFee}
+                  onChange={(e) => edit("monthlyFee", e.target.value)}
                   inputMode="decimal"
                   placeholder="149,00"
                   disabled={enviando}
-                  aria-invalid={(tentouEnviar && custoFaltando) || undefined}
-                  estilo={`max-width:180px;font-family:`}
+                  aria-invalid={(submitted && missingCost) || undefined}
+                  cssText={`max-width:180px;font-family:`}
                 />
               </label>
             )}
@@ -327,7 +327,7 @@ export function NovoClienteView() {
               {id === "pt" ? "Módulos do plano" : "Plan modules"}
             </h3>
             <p style={css("margin:0;font-size:12.5px;color:var(--text2);max-width:54ch")}>
-              {planoFixo
+              {fixedPlan
                 ? id === "pt"
                   ? "Os módulos deste plano são fixos. Para uma combinação personalizada, use o plano Customizado."
                   : "This plan's modules are fixed. For a custom combination, use the Custom plan."
@@ -344,17 +344,17 @@ export function NovoClienteView() {
                   `font-family:${MONO};font-size:20px;font-weight:600;color:var(--accent);line-height:1`,
                 )}
               >
-                {ativos.length}/{s.modulos.length}
+                {active.length}/{s.modules.length}
               </span>
               <span style={css("font-size:11px;color:var(--muted)")}>{L.modulosAtivos}</span>
             </div>
 
             {/* Ativar todos / limpar só fazem sentido quando há o que editar. */}
-            {!planoFixo && (
+            {!fixedPlan && (
               <div style={css("display:flex;gap:6px")}>
-                <button
+                <Button
                   type="button"
-                  onClick={() => setEscolhidos(s.modulos.map((m) => m.k))}
+                  onClick={() => setPicked(s.modules.map((m) => m.k))}
                   className="hv-acc-borda"
                   style={css(
                     "border:1px solid var(--border);background:var(--surface);color:var(--text2);" +
@@ -362,37 +362,37 @@ export function NovoClienteView() {
                   )}
                 >
                   {L.ativarTodos}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  onClick={() => setEscolhidos([])}
+                  onClick={() => setPicked([])}
                   className="hv-texto"
                   style={css(
                     "border:1px solid var(--border);background:var(--surface);color:var(--muted);" +
                       "font-size:11.5px;padding:7px 11px;border-radius:7px;cursor:pointer",
                   )}
                 >
-                  {L.limpar}
-                </button>
+                  {L.clear}
+                </Button>
               </div>
             )}
           </div>
         </div>
 
-        <GradeModulos colunas={opts.colunasModulos}>
+        <ModuleGrid columns={options.colunasModulos}>
           {/* Catálogo real, vindo da tabela `modules` pelo provider. */}
-          {s.modulos.map((m) => {
-            const ligado = ativos.includes(m.k);
+          {s.modules.map((m) => {
+            const on = active.includes(m.k);
             return (
-              <ModuloCard
+              <ModuleCard
                 key={m.k}
-                sigla={m.sigla}
-                nome={m.nome[id] || m.nome.pt}
-                descricao={m.desc[id] || m.desc.pt}
-                ligado={ligado}
+                initials={m.initials}
+                name={m.name[id] || m.name.pt}
+                description={m.desc[id] || m.desc.pt}
+                on={on}
                 // Ainda não há cliente: o texto fala do pacote, não de acesso concedido.
                 estado={
-                  ligado
+                  on
                     ? id === "pt"
                       ? "Incluído no plano"
                       : "Included in the plan"
@@ -400,17 +400,17 @@ export function NovoClienteView() {
                       ? "Não incluído"
                       : "Not included"
                 }
-                acesso={m.tipo === "acesso"}
+                acesso={m.type === "acesso"}
                 tagAcesso={L.tagAcesso}
                 ajudaAcesso={L.acessoAjuda}
-                bloqueado={planoFixo || enviando}
-                alternar={() => alternarModulo(m.k)}
+                blocked={fixedPlan || enviando}
+                toggle={() => toggleModule(m.k)}
               />
             );
           })}
-        </GradeModulos>
+        </ModuleGrid>
 
-        {modulosFaltando && (
+        {missingModules && (
           <div
             style={css(
               "padding:13px 24px;border-top:1px solid var(--border-soft);background:var(--danger-soft);" +
@@ -428,7 +428,7 @@ export function NovoClienteView() {
       </section>
 
       {/* Erro vindo do servidor. */}
-      {estado.status === "erro" && (
+      {estado.status === "error" && (
         <div
           role="alert"
           style={css(
@@ -436,32 +436,28 @@ export function NovoClienteView() {
               "border-radius:11px;font-size:13px;color:var(--danger);line-height:1.5",
           )}
         >
-          {estado.mensagem}
+          {estado.message}
         </div>
       )}
 
       {/* Os módulos vão no FormData por aqui. Num plano fixo estes campos nem
           existem — a Server Action usa o pacote do plano de qualquer forma. */}
-      {!planoFixo && ativos.map((k) => <input key={k} type="hidden" name="modulos" value={k} />)}
+      {!fixedPlan && active.map((k) => <input key={k} type="hidden" name="modulos" value={k} />)}
 
-      <BarraAcoes
-        estado={estadoBarra}
-        tom={enviando || !podeEnviar ? "alerta" : "neutro"}
-        secundario={{
-          rotulo: preenchido ? L.descartar : L.cancelar,
-          onClick: () => (preenchido ? limpar() : a.ir(ROTAS.clientes)),
-          desabilitado: enviando,
+      <ActionBar
+        estado={barState}
+        tone={enviando || !canSubmit ? "warning" : "neutral"}
+        secondary={{
+          label: filled ? L.discard : L.cancelar,
+          onClick: () => (filled ? clear() : a.goTo(ROUTES.customers)),
+          disabled: enviando,
         }}
-        primario={{
-          rotulo: enviando
-            ? id === "pt"
-              ? "Cadastrando…"
-              : "Creating…"
-            : id === "pt"
-              ? "Cadastrar cliente"
-              : "Create customer",
+        primary={{
+          // O rótulo não troca mais para "Cadastrando…": o girador já diz isso,
+          // e trocar o texto mudava a largura do botão no meio do envio.
+          label: id === "pt" ? "Cadastrar cliente" : "Create customer",
           submit: true,
-          desabilitado: enviando,
+          loading: enviando,
         }}
       />
     </form>

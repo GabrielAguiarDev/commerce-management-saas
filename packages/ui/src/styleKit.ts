@@ -1,262 +1,269 @@
 import { MONO, SANS } from "./css";
 
 /**
- * Vocabulário visual compartilhado pelos portais. Cada auxiliar devolve uma
- * string de declaração CSS para entregar a `css()` — ver `css.ts` para o porquê
- * de os portais trabalharem com strings.
+ * The visual vocabulary shared by the portals. Every helper returns a CSS
+ * declaration string to hand to `css()` — see `css.ts` for why the portals work
+ * with strings.
  *
- * O que está aqui é o que os dois portais desenham igual. O que é próprio de um
- * produto (cartão de módulo, faixa de KPI de venda, item de navegação) fica no
- * `styleKit` do app.
+ * What lives here is what both portals draw the same way. What belongs to a
+ * single product (a module card, a sales KPI strip, a nav item) stays in that
+ * app's own `styleKit`.
  */
 
 /* -------------------------------------------------------------------------- */
-/* Superfícies                                                                 */
+/* Surfaces                                                                    */
 /* -------------------------------------------------------------------------- */
 
-/** O cartão com borda e sombra que sustenta quase toda a interface. */
-export const PAINEL =
+/** The bordered, shadowed card that carries almost the whole interface. */
+export const PANEL =
   "border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)";
 
-/** Igual, mas com o raio maior e recorte — para painéis com cabeçalho próprio. */
-export const PAINEL_GRANDE =
+/** The same, with a larger radius and clipping — for panels with their own header. */
+export const PANEL_LARGE =
   "border:1px solid var(--border);border-radius:15px;background:var(--surface);" +
   "box-shadow:var(--shadow);overflow:hidden";
 
-/** Cabeçalho interno de painel: título em cima, explicação embaixo. */
-export const CABECA_PAINEL = "padding:15px 18px;border-bottom:1px solid var(--border)";
+/** A panel's inner header: title on top, explanation underneath. */
+export const PANEL_HEADER = "padding:15px 18px;border-bottom:1px solid var(--border)";
 
 /**
- * Listas e tabelas: a "borda" entre linhas é o fundo do contêiner aparecendo
- * pelo `gap` de 1px. Um truque do design que evita bordas dobradas.
+ * Lists and tables: the "border" between rows is the container's background
+ * showing through a 1px `gap`. A trick from the design that avoids doubled
+ * borders.
  */
-export const LISTA =
+export const LIST =
   "display:flex;flex-direction:column;gap:1px;background:var(--border);" +
   "border:1px solid var(--border);border-radius:12px";
 
-export const CABECALHO_TABELA =
+export const TABLE_HEADER =
   "align-items:center;padding:11px 14px;background:var(--surface2);border-radius:11px 11px 0 0";
 
-export function rotuloColuna(alinhamento?: "right" | "center"): string {
+export function columnLabel(align?: "right" | "center"): string {
   return (
     `font:600 10.5px ${MONO};letter-spacing:.1em;color:var(--muted)` +
-    (alinhamento ? `;text-align:${alinhamento}` : "")
+    (align ? `;text-align:${align}` : "")
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Selos                                                                       */
+/* Badges                                                                      */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Os cinco tons que qualquer estado do sistema assume. Um status novo escolhe
- * um tom — nunca uma cor solta —, e é isso que mantém a leitura igual entre os
- * portais: verde é sempre "resolvido", vermelho é sempre "exige ação".
+ * The five tones any state in the system takes. A new status picks a tone —
+ * never a loose color — and that is what keeps the reading identical across the
+ * portals: green always means "settled", red always means "needs action".
  */
-export type Tom = "neutro" | "acc" | "pos" | "warn" | "danger";
+export type Tone = "neutral" | "acc" | "pos" | "warn" | "danger";
 
-const TONS: Record<Tom, { fundo: string; cor: string; borda: string }> = {
-  neutro: { fundo: "var(--surface3)", cor: "var(--muted)", borda: "var(--border)" },
-  acc: { fundo: "var(--accent-soft)", cor: "var(--accent)", borda: "var(--accent-line)" },
-  pos: { fundo: "var(--pos-soft)", cor: "var(--pos)", borda: "var(--pos-line)" },
-  warn: { fundo: "var(--warn-soft)", cor: "var(--warn)", borda: "var(--warn-line)" },
-  danger: { fundo: "var(--danger-soft)", cor: "var(--danger)", borda: "var(--danger-line)" },
+const TONES: Record<Tone, { background: string; color: string; border: string }> = {
+  neutral: { background: "var(--surface3)", color: "var(--muted)", border: "var(--border)" },
+  acc: { background: "var(--accent-soft)", color: "var(--accent)", border: "var(--accent-line)" },
+  pos: { background: "var(--pos-soft)", color: "var(--pos)", border: "var(--pos-line)" },
+  warn: { background: "var(--warn-soft)", color: "var(--warn)", border: "var(--warn-line)" },
+  danger: {
+    background: "var(--danger-soft)",
+    color: "var(--danger)",
+    border: "var(--danger-line)",
+  },
 };
 
 /**
- * O selo arredondado — status, categoria, forma de pagamento.
+ * The rounded badge — status, category, payment method.
  *
- * `borda` existe porque os dois portais nasceram com selos diferentes: o painel
- * os desenhava com contorno, o portal do cliente sem. Continua sendo uma
- * escolha de cada tela, mas agora as cores saem sempre da mesma tabela.
+ * `bordered` exists because the two portals were born with different badges:
+ * the admin panel drew them outlined, the customer portal did not. It is still
+ * each screen's call, but the colors now always come from the same table.
  */
-export function selo(
-  tom: Tom,
-  { tamanho = "md", borda = false }: { tamanho?: "sm" | "md"; borda?: boolean } = {},
+export function badge(
+  tone: Tone,
+  { size = "md", bordered = false }: { size?: "sm" | "md"; bordered?: boolean } = {},
 ): string {
-  const t = TONS[tom];
-  const peso = tamanho === "sm" ? "600 10.5px" : "600 11px";
-  const espaco = tamanho === "sm" ? "2px 8px" : "3px 9px";
+  const t = TONES[tone];
+  const weight = size === "sm" ? "600 10.5px" : "600 11px";
+  const spacing = size === "sm" ? "2px 8px" : "3px 9px";
   return (
-    `display:inline-flex;align-items:center;gap:5px;padding:${espaco};border-radius:999px;` +
-    `background:${t.fundo};color:${t.cor};font:${peso} ${SANS};white-space:nowrap;` +
-    (borda ? `border:1px solid ${t.borda};` : "")
+    `display:inline-flex;align-items:center;gap:5px;padding:${spacing};border-radius:999px;` +
+    `background:${t.background};color:${t.color};font:${weight} ${SANS};white-space:nowrap;` +
+    (bordered ? `border:1px solid ${t.border};` : "")
   );
 }
 
-/** A cor de um tom, para quando só o texto ou só o ponto precisa dela. */
-export function corDoTom(tom: Tom): string {
-  return TONS[tom].cor;
+/** A tone's color, for when only the text or only the dot needs it. */
+export function toneColor(tone: Tone): string {
+  return TONES[tone].color;
 }
 
-/** Fundo lavado e texto de um tom — a base de um selo, ícone ou aviso. */
-export function fundoDoTom(tom: Tom, borda = false): string {
-  const t = TONS[tom];
-  return `background:${t.fundo};color:${t.cor};` + (borda ? `border:1px solid ${t.borda};` : "");
+/** A tone's washed background and text — the base of a badge, icon or notice. */
+export function toneBackground(tone: Tone, bordered = false): string {
+  const t = TONES[tone];
+  return (
+    `background:${t.background};color:${t.color};` + (bordered ? `border:1px solid ${t.border};` : "")
+  );
 }
 
 /**
- * A largura em que os portais passam a se desenhar como celular: a barra
- * lateral vira gaveta e o modal vira folha. Um número só, para que a mesma
- * tela não seja "estreita" num portal e "larga" no outro.
+ * The width at which the portals start drawing themselves as a phone: the
+ * sidebar becomes a drawer and the modal becomes a sheet. A single number, so
+ * the same screen is not "narrow" in one portal and "wide" in the other.
  */
-export const QUEBRA_MOBILE = 900;
+export const MOBILE_BREAKPOINT = 900;
 
-/** O ponto de status que antecede uma nota. */
-export function ponto(cor: string): string {
-  return `width:6px;height:6px;flex:none;border-radius:99px;background:${cor}`;
+/** The status dot that precedes a note. */
+export function dot(color: string): string {
+  return `width:6px;height:6px;flex:none;border-radius:99px;background:${color}`;
 }
 
 /* -------------------------------------------------------------------------- */
-/* Botões                                                                      */
+/* Buttons                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/** Botão de ação primária — o verbo principal de cada tela. */
-export function botaoPrimario(tamanho: "sm" | "md" | "lg" = "md"): string {
+/** The primary action button — every screen's main verb. */
+export function primaryButton(size: "sm" | "md" | "lg" = "md"): string {
   const p =
-    tamanho === "sm"
+    size === "sm"
       ? "padding:11px 18px;border-radius:10px;font:700 13px"
-      : tamanho === "lg"
+      : size === "lg"
         ? "padding:15px;border-radius:12px;font:700 14.5px"
         : "padding:12px 20px;border-radius:11px;font:700 14px";
   return `${p} ${SANS};background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow)`;
 }
 
-export function botaoSecundario(tamanho: "sm" | "md" = "md"): string {
+export function secondaryButton(size: "sm" | "md" = "md"): string {
   const p =
-    tamanho === "sm"
+    size === "sm"
       ? "padding:9px 14px;border-radius:9px;font:600 12px"
       : "padding:12px 18px;border-radius:11px;font:600 13px";
   return `${p} ${SANS};border:1px solid var(--border2);background:var(--surface);color:var(--text2)`;
 }
 
-/** O botão "⋯" que abre o menu de ações de uma linha. */
-export const BOTAO_MENU = `width:30px;height:30px;border-radius:8px;color:var(--muted);font:700 14px/1 ${MONO}`;
+/** The "⋯" button that opens a row's action menu. */
+export const MENU_BUTTON = `width:30px;height:30px;border-radius:8px;color:var(--muted);font:700 14px/1 ${MONO}`;
 
 /* -------------------------------------------------------------------------- */
-/* Menu de ações                                                               */
+/* Action menu                                                                 */
 /* -------------------------------------------------------------------------- */
 
 /**
- * O painel do menu. Sem `position`/`top`/`left`: quem posiciona é o Floating UI
- * dentro de `MenuAcoes`, e o estilo dele é aplicado por cima deste.
+ * The menu panel. No `position`/`top`/`left`: Floating UI does the positioning
+ * inside `ActionsMenu`, and its style is applied on top of this one.
  */
-export const PAINEL_MENU =
+export const MENU_PANEL =
   "z-index:70;background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
   "box-shadow:var(--shadow-lg);padding:6px;display:flex;flex-direction:column;overflow-y:auto";
 
-export const ITEM_MENU =
+export const MENU_ITEM =
   `display:block;width:100%;padding:10px 11px;border-radius:8px;text-align:left;` +
   `font:500 13px ${SANS};color:var(--text2);white-space:nowrap`;
 
-/** A variante colorida — a ação destrutiva, ou a que exige atenção. */
-export function itemMenuDestaque(cor: string): string {
+/** The colored variant — the destructive action, or the one that needs care. */
+export function highlightedMenuItem(color: string): string {
   return (
     `display:block;width:100%;padding:10px 11px;border-radius:8px;text-align:left;` +
-    `font:600 13px ${SANS};color:${cor};white-space:nowrap`
+    `font:600 13px ${SANS};color:${color};white-space:nowrap`
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Campos                                                                      */
+/* Fields                                                                      */
 /* -------------------------------------------------------------------------- */
 
 /**
- * A borda, o raio e a altura dos campos vivem na classe `.campo` do
- * `tokens.css`, e não aqui: é o que garante que input, select e textarea fiquem
- * idênticos, inclusive nos estados de foco e desabilitado. Estes auxiliares
- * cobrem só o que é variação de tamanho ou de erro.
+ * The border, radius and height of the fields live in the `.field` class in
+ * `tokens.css`, not here: that is what keeps input, select and textarea
+ * identical, focus and disabled states included. These helpers cover only what
+ * varies by size or by error.
  */
 
-/** Campo de formulário mais alto, do corpo dos modais. */
-export function campo(erro = false, forte = false): string {
+/** The taller form field used in the body of the modals. */
+export function field(error = false, strong = false): string {
   return (
-    `width:100%;padding:13px 14px;border:1.5px solid ${erro ? "var(--danger)" : "var(--border2)"};` +
-    `border-radius:11px;background:var(--surface2);font:${forte ? "600" : "500"} 13.5px ${SANS};` +
+    `width:100%;padding:13px 14px;border:1.5px solid ${error ? "var(--danger)" : "var(--border2)"};` +
+    `border-radius:11px;background:var(--surface2);font:${strong ? "600" : "500"} 13.5px ${SANS};` +
     "color:var(--text);outline:none"
   );
 }
 
-export const ROTULO_CAMPO = `display:block;margin-bottom:6px;font:600 11px ${SANS};color:var(--text2)`;
+export const FIELD_LABEL = `display:block;margin-bottom:6px;font:600 11px ${SANS};color:var(--text2)`;
 
 /* -------------------------------------------------------------------------- */
-/* Filtros                                                                     */
+/* Filters                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/** Pílula de filtro, dentro de um grupo com fundo próprio. */
-export function pilula(ativo: boolean, tamanho: "sm" | "md" = "md"): string {
+/** A filter pill, inside a group with a background of its own. */
+export function pill(active: boolean, size: "sm" | "md" = "md"): string {
   const p =
-    tamanho === "sm" ? "padding:7px 13px;border-radius:7px" : "padding:9px 14px;border-radius:9px";
+    size === "sm" ? "padding:7px 13px;border-radius:7px" : "padding:9px 14px;border-radius:9px";
   return (
-    `${p};font:${ativo ? "700" : "500"} 12.5px ${SANS};` +
-    (ativo
+    `${p};font:${active ? "700" : "500"} 12.5px ${SANS};` +
+    (active
       ? "background:var(--surface);color:var(--accent);box-shadow:var(--shadow)"
       : "background:transparent;color:var(--muted)")
   );
 }
 
-export const GRUPO_PILULAS =
+export const PILL_GROUP =
   "display:flex;gap:3px;padding:3px;border:1px solid var(--border);border-radius:11px;" +
   "background:var(--surface2);flex-wrap:wrap";
 
-/** Pílula solta, sem grupo — a barra de filtros das listas longas. */
-export function chip(ativo: boolean, tamanho: "sm" | "md" = "sm"): string {
+/** A loose pill, with no group — the filter bar of the long lists. */
+export function chip(active: boolean, size: "sm" | "md" = "sm"): string {
   const base =
-    tamanho === "sm"
+    size === "sm"
       ? "font-size:11.5px;font-weight:500;padding:6px 11px;"
       : "font-size:12px;font-weight:500;padding:7px 12px;";
   return (
     base +
     "border-radius:99px;" +
-    (ativo
+    (active
       ? "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);"
       : "border:1px solid var(--border);background:var(--surface);color:var(--muted);")
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Interruptor                                                                 */
+/* Switch                                                                      */
 /* -------------------------------------------------------------------------- */
 
-/** A trilha. `ligado` decide a cor e para que lado a bolinha vai. */
-export function trilha(ligado: boolean, largura = 38, altura = 22): string {
+/** The track. `on` decides the color and which way the knob sits. */
+export function track(on: boolean, width = 38, height = 22): string {
   return (
-    `flex:none;width:${largura}px;height:${altura}px;border-radius:999px;` +
-    `background:${ligado ? "var(--accent)" : "var(--border2)"};display:flex;align-items:center;` +
-    `padding:2px;justify-content:${ligado ? "flex-end" : "flex-start"};transition:background .2s ease`
+    `flex:none;width:${width}px;height:${height}px;border-radius:999px;` +
+    `background:${on ? "var(--accent)" : "var(--border2)"};display:flex;align-items:center;` +
+    `padding:2px;justify-content:${on ? "flex-end" : "flex-start"};transition:background .2s ease`
   );
 }
 
 /* -------------------------------------------------------------------------- */
-/* Tipografia e estados                                                        */
+/* Typography and states                                                       */
 /* -------------------------------------------------------------------------- */
 
-export const TITULO_TELA = `margin:0;font:700 22px/1.2 ${SANS};letter-spacing:-.015em`;
-export const SUB_TELA = `margin:5px 0 0;font:400 13.5px/1.45 ${SANS};color:var(--muted)`;
-export const TITULO_PAINEL = `margin:0;font:600 15px/1.2 ${SANS}`;
+export const SCREEN_TITLE = `margin:0;font:700 22px/1.2 ${SANS};letter-spacing:-.015em`;
+export const SCREEN_SUBTITLE = `margin:5px 0 0;font:400 13.5px/1.45 ${SANS};color:var(--muted)`;
+export const PANEL_TITLE = `margin:0;font:600 15px/1.2 ${SANS}`;
 
-/** Números que se comparam ficam alinhados: tabular-nums em tudo que é dinheiro. */
+/** Numbers that get compared stay aligned: tabular-nums on everything monetary. */
 export const NUM = "font-variant-numeric:tabular-nums";
 
-export const ROTULO_KPI =
+export const KPI_LABEL =
   `font:600 10.5px ${MONO};letter-spacing:.1em;text-transform:uppercase;color:var(--muted)`;
 
-/** Estado vazio: um título, uma explicação e — quando houver — o próximo passo. */
-export const CAIXA_VAZIA =
+/** Empty state: a title, an explanation and — when there is one — the next step. */
+export const EMPTY_BOX =
   "display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;" +
   "padding:38px 20px;border:1px dashed var(--border2);border-radius:13px;background:var(--surface2)";
 
-/** Grade de indicadores colados por 1px de borda, como no design. */
-export function faixaKpis(colunas: string): string {
+/** A grid of indicators glued by 1px of border, as in the design. */
+export function kpiStrip(columns: string): string {
   return (
-    `display:grid;grid-template-columns:${colunas};gap:1px;background:var(--border);` +
+    `display:grid;grid-template-columns:${columns};gap:1px;background:var(--border);` +
     "border:1px solid var(--border);border-radius:14px;overflow:hidden"
   );
 }
 
-/** Até duas iniciais, ignorando pontuação e dígitos. */
-export function iniciais(nome: string): string {
-  return nome
+/** Up to two initials, ignoring punctuation and digits. */
+export function initials(name: string): string {
+  return name
     .replace(/[^A-Za-zÀ-ú ]/g, " ")
     .split(" ")
     .filter(Boolean)

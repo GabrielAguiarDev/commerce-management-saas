@@ -1,130 +1,130 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AUTOR_DB, STATUS_DB } from "@/lib/dados/chamados";
-import { exigirCliente, type ResultadoAcao } from "@/lib/sessao";
+import { AUTHOR_DB, STATUS_DB } from "@/lib/dados/chamados";
+import { requireCustomer, type ActionResult } from "@/lib/sessao";
 
 /** Abre um chamado com a primeira mensagem já dentro. */
-export async function abrirChamado(dados: {
-  assunto: string;
-  categoria: string;
-  descricao: string;
-  anexo: string;
-}): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("abrir um chamado");
-  if (!sessao.ok) return sessao;
+export async function openTicket(data: {
+  subject: string;
+  category: string;
+  description: string;
+  attachment: string;
+}): Promise<ActionResult> {
+  const session = await requireCustomer("abrir um chamado");
+  if (!session.ok) return session;
 
-  if (dados.assunto.trim().length < 5) {
-    return { ok: false, mensagem: "Escreva um assunto com pelo menos 5 letras." };
+  if (data.subject.trim().length < 5) {
+    return { ok: false, message: "Escreva um assunto com pelo menos 5 letras." };
   }
-  if (dados.descricao.trim().length < 15) {
-    return { ok: false, mensagem: "Conte com um pouco mais de detalhe — ajuda a resolver mais rápido." };
+  if (data.description.trim().length < 15) {
+    return { ok: false, message: "Conte com um pouco mais de detalhe — ajuda a resolver mais rápido." };
   }
 
-  const { supabase, tenantId, usuarioId } = sessao;
-  const agora = new Date().toISOString();
+  const { supabase, tenantId, userId } = session;
+  const now = new Date().toISOString();
 
-  const { data: chamado, error } = await supabase
+  const { data: ticket, error } = await supabase
     .from("support_tickets")
     .insert({
       tenant_id: tenantId,
-      opened_by: usuarioId,
-      subject: dados.assunto.trim(),
-      category: dados.categoria,
-      status: STATUS_DB.aberto,
-      last_message_at: agora,
+      opened_by: userId,
+      subject: data.subject.trim(),
+      category: data.category,
+      status: STATUS_DB.open,
+      last_message_at: now,
     })
     .select("id")
     .single();
 
-  if (error || !chamado) {
-    return { ok: false, mensagem: error?.message ?? "Não foi possível abrir o chamado." };
+  if (error || !ticket) {
+    return { ok: false, message: error?.message ?? "Não foi possível abrir o chamado." };
   }
 
   const { error: erroMsg } = await supabase.from("support_messages").insert({
-    ticket_id: chamado.id,
+    ticket_id: ticket.id,
     tenant_id: tenantId,
-    sender_id: usuarioId,
-    sender_side: AUTOR_DB.cliente,
-    body: dados.descricao.trim(),
-    attachment_url: dados.anexo || null,
+    sender_id: userId,
+    sender_side: AUTHOR_DB.customer,
+    body: data.description.trim(),
+    attachment_url: data.attachment || null,
     // A mensagem é DO cliente: quem ainda não leu é o suporte.
     read_by_recipient: false,
   });
 
-  if (erroMsg) return { ok: false, mensagem: erroMsg.message };
+  if (erroMsg) return { ok: false, message: erroMsg.message };
 
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 /** Responder devolve a bola: o chamado sai de "aguardando você". */
-export async function responderChamado(
+export async function replyToTicket(
   chamadoId: string,
-  texto: string,
-  anexo: string,
-): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("responder um chamado");
-  if (!sessao.ok) return sessao;
+  text: string,
+  attachment: string,
+): Promise<ActionResult> {
+  const session = await requireCustomer("responder um chamado");
+  if (!session.ok) return session;
 
-  if (!texto.trim()) return { ok: false, mensagem: "Escreva a sua resposta." };
+  if (!text.trim()) return { ok: false, message: "Escreva a sua resposta." };
 
-  const { supabase, tenantId, usuarioId } = sessao;
-  const agora = new Date().toISOString();
+  const { supabase, tenantId, userId } = session;
+  const now = new Date().toISOString();
 
   const { error } = await supabase.from("support_messages").insert({
     ticket_id: chamadoId,
     tenant_id: tenantId,
-    sender_id: usuarioId,
-    sender_side: AUTOR_DB.cliente,
-    body: texto.trim(),
-    attachment_url: anexo || null,
+    sender_id: userId,
+    sender_side: AUTHOR_DB.customer,
+    body: text.trim(),
+    attachment_url: attachment || null,
     read_by_recipient: false,
   });
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   await supabase
     .from("support_tickets")
-    .update({ status: STATUS_DB.andamento, last_message_at: agora })
+    .update({ status: STATUS_DB.inProgress, last_message_at: now })
     .eq("id", chamadoId)
-    .eq("status", STATUS_DB.aguardando);
+    .eq("status", STATUS_DB.waiting);
 
   await supabase
     .from("support_tickets")
-    .update({ last_message_at: agora })
+    .update({ last_message_at: now })
     .eq("id", chamadoId);
 
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
-export async function mudarStatusChamado(
+export async function setTicketStatus(
   chamadoId: string,
-  status: "resolvido" | "andamento",
-): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("mudar o status de um chamado");
-  if (!sessao.ok) return sessao;
+  status: "resolved" | "inProgress",
+): Promise<ActionResult> {
+  const session = await requireCustomer("mudar o status de um chamado");
+  if (!session.ok) return session;
 
-  const { supabase, tenantId, usuarioId } = sessao;
-  const agora = new Date().toISOString();
+  const { supabase, tenantId, userId } = session;
+  const now = new Date().toISOString();
 
   const { error } = await supabase
     .from("support_tickets")
-    .update({ status: STATUS_DB[status], last_message_at: agora })
+    .update({ status: STATUS_DB[status], last_message_at: now })
     .eq("id", chamadoId);
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   // O registro de "resolvido"/"reaberto" é uma mensagem de sistema, para a
   // conversa continuar contando a história inteira sozinha.
   await supabase.from("support_messages").insert({
     ticket_id: chamadoId,
     tenant_id: tenantId,
-    sender_id: usuarioId,
-    sender_side: AUTOR_DB.sistema,
+    sender_id: userId,
+    sender_side: AUTHOR_DB.system,
     body:
-      status === "resolvido"
+      status === "resolved"
         ? "Chamado marcado como resolvido por você."
         : "Chamado reaberto por você.",
     read_by_recipient: true,
@@ -135,18 +135,18 @@ export async function mudarStatusChamado(
 }
 
 /** Abrir a conversa já conta como ler: o selo "nova resposta" some. */
-export async function marcarChamadoLido(chamadoId: string): Promise<ResultadoAcao> {
-  const sessao = await exigirCliente("abrir um chamado");
-  if (!sessao.ok) return sessao;
+export async function markTicketRead(chamadoId: string): Promise<ActionResult> {
+  const session = await requireCustomer("abrir um chamado");
+  if (!session.ok) return session;
 
-  const { error } = await sessao.supabase
+  const { error } = await session.supabase
     .from("support_messages")
     .update({ read_by_recipient: true })
     .eq("ticket_id", chamadoId)
-    .eq("sender_side", AUTOR_DB.suporte)
+    .eq("sender_side", AUTHOR_DB.support)
     .eq("read_by_recipient", false);
 
-  if (error) return { ok: false, mensagem: error.message };
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/", "layout");
   return { ok: true };

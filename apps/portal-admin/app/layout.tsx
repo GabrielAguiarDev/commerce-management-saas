@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { AdminProvider } from "@/components/AdminProvider";
 import { AdminShell } from "@/components/AdminShell";
-import { listarChamados } from "@/lib/chamados";
-import { listarClientes } from "@/lib/clientes";
-import { listarConfiguracoes } from "@/lib/configuracoes";
-import { listarModulos } from "@/lib/modulos";
-import { listarFinanceiro } from "@/lib/pagamentos";
-import { perfilAtual } from "@/lib/perfil";
-import { listarPlanos } from "@/lib/planosBanco";
+import { listTickets } from "@/lib/chamados";
+import { listCustomers } from "@/lib/clientes";
+import { listSettings } from "@/lib/configuracoes";
+import { listModules } from "@/lib/modulos";
+import { listBilling } from "@/lib/pagamentos";
+import { currentProfile } from "@/lib/perfil";
+import { listPlans } from "@/lib/planosBanco";
 import "./globals.css";
 
 /**
@@ -58,46 +58,46 @@ export default async function RootLayout({
   // `listarPlanos` fica de fora do bloco porque `listarModulos` DEPENDE dela:
   // "disponível em" é derivado de `plans.module_keys`. As duas leituras juntas
   // ainda são mais rápidas do que a cascata inteira em série.
-  const { planos, erro: erroPlanos } = await listarPlanos();
+  const { plans, error: plansError } = await listPlans();
 
   const [
-    { clientes, erro },
-    { chamados, erro: erroChamados },
-    { modulos, erro: erroModulos },
-    { pagamentos, receita, erro: erroFinanceiro },
-    { config, erro: erroConfig },
+    { customers, error },
+    { tickets, error: ticketsError },
+    { modules, error: modulesError },
+    { payments, revenue, error: billingError },
+    { settings, error: settingsError },
     perfil,
   ] = await Promise.all([
-    listarClientes(),
-    listarChamados(),
-    listarModulos(planos),
-    listarFinanceiro(),
-    listarConfiguracoes(),
-    perfilAtual(),
+    listCustomers(),
+    listTickets(),
+    listModules(plans),
+    listBilling(),
+    listSettings(),
+    currentProfile(),
   ]);
 
   return (
     <html lang="pt-BR" className={`${sans.variable} ${mono.variable} h-full`}>
       {/* `data-tema` is flipped client-side by the console; seeding it here
           keeps the server markup and the first client paint in agreement. */}
-      <body data-tema="claro">
+      <body data-theme="light">
         {/* The session lives above the router, so filters, drafts, theme and
             language survive moving between routes. */}
         <AdminProvider
-          clientesIniciais={clientes}
-          erroClientes={erro}
-          chamadosIniciais={chamados}
-          erroChamados={erroChamados}
-          modulosIniciais={modulos}
-          erroModulos={erroModulos}
-          planosIniciais={planos}
-          erroPlanos={erroPlanos}
-          pagamentosIniciais={pagamentos}
-          receitaInicial={receita}
-          erroFinanceiro={erroFinanceiro}
-          configIniciais={config}
-          erroConfig={erroConfig}
-          adminNome={perfil?.nome ?? perfil?.email ?? null}
+          initialCustomers={customers}
+          customersError={error}
+          initialTickets={tickets}
+          ticketsError={ticketsError}
+          initialModules={modules}
+          modulesError={modulesError}
+          initialPlans={plans}
+          plansError={plansError}
+          initialPayments={payments}
+          initialRevenue={revenue}
+          billingError={billingError}
+          initialSettings={settings}
+          settingsError={settingsError}
+          adminName={perfil?.name ?? perfil?.email ?? null}
         >
           <AdminShell>{children}</AdminShell>
         </AdminProvider>

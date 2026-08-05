@@ -1,4 +1,4 @@
-import type { Cliente, Pagamento, StatusPagamento } from "@/types/types";
+import type { Customer, Payment, PaymentStatus } from "@/types/types";
 
 /**
  * Amounts are stored the way they are displayed ("R$ 89,00"), so every
@@ -9,7 +9,7 @@ export function num(v: string): number {
   return (parseInt(String(v).replace(/\D/g, ""), 10) || 0) / 100;
 }
 
-export function fmtDin(v: number): string {
+export function formatCash(v: number): string {
   return "R$ " + Math.round(v).toLocaleString("pt-BR");
 }
 
@@ -21,51 +21,51 @@ export function fmtDin(v: number): string {
  * plano novo com preço zero seria contado como receita, e um "free" pago (um
  * cliente legado com valor negociado) sumiria da conta. O valor é o fato.
  */
-export function ehCobravel(c: Cliente): boolean {
-  return num(c.valor) > 0;
+export function isBillable(c: Customer): boolean {
+  return num(c.amount) > 0;
 }
 
 /** Clientes que contribuem com receita. */
-export function cobraveis(cs: Cliente[]): Cliente[] {
-  return cs.filter(ehCobravel);
+export function billable(cs: Customer[]): Customer[] {
+  return cs.filter(isBillable);
 }
 
-export function calcMrr(cs: Cliente[]): number {
-  return cobraveis(cs).reduce((a, x) => a + num(x.valor), 0);
+export function computeMrr(cs: Customer[]): number {
+  return billable(cs).reduce((a, x) => a + num(x.amount), 0);
 }
 
-export function fmtMrr(mrr: number): string {
+export function formatMrr(mrr: number): string {
   return (
     "R$ " + mrr.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
   );
 }
 
-const SEM_PAGAMENTO: Pagamento = {
+const NO_PAYMENT: Payment = {
   status: "pendente",
-  ultimo: "—",
+  latest: "—",
   vencimento: "—",
   hist: [],
 };
 
 /** Payment record for a customer, defaulting to "never billed". */
-export function infoPag(pagamentos: Record<string, Pagamento>, id: string): Pagamento {
-  return pagamentos[id] ?? SEM_PAGAMENTO;
+export function paymentInfo(payments: Record<string, Payment>, id: string): Payment {
+  return payments[id] ?? NO_PAYMENT;
 }
 
-export function somaPorStatus(
-  cs: Cliente[],
-  pagamentos: Record<string, Pagamento>,
-  status: StatusPagamento,
+export function sumByStatus(
+  cs: Customer[],
+  payments: Record<string, Payment>,
+  status: PaymentStatus,
 ): number {
-  return cobraveis(cs)
-    .filter((x) => infoPag(pagamentos, x.id).status === status)
-    .reduce((a, x) => a + num(x.valor), 0);
+  return billable(cs)
+    .filter((x) => paymentInfo(payments, x.id).status === status)
+    .reduce((a, x) => a + num(x.amount), 0);
 }
 
-export function contaPorStatus(
-  cs: Cliente[],
-  pagamentos: Record<string, Pagamento>,
-  status: StatusPagamento,
+export function countByStatus(
+  cs: Customer[],
+  payments: Record<string, Payment>,
+  status: PaymentStatus,
 ): number {
-  return cobraveis(cs).filter((x) => infoPag(pagamentos, x.id).status === status).length;
+  return billable(cs).filter((x) => paymentInfo(payments, x.id).status === status).length;
 }

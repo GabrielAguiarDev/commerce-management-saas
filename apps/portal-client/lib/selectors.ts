@@ -1,10 +1,10 @@
-import { esperadoEmDinheiro, saldoMovs } from "@/lib/dados/caixa";
-import { rateioFixo } from "@/lib/dados/custos";
-import { estoqueBaixo } from "@/lib/dados/produtos";
-import { FORMAS } from "@/lib/dados/vendas";
+import { expectedInCash, movementsBalance } from "@/lib/dados/caixa";
+import { fixedShare } from "@/lib/dados/custos";
+import { lowStock } from "@/lib/dados/produtos";
+import { METHODS } from "@/lib/dados/vendas";
 import { qtdV, totalV } from "@/lib/formato";
-import type { DadosPortal, PeriodoRel } from "@/types/estado";
-import type { Custo, FormaPagamento, Produto, Venda } from "@/types/types";
+import type { PortalData, ReportPeriod } from "@/types/estado";
+import type { Cost, PaymentMethod, Product, Sale } from "@/types/types";
 
 /**
  * As contas que mais de uma tela precisa. Ficam aqui, e não dentro de cada
@@ -13,43 +13,43 @@ import type { Custo, FormaPagamento, Produto, Venda } from "@/types/types";
  */
 
 /** Vendas que contam dinheiro: estorno fica no histórico, fora do faturamento. */
-export function valida(v: Venda): boolean {
-  return !v.estornada;
+export function isValidSale(v: Sale): boolean {
+  return !v.refunded;
 }
 
-export function vendasNoPeriodo(vendas: Venda[], dias: number): Venda[] {
-  return vendas.filter((v) => valida(v) && v.d < dias);
+export function salesInPeriod(sales: Sale[], days: number): Sale[] {
+  return sales.filter((v) => isValidSale(v) && v.d < days);
 }
 
-export function faturamento(vendas: Venda[]): number {
-  return vendas.filter(valida).reduce((a, v) => a + totalV(v), 0);
+export function totalRevenue(sales: Sale[]): number {
+  return sales.filter(isValidSale).reduce((a, v) => a + totalV(v), 0);
 }
 
-export function itensVendidos(vendas: Venda[]): number {
-  return vendas.filter(valida).reduce((a, v) => a + qtdV(v), 0);
+export function itemsSold(sales: Sale[]): number {
+  return sales.filter(isValidSale).reduce((a, v) => a + qtdV(v), 0);
 }
 
 /** Custo de mercadoria do que saiu — é o que separa faturamento de lucro. */
-export function custoDasVendas(vendas: Venda[], produtos: Produto[]): number {
-  const porNome = new Map(produtos.map((p) => [p.nome, p.custo]));
-  return vendas
-    .filter(valida)
-    .reduce((a, v) => a + v.itens.reduce((b, i) => b + (porNome.get(i.nome) ?? 0) * i.qtd, 0), 0);
+export function costOfSales(sales: Sale[], products: Product[]): number {
+  const byName = new Map(products.map((p) => [p.name, p.cost]));
+  return sales
+    .filter(isValidSale)
+    .reduce((a, v) => a + v.items.reduce((b, i) => b + (byName.get(i.name) ?? 0) * i.qtd, 0), 0);
 }
 
-export function custosNoPeriodo(custos: Custo[], dias: number): Custo[] {
-  return custos.filter((c) => c.d < dias);
+export function costsInPeriod(costs: Cost[], days: number): Cost[] {
+  return costs.filter((c) => c.d < days);
 }
 
 /**
  * Total de custos de um período: os variáveis entram pelo valor lançado, os
  * fixos entram rateados — ver `rateioFixo`.
  */
-export function totalCustos(custos: Custo[], dias: number): number {
-  const variaveis = custos
-    .filter((c) => c.tipo === "variavel" && c.d < dias)
-    .reduce((a, c) => a + c.valor, 0);
-  return variaveis + rateioFixo(custos, dias);
+export function costsTotal(costs: Cost[], days: number): number {
+  const variable = costs
+    .filter((c) => c.type === "variable" && c.d < days)
+    .reduce((a, c) => a + c.amount, 0);
+  return variable + fixedShare(costs, days);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -63,18 +63,18 @@ export function totalCustos(custos: Custo[], dias: number): number {
  * venda corrige o esperado do fechamento sozinho, que era exatamente o bug
  * relatado no chamado 1046.
  */
-export function vendasDoTurno(d: DadosPortal): Partial<Record<FormaPagamento, number>> {
-  const out: Partial<Record<FormaPagamento, number>> = {};
-  for (const f of FORMAS) out[f] = 0;
+export function salesInShift(d: PortalData): Partial<Record<PaymentMethod, number>> {
+  const out: Partial<Record<PaymentMethod, number>> = {};
+  for (const f of METHODS) out[f] = 0;
 
   // A janela é a do turno, não o dia: quem abre o caixa às 18h não deve ver as
   // vendas da manhã caindo na gaveta que acabou de contar.
-  const desde = d.caixaAberto ? new Date(d.caixaAberto.abertoEm).getTime() : null;
+  const since = d.openRegister ? new Date(d.openRegister.openedAtStamp).getTime() : null;
 
-  for (const v of d.vendas) {
-    if (!valida(v)) continue;
-    if (desde == null ? v.d !== 0 : new Date(v.quando).getTime() < desde) continue;
-    out[v.pag] = (out[v.pag] ?? 0) + totalV(v);
+  for (const v of d.sales) {
+    if (!isValidSale(v)) continue;
+    if (since == null ? v.d !== 0 : new Date(v.at).getTime() < since) continue;
+    out[v.payment] = (out[v.payment] ?? 0) + totalV(v);
   }
   return out;
 }
@@ -85,70 +85,70 @@ export function vendasDoTurno(d: DadosPortal): Partial<Record<FormaPagamento, nu
  * Só o dinheiro acumula troco e movimentações da gaveta — Pix e cartão caem na
  * conta, então o esperado deles é a soma das vendas e nada mais.
  */
-export function esperadoDoTurno(d: DadosPortal): Record<FormaPagamento, number> {
-  const vendas = vendasDoTurno(d);
+export function expectedInShift(d: PortalData): Record<PaymentMethod, number> {
+  const sales = salesInShift(d);
   const base = {
-    Dinheiro: vendas.Dinheiro ?? 0,
-    Pix: vendas.Pix ?? 0,
-    Débito: vendas.Débito ?? 0,
-    Crédito: vendas.Crédito ?? 0,
+    cash: sales.cash ?? 0,
+    pix: sales.pix ?? 0,
+    debit: sales.debit ?? 0,
+    credit: sales.credit ?? 0,
   };
-  const cx = d.caixaAberto;
+  const cx = d.openRegister;
   if (!cx) return base;
-  return { ...base, Dinheiro: esperadoEmDinheiro(cx.inicial, base.Dinheiro, cx.movs) };
+  return { ...base, cash: expectedInCash(cx.opening, base.cash, cx.movements) };
 }
 
 /** Dinheiro que está fisicamente na gaveta: troco + vendas em espécie ± movimentações. */
-export function dinheiroNaGaveta(d: DadosPortal): number {
-  const cx = d.caixaAberto;
+export function cashInDrawer(d: PortalData): number {
+  const cx = d.openRegister;
   if (!cx) return 0;
-  return cx.inicial + (vendasDoTurno(d).Dinheiro ?? 0) + saldoMovs(cx.movs);
+  return cx.opening + (salesInShift(d).cash ?? 0) + movementsBalance(cx.movements);
 }
 
 /* -------------------------------------------------------------------------- */
 /* Estoque                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export function produtosEmFalta(produtos: Produto[]): Produto[] {
-  return produtos.filter((p) => p.ativo && estoqueBaixo(p));
+export function productsOutOfStock(products: Product[]): Product[] {
+  return products.filter((p) => p.active && lowStock(p));
 }
 
 /** Quanto dinheiro está parado na prateleira, a preço de custo. */
-export function valorDoEstoque(produtos: Produto[]): number {
-  return produtos.reduce((a, p) => a + (p.estoque ?? 0) * p.custo, 0);
+export function stockValue(products: Product[]): number {
+  return products.reduce((a, p) => a + (p.stock ?? 0) * p.cost, 0);
 }
 
 /* -------------------------------------------------------------------------- */
 /* Períodos                                                                    */
 /* -------------------------------------------------------------------------- */
 
-export const DIAS_PERIODO: Record<PeriodoRel, number> = {
-  hoje: 1,
+export const PERIOD_DAYS: Record<ReportPeriod, number> = {
+  today: 1,
   "7": 7,
   "30": 30,
   "90": 90,
 };
 
-export const NOME_PERIODO: Record<PeriodoRel, string> = {
-  hoje: "Hoje",
+export const PERIOD_NAME: Record<ReportPeriod, string> = {
+  today: "Hoje",
   "7": "7 dias",
   "30": "30 dias",
   "90": "90 dias",
 };
 
 /** "os 30 dias anteriores" — o rótulo do comparativo dos Relatórios. */
-export function nomePeriodoAnterior(p: PeriodoRel): string {
-  return p === "hoje" ? "ontem" : `os ${DIAS_PERIODO[p]} dias anteriores`;
+export function previousPeriodName(p: ReportPeriod): string {
+  return p === "today" ? "ontem" : `os ${PERIOD_DAYS[p]} dias anteriores`;
 }
 
 /** Variação percentual, protegida contra divisão por zero. */
-export function variacao(atual: number, anterior: number): number | null {
-  if (anterior === 0) return atual === 0 ? 0 : null;
-  return ((atual - anterior) / anterior) * 100;
+export function change(current: number, previous: number): number | null {
+  if (previous === 0) return current === 0 ? 0 : null;
+  return ((current - previous) / previous) * 100;
 }
 
-export function textoVariacao(v: number | null): string {
+export function changeText(v: number | null): string {
   if (v == null) return "sem base de comparação";
-  const sinal = v > 0 ? "+" : "";
-  return `${sinal}${v.toFixed(0)}%`;
+  const sign = v > 0 ? "+" : "";
+  return `${sign}${v.toFixed(0)}%`;
 }

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Chamado, Mensagem, Prioridade, StatusChamado } from "@/types/types";
+import type { Ticket, Message, Priority, TicketStatus } from "@/types/types";
 
 /**
  * Leitura dos chamados de suporte reais (`support_tickets` + `support_messages`).
@@ -17,21 +17,21 @@ import type { Chamado, Mensagem, Prioridade, StatusChamado } from "@/types/types
  * tela. Ver `PARA_ESCRITA` em `app/suporte/actions.ts` para o caminho inverso.
  */
 
-interface LinhaMensagem {
+interface MessageRow {
   id: string;
   sender_side: string | null;
   body: string | null;
   created_at: string | null;
 }
 
-interface LinhaChamado {
+interface TicketRow {
   id: string;
   tenant_id: string;
   subject: string | null;
   status: string | null;
   priority: string | null;
   created_at: string | null;
-  support_messages: LinhaMensagem[] | null;
+  support_messages: MessageRow[] | null;
 }
 
 const SELECT = `
@@ -45,7 +45,7 @@ const SELECT = `
 `;
 
 /** dd/mm/aaaa. Formatado no servidor, em UTC, para não divergir na hidratação. */
-function formatarData(iso: string | null): string {
+function formatDate(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
@@ -54,7 +54,7 @@ function formatarData(iso: string | null): string {
 }
 
 /** "24/07 · 09:05" — o carimbo curto que aparece dentro de cada balão. */
-function formatarQuando(iso: string | null): string {
+function formatWhen(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
@@ -62,22 +62,22 @@ function formatarQuando(iso: string | null): string {
   return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)} · ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
 }
 
-function paraStatus(v: string | null): StatusChamado {
+function paraStatus(v: string | null): TicketStatus {
   switch (v) {
     case "in_progress":
     case "pending":
-      return "andamento";
+      return "inProgress";
     case "resolved":
     case "closed":
-      return "resolvido";
+      return "resolved";
     // "open" e qualquer coisa que não reconheçamos: melhor aparecer como
     // aberto e chamar atenção do que ser tratado como resolvido por engano.
     default:
-      return "aberto";
+      return "open";
   }
 }
 
-function paraPrioridade(v: string | null): Prioridade {
+function toPriority(v: string | null): Priority {
   switch (v) {
     case "high":
     case "urgent":
@@ -90,43 +90,43 @@ function paraPrioridade(v: string | null): Prioridade {
   }
 }
 
-function paraMensagem(linha: LinhaMensagem): Mensagem {
+function toMessage(linha: MessageRow): Message {
   return {
     // Do lado do admin fica à direita; qualquer outro remetente é o cliente.
-    de: linha.sender_side === "admin" || linha.sender_side === "support" ? "admin" : "cliente",
+    from: linha.sender_side === "admin" || linha.sender_side === "support" ? "admin" : "customer",
     // Texto puro: veio do banco em um idioma só, e a interface já aceita
     // `string` além da forma traduzida (ver `Mensagem` em types/types.ts).
-    texto: linha.body ?? "",
-    quando: formatarQuando(linha.created_at),
+    text: linha.body ?? "",
+    at: formatWhen(linha.created_at),
   };
 }
 
-function paraChamado(linha: LinhaChamado): Chamado {
-  const assunto = linha.subject ?? "—";
+function toTicket(linha: TicketRow): Ticket {
+  const subject = linha.subject ?? "—";
   return {
     id: linha.id,
-    clienteId: linha.tenant_id,
+    customerId: linha.tenant_id,
     // O banco tem uma coluna só; a forma `Loc` fica de pé para quando houver
     // tradução real, repetindo o mesmo texto nos dois idiomas enquanto isso.
-    assunto: { pt: assunto, en: assunto },
+    subject: { pt: subject, en: subject },
     status: paraStatus(linha.status),
-    prioridade: paraPrioridade(linha.priority),
-    data: formatarData(linha.created_at),
-    msgs: (linha.support_messages ?? []).map(paraMensagem),
+    prioridade: toPriority(linha.priority),
+    data: formatDate(linha.created_at),
+    messages: (linha.support_messages ?? []).map(toMessage),
   };
 }
 
-export interface ResultadoChamados {
-  chamados: Chamado[];
+export interface TicketsResult {
+  tickets: Ticket[];
   /** Mensagem para a interface mostrar em vez de fingir que não há chamados. */
-  erro: string | null;
+  error: string | null;
 }
 
-export async function listarChamados(): Promise<ResultadoChamados> {
+export async function listTickets(): Promise<TicketsResult> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return {
-      chamados: [],
-      erro: "Supabase não configurado. Preencha o .env.local (veja .env.local.example) e reinicie o servidor.",
+      tickets: [],
+      error: "Supabase não configurado. Preencha o .env.local (veja .env.local.example) e reinicie o servidor.",
     };
   }
 
@@ -142,8 +142,8 @@ export async function listarChamados(): Promise<ResultadoChamados> {
 
   if (error) {
     console.error("[listarChamados] falha ao ler support_tickets:", error.message);
-    return { chamados: [], erro: `Não foi possível carregar os chamados: ${error.message}` };
+    return { tickets: [], error: `Não foi possível carregar os chamados: ${error.message}` };
   }
 
-  return { chamados: (data as unknown as LinhaChamado[]).map(paraChamado), erro: null };
+  return { tickets: (data as unknown as TicketRow[]).map(toTicket), error: null };
 }

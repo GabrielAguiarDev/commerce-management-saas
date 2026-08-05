@@ -12,37 +12,37 @@ import {
   type SyntheticEvent,
 } from "react";
 import {
-  atualizarCliente,
-  excluirCliente,
-  mudarStatusCliente,
+  updateCustomer,
+  deleteCustomer,
+  setCustomerStatus,
 } from "@/app/clientes/actions";
-import { marcarPago, reverterPago } from "@/app/financeiro/actions";
-import { criarPlano, excluirPlano, salvarModulo, salvarPlano } from "@/app/planos/actions";
+import { markPaid, undoPaid } from "@/app/financeiro/actions";
+import { createPlan, deletePlan, saveModule, savePlan } from "@/app/planos/actions";
 import { DIC } from "@/lib/dictionary";
-import { planosComCatalogo } from "@/lib/planos";
-import { ROTAS } from "@/lib/rotas";
-import { ESTADO_INICIAL, estaSujo } from "@/lib/state";
+import { plansWithCatalog } from "@/lib/planos";
+import { ROUTES } from "@/lib/rotas";
+import { INITIAL_STATE, isDirty } from "@/lib/state";
 import { createClient } from "@/lib/supabase/client";
 import type {
   AdminActions,
-  AdminOpcoes,
+  AdminOptions,
   AdminState,
-  Chamado,
-  Cliente,
-  ConfigItem,
-  Modulo,
-  Pagamento,
-  Plano,
-  ReceitaMes,
+  Ticket,
+  Customer,
+  SettingItem,
+  Module,
+  Payment,
+  Plan,
+  MonthlyRevenue,
   Patch,
-  Rascunho,
-  StatusCliente,
-  ToastEstado,
+  Draft,
+  CustomerStatus,
+  ToastState,
 } from "@/types/types";
 import type { ViewProps } from "@/types/viewProps";
 
-const PADROES: AdminOpcoes = {
-  mostrarEstadosVazios: false,
+const DEFAULTS: AdminOptions = {
+  showEmptyStates: false,
   mostrarPainelAtividade: true,
   colunasModulos: 3,
   mostrarValorMensal: true,
@@ -61,74 +61,74 @@ const Ctx = createContext<ViewProps | null>(null);
  */
 export function AdminProvider({
   children,
-  clientesIniciais = [],
-  erroClientes = null,
-  chamadosIniciais = [],
-  erroChamados = null,
-  modulosIniciais = [],
-  erroModulos = null,
-  planosIniciais = [],
-  erroPlanos = null,
-  pagamentosIniciais = {},
-  receitaInicial = [],
-  erroFinanceiro = null,
-  configIniciais = [],
-  erroConfig = null,
-  adminNome = null,
+  initialCustomers = [],
+  customersError = null,
+  initialTickets = [],
+  ticketsError = null,
+  initialModules = [],
+  modulesError = null,
+  initialPlans = [],
+  plansError = null,
+  initialPayments = {},
+  initialRevenue = [],
+  billingError = null,
+  initialSettings = [],
+  settingsError = null,
+  adminName = null,
   ...overrides
 }: {
   children: ReactNode;
   /** Clientes lidos do Supabase pelo layout (server component). */
-  clientesIniciais?: Cliente[];
-  erroClientes?: string | null;
+  initialCustomers?: Customer[];
+  customersError?: string | null;
   /** Chamados de suporte lidos do Supabase pelo layout (server component). */
-  chamadosIniciais?: Chamado[];
-  erroChamados?: string | null;
+  initialTickets?: Ticket[];
+  ticketsError?: string | null;
   /** Catálogo de módulos lido da tabela `modules` pelo layout. */
-  modulosIniciais?: Modulo[];
-  erroModulos?: string | null;
+  initialModules?: Module[];
+  modulesError?: string | null;
   /** Catálogo de planos lido da tabela `plans`. */
-  planosIniciais?: Plano[];
-  erroPlanos?: string | null;
+  initialPlans?: Plan[];
+  plansError?: string | null;
   /** Financeiro lido de `platform_payments`. */
-  pagamentosIniciais?: Record<string, Pagamento>;
-  receitaInicial?: ReceitaMes[];
-  erroFinanceiro?: string | null;
+  initialPayments?: Record<string, Payment>;
+  initialRevenue?: MonthlyRevenue[];
+  billingError?: string | null;
   /** Ajustes lidos de `platform_settings`. */
-  configIniciais?: ConfigItem[];
-  erroConfig?: string | null;
+  initialSettings?: SettingItem[];
+  settingsError?: string | null;
   /** Nome do admin logado, de `profiles.full_name`. */
-  adminNome?: string | null;
-} & Partial<AdminOpcoes>) {
+  adminName?: string | null;
+} & Partial<AdminOptions>) {
   const router = useRouter();
   // As mutações de cliente passam por Server Actions. `useTransition` segura a
   // interface responsiva enquanto a gravação acontece, sem um estado de
   // "salvando" inventado à mão.
-  const [, iniciarAcao] = useTransition();
+  const [, startAction] = useTransition();
   const [state, setState] = useState<AdminState>(() => ({
-    ...ESTADO_INICIAL,
-    clientes: clientesIniciais,
-    erroClientes,
-    chamados: chamadosIniciais,
-    erroChamados,
-    modulos: modulosIniciais,
-    erroModulos,
-    adminNome,
-    pagamentos: pagamentosIniciais,
-    receita: receitaInicial,
-    erroFinanceiro,
-    config: configIniciais,
-    erroConfig,
-    erroPlanos,
+    ...INITIAL_STATE,
+    customers: initialCustomers,
+    customersError,
+    tickets: initialTickets,
+    ticketsError,
+    modules: initialModules,
+    modulesError,
+    adminName,
+    payments: initialPayments,
+    revenue: initialRevenue,
+    billingError,
+    settings: initialSettings,
+    settingsError,
+    plansError,
     // O plano customizado inclui "todos os módulos", e só o banco sabe quais.
-    planos: planosComCatalogo(
-      planosIniciais,
-      modulosIniciais.map((m) => m.k),
+    plans: plansWithCatalog(
+      initialPlans,
+      initialModules.map((m) => m.k),
     ),
     // Sem semente: o chamado selecionado é o primeiro que veio do banco.
-    chamadoSel: chamadosIniciais[0]?.id ?? "",
+    chamadoSel: initialTickets[0]?.id ?? "",
   }));
-  const opts: AdminOpcoes = { ...PADROES, ...overrides };
+  const options: AdminOptions = { ...DEFAULTS, ...overrides };
 
   // ───────────────────────────────────────────────────────────────────
   // O servidor é a fonte da verdade dos clientes e dos chamados. Depois de um
@@ -145,53 +145,53 @@ export function AdminProvider({
   // chegam como arrays novos a cada render, e só os campos abaixo mudam por
   // fora. Sem isso, todo render reescreveria o estado.
   // ───────────────────────────────────────────────────────────────────
-  const assinatura =
-    clientesIniciais
-      .map((c) => `${c.id}:${c.status}:${c.plano}:${c.valor}:${c.mods.join(",")}`)
+  const signature =
+    initialCustomers
+      .map((c) => `${c.id}:${c.status}:${c.plan}:${c.amount}:${c.mods.join(",")}`)
       .join("|") +
-    `#${erroClientes ?? ""}` +
+    `#${customersError ?? ""}` +
     "@" +
-    chamadosIniciais.map((t) => `${t.id}:${t.status}:${t.msgs.length}`).join("|") +
-    `#${erroChamados ?? ""}` +
+    initialTickets.map((t) => `${t.id}:${t.status}:${t.messages.length}`).join("|") +
+    `#${ticketsError ?? ""}` +
     "@" +
-    modulosIniciais.map((m) => m.k).join("|") +
-    `#${erroModulos ?? ""}#${adminNome ?? ""}` +
+    initialModules.map((m) => m.k).join("|") +
+    `#${modulesError ?? ""}#${adminName ?? ""}` +
     "@" +
-    planosIniciais.map((p) => `${p.k}:${p.preco}:${p.mods.join(",")}`).join("|") +
+    initialPlans.map((p) => `${p.k}:${p.price}:${p.mods.join(",")}`).join("|") +
     "@" +
-    Object.entries(pagamentosIniciais)
-      .map(([k, v]) => `${k}:${v.status}:${v.ultimo}`)
+    Object.entries(initialPayments)
+      .map(([k, v]) => `${k}:${v.status}:${v.latest}`)
       .join("|") +
     "@" +
-    configIniciais.map((c) => `${c.id}:${String(c.valor)}`).join("|");
-  const [assinaturaAplicada, setAssinaturaAplicada] = useState(assinatura);
+    initialSettings.map((c) => `${c.id}:${String(c.value)}`).join("|");
+  const [appliedSignature, setAssinaturaAplicada] = useState(signature);
 
-  if (assinatura !== assinaturaAplicada) {
-    setAssinaturaAplicada(assinatura);
+  if (signature !== appliedSignature) {
+    setAssinaturaAplicada(signature);
     setState((prev) => ({
       ...prev,
-      clientes: clientesIniciais,
-      erroClientes,
-      chamados: chamadosIniciais,
-      erroChamados,
-      modulos: modulosIniciais,
-      erroModulos,
-      adminNome,
-      pagamentos: pagamentosIniciais,
-      receita: receitaInicial,
-      erroFinanceiro,
-      config: configIniciais,
-      erroConfig,
-      erroPlanos,
-      planos: planosComCatalogo(
-        planosIniciais,
-        modulosIniciais.map((m) => m.k),
+      customers: initialCustomers,
+      customersError,
+      tickets: initialTickets,
+      ticketsError,
+      modules: initialModules,
+      modulesError,
+      adminName,
+      payments: initialPayments,
+      revenue: initialRevenue,
+      billingError,
+      settings: initialSettings,
+      settingsError,
+      plansError,
+      plans: plansWithCatalog(
+        initialPlans,
+        initialModules.map((m) => m.k),
       ),
       // O chamado aberto pode ter deixado de existir; nesse caso volta para o
       // primeiro da lista em vez de deixar a tela sem conversa nenhuma.
-      chamadoSel: chamadosIniciais.some((t) => t.id === prev.chamadoSel)
+      chamadoSel: initialTickets.some((t) => t.id === prev.chamadoSel)
         ? prev.chamadoSel
-        : (chamadosIniciais[0]?.id ?? ""),
+        : (initialTickets[0]?.id ?? ""),
     }));
   }
 
@@ -210,49 +210,49 @@ export function AdminProvider({
     });
   }, []);
 
-  const L = DIC[state.idioma] || DIC.pt;
+  const L = DIC[state.language] || DIC.pt;
 
   const toast = useCallback(
-    (msg: string, tipo: ToastEstado["tipo"] = "ok") => {
+    (msg: string, type: ToastState["type"] = "ok") => {
       const id = "tt" + Date.now() + Math.round(Math.random() * 999);
-      set((s) => ({ toasts: [...s.toasts, { id, msg, tipo }] }));
+      set((s) => ({ toasts: [...s.toasts, { id, msg, type }] }));
       setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), 3800);
     },
     [set],
   );
 
-  const abrirModal = useCallback<AdminActions["abrirModal"]>(
-    (tipo, alvo = null, destino = null, mod = null) => {
+  const openModal = useCallback<AdminActions["openModal"]>(
+    (type, target = null, destination = null, mod = null) => {
       set({
-        modal: { tipo, alvo, destino, mod },
-        confirmacao: "",
-        menuLinha: null,
-        dica: null,
-        notifAberta: false,
+        modal: { type, target, destination, mod },
+        confirmation: "",
+        rowMenu: null,
+        hint: null,
+        notificationsOpen: false,
       });
     },
     [set],
   );
 
-  const fecharModal = useCallback(() => {
-    set({ modal: null, confirmacao: "", form: null });
+  const closeModal = useCallback(() => {
+    set({ modal: null, confirmation: "", form: null });
   }, [set]);
 
-  const editarRascunho = useCallback(
-    (fn: (r: Rascunho) => Rascunho) => {
-      set((s) => ({ rascunho: s.rascunho ? fn(s.rascunho) : s.rascunho }));
+  const editDraft = useCallback(
+    (fn: (r: Draft) => Draft) => {
+      set((s) => ({ draft: s.draft ? fn(s.draft) : s.draft }));
     },
     [set],
   );
 
-  const editarForm = useCallback(
-    (campo: "nome" | "preco" | "desc", valor: string) => {
-      set((s) => (s.form ? { form: { ...s.form, [campo]: valor } } : null));
+  const editForm = useCallback(
+    (field: "name" | "preco" | "desc", amount: string) => {
+      set((s) => (s.form ? { form: { ...s.form, [field]: amount } } : null));
     },
     [set],
   );
 
-  const alternarSel = useCallback(
+  const toggleSelected = useCallback(
     (v: string) => {
       set((s) =>
         s.form
@@ -270,30 +270,30 @@ export function AdminProvider({
     [set],
   );
 
-  const alternarTema = useCallback(() => {
-    set((s) => ({ tema: s.tema === "escuro" ? "claro" : "escuro" }));
+  const toggleTheme = useCallback(() => {
+    set((s) => ({ theme: s.theme === "dark" ? "light" : "dark" }));
   }, [set]);
 
-  const alternarIdioma = useCallback(() => {
-    set((s) => ({ idioma: s.idioma === "pt" ? "en" : "pt" }));
+  const toggleLanguage = useCallback(() => {
+    set((s) => ({ language: s.language === "pt" ? "en" : "pt" }));
   }, [set]);
 
-  const baixarCsv = useCallback((linhas: string[], nome: string) => {
+  const baixarCsv = useCallback((rows: string[], name: string) => {
     // A BOM keeps accented business names readable when the file lands in Excel.
-    const blob = new Blob(["﻿" + linhas.join("\n")], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["﻿" + rows.join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = nome;
+    a.download = name;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   }, []);
 
-  const novoRascunho = (id: string): Rascunho | null => {
-    const x = state.clientes.find((y) => y.id === id);
-    return x ? { id: x.id, plano: x.plano, mods: x.mods.slice(), valor: x.valor } : null;
+  const newDraft = (id: string): Draft | null => {
+    const x = state.customers.find((y) => y.id === id);
+    return x ? { id: x.id, plan: x.plan, mods: x.mods.slice(), amount: x.amount } : null;
   };
 
   /**
@@ -302,27 +302,27 @@ export function AdminProvider({
    * draft lives here rather than in the route, so it survives and is still
    * waiting when you come back.
    */
-  const ir = (href: string) => {
+  const goTo = (href: string) => {
     // Vale para os dois formulários longos do painel: a ficha do cliente e o
     // cadastro de um novo.
-    if (estaSujo(state) || state.novoClienteSujo) {
-      abrirModal("descartar", null, href);
+    if (isDirty(state) || state.newCustomerDirty) {
+      openModal("discard", null, href);
       return;
     }
     set({
-      menuLinha: null,
-      menuPag: null,
-      dica: null,
-      rascunho: null,
-      novoClienteSujo: false,
-      notifAberta: false,
+      rowMenu: null,
+      paymentMenu: null,
+      hint: null,
+      draft: null,
+      newCustomerDirty: false,
+      notificationsOpen: false,
     });
     router.push(href);
   };
 
-  const abrirCliente = (id: string) => {
-    set({ menuLinha: null, dica: null, notifAberta: false, rascunho: novoRascunho(id) });
-    router.push(`${ROTAS.clientes}/${id}`);
+  const openCustomer = (id: string) => {
+    set({ rowMenu: null, hint: null, notificationsOpen: false, draft: newDraft(id) });
+    router.push(`${ROUTES.customers}/${id}`);
   };
 
   /**
@@ -331,21 +331,21 @@ export function AdminProvider({
    * dispararia a cada render. Lê o estado pelo próprio updater, não pelo
    * closure, o que também o mantém correto sem depender de `state`.
    */
-  const garantirRascunho = useCallback(
+  const ensureDraft = useCallback(
     (id: string) => {
       set((s) => {
-        if (s.rascunho?.id === id) return null;
-        const x = s.clientes.find((y) => y.id === id);
+        if (s.draft?.id === id) return null;
+        const x = s.customers.find((y) => y.id === id);
         return x
-          ? { rascunho: { id: x.id, plano: x.plano, mods: x.mods.slice(), valor: x.valor } }
+          ? { draft: { id: x.id, plan: x.plan, mods: x.mods.slice(), amount: x.amount } }
           : null;
       });
     },
     [set],
   );
 
-  const descartarRascunho = () => {
-    if (state.rascunho) set({ rascunho: novoRascunho(state.rascunho.id) });
+  const discardDraft = () => {
+    if (state.draft) set({ draft: newDraft(state.draft.id) });
   };
 
   /**
@@ -357,16 +357,19 @@ export function AdminProvider({
    * o cliente salvo, `estaSujo` volta a ser falso sozinho — sem "limpar" o
    * formulário na mão e correr o risco de ele parecer salvo sem ter sido.
    */
-  const salvarRascunho = () => {
-    const r = state.rascunho;
-    if (!r || !estaSujo(state)) return;
-    iniciarAcao(async () => {
-      const res = await atualizarCliente(r.id, r.plano, r.valor, r.mods);
-      if (!res.ok) return toast(res.mensagem, "erro");
-      set({ ultimaAcao: L.salvoAgora });
-      toast(L.toastSalvo);
-      router.refresh();
-    });
+  const saveDraft = async () => {
+    const r = state.draft;
+    if (!r || !isDirty(state)) return;
+
+    // A gravação é esperada aqui, e não dentro da transição: é esta promessa
+    // que o `Button` da barra de ações usa para se travar e girar enquanto o
+    // servidor responde. A transição fica só com o `refresh`, que é o que ela
+    // sempre esteve segurando — o re-render com os dados relidos.
+    const res = await updateCustomer(r.id, r.plan, r.amount, r.mods);
+    if (!res.ok) return toast(res.message, "error");
+    set({ lastAction: L.salvoAgora });
+    toast(L.toastSalvo);
+    startAction(() => router.refresh());
   };
 
   /**
@@ -377,68 +380,66 @@ export function AdminProvider({
    * pelo plano de destino (lendo `plans` no servidor) em vez de simplesmente
    * trocar o rótulo e deixar o cliente com a composição do plano antigo.
    */
-  const moverClienteDePlano = (clienteId: string, novoPlano: string) => {
-    const x = state.clientes.find((y) => y.id === clienteId);
+  const moveCustomerToPlan = async (customerId: string, novoPlano: string) => {
+    const x = state.customers.find((y) => y.id === customerId);
     if (!x) return;
-    iniciarAcao(async () => {
-      // O valor só é usado quando o destino é sob medida; nos demais o preço
-      // vem de `plans.price`. Mandamos o atual para não perder o negociado.
-      const res = await atualizarCliente(clienteId, novoPlano, x.valor, x.mods);
-      if (!res.ok) return toast(res.mensagem, "erro");
-      toast(L.toastSalvo);
-      router.refresh();
-    });
+    // O valor só é usado quando o destino é sob medida; nos demais o preço
+    // vem de `plans.price`. Mandamos o atual para não perder o negociado.
+    const res = await updateCustomer(customerId, novoPlano, x.amount, x.mods);
+    if (!res.ok) return toast(res.message, "error");
+    toast(L.toastSalvo);
+    startAction(() => router.refresh());
   };
 
-  const abrirFormPlano = (k: string | null) => {
-    const p = k ? state.planos.find((x) => x.k === k) : null;
-    const id = state.idioma;
+  const openPlanForm = (k: string | null) => {
+    const p = k ? state.plans.find((x) => x.k === k) : null;
+    const id = state.language;
     set({
-      notifAberta: false,
-      modal: { tipo: "plano" },
+      notificationsOpen: false,
+      modal: { type: "plan" },
       form: p
         ? {
-            tipo: "plano",
+            type: "plan",
             k: p.k,
-            novo: false,
-            nome: p.nome[id],
-            preco: p.preco || "",
+            new: false,
+            name: p.name[id],
+            price: p.price || "",
             desc: p.desc[id],
             sel: p.mods.slice(),
-            fixo: p.tipo === "fixo",
+            fixed: p.type === "fixed",
           }
         : {
-            tipo: "plano",
+            type: "plan",
             k: null,
-            novo: true,
-            nome: "",
-            preco: "R$ ",
+            new: true,
+            name: "",
+            price: "R$ ",
             desc: "",
             // Chaves da tabela `modules`, não os rótulos em português.
             sel: ["sales", "products"],
-            fixo: true,
+            fixed: true,
           },
     });
   };
 
-  const abrirFormModulo = (k: string) => {
-    const m = state.modulos.find((x) => x.k === k);
+  const openModuleForm = (k: string) => {
+    const m = state.modules.find((x) => x.k === k);
     if (!m) return;
-    const id = state.idioma;
+    const id = state.language;
     set({
-      notifAberta: false,
-      modal: { tipo: "modulo" },
+      notificationsOpen: false,
+      modal: { type: "module" },
       form: {
-        tipo: "modulo",
+        type: "module",
         k: m.k,
-        novo: false,
-        nome: m.nome[id],
-        preco: "",
+        new: false,
+        name: m.name[id],
+        price: "",
         desc: m.desc[id],
         // Vazio de propósito: a ficha do módulo não edita mais a relação com
         // os planos — ela é definida só na tela de Planos.
         sel: [],
-        fixo: false,
+        fixed: false,
       },
     });
   };
@@ -450,205 +451,200 @@ export function AdminProvider({
    * `router.refresh()` traz o catálogo relido e o bloco de sincronização
    * aplica. Assim a tela nunca mostra uma composição que o banco recusou.
    */
-  const salvarForm = () => {
+  const saveForm = async () => {
     const f = state.form;
-    if (!f || !f.nome.trim()) return;
+    if (!f || !f.name.trim()) return;
 
-    // Fecha o diálogo já; o resultado chega por toast.
+    // O diálogo fica aberto durante a gravação, com o botão travado e girando:
+    // é ele que diz que algo está acontecendo. Fechá-lo antes da resposta,
+    // como se fazia aqui, anunciava um sucesso que o banco ainda podia recusar.
+    const res =
+      f.type === "plan"
+        ? f.new
+          ? await createPlan(f.name, f.price, f.desc, f.sel)
+          : await savePlan(f.k ?? "", f.name, f.price, f.desc, f.sel)
+        : // Na tela de Módulos edita-se só a descrição, em `modules`. A
+          // relação com os planos mora em `plans.module_keys` e é editada
+          // apenas do lado do plano.
+          await saveModule(f.k ?? "", f.desc);
+
+    if (!res.ok) return toast(res.message, "error");
     set({ modal: null, form: null });
-
-    iniciarAcao(async () => {
-      const res =
-        f.tipo === "plano"
-          ? f.novo
-            ? await criarPlano(f.nome, f.preco, f.desc, f.sel)
-            : await salvarPlano(f.k ?? "", f.nome, f.preco, f.desc, f.sel)
-          : // Na tela de Módulos edita-se só a descrição, em `modules`. A
-            // relação com os planos mora em `plans.module_keys` e é editada
-            // apenas do lado do plano.
-            await salvarModulo(f.k ?? "", f.desc);
-
-      if (!res.ok) return toast(res.mensagem, "erro");
-      toast(f.tipo === "plano" ? L.toastPlanoSalvo : L.toastModuloSalvo);
-      router.refresh();
-    });
+    toast(f.type === "plan" ? L.toastPlanoSalvo : L.toastModuloSalvo);
+    startAction(() => router.refresh());
   };
 
   /** Registra o pagamento do mês corrente em `platform_payments`. */
-  const registrarPagamento = (clienteId: string) => {
-    set({ menuPag: null });
-    iniciarAcao(async () => {
-      const res = await marcarPago(clienteId);
-      if (!res.ok) return toast(res.mensagem, "erro");
-      toast(L.toastPago);
-      router.refresh();
-    });
+  const recordPayment = async (customerId: string) => {
+    set({ paymentMenu: null });
+    const res = await markPaid(customerId);
+    if (!res.ok) return toast(res.message, "error");
+    toast(L.toastPago);
+    startAction(() => router.refresh());
   };
 
   /** Desfaz o último pagamento registrado deste cliente. */
-  const reverterPagamento = (clienteId: string) => {
-    set({ menuPag: null });
-    iniciarAcao(async () => {
-      const res = await reverterPago(clienteId);
-      if (!res.ok) return toast(res.mensagem, "erro");
-      toast(L.toastRevertido, "alerta");
-      router.refresh();
-    });
+  const undoPayment = async (customerId: string) => {
+    set({ paymentMenu: null });
+    const res = await undoPaid(customerId);
+    if (!res.ok) return toast(res.message, "error");
+    toast(L.toastRevertido, "warning");
+    startAction(() => router.refresh());
   };
 
-  const confirmarModal = () => {
+  /**
+   * O verbo do diálogo aberto.
+   *
+   * Devolve a promessa do que for gravar, e é dela que o botão de confirmação
+   * tira o girador — o diálogo continua na tela, travado, até o servidor
+   * responder.
+   */
+  const confirmModal = async () => {
     const m = state.modal;
     if (!m) return;
-    const id = state.idioma;
+    const id = state.language;
 
-    switch (m.tipo) {
-      case "sair":
-        set({ modal: null, rascunho: null });
+    switch (m.type) {
+      case "signOut":
+        set({ modal: null, draft: null });
         // Encerra a sessão de verdade: sem isto o middleware veria o cookie
         // ainda válido e devolveria o usuário ao painel.
-        void createClient()
-          .auth.signOut()
-          .then(() => {
-            router.push(ROTAS.login);
-            router.refresh();
-          });
+        await createClient().auth.signOut();
+        router.push(ROUTES.login);
+        router.refresh();
         return;
-      case "descartar":
+      case "discard":
         set({
           modal: null,
-          rascunho: null,
-          novoClienteSujo: false,
-          menuLinha: null,
-          notifAberta: false,
+          draft: null,
+          newCustomerDirty: false,
+          rowMenu: null,
+          notificationsOpen: false,
         });
-        router.push(m.destino || ROTAS.clientes);
+        router.push(m.destination || ROUTES.customers);
         return;
-      case "modOff":
-        editarRascunho((d) => ({ ...d, mods: d.mods.filter((k) => k !== m.mod) }));
+      case "moduleOff":
+        editDraft((d) => ({ ...d, mods: d.mods.filter((k) => k !== m.mod) }));
         set({ modal: null });
         return;
-      case "limpar":
-        editarRascunho((d) => ({ ...d, mods: [] }));
+      case "clear":
+        editDraft((d) => ({ ...d, mods: [] }));
         set({ modal: null });
         return;
-      case "todos":
-        editarRascunho((d) => ({ ...d, mods: state.modulos.map((x) => x.k) }));
+      case "all":
+        editDraft((d) => ({ ...d, mods: state.modules.map((x) => x.k) }));
         set({ modal: null });
         return;
-      case "pagar":
-        if (m.alvo != null) registrarPagamento(m.alvo);
+      case "pay":
+        set({ modal: null });
+        if (m.target != null) await recordPayment(m.target);
+        return;
+      case "undo":
+        set({ modal: null });
+        if (m.target != null) await undoPayment(m.target);
+        return;
+      case "history":
         set({ modal: null });
         return;
-      case "reverter":
-        if (m.alvo != null) reverterPagamento(m.alvo);
-        set({ modal: null });
-        return;
-      case "historico":
-        set({ modal: null });
-        return;
-      case "excluirPlano":
-        if (m.alvo) {
-          const chave = m.alvo;
+      case "deletePlan":
+        if (m.target) {
+          const res = await deletePlan(m.target);
+          if (!res.ok) return toast(res.message, "error");
           set({ modal: null });
-          iniciarAcao(async () => {
-            const res = await excluirPlano(chave);
-            if (!res.ok) return toast(res.mensagem, "erro");
-            toast(L.toastPlanoExcluido, "erro");
-            router.refresh();
-          });
+          toast(L.toastPlanoExcluido, "error");
+          startAction(() => router.refresh());
         }
         return;
-      case "plano":
-      case "modulo":
+      case "plan":
+      case "module":
         // O toast agora sai de dentro de `salvarForm`, junto do resultado da
         // gravação — antes ele anunciava sucesso antes de haver gravação.
-        salvarForm();
+        await saveForm();
         return;
     }
 
-    const alvo = state.clientes.find((x) => x.id === m.alvo);
-    if (!alvo) {
+    const target = state.customers.find((x) => x.id === m.target);
+    if (!target) {
       set({ modal: null });
       return;
     }
 
-    const alvoId = alvo.id;
+    const targetId = target.id;
 
-    if (m.tipo === "excluir") {
+    if (m.type === "delete") {
       // Guarded by the typed-name confirmation; ignore a premature click.
-      if (state.confirmacao.trim() !== alvo.nome) return;
-      const noDetalhe = state.rascunho?.id === alvoId;
-      // Fecha o diálogo já: a exclusão pode demorar (são treze tabelas mais o
-      // Auth), e deixar o modal aberto convidaria a um segundo clique.
-      set({ modal: null, confirmacao: "" });
-      iniciarAcao(async () => {
-        const res = await excluirCliente(alvoId, alvo.nome);
-        if (!res.ok) return toast(res.mensagem, "erro");
-        set({
-          rascunho: noDetalhe ? null : state.rascunho,
-          ultimaAcao: (id === "pt" ? "Cliente excluído: " : "Customer deleted: ") + alvo.nome,
-        });
-        toast(L.toastExcluido, "erro");
-        // O registro que estávamos vendo sumiu; a lista é onde aterrissar.
-        if (noDetalhe) router.push(ROTAS.clientes);
-        router.refresh();
+      if (state.confirmation.trim() !== target.name) return;
+      const noDetalhe = state.draft?.id === targetId;
+
+      // A exclusão demora (são treze tabelas mais o Auth) e o diálogo fica na
+      // tela até ela terminar. O segundo clique que isso convidava não existe
+      // mais: o botão se trava sozinho enquanto espera.
+      const res = await deleteCustomer(targetId, target.name);
+      if (!res.ok) return toast(res.message, "error");
+      set({
+        modal: null,
+        confirmation: "",
+        draft: noDetalhe ? null : state.draft,
+        lastAction: (id === "pt" ? "Cliente excluído: " : "Customer deleted: ") + target.name,
       });
+      toast(L.toastExcluido, "error");
+      // O registro que estávamos vendo sumiu; a lista é onde aterrissar.
+      if (noDetalhe) router.push(ROUTES.customers);
+      startAction(() => router.refresh());
       return;
     }
 
-    const novo: StatusCliente = m.tipo === "desativar" ? "inativo" : "ativo";
-    set({ modal: null });
-    iniciarAcao(async () => {
-      const res = await mudarStatusCliente(alvoId, novo === "ativo");
-      if (!res.ok) return toast(res.mensagem, "erro");
-      set({
-        ultimaAcao:
-          alvo.nome +
-          (novo === "inativo"
-            ? id === "pt"
-              ? " foi desativado."
-              : " was deactivated."
-            : id === "pt"
-              ? " foi reativado."
-              : " was reactivated."),
-      });
-      toast(
-        novo === "inativo" ? L.toastDesativado : L.toastReativado,
-        novo === "inativo" ? "alerta" : "ok",
-      );
-      router.refresh();
+    const nextStatus: CustomerStatus = m.type === "deactivate" ? "inactive" : "active";
+    const res = await setCustomerStatus(targetId, nextStatus === "active");
+    if (!res.ok) return toast(res.message, "error");
+    set({
+      modal: null,
+      lastAction:
+        target.name +
+        (nextStatus === "inactive"
+          ? id === "pt"
+            ? " foi desativado."
+            : " was deactivated."
+          : id === "pt"
+            ? " foi reativado."
+            : " was reactivated."),
     });
+    toast(
+      nextStatus === "inactive" ? L.toastDesativado : L.toastReativado,
+      nextStatus === "inactive" ? "warning" : "ok",
+    );
+    startAction(() => router.refresh());
   };
 
-  const mostrarDica = (e: SyntheticEvent<HTMLElement>) => {
+  const showHint = (e: SyntheticEvent<HTMLElement>) => {
     // Tooltips exist to name the icons once the sidebar has collapsed.
-    if (!state.colapsada) return;
+    if (!state.collapsed) return;
     const r = e.currentTarget.getBoundingClientRect();
     set({
-      dica: {
-        texto: e.currentTarget.getAttribute("aria-label") || "",
+      hint: {
+        text: e.currentTarget.getAttribute("aria-label") || "",
         top: r.top + r.height / 2,
         left: r.right + 10,
       },
     });
   };
 
-  const ocultarDica = () => {
-    if (state.dica) set({ dica: null });
+  const hideHint = () => {
+    if (state.hint) set({ hint: null });
   };
 
   // Theme lives on <body> so the CSS variables cascade to overlays too.
   useEffect(() => {
-    document.body.dataset.tema = state.tema === "escuro" ? "escuro" : "claro";
-  }, [state.tema]);
+    document.body.dataset.theme = state.theme === "dark" ? "dark" : "light";
+  }, [state.theme]);
 
   // The payments table swaps to a stacked card layout below 1000px.
   useEffect(() => {
     const onResize = () => {
       const w = window.innerWidth;
       set((s) =>
-        (w < 1000) !== (s.larguraTela < 1000) || Math.abs(w - s.larguraTela) > 40
-          ? { larguraTela: w }
+        (w < 1000) !== (s.screenWidth < 1000) || Math.abs(w - s.screenWidth) > 40
+          ? { screenWidth: w }
           : null,
       );
     };
@@ -659,48 +655,48 @@ export function AdminProvider({
 
   // Reloading or closing the tab is outside the router's reach; the browser's
   // own prompt is the only thing that can guard unsaved edits there.
-  const sujo = estaSujo(state) || state.novoClienteSujo;
+  const dirty = isDirty(state) || state.newCustomerDirty;
   useEffect(() => {
-    if (!sujo) return;
-    const aviso = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", aviso);
-    return () => window.removeEventListener("beforeunload", aviso);
-  }, [sujo]);
+    if (!dirty) return;
+    const notice = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", notice);
+    return () => window.removeEventListener("beforeunload", notice);
+  }, [dirty]);
 
-  const vazio = opts.mostrarEstadosVazios;
-  const valor: ViewProps = {
+  const empty = options.showEmptyStates;
+  const amount: ViewProps = {
     s: state,
     // The empty-state preview hides the seeded customers everywhere at once.
-    cs: vazio ? [] : state.clientes,
-    vazio,
-    opts,
+    cs: empty ? [] : state.customers,
+    empty,
+    options,
     a: {
       set,
       L,
       toast,
-      abrirModal,
-      fecharModal,
-      confirmarModal,
-      ir,
-      abrirCliente,
-      garantirRascunho,
-      editarRascunho,
-      descartarRascunho,
-      salvarRascunho,
-      abrirFormPlano,
-      abrirFormModulo,
-      moverClienteDePlano,
-      editarForm,
-      alternarSel,
+      openModal,
+      closeModal,
+      confirmModal,
+      goTo,
+      openCustomer,
+      ensureDraft,
+      editDraft,
+      discardDraft,
+      saveDraft,
+      openPlanForm,
+      openModuleForm,
+      moveCustomerToPlan,
+      editForm,
+      toggleSelected,
       baixarCsv,
-      alternarTema,
-      alternarIdioma,
-      mostrarDica,
-      ocultarDica,
+      toggleTheme,
+      toggleLanguage,
+      showHint,
+      hideHint,
     },
   };
 
-  return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={amount}>{children}</Ctx.Provider>;
 }
 
 /** State, actions and the derived customer set, for any view under the shell. */

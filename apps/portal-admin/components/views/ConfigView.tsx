@@ -2,48 +2,48 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { salvarConfiguracao } from "@/app/configuracoes/actions";
+import { saveSetting } from "@/app/configuracoes/actions";
 import { useAdmin } from "@/components/AdminProvider";
-import { Campo, css, MONO, Selecao } from "@aguiar/ui";
+import { Button, Field, css, MONO, Select } from "@aguiar/ui";
 import { EditarIcone } from "@/lib/icons";
 import { chip } from "@aguiar/ui";
-import type { ConfigItem } from "@/types/types";
+import type { SettingItem } from "@/types/types";
 
 export function ConfigView() {
   const { s, a } = useAdmin();
   const { L } = a;
-  const id = s.idioma;
+  const id = s.language;
   const router = useRouter();
-  const [salvando, iniciarSalvar] = useTransition();
+  const [recarregando, iniciarRecarga] = useTransition();
 
   /**
    * Grava o ajuste em `platform_settings` e relê. O estado local não é tocado:
    * quem manda no que aparece é o banco, então um valor recusado nunca fica na
    * tela parecendo salvo.
    */
-  const salvar = (chave: string, valor: string | number | string[]) => {
-    iniciarSalvar(async () => {
-      const res = await salvarConfiguracao(chave, valor);
-      if (!res.ok) return a.toast(res.mensagem, "erro");
-      a.set({ cfgEditando: null, cfgRascunho: null });
-      a.toast(L.toastConfig);
-      router.refresh();
-    });
+  const save = async (key: string, amount: string | number | string[]) => {
+    // A gravação é esperada aqui — é esta promessa que trava o botão e o faz
+    // girar. A transição fica só com o `refresh`, o re-render com o valor relido.
+    const res = await saveSetting(key, amount);
+    if (!res.ok) return a.toast(res.message, "error");
+    a.set({ editingSetting: null, settingDraft: null });
+    a.toast(L.toastConfig);
+    iniciarRecarga(() => router.refresh());
   };
 
-  const nomeModulo = (k: string) => {
-    const m = s.modulos.find((y) => y.k === k);
-    return m ? m.nome[id] || m.nome.pt : k;
+  const moduleName = (k: string) => {
+    const m = s.modules.find((y) => y.k === k);
+    return m ? m.name[id] || m.name.pt : k;
   };
 
   /** Human-readable form of a setting's value, whatever its type. */
-  const rotuloValor = (cfg: ConfigItem, v: ConfigItem["valor"]): string => {
-    if (cfg.tipo === "numero") return `${v} ${L.diasSufixo}`;
-    if (cfg.tipo === "mods") {
-      const lista = Array.isArray(v) ? v : [];
-      return lista.length ? lista.map(nomeModulo).join(" · ") : "—";
+  const valueLabel = (cfg: SettingItem, v: SettingItem["value"]): string => {
+    if (cfg.type === "numero") return `${v} ${L.diasSufixo}`;
+    if (cfg.type === "mods") {
+      const list = Array.isArray(v) ? v : [];
+      return list.length ? list.map(moduleName).join(" · ") : "—";
     }
-    const o = (cfg.opcoes || []).find((x) => x[0] === v);
+    const o = (cfg.options || []).find((x) => x[0] === v);
     return o ? o[1][id] || o[1].pt : String(v);
   };
 
@@ -62,10 +62,10 @@ export function ConfigView() {
       </p>
 
       <div style={css("display:flex;flex-direction:column;gap:10px")}>
-        {s.config.map((cfg) => {
-          const editando = s.cfgEditando === cfg.id;
-          const rasc = editando && s.cfgRascunho !== null ? s.cfgRascunho : cfg.valor;
-          const selecionados = Array.isArray(rasc) ? rasc : [];
+        {s.settings.map((cfg) => {
+          const editing = s.editingSetting === cfg.id;
+          const rasc = editing && s.settingDraft !== null ? s.settingDraft : cfg.value;
+          const selected = Array.isArray(rasc) ? rasc : [];
 
           return (
             <div
@@ -76,15 +76,15 @@ export function ConfigView() {
               )}
             >
               <span style={css("font-size:13px;color:var(--text)")}>
-                {cfg.rotulo[id] || cfg.rotulo.pt}
+                {cfg.label[id] || cfg.label.pt}
               </span>
 
-              {!editando ? (
-                <button
+              {!editing ? (
+                <Button
                   onClick={() =>
                     a.set({
-                      cfgEditando: cfg.id,
-                      cfgRascunho: Array.isArray(cfg.valor) ? cfg.valor.slice() : cfg.valor,
+                      editingSetting: cfg.id,
+                      settingDraft: Array.isArray(cfg.value) ? cfg.value.slice() : cfg.value,
                     })
                   }
                   className="hv-acc-soft-borda"
@@ -94,82 +94,82 @@ export function ConfigView() {
                       "border-radius:7px;padding:5px 8px;cursor:pointer",
                   )}
                 >
-                  {rotuloValor(cfg, cfg.valor)}
+                  {valueLabel(cfg, cfg.value)}
                   <EditarIcone size={12} />
-                </button>
+                </Button>
               ) : (
                 <div
                   style={css(
                     "display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end",
                   )}
                 >
-                  {cfg.tipo === "select" && (
-                    <Selecao
+                  {cfg.type === "select" && (
+                    <Select
                       value={String(rasc)}
-                      onChange={(e) => a.set({ cfgRascunho: e.target.value })}
-                      aria-label={cfg.rotulo[id] || cfg.rotulo.pt}
+                      onChange={(e) => a.set({ settingDraft: e.target.value })}
+                      aria-label={cfg.label[id] || cfg.label.pt}
                     >
-                      {(cfg.opcoes || []).map(([v, rotulo]) => (
+                      {(cfg.options || []).map(([v, label]) => (
                         <option key={v} value={v}>
-                          {rotulo[id] || rotulo.pt}
+                          {label[id] || label.pt}
                         </option>
                       ))}
-                    </Selecao>
+                    </Select>
                   )}
 
-                  {cfg.tipo === "numero" && (
-                    <Campo
+                  {cfg.type === "numero" && (
+                    <Field
                       type="number"
                       value={String(rasc)}
-                      onChange={(e) => a.set({ cfgRascunho: parseInt(e.target.value, 10) || 0 })}
-                      aria-label={cfg.rotulo[id] || cfg.rotulo.pt}
-                      estilo={`width:96px;font-family:`}
+                      onChange={(e) => a.set({ settingDraft: parseInt(e.target.value, 10) || 0 })}
+                      aria-label={cfg.label[id] || cfg.label.pt}
+                      cssText={`width:96px;font-family:`}
                     />
                   )}
 
-                  {cfg.tipo === "mods" && (
+                  {cfg.type === "mods" && (
                     <div style={css("display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end")}>
-                      {s.modulos.map((m) => (
-                        <button
+                      {s.modules.map((m) => (
+                        <Button
                           key={m.k}
                           onClick={() =>
                             a.set((st) => {
-                              const atual = Array.isArray(st.cfgRascunho) ? st.cfgRascunho : [];
+                              const current = Array.isArray(st.settingDraft) ? st.settingDraft : [];
                               return {
-                                cfgRascunho: atual.includes(m.k)
-                                  ? atual.filter((x) => x !== m.k)
-                                  : [...atual, m.k],
+                                settingDraft: current.includes(m.k)
+                                  ? current.filter((x) => x !== m.k)
+                                  : [...current, m.k],
                               };
                             })
                           }
-                          style={css(chip(selecionados.includes(m.k)))}
+                          style={css(chip(selected.includes(m.k)))}
                         >
-                          {m.nome[id] || m.nome.pt}
-                        </button>
+                          {m.name[id] || m.name.pt}
+                        </Button>
                       ))}
                     </div>
                   )}
 
-                  <button
+                  <Button
                     onClick={() =>
-                      salvar(
+                      save(
                         cfg.id,
-                        Array.isArray(s.cfgRascunho)
-                          ? s.cfgRascunho.slice()
-                          : (s.cfgRascunho ?? cfg.valor),
+                        Array.isArray(s.settingDraft)
+                          ? s.settingDraft.slice()
+                          : (s.settingDraft ?? cfg.value),
                       )
                     }
-                    disabled={salvando}
+                    disabled={recarregando}
+                    loadingLabel={L.enviando}
                     style={css(
                       "border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);" +
-                        "font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px;" +
-                        (salvando ? "opacity:.6;cursor:progress" : "cursor:pointer"),
+                        "font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px",
                     )}
                   >
-                    {salvando ? L.enviando : L.salvarSimples}
-                  </button>
-                  <button
-                    onClick={() => a.set({ cfgEditando: null, cfgRascunho: null })}
+                    {L.salvarSimples}
+                  </Button>
+                  <Button
+                    onClick={() => a.set({ editingSetting: null, settingDraft: null })}
                     className="hv-texto"
                     style={css(
                       "border:1px solid var(--border);background:var(--surface);color:var(--muted);" +
@@ -177,7 +177,7 @@ export function ConfigView() {
                     )}
                   >
                     {L.cancelar}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

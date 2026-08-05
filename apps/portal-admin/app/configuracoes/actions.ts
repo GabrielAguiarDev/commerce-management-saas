@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { exigirAdmin, type ResultadoAcao } from "@/lib/autorizacao";
+import { requireAdmin, type ActionResult } from "@/lib/autorizacao";
 
 /**
  * Grava um ajuste em `platform_settings`.
@@ -12,41 +12,41 @@ import { exigirAdmin, type ResultadoAcao } from "@/lib/autorizacao";
  */
 
 /** As chaves que o painel administra. Qualquer outra é recusada. */
-const CHAVES_PERMITIDAS = new Set([
+const ALLOWED_KEYS = new Set([
   "default_modules",
   "trial_days",
   "inactivity_notify",
   "default_language",
 ]);
 
-export async function salvarConfiguracao(
-  chave: string,
-  valor: string | number | string[],
-): Promise<ResultadoAcao> {
-  const auth = await exigirAdmin("alterar configurações");
+export async function saveSetting(
+  key: string,
+  amount: string | number | string[],
+): Promise<ActionResult> {
+  const auth = await requireAdmin("alterar configurações");
   if (!auth.ok) return auth;
 
   // Sem esta lista, uma chamada forjada poderia criar chaves arbitrárias na
   // tabela de configurações da plataforma.
-  if (!CHAVES_PERMITIDAS.has(chave)) {
-    return { ok: false, mensagem: "Configuração desconhecida." };
+  if (!ALLOWED_KEYS.has(key)) {
+    return { ok: false, message: "Configuração desconhecida." };
   }
 
-  if (chave === "trial_days" && (typeof valor !== "number" || valor < 0)) {
-    return { ok: false, mensagem: "O período de teste precisa ser um número de dias." };
+  if (key === "trial_days" && (typeof amount !== "number" || amount < 0)) {
+    return { ok: false, message: "O período de teste precisa ser um número de dias." };
   }
 
-  if (chave === "default_modules" && !Array.isArray(valor)) {
-    return { ok: false, mensagem: "Selecione os módulos padrão." };
+  if (key === "default_modules" && !Array.isArray(amount)) {
+    return { ok: false, message: "Selecione os módulos padrão." };
   }
 
   const { error } = await auth.supabase
     .from("platform_settings")
-    .upsert({ key: chave, value: valor, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    .upsert({ key: key, value: amount, updated_at: new Date().toISOString() }, { onConflict: "key" });
 
   if (error) {
     console.error("[salvarConfiguracao] falha:", error.message);
-    return { ok: false, mensagem: `Não foi possível salvar: ${error.message}` };
+    return { ok: false, message: `Não foi possível salvar: ${error.message}` };
   }
 
   revalidatePath("/", "layout");

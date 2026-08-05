@@ -1,6 +1,6 @@
 "use client";
 
-import { MenuDeAcoes, type AcaoMenu } from "@aguiar/ui";
+import { ActionMenu, type MenuAction } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
 
 /**
@@ -12,7 +12,7 @@ import { usePortal } from "@/components/PortalProvider";
  * de `@aguiar/ui`.
  */
 
-export type { AcaoMenu };
+export type { MenuAction };
 
 /**
  * O "⋯" de cada linha, ligado ao estado do portal.
@@ -23,26 +23,26 @@ export type { AcaoMenu };
  * recortado pelo `overflow` da tabela — e fecha no Esc, no clique fora e ao
  * escolher uma ação.
  */
-export function MenuLinha({
-  chave,
-  acoes,
-  largura = 210,
-  rotulo = "Ações",
+export function RowMenu({
+  key,
+  actions,
+  width = 210,
+  label = "Ações",
 }: {
-  chave: string;
-  acoes: AcaoMenu[];
-  largura?: number;
-  rotulo?: string;
+  key: string;
+  actions: MenuAction[];
+  width?: number;
+  label?: string;
 }) {
   const { s, a } = usePortal();
 
   return (
-    <MenuDeAcoes
-      aberto={s.menuLinha === chave}
-      onAbertoChange={(aberto) => a.abrirMenu(aberto ? chave : null)}
-      rotulo={rotulo}
-      acoes={acoes}
-      larguraMin={largura}
+    <ActionMenu
+      open={s.rowMenu === key}
+      onOpenChange={(open) => a.openMenu(open ? key : null)}
+      label={label}
+      actions={actions}
+      minWidth={width}
     />
   );
 }

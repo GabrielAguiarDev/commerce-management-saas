@@ -1,69 +1,79 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useTransition } from "react";
-import { mudarStatusChamado, responderChamado } from "@/app/suporte/actions";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { setTicketStatus, replyToTicket } from "@/app/suporte/actions";
 import { useAdmin } from "@/components/AdminProvider";
-import { AreaTexto, CampoBusca, css, MONO } from "@aguiar/ui";
-import { chamadoAtual } from "@/lib/state";
-import { badgeChamado, prioridadeBadge } from "@/lib/styleKit";
+import { TextArea, Button, SearchField, css, MONO } from "@aguiar/ui";
+import { currentTicket } from "@/lib/state";
+import { ticketBadge, priorityBadge } from "@/lib/styleKit";
 import { chip } from "@aguiar/ui";
-import type { StatusChamado } from "@/types/types";
+import type { TicketStatus } from "@/types/types";
 
 export function SuporteView() {
-  const { s, a, cs, vazio } = useAdmin();
+  const { s, a, cs, empty } = useAdmin();
   const { L } = a;
-  const id = s.idioma;
+  const id = s.language;
   const router = useRouter();
-  // `useTransition` mantém a interface responsiva enquanto a Server Action
-  // roda, e dá o sinal para desabilitar o botão sem inventar um estado próprio.
-  const [enviando, iniciarEnvio] = useTransition();
+  // A transição segura o `router.refresh()` — o re-render com a lista relida.
+  const [recarregando, iniciarRecarga] = useTransition();
+  // E este é o sinal de "há uma gravação em curso", que trava o field de
+  // resposta. O girador de cada botão não vem daqui: vem da promessa que ele
+  // mesmo devolve, para que só o botão clicado gire.
+  const [gravando, setGravando] = useState(false);
+  const ocupado = gravando || recarregando;
 
   // Abaixo desta largura os dois painéis não cabem lado a lado, e a tela
   // empilha. O sinal é o mesmo que o Financeiro já usa (ver AdminProvider).
-  const compacto = s.larguraTela < 900;
+  const compact = s.screenWidth < 900;
 
-  const t = chamadoAtual(s);
-  const clienteChamado =
-    (t && (cs.find((x) => x.id === t.clienteId) || s.clientes.find((x) => x.id === t.clienteId))) ||
+  const t = currentTicket(s);
+  const ticketCustomer =
+    (t && (cs.find((x) => x.id === t.customerId) || s.customers.find((x) => x.id === t.customerId))) ||
     null;
-  const nomeCliente = clienteChamado ? clienteChamado.nome : L.cliente;
+  const customerName = ticketCustomer ? ticketCustomer.name : L.customer;
 
-  const qc = s.buscaChamado.trim().toLowerCase();
-  const lista = s.chamados.filter((x) => {
-    const cl = cs.find((y) => y.id === x.clienteId);
+  const qc = s.ticketSearch.trim().toLowerCase();
+  const list = s.tickets.filter((x) => {
+    const cl = cs.find((y) => y.id === x.customerId);
     return (
-      (s.filtroChamado === "todos" || x.status === s.filtroChamado) &&
-      (!qc || (cl && cl.nome.toLowerCase().includes(qc)) || x.assunto[id].toLowerCase().includes(qc))
+      (s.ticketFilter === "all" || x.status === s.ticketFilter) &&
+      (!qc || (cl && cl.name.toLowerCase().includes(qc)) || x.subject[id].toLowerCase().includes(qc))
     );
   });
 
-  const rotuloStatus = (st: StatusChamado) =>
-    st === "aberto" ? L.aberto : st === "andamento" ? L.andamento : L.resolvido;
+  const statusLabel = (st: TicketStatus) =>
+    st === "open" ? L.open : st === "inProgress" ? L.inProgress : L.resolved;
 
   // As duas ações abaixo gravam no Supabase e pedem ao servidor que releia a
   // lista (`revalidatePath` na action + `router.refresh()` aqui). Não mexemos
   // no estado local: quem manda no que aparece é o banco, e assim a tela nunca
   // mostra um status que a gravação não confirmou.
-  const marcar = (status: StatusChamado) => {
+  const marcar = async (status: TicketStatus) => {
     if (!t) return;
-    iniciarEnvio(async () => {
-      const r = await mudarStatusChamado(t.id, status);
-      if (!r.ok) return a.toast(r.mensagem, "erro");
-      router.refresh();
-    });
+    setGravando(true);
+    try {
+      const r = await setTicketStatus(t.id, status);
+      if (!r.ok) return a.toast(r.message, "error");
+      iniciarRecarga(() => router.refresh());
+    } finally {
+      setGravando(false);
+    }
   };
 
-  const enviarResposta = () => {
+  const sendReply = async () => {
     const txt = s.resposta.trim();
     if (!t || !txt) return;
-    iniciarEnvio(async () => {
-      const r = await responderChamado(t.id, txt);
-      if (!r.ok) return a.toast(r.mensagem, "erro");
+    setGravando(true);
+    try {
+      const r = await replyToTicket(t.id, txt);
+      if (!r.ok) return a.toast(r.message, "error");
       a.set({ resposta: "" });
       a.toast(L.toastResposta);
-      router.refresh();
-    });
+      iniciarRecarga(() => router.refresh());
+    } finally {
+      setGravando(false);
+    }
   };
 
   const botaoCabecalho =
@@ -78,17 +88,17 @@ export function SuporteView() {
    * Salta direto para o fim em vez de animar: numa troca de chamado a rolagem
    * suave mostraria a conversa inteira passando, que é ruído, não informação.
    */
-  const painelMensagens = useRef<HTMLDivElement>(null);
-  const totalMsgs = t?.msgs.length ?? 0;
+  const messagesPanel = useRef<HTMLDivElement>(null);
+  const messageCount = t?.messages.length ?? 0;
   useEffect(() => {
-    const el = painelMensagens.current;
+    const el = messagesPanel.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [s.chamadoSel, totalMsgs]);
+  }, [s.chamadoSel, messageCount]);
 
   // Molde comum aos dois painéis. `min-height:0` é o que autoriza um item flex a
   // encolher abaixo do conteúdo — sem ele, o filho com `overflow-y:auto` cresce
   // e o scroll vaza para a página em vez de acontecer aqui dentro.
-  const painel =
+  const panel =
     "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
     "display:flex;flex-direction:column;overflow:hidden;min-height:0;";
 
@@ -98,13 +108,13 @@ export function SuporteView() {
         // `flex:1` em vez de `height:100%`: a raiz é um item flex da casca, e
         // crescer para preencher é mais confiável do que medir contra o pai.
         "display:flex;gap:16px;align-items:stretch;flex:1;min-height:0;" +
-          (compacto ? "flex-direction:column" : ""),
+          (compact ? "flex-direction:column" : ""),
       )}
     >
       <section
         style={css(
-          painel +
-            (compacto
+          panel +
+            (compact
               ? // Empilhado, a lista fica com uma faixa própria no topo e a
                 // conversa herda o resto; as duas seguem rolando por dentro.
                 "flex:0 0 auto;max-height:38%;"
@@ -119,35 +129,35 @@ export function SuporteView() {
               "flex-direction:column;gap:10px",
           )}
         >
-          <CampoBusca
-            valor={s.buscaChamado}
-            onChange={(v) => a.set({ buscaChamado: v })}
+          <SearchField
+            value={s.ticketSearch}
+            onChange={(v) => a.set({ ticketSearch: v })}
             placeholder={L.buscarChamado}
-            estiloCaixa=""
-            compacto
+            boxCssText=""
+            compact
           />
           <div style={css("display:flex;gap:6px;flex-wrap:wrap")}>
             {(
               [
-                ["todos", L.todosChamados],
-                ["aberto", L.aberto],
-                ["andamento", L.andamento],
-                ["resolvido", L.resolvido],
+                ["all", L.todosChamados],
+                ["open", L.open],
+                ["inProgress", L.inProgress],
+                ["resolved", L.resolved],
               ] as const
-            ).map(([k, rotulo]) => (
-              <button
+            ).map(([k, label]) => (
+              <Button
                 key={k}
-                onClick={() => a.set({ filtroChamado: k })}
-                style={css(chip(s.filtroChamado === k))}
+                onClick={() => a.set({ ticketFilter: k })}
+                style={css(chip(s.ticketFilter === k))}
               >
-                {rotulo}
-              </button>
+                {label}
+              </Button>
             ))}
           </div>
         </div>
 
         <div style={css("flex:1;min-height:0;overflow-y:auto")}>
-          {(vazio || s.chamados.length === 0) && (
+          {(empty || s.tickets.length === 0) && (
             <div
               style={css(
                 // `height:100%` centra o estado vazio no painel inteiro, e não
@@ -163,26 +173,26 @@ export function SuporteView() {
                 style={css(
                   "width:44px;height:44px;border-radius:12px;display:flex;" +
                     "align-items:center;justify-content:center;font-size:17px;font-weight:700;" +
-                    (s.erroChamados
+                    (s.ticketsError
                       ? "background:var(--danger-soft);border:1px solid var(--danger-line);color:var(--danger);"
                       : "background:var(--pos-soft);border:1px solid var(--pos-line);color:var(--pos);"),
                 )}
               >
-                {s.erroChamados ? "!" : "✓"}
+                {s.ticketsError ? "!" : "✓"}
               </div>
               <span style={css("font-size:13.5px;font-weight:600;color:var(--text)")}>
-                {s.erroChamados ? L.erroChamadosTitulo : L.vazioSuporteTitulo}
+                {s.ticketsError ? L.erroChamadosTitulo : L.vazioSuporteTitulo}
               </span>
               <span
                 style={css("font-size:12px;color:var(--text2);line-height:1.55;max-width:32ch")}
               >
-                {s.erroChamados || L.vazioSuporteTexto}
+                {s.ticketsError || L.vazioSuporteTexto}
               </span>
             </div>
           )}
 
-          {(vazio ? [] : lista).map((x) => {
-            const cl = cs.find((y) => y.id === x.clienteId);
+          {(empty ? [] : list).map((x) => {
+            const cl = cs.find((y) => y.id === x.customerId);
             return (
               <div
                 key={x.id}
@@ -206,21 +216,21 @@ export function SuporteView() {
                         "overflow:hidden;text-overflow:ellipsis",
                     )}
                   >
-                    {cl ? cl.nome : L.cliente}
+                    {cl ? cl.name : L.customer}
                   </span>
-                  <span style={css(prioridadeBadge(x.prioridade))}>
-                    {x.prioridade === "alta" ? L.alta : x.prioridade === "media" ? L.media : L.baixa}
+                  <span style={css(priorityBadge(x.prioridade))}>
+                    {x.prioridade === "alta" ? L.alta : x.prioridade === "media" ? L.average : L.baixa}
                   </span>
                 </div>
                 <span style={css("font-size:12.5px;color:var(--text2);line-height:1.4")}>
-                  {x.assunto[id]}
+                  {x.subject[id]}
                 </span>
                 <div
                   style={css(
                     "display:flex;align-items:center;justify-content:space-between;gap:10px",
                   )}
                 >
-                  <span style={css(badgeChamado(x.status))}>{rotuloStatus(x.status)}</span>
+                  <span style={css(ticketBadge(x.status))}>{statusLabel(x.status)}</span>
                   <span style={css(`font-family:${MONO};font-size:10.5px;color:var(--muted)`)}>
                     {x.data}
                   </span>
@@ -233,7 +243,7 @@ export function SuporteView() {
 
       <section
         style={css(
-          painel + "min-width:0;" + (compacto ? "flex:1 1 auto;" : "flex:6 1 440px;"),
+          panel + "min-width:0;" + (compact ? "flex:1 1 auto;" : "flex:6 1 440px;"),
         )}
       >
         {/* Cabeçalho do chamado — fixo no topo do painel. */}
@@ -246,63 +256,62 @@ export function SuporteView() {
         >
           <div style={css("display:flex;flex-direction:column;gap:5px;min-width:0")}>
             <h3 style={css("margin:0;font-size:15.5px;font-weight:600;color:var(--text)")}>
-              {t ? t.assunto[id] : ""}
+              {t ? t.subject[id] : ""}
             </h3>
             <div style={css("display:flex;align-items:center;gap:9px;flex-wrap:wrap")}>
-              <span style={css("font-size:12.5px;color:var(--text2)")}>{nomeCliente}</span>
+              <span style={css("font-size:12.5px;color:var(--text2)")}>{customerName}</span>
               <span style={css("color:var(--muted);font-size:11px")}>·</span>
               <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
                 {t ? t.data : ""}
               </span>
-              {t && <span style={css(badgeChamado(t.status))}>{rotuloStatus(t.status)}</span>}
+              {t && <span style={css(ticketBadge(t.status))}>{statusLabel(t.status)}</span>}
             </div>
           </div>
 
           {/* Sem chamado selecionado não há o que marcar nem a quem responder. */}
           {t && (
             <div style={css("display:flex;gap:7px;flex-wrap:wrap")}>
-              <button
-                onClick={() => clienteChamado && a.abrirCliente(clienteChamado.id)}
-                disabled={!clienteChamado}
+              <Button
+                onClick={() => ticketCustomer && a.openCustomer(ticketCustomer.id)}
+                disabled={!ticketCustomer}
                 className="hv-acc-borda"
-                style={css(botaoCabecalho + (clienteChamado ? "" : ";opacity:.5;cursor:default"))}
+                style={css(botaoCabecalho + (ticketCustomer ? "" : ";opacity:.5;cursor:default"))}
               >
                 {L.verCliente}
-              </button>
-              <button
-                onClick={() => marcar("andamento")}
-                disabled={enviando}
+              </Button>
+              <Button
+                onClick={() => marcar("inProgress")}
+                disabled={ocupado}
                 className="hv-acc-borda"
-                style={css(botaoCabecalho + (enviando ? ";opacity:.6;cursor:progress" : ""))}
+                style={css(botaoCabecalho)}
               >
                 {L.emAndamento}
-              </button>
-              <button
-                onClick={() => marcar("resolvido")}
-                disabled={enviando}
+              </Button>
+              <Button
+                onClick={() => marcar("resolved")}
+                disabled={ocupado}
                 className="hv-brilho-sm"
                 style={css(
                   "border:1px solid var(--pos-line);background:var(--pos-soft);color:var(--pos);" +
-                    "font-size:12px;font-weight:500;padding:8px 12px;border-radius:8px;" +
-                    (enviando ? "opacity:.6;cursor:progress" : "cursor:pointer"),
+                    "font-size:12px;font-weight:500;padding:8px 12px;border-radius:8px",
                 )}
               >
                 {L.marcarResolvido}
-              </button>
+              </Button>
             </div>
           )}
         </div>
 
         {/* A thread — a única parte que rola deste painel. */}
         <div
-          ref={painelMensagens}
+          ref={messagesPanel}
           style={css(
             "flex:1;min-height:0;overflow-y:auto;padding:20px;display:flex;" +
               "flex-direction:column;gap:14px;background:var(--bg)",
           )}
         >
-          {(t ? t.msgs : []).map((m, i) => {
-            const adm = m.de === "admin";
+          {(t ? t.messages : []).map((m, i) => {
+            const adm = m.from === "admin";
             return (
               <div
                 key={i}
@@ -327,17 +336,17 @@ export function SuporteView() {
                         (adm ? ".8" : ".55"),
                     )}
                   >
-                    {adm ? L.voce : nomeCliente}
+                    {adm ? L.voce : customerName}
                   </span>
                   <p style={css("margin:0;font-size:13px;line-height:1.55")}>
-                    {typeof m.texto === "string" ? m.texto : m.texto[id]}
+                    {typeof m.text === "string" ? m.text : m.text[id]}
                   </p>
                   <span
                     style={css(
                       `font-family:${MONO};font-size:10px;opacity:` + (adm ? ".75" : ".55"),
                     )}
                   >
-                    {m.quando}
+                    {m.at}
                   </span>
                 </div>
               </div>
@@ -352,30 +361,29 @@ export function SuporteView() {
               "gap:10px;align-items:flex-end;background:var(--surface)",
           )}
         >
-          <AreaTexto
+          <TextArea
             value={s.resposta}
             onChange={(e) => a.set({ resposta: e.target.value })}
             placeholder={L.escrevaResposta}
             aria-label={L.escrevaResposta}
-            disabled={!t || enviando}
-            estilo="flex:1;resize:none;min-height:64px;line-height:1.5"
+            disabled={!t || ocupado}
+            cssText="flex:1;resize:none;min-height:64px;line-height:1.5"
           />
-          <button
-            onClick={enviarResposta}
-            // Sem chamado aberto, ou com um envio em curso, o clique não teria
-            // para onde ir — e um duplo clique gravaria a resposta duas vezes.
-            disabled={!t || enviando || !s.resposta.trim()}
+          <Button
+            onClick={sendReply}
+            // Sem chamado aberto o clique não teria para onde ir. O duplo
+            // clique, que gravaria a resposta duas vezes, quem barra é o
+            // próprio botão enquanto espera a promessa.
+            disabled={!t || ocupado || !s.resposta.trim()}
+            loadingLabel={L.enviando}
             className="hv-brilho"
             style={css(
               "background:var(--accent);border:1px solid var(--accent);color:var(--accent-ink);font-size:13px;" +
-                "font-weight:500;padding:11px 18px;border-radius:9px;" +
-                (!t || enviando || !s.resposta.trim()
-                  ? "opacity:.55;cursor:default"
-                  : "cursor:pointer"),
+                "font-weight:500;padding:11px 18px;border-radius:9px",
             )}
           >
-            {enviando ? L.enviando : L.responder}
-          </button>
+            {L.reply}
+          </Button>
         </div>
       </section>
     </div>
