@@ -21,7 +21,7 @@ const LOGIN = "/login";
  * Segurança: só a chave pública entra aqui. O middleware roda em toda
  * requisição, inclusive de quem não está logado.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -90,7 +90,7 @@ export async function middleware(request: NextRequest) {
   return inLogin ? redirect("/") : response;
 }
 
-export const settings = {
+export const config = {
   matcher: [
     // Roda em tudo, menos assets estáticos e imagens.
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
