@@ -63,6 +63,34 @@ export interface Confirm {
   action: () => unknown;
 }
 
+/**
+ * O tom do aviso curto.
+ *
+ * `ok` confirma o que acabou de ser gravado; `warn` avisa que falta algo antes
+ * de gravar; `error` traz o motivo que o servidor devolveu. São três porque a
+ * pessoa precisa saber, de relance, se a ação valeu — e um erro pintado de
+ * verde faz ela seguir em frente achando que salvou.
+ */
+export type ToastTone = "ok" | "warn" | "error";
+
+export interface Toast {
+  /**
+   * Cada aviso é um aviso novo, mesmo repetindo o texto do anterior — é o que
+   * faz a entrada e a contagem recomeçarem quando a pessoa bipa duas vezes o
+   * mesmo código desconhecido. Sem isso o segundo aviso reaproveitaria o nó do
+   * primeiro e passaria despercebido. Use `toast()` de `@/lib/estado`.
+   */
+  id: number;
+  text: string;
+  tone: ToastTone;
+  /**
+   * O aviso está de saída — o tempo acabou ou alguém fechou no ✕. É a marca que
+   * troca a animação de entrada pela de saída e dá a ela o tempo de rodar antes
+   * de o aviso sumir do estado. Quem cuida das duas etapas é o `PortalProvider`.
+   */
+  leaving?: boolean;
+}
+
 export interface Hint {
   text: string;
   x: number;
@@ -285,7 +313,7 @@ export interface PortalState {
   rowMenu: string | null;
   modal: Modal | null;
   confirmDialog: Confirm | null;
-  toast: string;
+  toast: Toast | null;
   /** Uma escrita em andamento — trava os botões que a disparariam de novo. */
   saving: boolean;
 
@@ -313,7 +341,9 @@ export interface PortalActions {
   set: (p: Patch) => void;
   toggleTheme: () => void;
   goTo: (rota: string) => void;
-  notify: (text: string) => void;
+  notify: (text: string, tone?: ToastTone) => void;
+  /** Fecha o aviso na mão, com a mesma saída de quando o tempo se esgota. */
+  closeToast: () => void;
   confirm: (c: Confirm) => void;
   closeConfirm: () => void;
   closeModal: () => void;

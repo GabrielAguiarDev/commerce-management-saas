@@ -57,6 +57,9 @@ import {
   EMPTY_ROLE_FORM,
   EMPTY_PRODUCT_FORM,
   EMPTY_REPLY_FORM,
+  TOAST_MS,
+  TOAST_OUT_MS,
+  toast,
 } from "@/lib/estado";
 import { parseBrNumber } from "@/lib/formato";
 import { limparTelasGuardadas } from "@/lib/pwa";
@@ -68,6 +71,7 @@ import type {
   Patch,
   PortalActions,
   PortalState,
+  ToastTone,
   ViewProps,
 } from "@/types/estado";
 import type { PaymentMethod, ModuleKey, Product, StockMovementType } from "@/types/types";
@@ -152,11 +156,29 @@ export function PortalProvider({
     document.body.dataset.theme = s.theme;
   }, [s.theme]);
 
-  // O aviso some sozinho: ele confirma o que acabou de acontecer, não pede ação.
+  /**
+   * O aviso some sozinho: ele confirma o que acabou de acontecer, não pede ação.
+   *
+   * A saída acontece em duas etapas, e as duas moram aqui. Esgotado o tempo de
+   * leitura — `TOAST_MS`, o mesmo que a barrinha do `Toast` desenha —, o aviso
+   * é MARCADO como saindo em vez de apagado; é essa marca que dispara a
+   * animação de saída. Só depois dela, passado `TOAST_OUT_MS`, o aviso some do
+   * estado de verdade.
+   *
+   * Sem a primeira etapa não haveria saída nenhuma: o componente desapareceria
+   * no frame em que o estado zerasse, sem tempo de animar. E ela vive no estado,
+   * e não dentro do `Toast`, para que fechar no ✕ e esgotar o tempo percorram
+   * exatamente o mesmo caminho.
+   */
   useEffect(() => {
-    if (!s.toast) return;
-    const t = setTimeout(() => setS((x) => (x.toast === s.toast ? { ...x, toast: "" } : x)), 2600);
-    return () => clearTimeout(t);
+    const t = s.toast;
+    if (!t) return;
+    const timer = setTimeout(
+      () =>
+        setS((x) => (x.toast === t ? { ...x, toast: t.leaving ? null : { ...t, leaving: true } } : x)),
+      t.leaving ? TOAST_OUT_MS : TOAST_MS[t.tone],
+    );
+    return () => clearTimeout(timer);
   }, [s.toast]);
 
   // Um clique em qualquer lugar fecha as gavetas do topo.
@@ -211,7 +233,11 @@ export function PortalProvider({
         r = { ok: false, message: "Não foi possível falar com o servidor. Tente de novo." };
       }
 
-      setS((x) => ({ ...x, saving: false, toast: r.ok ? sucesso : r.message }));
+      setS((x) => ({
+        ...x,
+        saving: false,
+        toast: r.ok ? toast(sucesso) : toast(r.message, "error"),
+      }));
       if (r.ok) iniciarTransicao(() => router.refresh());
       depois?.(r.ok);
     },
@@ -222,7 +248,20 @@ export function PortalProvider({
   /* Utilidades                                                              */
   /* ---------------------------------------------------------------------- */
 
-  const notify = useCallback((text: string) => set({ toast: text }), [set]);
+  const notify = useCallback(
+    (text: string, tone: ToastTone = "ok") => set({ toast: toast(text, tone) }),
+    [set],
+  );
+  /**
+   * O ✕ do aviso. Ele não apaga: marca a saída e deixa o mesmo temporizador de
+   * sempre terminar o serviço — quem fecha na mão vê a mesma animação de quem
+   * esperou o tempo passar.
+   */
+  const closeToast = useCallback(
+    () => setS((x) => (x.toast ? { ...x, toast: { ...x.toast, leaving: true } } : x)),
+    [],
+  );
+
   const closeConfirm = useCallback(() => set({ confirmDialog: null }), [set]);
   const confirm = useCallback((c: Confirm) => set({ confirmDialog: c, rowMenu: null }), [set]);
   const closeModal = useCallback(() => set({ modal: null }), [set]);
@@ -652,7 +691,7 @@ export function PortalProvider({
       const on = x.acceptedMethods.includes(f);
       // Desligar a última forma deixaria o PDV sem como cobrar.
       if (on && x.acceptedMethods.length === 1) {
-        return { ...x, toast: "Você precisa aceitar pelo menos uma forma" };
+        return { ...x, toast: toast("Você precisa aceitar pelo menos uma forma", "warn") };
       }
       const acceptedMethods = on
         ? x.acceptedMethods.filter((y) => y !== f)
@@ -761,7 +800,7 @@ export function PortalProvider({
     async (id: string) => {
       const f = s.replyForm;
       if (!f.text.trim()) {
-        set({ toast: "Escreva a sua resposta" });
+        set({ toast: toast("Escreva a sua resposta", "warn") });
         return;
       }
       await run(
@@ -814,6 +853,7 @@ export function PortalProvider({
       toggleTheme,
       goTo,
       notify,
+      closeToast,
       confirm,
       closeConfirm,
       closeModal,
@@ -860,7 +900,7 @@ export function PortalProvider({
       markRead,
     }),
     [
-      set, toggleTheme, goTo, notify, confirm, closeConfirm, closeModal, openModal,
+      set, toggleTheme, goTo, notify, closeToast, confirm, closeConfirm, closeModal, openModal,
       openMenu, signOut, addToCart, changeQty, removeItem, clearCart, recordSale,
       editSale, refundSale, undoRefund, openProduct, saveProduct, toggleFav,
       toggleActive, deleteProduct, openMovement, saveMovement, undoMovement, openCost, saveCost,

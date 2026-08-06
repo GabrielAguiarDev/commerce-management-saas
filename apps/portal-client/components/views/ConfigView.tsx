@@ -143,7 +143,7 @@ function DataTab() {
               Enquanto você não enviar uma imagem, usamos as iniciais do nome.
             </p>
             <Button
-              onClick={() => a.notify("O envio de imagem ainda não está disponível")}
+              onClick={() => a.notify("O envio de imagem ainda não está disponível", "warn")}
               className="hv-borda"
               style={css(
                 `padding:9px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font:600 12px ${SANS}`,

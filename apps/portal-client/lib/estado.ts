@@ -9,8 +9,39 @@ import type {
   ProductForm,
   ReplyForm,
   PortalState,
+  Toast,
+  ToastTone,
 } from "@/types/estado";
 import type { BusinessData, Theme } from "@/types/types";
+
+/**
+ * Quanto tempo cada aviso fica na tela.
+ *
+ * Uma confirmação some rápido — quem gravou já sabe o que fez. O que deu errado
+ * fica mais, porque aí a mensagem precisa ser LIDA: é ela que diz o que mudar
+ * antes de tentar de novo. O `Toast` desenha a mesma contagem na barrinha do
+ * rodapé, então os dois números têm de sair daqui.
+ */
+export const TOAST_MS: Record<ToastTone, number> = {
+  ok: 2800,
+  warn: 4200,
+  error: 5200,
+};
+
+/**
+ * A saída do aviso. Espelha a duração de `.toast-out` em `tokens.css`: o estado
+ * já foi limpo, e este é o tempo que o `Toast` continua na tela terminando de
+ * sair. Mexeu num, mexa no outro — sobrando aqui ele fica parado no fim da
+ * animação, faltando ele é cortado no meio dela.
+ */
+export const TOAST_OUT_MS = 200;
+
+let toastSeq = 0;
+
+/** Monta um aviso. O número de série é o que distingue dois avisos iguais. */
+export function toast(text: string, tone: ToastTone = "ok"): Toast {
+  return { id: ++toastSeq, text, tone };
+}
 
 export const EMPTY_PRODUCT_FORM: ProductForm = {
   id: null,
@@ -152,7 +183,7 @@ export function initialState(
     rowMenu: null,
     modal: null,
     confirmDialog: null,
-    toast: "",
+    toast: null,
     saving: false,
 
     productForm: { ...EMPTY_PRODUCT_FORM },

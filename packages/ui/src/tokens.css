@@ -284,6 +284,88 @@ select.field:disabled {
   }
 }
 
+@keyframes fadeout {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Toast — the short notice in the corner.
+
+   It gets a real entrance AND a real exit, which is the whole difference
+   between a notice and something blinking at the edge of the screen. A toast
+   that vanishes between two frames is read as a glitch; one that slides away
+   is read as finished.
+
+   Both are transform + opacity only, so they run on the compositor and never
+   touch layout — the toast is drawn over a screen that may be mid-refresh.
+--------------------------------------------------------------------------- */
+
+/* In: rises from under its own edge with a soft overshoot at the end. The
+   curve is what makes it feel pushed into place rather than faded in. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%) scale(0.96);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Out: back down the way it came, faster and without the overshoot — leaving
+   should never ask for as much attention as arriving. */
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(45%) scale(0.96);
+  }
+}
+
+.toast-in {
+  animation: toast-in 0.38s cubic-bezier(0.21, 1.02, 0.73, 1);
+}
+
+.toast-out {
+  animation: toast-out 0.2s cubic-bezier(0.06, 0.71, 0.55, 1) forwards;
+}
+
+/* Asked for less motion: the toast still has to announce itself arriving and
+   leaving, so it keeps both moments and drops the travel. */
+@media (prefers-reduced-motion: reduce) {
+  .toast-in {
+    animation: fadein 0.2s ease;
+  }
+
+  .toast-out {
+    animation: fadeout 0.16s ease forwards;
+  }
+}
+
+/* The line under a toast, draining for exactly as long as the notice stays.
+   It answers the question the notice always raises — "is this going away, or
+   am I supposed to do something?" — without anyone having to wait to find out. */
+@keyframes toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Spinner — an action in progress.
 

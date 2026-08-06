@@ -156,7 +156,9 @@ export function ChamadoView({ id }: { id: string }) {
             </Button>
             <Button
               onClick={() =>
-                f.text.trim() ? a.replyToTicket(ticket.id) : a.notify("Escreva a sua resposta")
+                f.text.trim()
+                  ? a.replyToTicket(ticket.id)
+                  : a.notify("Escreva a sua resposta", "warn")
               }
               className="hv-brilho"
               style={css(primaryButton("sm"))}

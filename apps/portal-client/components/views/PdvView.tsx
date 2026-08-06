@@ -45,7 +45,7 @@ export function PdvView() {
     if (e.key !== "Enter") return;
     const found = available.find((p) => p.code === s.code.trim());
     if (found) a.addToCart(found);
-    else a.notify("Nenhum produto com esse código");
+    else a.notify("Nenhum produto com esse código", "warn");
   };
 
   return (

@@ -4,7 +4,9 @@ import { usePathname } from "next/navigation";
 import { usePortal } from "@/components/PortalProvider";
 import { Button, css, MONO, NUM, SANS } from "@aguiar/ui";
 import { brl } from "@/lib/formato";
+import { TOAST_MS } from "@/lib/estado";
 import { POS_ROUTE } from "@/lib/rotas";
+import type { ToastTone } from "@/types/estado";
 
 /** O véu que escurece o conteúdo quando a gaveta do menu está aberta. */
 export function NavVeil() {
@@ -20,23 +22,105 @@ export function NavVeil() {
 }
 
 /**
- * O aviso curto do rodapé. Confirma o que acabou de acontecer e some sozinho —
- * quem precisa de resposta usa a caixa de confirmação, não isto.
+ * A cara de cada tom.
+ *
+ * A cor mora no selo e na barrinha do tempo, não no fundo: o cartão é a mesma
+ * superfície do resto do portal, e é o selo que responde num relance "deu certo
+ * ou não". Um retângulo vermelho inteiro no canto da tela grita mais alto do que
+ * o problema que ele está anunciando.
+ */
+const TOAST_TONES: Record<ToastTone, { ink: string; soft: string; line: string; glyph: string }> = {
+  ok: { ink: "var(--pos)", soft: "var(--pos-soft)", line: "var(--pos-line)", glyph: "✓" },
+  warn: { ink: "var(--warn)", soft: "var(--warn-soft)", line: "var(--warn-line)", glyph: "!" },
+  error: { ink: "var(--danger)", soft: "var(--danger-soft)", line: "var(--danger-line)", glyph: "!" },
+};
+
+/**
+ * O aviso curto. Confirma o que acabou de acontecer e some sozinho — quem
+ * precisa de resposta usa a caixa de confirmação, não isto.
+ *
+ * Ele nasce no canto inferior direito porque é o canto que nenhuma tela usa: o
+ * conteúdo começa na esquerda, e no celular a barra de venda ocupa o rodapé
+ * inteiro — daí ele subir acima dela em vez de cobrir o botão que a pessoa
+ * provavelmente ia apertar em seguida.
+ *
+ * Entrar e sair são as duas animações, e o componente não decide nenhuma das
+ * duas: ele desenha `leaving`, que o `PortalProvider` liga quando o tempo se
+ * esgota ou alguém fecha no ✕, e que segura o aviso no estado só o tempo da
+ * saída. Um aviso que some entre dois frames é lido como falha da tela.
+ *
+ * A `key` no número de série é o que faz a entrada e a barrinha recomeçarem
+ * quando um aviso substitui o outro; sem ela o React reaproveitaria o mesmo nó
+ * e a troca passaria despercebida — inclusive quando o texto se repete.
  */
 export function Toast() {
-  const { s, isMobile } = usePortal();
+  const { s, a, isMobile } = usePortal();
   if (!s.toast) return null;
+
+  const { id, text, tone, leaving } = s.toast;
+  const t = TOAST_TONES[tone];
 
   return (
     <div
-      style={css(
-        "position:fixed;left:50%;transform:translateX(-50%);z-index:120;padding:12px 18px;" +
-          `bottom:${isMobile ? "86px" : "24px"};border-radius:11px;background:var(--petrol);color:#fff;` +
-          `font:600 13px ${SANS};box-shadow:var(--shadow-lg);animation:rise .2s ease`,
-      )}
+      key={id}
       role="status"
+      aria-live="polite"
+      className={leaving ? "toast-out" : "toast-in"}
+      style={css(
+        `position:fixed;z-index:120;right:${isMobile ? "14px" : "22px"};` +
+          `bottom:${isMobile ? "100px" : "24px"};${isMobile ? "left:14px;" : "max-width:390px;"}` +
+          "display:flex;align-items:flex-start;gap:11px;padding:13px 12px 13px 14px;" +
+          "border-radius:13px;background:var(--surface);border:1px solid var(--border);" +
+          "box-shadow:var(--shadow-lg);overflow:hidden;" +
+          // Saindo ele ainda está na tela por um piscar de olhos: sem isto, um
+          // clique apressado no que está atrás acertaria o aviso já invisível.
+          (leaving ? "pointer-events:none" : ""),
+      )}
     >
-      {s.toast}
+      <span
+        aria-hidden
+        style={css(
+          "flex:none;width:21px;height:21px;margin-top:1px;border-radius:99px;display:flex;" +
+            `align-items:center;justify-content:center;background:${t.soft};border:1px solid ${t.line};` +
+            `color:${t.ink};font:700 12px/1 ${SANS}`,
+        )}
+      >
+        {t.glyph}
+      </span>
+
+      {/* A mensagem do servidor pode ser longa e vir com um código sem espaços;
+          ela quebra dentro do cartão em vez de esticá-lo para fora da tela. */}
+      <div
+        style={css(
+          `flex:1;min-width:0;overflow-wrap:anywhere;font:600 13px/1.45 ${SANS};color:var(--text)`,
+        )}
+      >
+        {text}
+      </div>
+
+      {/* Fechar existe para o erro: ele fica cinco segundos na tela, e quem já
+          leu não deveria ter de esperar o aviso sair da frente. */}
+      <Button
+        onClick={a.closeToast}
+        className="hv-text"
+        aria-label="Fechar aviso"
+        style={css(
+          "flex:none;width:22px;height:22px;display:flex;align-items:center;justify-content:center;" +
+            `border-radius:7px;color:var(--muted);font:600 14px/1 ${SANS}`,
+        )}
+      >
+        ✕
+      </Button>
+
+      {/* O tempo que resta, desenhado. `transform-origin` na esquerda faz a
+          linha encolher para o lado de onde a leitura vem. */}
+      <span
+        aria-hidden
+        style={css(
+          `position:absolute;left:0;right:0;bottom:0;height:2px;background:${t.ink};opacity:.45;` +
+            `transform-origin:left;animation:toast-timer ${TOAST_MS[tone]}ms linear forwards`,
+        )}
+      />
     </div>
   );
 }
