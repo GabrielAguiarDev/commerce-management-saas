@@ -1,7 +1,7 @@
 import { ActivityIndicator } from 'react-native';
 
 import { useAppTheme } from '@hooks/useAppTheme';
-import type { TextVariant, ThemeColor } from '@theme';
+import { tokenDeRaio, type Raio, type TextVariant, type ThemeColor } from '@theme';
 
 import { Box } from './Box';
 import { Text } from './Text';
@@ -37,7 +37,7 @@ interface BotaoProps {
   carregando?: boolean;
   desabilitado?: boolean;
   larguraTotal?: boolean;
-  raio?: number;
+  raio?: Raio;
 }
 
 export function Botao({
@@ -89,7 +89,7 @@ export function Botao({
       borderColor={borda}
       borderWidth={borda ? (variante === 'tracejado' ? 1.5 : 1) : 0}
       borderStyle={variante === 'tracejado' ? 'dashed' : 'solid'}
-      borderRadius={raio as never}
+      borderRadius={tokenDeRaio(raio)}
       height={altura}
       width={larguraTotal ? '100%' : undefined}
       paddingHorizontal={larguraTotal ? 's0' : 's18'}

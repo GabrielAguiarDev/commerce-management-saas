@@ -23,3 +23,12 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - '@expo/cli@57.0.13'
+  - '@expo/config-plugins@57.0.7'
+  - babel-preset-expo@57.0.6
+  - expo-asset@57.0.9
+  - expo-file-system@57.0.2
+  - expo-modules-core@57.0.10
+  - expo@57.0.11

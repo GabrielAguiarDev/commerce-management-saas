@@ -284,6 +284,19 @@ no `pnpm-workspace.yaml`, não no `.npmrc`** — colocá-la no `.npmrc` é ignor
 silêncio. Depois de mudar, é preciso apagar todos os `node_modules` e reinstalar.
 Verificado: `apps/portal-client` continua com `tsc --noEmit` limpo.
 
+**1b. Mas NÃO ligue `disableHierarchicalLookup` no `metro.config.js`.**
+Hoisted não quer dizer plano: quando duas versões do mesmo pacote são exigidas,
+o pnpm ainda cria um `node_modules` **aninhado** para a perdedora. É o caso do
+`pretty-format` — a raiz fica com a v30 (que o jest arrasta) e o `react-native`
+guarda em `node_modules/react-native/node_modules` a v29 que ele declara. Com o
+lookup hierárquico desligado o Metro não enxerga esse aninhado, o `HMRClient`
+importa a v30 (que não expõe `.default` no require CJS) e o app morre no boot
+com `[runtime not ready] TypeError: Cannot read property 'default' of undefined`,
+antes de renderizar qualquer tela. **O bundle compila normalmente** — `expo
+export` e `tsc` passam e escondem o problema; só quebra em runtime. O risco de
+"dois Reacts" que justificaria a flag não existe aqui: não há cópia aninhada de
+`react` nem de `react-native` no grafo.
+
 **2. `react-hooks/immutability` × Reanimated.** A regra nova (alinhada ao React
 Compiler) trata `useSharedValue().value = x` como mutação proibida — mas isso é
 exatamente a API do Reanimated, inclusive dentro de worklet, onde `setState` não
@@ -295,6 +308,16 @@ token vira o tipo **literal** do hex e `darkColors` não compila
 (`'#0b1a21'` não é atribuível a `'#eef2f4'`). A solução é o tipo mapeado
 `Cores = { [K in keyof typeof tokensClaros]: string }`, que alarga os valores e
 mantém as chaves precisas — são elas que viram `ThemeColor`.
+
+**3b. `borderRadius` do restyle não aceita número — e `as never` esconde isso.**
+O restyle procura a chave em `theme.borderRadii`; passar `14` lança
+`Value '14' does not exist in theme['borderRadii']` **na renderização**. O
+`Botao` e o `Campo` recebem o raio em pixels (é assim que o design fala), então
+a conversão é obrigatória: `borderRadius={tokenDeRaio(raio)}`, com a prop tipada
+como `Raio` (a união fechada dos valores que existem no tema). A versão original
+usava `raio?: number` + `borderRadius={raio as never}` — compilava limpo e
+quebrava a primeira tela com input. Se precisar de um raio novo, adicione o
+token em `borderRadii`; não afrouxe o tipo.
 
 **4. `TextVariant` precisa excluir `defaults`.** O restyle aplica `defaults`
 sozinho; deixá-la no tipo faz o autocomplete oferecer uma variante que não existe

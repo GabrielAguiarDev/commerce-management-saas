@@ -238,6 +238,31 @@ export const darkTheme: Theme = {
 export type Theme = typeof lightTheme;
 export type ThemeColor = keyof Theme['colors'];
 
+export type TokenRaio = keyof Theme['borderRadii'];
+
+/**
+ * O raio EM PIXELS, como o design especifica ("input de 14", "card de 22").
+ * É a união fechada dos valores que existem em `borderRadii` — passar 19 não
+ * compila, em vez de explodir na renderização.
+ */
+export type Raio = (typeof borderRadii)[TokenRaio];
+
+const tokenPorValor = Object.fromEntries(
+  Object.entries(borderRadii).map(([token, valor]) => [valor, token]),
+) as Record<Raio, TokenRaio>;
+
+/**
+ * Converte o raio em pixels para a chave do tema que o restyle exige.
+ *
+ * O restyle NÃO aceita número cru em `borderRadius`: ele procura a chave em
+ * `theme.borderRadii` e lança "Value '14' does not exist in theme" na
+ * renderização. Um `as never` no lugar desta função silencia o tsc e entrega
+ * o erro ao usuário — foi exatamente o que aconteceu uma vez.
+ */
+export function tokenDeRaio(raio: Raio): TokenRaio {
+  return tokenPorValor[raio];
+}
+
 /**
  * `defaults` fica de fora: é o fallback que o restyle aplica sozinho, não uma
  * variante que alguém deva passar em `variant`. Deixá-la no tipo faria o

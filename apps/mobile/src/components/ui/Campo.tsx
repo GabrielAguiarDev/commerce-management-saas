@@ -2,7 +2,7 @@ import { forwardRef } from 'react';
 import { TextInput, type TextInputProps } from 'react-native';
 
 import { useAppTheme } from '@hooks/useAppTheme';
-import { fontFamily } from '@theme';
+import { fontFamily, tokenDeRaio, type Raio } from '@theme';
 
 import { Box } from './Box';
 import { Text } from './Text';
@@ -12,7 +12,7 @@ interface CampoProps extends Omit<TextInputProps, 'style' | 'value' | 'onChangeT
   aoMudar: (texto: string) => void;
   rotulo?: string;
   altura?: number;
-  raio?: number;
+  raio?: Raio;
   /** Variante do login: campo translúcido sobre o fundo petrol. */
   sobrePetrol?: boolean;
   alinharADireita?: boolean;
@@ -68,7 +68,7 @@ export const Campo = forwardRef<TextInput, CampoProps>(function Campo(
         backgroundColor={sobrePetrol ? 'fieldOnPetrol' : 'surface2'}
         borderColor={sobrePetrol ? 'fieldBorderOnPetrol' : 'line'}
         borderWidth={1}
-        borderRadius={raio as never}
+        borderRadius={tokenDeRaio(raio)}
         height={multilinha ? undefined : altura}
         minHeight={multilinha ? 110 : undefined}
         paddingHorizontal="s13"
