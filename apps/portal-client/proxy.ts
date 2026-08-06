@@ -92,7 +92,19 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Roda em tudo, menos assets estáticos e imagens.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    /**
+     * Roda em tudo, menos assets estáticos, imagens e os arquivos do PWA.
+     *
+     * Os do PWA precisam ficar de fora por um motivo específico: eles são
+     * pedidos por quem ainda não tem sessão (o navegador busca o manifesto na
+     * tela de login) e pelo próprio service worker, que não segue redirecionamento
+     * como uma aba faria. Passando por aqui, cada um receberia o HTML do login
+     * no lugar do arquivo:
+     *   - `serwist/`           o `/serwist/sw.js`, o worker em si;
+     *   - `manifest.webmanifest` sem ele o navegador não oferece a instalação;
+     *   - `offline.html`       a tela servida quando não há nada em cache;
+     *   - `icons/`            os ícones do app instalado.
+     */
+    "/((?!_next/static|_next/image|favicon.ico|serwist/|manifest.webmanifest|offline.html|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

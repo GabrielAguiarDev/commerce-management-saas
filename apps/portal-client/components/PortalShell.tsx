@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { Modais } from "@/components/modais/Modais";
 import { BottomBar, Confirm, Toast, NavVeil } from "@/components/Overlays";
 import { usePortal } from "@/components/PortalProvider";
+import { AvisoOffline, InstalarApp } from "@/components/Pwa";
 import { Sidebar } from "@/components/Sidebar";
 import { Splash } from "@/components/Splash";
 import { Topbar } from "@/components/Topbar";
@@ -66,6 +67,11 @@ export function PortalShell({ children }: { children: ReactNode }) {
               `flex:1;width:100%;max-width:1360px;padding:${isMobile ? "14px 14px 0" : "20px 22px 0"}`,
             )}
           >
+            {/* Sem internet, a tela continua a mesma — o que muda é que nada
+                pode ser salvo. O aviso vem antes de tudo porque é ele que
+                explica o erro que a próxima ação vai dar. */}
+            <AvisoOffline />
+
             {/* Leitura que falhou não vira "lista vazia": a tela diz o que houve,
                 ou a pessoa passaria a tarde procurando vendas que existem. */}
             {d.error && (
@@ -88,6 +94,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
       </div>
 
       <BottomBar />
+      <InstalarApp />
       <Modais />
       <Confirm />
       <Toast />

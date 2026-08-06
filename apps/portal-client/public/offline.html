@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sem conexão · Aguiar One</title>
+    <meta name="theme-color" content="#0f1c22" />
+    <link rel="icon" href="/icons/icon-192.png" />
+
+    <!--
+      A última tela do portal, a que aparece quando não há mais nada.
+
+      É um HTML solto, sem React, sem fontes de fora e sem uma linha de dado do
+      negócio — de propósito. O service worker a guarda na instalação e a serve
+      quando a pessoa, offline, pede uma tela que ainda não abriu neste
+      aparelho: é o único momento em que não existe nada em cache para mostrar.
+      Qualquer dependência aqui seria uma dependência que também pode faltar.
+
+      Os valores das cores estão escritos à mão, e não em `var(--...)`, porque
+      o `tokens.css` vive dentro do bundle do Next, que esta página não carrega.
+      Como o tema escolhido no portal não é gravado em lugar nenhum, aqui a
+      escolha segue a preferência do sistema.
+    -->
+    <style>
+      :root {
+        --bg: #eaeef2;
+        --surface: #ffffff;
+        --surface2: #f5f8fa;
+        --border: #dbe3ea;
+        --text: #16222c;
+        --text2: #3a4c5a;
+        --muted: #61748a;
+        --accent: #0d6e78;
+        --petrol: #14506b;
+        --warn: #8a5a12;
+        --warn-soft: #faf0dd;
+        --warn-line: #ecdcbd;
+        --shadow: 0 1px 2px rgba(19, 38, 52, 0.06), 0 6px 18px rgba(19, 38, 52, 0.06);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0c141b;
+          --surface: #121d26;
+          --surface2: #17232d;
+          --border: #25333e;
+          --text: #e7eef4;
+          --text2: #c2d0da;
+          --muted: #8798a7;
+          --accent: #2ea3ac;
+          --petrol: #7fb4cc;
+          --warn: #d8a75a;
+          --warn-soft: #332a18;
+          --warn-line: #54452a;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 22px rgba(0, 0, 0, 0.35);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Public Sans", system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .card {
+        width: 100%;
+        max-width: 430px;
+        padding: 28px 26px 24px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .mark {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin-bottom: 22px;
+      }
+
+      .mark svg {
+        flex: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+      }
+
+      .mark b {
+        display: block;
+        font: 700 16px/1.2 inherit;
+      }
+
+      .mark span {
+        display: block;
+        margin-top: 2px;
+        font: 500 11.5px inherit;
+        color: var(--muted);
+      }
+
+      h1 {
+        margin: 0;
+        font: 700 20px/1.3 inherit;
+      }
+
+      p {
+        margin: 10px 0 0;
+        font: 400 13.5px/1.6 inherit;
+        color: var(--text2);
+      }
+
+      .note {
+        margin-top: 18px;
+        padding: 12px 14px;
+        border: 1px solid var(--warn-line);
+        border-radius: 12px;
+        background: var(--warn-soft);
+        color: var(--warn);
+        font: 500 12.5px/1.55 inherit;
+      }
+
+      button {
+        margin-top: 20px;
+        width: 100%;
+        padding: 13px;
+        border: 0;
+        border-radius: 11px;
+        background: var(--accent);
+        color: #fff;
+        font: 700 14px inherit;
+        cursor: pointer;
+      }
+
+      button:hover {
+        filter: brightness(1.08);
+      }
+
+      .state {
+        margin: 12px 0 0;
+        text-align: center;
+        font: 500 12px inherit;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="card">
+      <div class="mark">
+        <svg viewBox="0 0 512 512" aria-hidden="true">
+          <rect width="512" height="512" rx="114" fill="#14506b" />
+          <path
+            fill="#ffffff"
+            fill-rule="evenodd"
+            d="M256 120 L400 392 L112 392 Z M256 214 L299.4 296 L212.6 296 Z M187.2 344 L324.8 344 L350.2 392 L161.8 392 Z"
+          />
+        </svg>
+        <span>
+          <b>Aguiar One</b>
+          <span>Portal do seu negócio</span>
+        </span>
+      </div>
+
+      <h1>Você está sem conexão</h1>
+      <p>
+        Esta tela ainda não tinha sido aberta neste aparelho, então não havia uma cópia dela
+        guardada. As telas que você já visitou continuam abrindo normalmente — volte para o portal
+        e use o menu.
+      </p>
+
+      <div class="note">
+        Enquanto a internet não voltar, nada é salvo: registrar uma venda, fechar o caixa ou lançar
+        um custo só funciona online.
+      </div>
+
+      <button type="button" onclick="location.reload()">Tentar de novo</button>
+      <p class="state" id="estado">Procurando a conexão…</p>
+    </main>
+
+    <script>
+      // Sem rede não há o que fazer além de esperar — quando ela voltar, a
+      // página se recarrega sozinha e a pessoa cai na tela que tinha pedido.
+      // Nada se perde nisso: esta página não tem formulário nem estado.
+      var estado = document.getElementById("estado");
+
+      function mostrar() {
+        estado.textContent = navigator.onLine
+          ? "A conexão voltou. Recarregando…"
+          : "Procurando a conexão…";
+      }
+
+      window.addEventListener("online", function () {
+        mostrar();
+        location.reload();
+      });
+
+      window.addEventListener("offline", mostrar);
+      mostrar();
+    </script>
+  </body>
+</html>

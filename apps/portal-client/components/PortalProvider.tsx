@@ -59,6 +59,7 @@ import {
   EMPTY_REPLY_FORM,
 } from "@/lib/estado";
 import { parseBrNumber } from "@/lib/formato";
+import { limparTelasGuardadas } from "@/lib/pwa";
 import { POS_ROUTE, ROUTES } from "@/lib/rotas";
 import type {
   Confirm,
@@ -241,7 +242,12 @@ export function PortalProvider({
     [],
   );
 
-  const signOut = useCallback(() => acaoSair(), []);
+  // Sair apaga também as telas que o service worker guardou: elas continuariam
+  // legíveis offline depois de a sessão acabar. Ver `lib/pwa.ts`.
+  const signOut = useCallback(async () => {
+    await limparTelasGuardadas();
+    return acaoSair();
+  }, []);
 
   /* ---------------------------------------------------------------------- */
   /* PDV                                                                     */
