@@ -1,18 +1,18 @@
 export type {
-  Atividade,
-  Capacidades,
+  Activity,
+  Capabilities,
   ChaveModulo,
   Membro,
   Plano,
   Tenant,
 } from './tenantTypes';
 export { CHAVES_MODULO, TenantError } from './tenantTypes';
-export { derivarCapacidades, rotularModulos } from './tenantAdapter';
+export { deriveCapabilities, labelModules } from './tenantAdapter';
 export {
   tenantKeys,
-  useAtividades,
-  useCapacidades,
-  useEquipe,
-  useSalvarDadosDoNegocio,
-  useTenantAtual,
+  useActivities,
+  useCapabilities,
+  useTeam,
+  useSaveBusinessDetails,
+  useCurrentTenant,
 } from './useCases/useTenant';

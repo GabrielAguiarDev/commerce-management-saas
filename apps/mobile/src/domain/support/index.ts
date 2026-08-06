@@ -1,17 +1,17 @@
 export type {
-  CategoriaChamado,
-  Chamado,
-  MensagemDoChamado,
-  NovoChamado,
-  StatusChamado,
+  TicketCategory,
+  Ticket,
+  TicketMessage,
+  NewTicket,
+  TicketStatus,
 } from './supportTypes';
-export { CATEGORIAS_CHAMADO, SuporteError } from './supportTypes';
-export { contarNaoLidos } from './supportAdapter';
+export { TICKET_CATEGORIES, SupportError } from './supportTypes';
+export { countUnread } from './supportAdapter';
 export {
   suporteKeys,
-  useAbrirChamado,
-  useChamados,
-  useMarcarComoLido,
-  useMensagensDoChamado,
-  useResponderChamado,
-} from './useCases/useSuporte';
+  useOpenTicket,
+  useTickets,
+  useMarkAsRead,
+  useTicketMessages,
+  useReplyToTicket,
+} from './useCases/useSupport';

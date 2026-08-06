@@ -105,7 +105,7 @@ export const EQUIPE_API: Record<string, TeamMemberAPI[]> = {
   ],
 };
 
-export const ATIVIDADES_API: Record<string, ActivityAPI[]> = {
+export const ACTIVITIES_API: Record<string, ActivityAPI[]> = {
   [ID_PETSHOP]: [
     {
       id: 'act_1',

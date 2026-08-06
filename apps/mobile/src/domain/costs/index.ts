@@ -1,4 +1,4 @@
-export type { Custo, FiltroCusto, ResumoDoMes, TipoDeCusto } from './costsTypes';
-export { CustoError } from './costsTypes';
-export { filtrarCustos } from './costsAdapter';
-export { custosKeys, useCustos, useRegistrarCusto, useResumoDoMes } from './useCases/useCustos';
+export type { Cost, CostFilter, MonthlySummary, CostType } from './costsTypes';
+export { CostError } from './costsTypes';
+export { filterCosts } from './costsAdapter';
+export { costsKeys, useCosts, useRecordCost, useMonthlySummary } from './useCases/useCosts';

@@ -11,93 +11,93 @@ import { create } from 'zustand';
  * reapareceria na abertura seguinte, sem contexto nenhum.
  */
 
-export type TomDoToast = 'neutro' | 'erro';
+export type ToastTone = 'neutral' | 'erro';
 
 export interface Toast {
-  texto: string;
-  tom: TomDoToast;
+  text: string;
+  tone: ToastTone;
   /** Mostra o botão Desfazer e liga o callback abaixo. */
-  comDesfazer: boolean;
+  withUndo: boolean;
 }
 
-export interface Confirmacao {
-  titulo: string;
-  texto: string;
-  rotuloBotao: string;
+export interface Confirm {
+  title: string;
+  text: string;
+  buttonLabel: string;
   /** Destrutivo pinta o botão de vermelho. */
-  destrutivo: boolean;
-  aoConfirmar: () => void;
+  destructive: boolean;
+  onConfirm: () => void;
 }
 
 /** Os cinco sheets do produto. Uma união fechada, não uma string solta. */
 export type Sheet =
-  | { tipo: 'carrinho' }
-  | { tipo: 'produto' }
-  | { tipo: 'fechamento' }
-  | { tipo: 'chamado' }
-  | { tipo: 'sangria' }
-  | { tipo: 'reforco' }
-  | { tipo: 'movimento'; produtoId?: string; produtoNome?: string }
-  | { tipo: 'custo' };
+  | { type: 'cart' }
+  | { type: 'product' }
+  | { type: 'closeOut' }
+  | { type: 'ticket' }
+  | { type: 'withdrawal' }
+  | { type: 'topUp' }
+  | { type: 'movement'; productId?: string; productName?: string }
+  | { type: 'cost' };
 
-export type TipoDeSheet = Sheet['tipo'];
+export type SheetType = Sheet['type'];
 
-interface EstadoUI {
+interface UIState {
   toast: Toast | null;
-  confirmacao: Confirmacao | null;
+  confirm: Confirm | null;
   sheet: Sheet | null;
   /** Callback do "Desfazer"; separado do toast para não entrar em comparação. */
-  aoDesfazer: (() => void) | null;
+  onUndo: (() => void) | null;
 
-  mostrarToast: (texto: string, opcoes?: Partial<Omit<Toast, 'texto'>> & { aoDesfazer?: () => void }) => void;
-  fecharToast: () => void;
-  pedirConfirmacao: (c: Confirmacao) => void;
-  fecharConfirmacao: () => void;
-  abrirSheet: (s: Sheet) => void;
-  fecharSheet: () => void;
+  showToast: (text: string, options?: Partial<Omit<Toast, 'text'>> & { onUndo?: () => void }) => void;
+  closeToast: () => void;
+  requestConfirm: (c: Confirm) => void;
+  closeConfirm: () => void;
+  openSheet: (s: Sheet) => void;
+  closeSheet: () => void;
 }
 
 /** Tempo que o toast fica na tela — inclusive a janela do Desfazer. */
-export const DURACAO_TOAST_MS = 4200;
+export const TOAST_DURATION_MS = 4200;
 
-let temporizadorToast: ReturnType<typeof setTimeout> | null = null;
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
-export const useUIStore = create<EstadoUI>()((set) => ({
+export const useUIStore = create<UIState>()((set) => ({
   toast: null,
-  confirmacao: null,
+  confirm: null,
   sheet: null,
-  aoDesfazer: null,
+  onUndo: null,
 
-  mostrarToast: (texto, opcoes) => {
+  showToast: (text, options) => {
     // Um toast por vez: o novo cancela o timer do anterior. Sem isso, o timer
     // velho apagaria o toast novo antes da hora — bug clássico de fila de
     // notificação implícita.
-    if (temporizadorToast) clearTimeout(temporizadorToast);
+    if (toastTimer) clearTimeout(toastTimer);
 
     set({
       toast: {
-        texto,
-        tom: opcoes?.tom ?? 'neutro',
-        comDesfazer: opcoes?.comDesfazer ?? false,
+        text,
+        tone: options?.tone ?? 'neutral',
+        withUndo: options?.withUndo ?? false,
       },
-      aoDesfazer: opcoes?.aoDesfazer ?? null,
+      onUndo: options?.onUndo ?? null,
     });
 
-    temporizadorToast = setTimeout(() => {
-      set({ toast: null, aoDesfazer: null });
-      temporizadorToast = null;
-    }, DURACAO_TOAST_MS);
+    toastTimer = setTimeout(() => {
+      set({ toast: null, onUndo: null });
+      toastTimer = null;
+    }, TOAST_DURATION_MS);
   },
 
-  fecharToast: () => {
-    if (temporizadorToast) clearTimeout(temporizadorToast);
-    temporizadorToast = null;
-    set({ toast: null, aoDesfazer: null });
+  closeToast: () => {
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = null;
+    set({ toast: null, onUndo: null });
   },
 
-  pedirConfirmacao: (c) => set({ confirmacao: c }),
-  fecharConfirmacao: () => set({ confirmacao: null }),
+  requestConfirm: (c) => set({ confirm: c }),
+  closeConfirm: () => set({ confirm: null }),
 
-  abrirSheet: (s) => set({ sheet: s }),
-  fecharSheet: () => set({ sheet: null }),
+  openSheet: (s) => set({ sheet: s }),
+  closeSheet: () => set({ sheet: null }),
 }));

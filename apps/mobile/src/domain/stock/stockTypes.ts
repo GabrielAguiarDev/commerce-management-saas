@@ -1,8 +1,8 @@
 /** MODELO DE DOMÍNIO das movimentações de estoque. */
 
-export interface Movimentacao {
+export interface StockMovement {
   id: string;
-  produtoNome: string;
+  productName: string;
   /** Negativo é saída, positivo é entrada. Zero nunca é gravado. */
   delta: number;
   /** "−3" / "+20", já com o traço tipográfico do design. */
@@ -12,11 +12,11 @@ export interface Movimentacao {
   quando: string;
 }
 
-export type CodigoErroEstoque = 'produto_obrigatorio' | 'quantidade_invalida' | 'rede';
+export type StockErrorCode = 'product_required' | 'invalid_quantity' | 'network';
 
-export class EstoqueError extends Error {
-  constructor(readonly codigo: CodigoErroEstoque, mensagem?: string) {
-    super(mensagem ?? codigo);
+export class StockError extends Error {
+  constructor(readonly code: StockErrorCode, message?: string) {
+    super(message ?? code);
     this.name = 'EstoqueError';
   }
 }

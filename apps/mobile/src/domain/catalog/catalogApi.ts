@@ -1,5 +1,5 @@
-import { CATALOGO_API, CATEGORIA_ESPECIAL } from '@data/catalogo';
-import { esperar } from '@services/mockLatency';
+import { CATALOG_API, CATEGORIA_ESPECIAL } from '@data/catalog';
+import { delay } from '@services/mockLatency';
 
 import type { ProductAPI, ProductCreateAPI } from './catalogApiTypes';
 
@@ -10,13 +10,13 @@ import type { ProductAPI, ProductCreateAPI } from './catalogApiTypes';
  * Só aqui há relógio (`Date.now`) e geração de id.
  */
 
-export async function listarProdutos(tenantId: string): Promise<ProductAPI[]> {
-  await esperar();
-  return CATALOGO_API[tenantId] ?? [];
+export async function listProducts(tenantId: string): Promise<ProductAPI[]> {
+  await delay();
+  return CATALOG_API[tenantId] ?? [];
 }
 
-export async function criarProduto(payload: ProductCreateAPI): Promise<ProductAPI> {
-  await esperar();
+export async function createProduct(payload: ProductCreateAPI): Promise<ProductAPI> {
+  await delay();
 
   const novo: ProductAPI = {
     id: `prd_${Date.now().toString(36)}`,
@@ -34,22 +34,22 @@ export async function criarProduto(payload: ProductCreateAPI): Promise<ProductAP
     updated_at: null,
   };
 
-  CATALOGO_API[payload.tenant_id] = [novo, ...(CATALOGO_API[payload.tenant_id] ?? [])];
+  CATALOG_API[payload.tenant_id] = [novo, ...(CATALOG_API[payload.tenant_id] ?? [])];
   return novo;
 }
 
-export async function alternarFavorito(
+export async function toggleFavorite(
   tenantId: string,
-  produtoId: string,
+  productId: string,
 ): Promise<ProductAPI | null> {
-  await esperar(80);
-  const lista = CATALOGO_API[tenantId] ?? [];
-  const alvo = lista.find((p) => p.id === produtoId);
+  await delay(80);
+  const list = CATALOG_API[tenantId] ?? [];
+  const alvo = list.find((p) => p.id === productId);
   if (!alvo) return null;
 
-  const atualizado: ProductAPI = { ...alvo, is_favorite: !(alvo.is_favorite ?? true) };
-  CATALOGO_API[tenantId] = lista.map((p) => (p.id === produtoId ? atualizado : p));
-  return atualizado;
+  const updated: ProductAPI = { ...alvo, is_favorite: !(alvo.is_favorite ?? true) };
+  CATALOG_API[tenantId] = list.map((p) => (p.id === productId ? updated : p));
+  return updated;
 }
 
 /**
@@ -57,25 +57,25 @@ export async function alternarFavorito(
  * Produtos que não controlam estoque são ignorados sem erro — vender um
  * serviço não pode falhar por causa de estoque que ele não tem.
  */
-export async function movimentarEstoque(
+export async function moveStock(
   tenantId: string,
-  produtoId: string,
+  productId: string,
   delta: number,
 ): Promise<ProductAPI | null> {
-  await esperar(80);
-  const lista = CATALOGO_API[tenantId] ?? [];
-  const alvo = lista.find((p) => p.id === produtoId);
+  await delay(80);
+  const list = CATALOG_API[tenantId] ?? [];
+  const alvo = list.find((p) => p.id === productId);
   if (!alvo || alvo.stock_qty === null) return null;
 
-  const atualizado: ProductAPI = {
+  const updated: ProductAPI = {
     ...alvo,
     stock_qty: Math.max(0, alvo.stock_qty + delta),
     updated_at: new Date().toISOString(),
   };
-  CATALOGO_API[tenantId] = lista.map((p) => (p.id === produtoId ? atualizado : p));
-  return atualizado;
+  CATALOG_API[tenantId] = list.map((p) => (p.id === productId ? updated : p));
+  return updated;
 }
 
-export function categoriaEspecialDoTenant(tenantId: string): string | null {
+export function tenantSpecialCategory(tenantId: string): string | null {
   return CATEGORIA_ESPECIAL[tenantId] ?? null;
 }

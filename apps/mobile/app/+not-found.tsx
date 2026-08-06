@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 
-import { Botao, Box, Text } from '@components';
-import { ROTAS } from '@domain/navigation/rotas';
+import { Button, Box, Text } from '@components';
+import { ROUTES } from '@domain/navigation/routes';
 
 /**
  * 404. Existe porque o app tem `scheme` registrado: um deep link com rota
@@ -16,7 +16,7 @@ export default function NaoEncontrado() {
       <Text variant="bodyLoose" color="textMuted" textAlign="center" marginBottom="s28">
         O link que você abriu não existe mais ou está com erro de digitação.
       </Text>
-      <Botao titulo="Ir para o início" aoTocar={() => router.replace(ROTAS.entrada as never)} />
+      <Button title="Ir para o início" onPress={() => router.replace(ROUTES.entrada as never)} />
     </Box>
   );
 }

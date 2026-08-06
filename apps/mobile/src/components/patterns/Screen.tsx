@@ -5,12 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@components/ui/Avatar';
 import { Box } from '@components/ui/Box';
-import { Icone } from '@components/ui/Icone';
+import { Icon } from '@components/ui/Icon';
 import { Text } from '@components/ui/Text';
-import { Toque } from '@components/ui/Toque';
-import { useSessaoStore } from '@store/sessaoStore';
+import { Touchable } from '@components/ui/Touchable';
+import { useSessionStore } from '@store/sessionStore';
 
-import { BannerDeConexao } from './BannerDeConexao';
+import { ConnectionBanner } from './ConnectionBanner';
 
 /**
  * Altura reservada no fim do conteúdo para a tab bar (88), a barra do carrinho
@@ -19,16 +19,16 @@ import { BannerDeConexao } from './BannerDeConexao';
 export const ESPACO_INFERIOR = 150;
 
 interface ScreenProps {
-  titulo: string;
-  subtitulo: string;
+  title: string;
+  subtitle: string;
   children: ReactNode;
   /**
    * Sem rolagem: a thread do suporte rola por conta própria (invertida) e o
    * teclado precisa empurrar o campo de resposta.
    */
-  semRolagem?: boolean;
+  noScroll?: boolean;
   /** Botão voltar. Padrão: aparece quando há para onde voltar na pilha. */
-  mostrarVoltar?: boolean;
+  showBack?: boolean;
 }
 
 /**
@@ -40,21 +40,21 @@ interface ScreenProps {
  * fixa que o protótipo desenha, sem transformar cada tela numa aba.
  */
 export function Screen({
-  titulo,
-  subtitulo,
+  title,
+  subtitle,
   children,
-  semRolagem = false,
-  mostrarVoltar,
+  noScroll = false,
+  showBack,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
-  const usuario = useSessaoStore((s) => s.usuario);
+  const user = useSessionStore((s) => s.user);
 
   // `router.canGoBack()` é a fonte da verdade da pilha: replicar isso num
   // estado próprio (como a `pilha` do protótipo) desincroniza na primeira vez
   // que alguém navega por deep link.
-  const podeVoltar = mostrarVoltar ?? router.canGoBack();
+  const canGoBack = showBack ?? router.canGoBack();
 
-  const conteudo = (
+  const content = (
     <Box gap="s12" paddingHorizontal="s16" paddingTop="s2">
       {children}
     </Box>
@@ -70,8 +70,8 @@ export function Screen({
         paddingTop="s2"
         paddingBottom="s12"
       >
-        {podeVoltar ? (
-          <Toque
+        {canGoBack ? (
+          <Touchable
             accessibilityLabel="Voltar"
             onPress={() => router.back()}
             width={38}
@@ -83,26 +83,26 @@ export function Screen({
             alignItems="center"
             justifyContent="center"
           >
-            <Icone nome="voltar" tamanho={17} />
-          </Toque>
+            <Icon name="back" size={17} />
+          </Touchable>
         ) : null}
 
         <Box flex={1} minWidth={0}>
           <Text variant="screenTitle" accessibilityRole="header">
-            {titulo}
+            {title}
           </Text>
           <Text variant="caption" color="textMuted" marginTop="s3">
-            {subtitulo}
+            {subtitle}
           </Text>
         </Box>
 
-        <Avatar iniciais={usuario?.iniciais ?? '?'} />
+        <Avatar initials={user?.initials ?? '?'} />
       </Box>
 
-      <BannerDeConexao />
+      <ConnectionBanner />
 
-      {semRolagem ? (
-        <Box flex={1}>{conteudo}</Box>
+      {noScroll ? (
+        <Box flex={1}>{content}</Box>
       ) : (
         <ScrollView
           style={{ flex: 1 }}
@@ -110,7 +110,7 @@ export function Screen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {conteudo}
+          {content}
         </ScrollView>
       )}
     </Box>

@@ -1,52 +1,57 @@
 /** MODELO DE DOMÍNIO das vendas. */
 
-export interface ItemCarrinho {
-  produtoId: string;
-  nome: string;
-  precoUnitarioCentavos: number;
-  quantidade: number;
+export interface CartItem {
+  productId: string;
+  name: string;
+  unitPriceCents: number;
+  quantity: number;
 }
 
-export interface ItemVendido {
-  produtoId: string;
-  nome: string;
-  quantidade: number;
-  precoUnitarioCentavos: number;
+export interface SoldItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  unitPriceCents: number;
 }
 
-export interface Venda {
+export interface Sale {
   id: string;
   /** `HH:mm` já formatado pelo adapter — a tela não faz conta com data. */
-  hora: string;
-  itens: ItemVendido[];
+  time: string;
+  items: SoldItem[];
   /** "2× Acarajé completo · 1× Água" — resumo pronto para a linha da lista. */
-  resumoItens: string;
-  formaPagamento: string;
-  totalCentavos: number;
+  itemsSummary: string;
+  paymentMethod: string;
+  totalCents: number;
   /** Venda feita offline e ainda não confirmada pelo servidor. */
-  pendenteDeSincronia: boolean;
+  pendingSync: boolean;
 }
 
-export interface MaisVendido {
-  nome: string;
-  /** "24 unidades hoje". */
-  detalhe: string;
+export interface TopSeller {
+  name: string;
+  /**
+   * The COUNT, not a rendered sentence. The adapter used to return
+   * "24 unidades hoje", which baked pt-BR copy into the domain and made the
+   * line impossible to translate. The screen renders it via
+   * `t.units.soldToday(quantity)`.
+   */
+  quantity: number;
 }
 
-export interface ResumoDoDia {
-  totalCentavos: number;
-  lucroCentavos: number;
-  quantidadeDeVendas: number;
-  itensVendidos: number;
-  ticketMedioCentavos: number;
-  maisVendido: MaisVendido | null;
+export interface DailySummary {
+  totalCents: number;
+  profitCents: number;
+  saleCount: number;
+  soldItems: number;
+  averageTicketCents: number;
+  maisVendido: TopSeller | null;
 }
 
-export type CodigoErroVenda = 'carrinho_vazio' | 'sem_forma_de_pagamento' | 'rede' | 'desconhecido';
+export type SaleErrorCode = 'empty_cart' | 'no_payment_method' | 'network' | 'unknown';
 
-export class VendaError extends Error {
-  constructor(readonly codigo: CodigoErroVenda, mensagem?: string) {
-    super(mensagem ?? codigo);
+export class SaleError extends Error {
+  constructor(readonly code: SaleErrorCode, message?: string) {
+    super(message ?? code);
     this.name = 'VendaError';
   }
 }

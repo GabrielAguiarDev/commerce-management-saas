@@ -15,9 +15,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box } from '@components/ui/Box';
 import { Text } from '@components/ui/Text';
-import { Toque } from '@components/ui/Toque';
+import { Touchable } from '@components/ui/Touchable';
 
-import { AO_FADE, AO_SHEET } from './animacoes';
+import { AO_FADE, AO_SHEET } from './animations';
 
 /** 82% da tela, como no protótipo (`max-height:82%`). */
 const ALTURA_MAXIMA = Dimensions.get('window').height * 0.82;
@@ -29,11 +29,11 @@ const LIMIAR_FECHAR = 90;
  * `LayoutAnimationConfig` recriado a cada render faria a animação reiniciar em
  * toda atualização de estado do sheet — digitar num campo, por exemplo.
  */
-const SLIDE_DE_BAIXO = SlideInDown.duration(AO_SHEET.duracao).easing(AO_SHEET.easing);
+const SLIDE_DE_BAIXO = SlideInDown.duration(AO_SHEET.duration).easing(AO_SHEET.easing);
 
 interface BottomSheetProps {
-  titulo: string;
-  aoFechar: () => void;
+  title: string;
+  onClose: () => void;
   children: ReactNode;
 }
 
@@ -55,37 +55,37 @@ interface BottomSheetProps {
  * responsabilidade deste componente: arrastar para baixo fecha, e o arrasto
  * acompanha o dedo. Sheet sem gesto de saída é sheet que só fecha no ✕.
  */
-export function BottomSheet({ titulo, aoFechar, children }: BottomSheetProps) {
+export function BottomSheet({ title, onClose, children }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
-  const semMovimento = useReducedMotion();
-  const deslocamento = useSharedValue(0);
+  const noMovement = useReducedMotion();
+  const offset = useSharedValue(0);
 
   const arrastar = Gesture.Pan()
     .onChange((evento) => {
       // Só para baixo: puxar para cima não estica o sheet.
-      deslocamento.value = Math.max(0, deslocamento.value + evento.changeY);
+      offset.value = Math.max(0, offset.value + evento.changeY);
     })
     .onEnd((evento) => {
       const rapido = evento.velocityY > 800;
-      if (deslocamento.value > LIMIAR_FECHAR || rapido) {
-        runOnJS(aoFechar)();
+      if (offset.value > LIMIAR_FECHAR || rapido) {
+        runOnJS(onClose)();
       } else {
-        deslocamento.value = withTiming(0, { duration: 160 });
+        offset.value = withTiming(0, { duration: 160 });
       }
     });
 
   const estilo = useAnimatedStyle(() => ({
-    transform: [{ translateY: deslocamento.value }],
+    transform: [{ translateY: offset.value }],
   }));
 
   return (
     <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="flex-end">
       <Animated.View
-        entering={FadeIn.duration(AO_FADE.duracao)}
-        exiting={FadeOut.duration(AO_FADE.duracao)}
+        entering={FadeIn.duration(AO_FADE.duration)}
+        exiting={FadeOut.duration(AO_FADE.duration)}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       >
-        <Toque accessibilityLabel="Fechar" onPress={aoFechar} flex={1} backgroundColor="scrimSheet" />
+        <Touchable accessibilityLabel="Fechar" onPress={onClose} flex={1} backgroundColor="scrimSheet" />
       </Animated.View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -93,8 +93,8 @@ export function BottomSheet({ titulo, aoFechar, children }: BottomSheetProps) {
           <Animated.View
             // O `aoSheet` do design: sobe de baixo com cubic-bezier(.2,.8,.25,1).
             // Com "reduzir movimento" ligado, aparece com fade e sem deslocar.
-            entering={semMovimento ? FadeIn.duration(AO_FADE.duracao) : SLIDE_DE_BAIXO}
-            exiting={FadeOut.duration(AO_SHEET.duracaoSaida)}
+            entering={noMovement ? FadeIn.duration(AO_FADE.duration) : SLIDE_DE_BAIXO}
+            exiting={FadeOut.duration(AO_SHEET.exitDuration)}
             style={estilo}
           >
             <Box
@@ -117,12 +117,12 @@ export function BottomSheet({ titulo, aoFechar, children }: BottomSheetProps) {
               <Box flexDirection="row" alignItems="center" gap="s10" marginBottom="s14">
                 <Box flex={1}>
                   <Text variant="sheetTitle" accessibilityRole="header">
-                    {titulo}
+                    {title}
                   </Text>
                 </Box>
-                <Toque
+                <Touchable
                   accessibilityLabel="Fechar"
-                  onPress={aoFechar}
+                  onPress={onClose}
                   width={34}
                   height={34}
                   borderRadius="r11"
@@ -134,7 +134,7 @@ export function BottomSheet({ titulo, aoFechar, children }: BottomSheetProps) {
                   <Text variant="rowLabel" color="textMuted">
                     ✕
                   </Text>
-                </Toque>
+                </Touchable>
               </Box>
 
               <ScrollView

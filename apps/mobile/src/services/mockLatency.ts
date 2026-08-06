@@ -9,9 +9,9 @@
  */
 const EM_TESTE = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
 
-export const LATENCIA_MOCK_MS = EM_TESTE ? 0 : 220;
+export const MOCK_LATENCY_MS = EM_TESTE ? 0 : 220;
 
-export function esperar(ms: number = LATENCIA_MOCK_MS): Promise<void> {
+export function delay(ms: number = MOCK_LATENCY_MS): Promise<void> {
   if (ms <= 0) return Promise.resolve();
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

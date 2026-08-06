@@ -248,7 +248,7 @@ export type TokenRaio = keyof Theme['borderRadii'];
 export type Raio = (typeof borderRadii)[TokenRaio];
 
 const tokenPorValor = Object.fromEntries(
-  Object.entries(borderRadii).map(([token, valor]) => [valor, token]),
+  Object.entries(borderRadii).map(([token, amount]) => [amount, token]),
 ) as Record<Raio, TokenRaio>;
 
 /**
@@ -259,8 +259,8 @@ const tokenPorValor = Object.fromEntries(
  * renderização. Um `as never` no lugar desta função silencia o tsc e entrega
  * o erro ao usuário — foi exatamente o que aconteceu uma vez.
  */
-export function tokenDeRaio(raio: Raio): TokenRaio {
-  return tokenPorValor[raio];
+export function tokenDeRaio(radius: Raio): TokenRaio {
+  return tokenPorValor[radius];
 }
 
 /**

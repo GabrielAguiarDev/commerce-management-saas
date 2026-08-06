@@ -1,50 +1,50 @@
 import * as api from './costsApi';
-import { toCusto, toCustoPayload, toResumoDoMes } from './costsAdapter';
-import { CustoError, type Custo, type ResumoDoMes } from './costsTypes';
+import { toCost, toCostPayload, toMonthlySummary } from './costsAdapter';
+import { CostError, type Cost, type MonthlySummary } from './costsTypes';
 
 /** AS REGRAS dos custos. */
 
-function normalizar(erro: unknown): never {
-  if (erro instanceof CustoError) throw erro;
-  throw new CustoError('rede', erro instanceof Error ? erro.message : undefined);
+function normalize(error: unknown): never {
+  if (error instanceof CostError) throw error;
+  throw new CostError('network', error instanceof Error ? error.message : undefined);
 }
 
-export async function listarCustos(tenantId: string): Promise<Custo[]> {
+export async function listCosts(tenantId: string): Promise<Cost[]> {
   try {
-    return (await api.listarCustos(tenantId)).map(toCusto);
+    return (await api.listCosts(tenantId)).map(toCost);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-const RESUMO_VAZIO: ResumoDoMes = {
+const EMPTY_SUMMARY: MonthlySummary = {
   mes: '—',
-  periodo: '—',
+  period: '—',
   entrouCentavos: 0,
   saiuCentavos: 0,
   sobrouCentavos: 0,
 };
 
-export async function obterResumoDoMes(tenantId: string): Promise<ResumoDoMes> {
+export async function getMonthlySummary(tenantId: string): Promise<MonthlySummary> {
   try {
-    const raw = await api.buscarResumoDoMes(tenantId);
-    return raw ? toResumoDoMes(raw) : RESUMO_VAZIO;
+    const raw = await api.fetchMonthlySummary(tenantId);
+    return raw ? toMonthlySummary(raw) : EMPTY_SUMMARY;
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function registrarCusto(
+export async function recordCost(
   tenantId: string,
-  nome: string,
-  valorCentavos: number,
-): Promise<Custo> {
-  if (!nome.trim()) throw new CustoError('nome_obrigatorio');
-  if (valorCentavos <= 0) throw new CustoError('valor_invalido');
+  name: string,
+  amountCents: number,
+): Promise<Cost> {
+  if (!name.trim()) throw new CostError('name_required');
+  if (amountCents <= 0) throw new CostError('invalid_amount');
 
   try {
-    return toCusto(await api.criarCusto(toCustoPayload(tenantId, nome, valorCentavos)));
+    return toCost(await api.createCost(toCostPayload(tenantId, name, amountCents)));
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }

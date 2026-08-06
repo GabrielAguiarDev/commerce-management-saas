@@ -1,5 +1,5 @@
-import { CUSTOS_API, RESUMO_MES_API } from '@data/custos';
-import { esperar } from '@services/mockLatency';
+import { COSTS_API, MONTHLY_SUMMARY_API } from '@data/costs';
+import { delay } from '@services/mockLatency';
 
 import type { CostAPI, CostCreateAPI, MonthSummaryAPI } from './costsApiTypes';
 
@@ -8,18 +8,18 @@ import type { CostAPI, CostCreateAPI, MonthSummaryAPI } from './costsApiTypes';
  * ⚠️ ÚNICO ARQUIVO DESTE DOMÍNIO QUE MUDA COM O SUPABASE.
  */
 
-export async function listarCustos(tenantId: string): Promise<CostAPI[]> {
-  await esperar();
-  return CUSTOS_API[tenantId] ?? [];
+export async function listCosts(tenantId: string): Promise<CostAPI[]> {
+  await delay();
+  return COSTS_API[tenantId] ?? [];
 }
 
-export async function buscarResumoDoMes(tenantId: string): Promise<MonthSummaryAPI | null> {
-  await esperar();
-  return RESUMO_MES_API[tenantId] ?? null;
+export async function fetchMonthlySummary(tenantId: string): Promise<MonthSummaryAPI | null> {
+  await delay();
+  return MONTHLY_SUMMARY_API[tenantId] ?? null;
 }
 
-export async function criarCusto(payload: CostCreateAPI): Promise<CostAPI> {
-  await esperar(180);
+export async function createCost(payload: CostCreateAPI): Promise<CostAPI> {
+  await delay(180);
 
   const novo: CostAPI = {
     id: `cst_${Date.now().toString(36)}`,
@@ -27,17 +27,17 @@ export async function criarCusto(payload: CostCreateAPI): Promise<CostAPI> {
     name: payload.name,
     amount_cents: payload.amount_cents,
     kind: payload.kind,
-    due_label: 'hoje',
+    due_label: 'today',
     from_stock: false,
   };
 
-  CUSTOS_API[payload.tenant_id] = [novo, ...(CUSTOS_API[payload.tenant_id] ?? [])];
+  COSTS_API[payload.tenant_id] = [novo, ...(COSTS_API[payload.tenant_id] ?? [])];
 
-  const resumo = RESUMO_MES_API[payload.tenant_id];
-  if (resumo) {
-    RESUMO_MES_API[payload.tenant_id] = {
-      ...resumo,
-      expense_cents: (resumo.expense_cents ?? 0) + payload.amount_cents,
+  const summary = MONTHLY_SUMMARY_API[payload.tenant_id];
+  if (summary) {
+    MONTHLY_SUMMARY_API[payload.tenant_id] = {
+      ...summary,
+      expense_cents: (summary.expense_cents ?? 0) + payload.amount_cents,
     };
   }
 

@@ -1,8 +1,8 @@
 import type { ReportAPI } from '../reportsApiTypes';
-import { toBarras, toRelatorio } from '../reportsAdapter';
+import { toBarras, toReport } from '../reportsAdapter';
 
 describe('toBarras', () => {
-  const semana = [
+  const week = [
     { day_label: 'seg', amount_cents: 52000 },
     { day_label: 'ter', amount_cents: 74000 },
     { day_label: 'qua', amount_cents: 61000 },
@@ -13,29 +13,29 @@ describe('toBarras', () => {
   ];
 
   it('normaliza as alturas em proporção de 0 a 1', () => {
-    const barras = toBarras(semana);
-    expect(barras.every((b) => b.proporcao >= 0 && b.proporcao <= 1)).toBe(true);
-    expect(barras.find((b) => b.dia === 'sáb')?.proporcao).toBe(1);
+    const bars = toBarras(week);
+    expect(bars.every((b) => b.ratio >= 0 && b.ratio <= 1)).toBe(true);
+    expect(bars.find((b) => b.dia === 'sáb')?.ratio).toBe(1);
   });
 
   it('mantém a relação entre os dias do protótipo (52/130 no primeiro)', () => {
-    const barras = toBarras(semana);
-    expect(barras[0]?.proporcao).toBeCloseTo(52 / 130, 5);
+    const bars = toBarras(week);
+    expect(bars[0]?.ratio).toBeCloseTo(52 / 130, 5);
   });
 
   it('destaca o maior dia — e só ele', () => {
-    const destacadas = toBarras(semana).filter((b) => b.destacada);
+    const destacadas = toBarras(week).filter((b) => b.destacada);
     expect(destacadas.map((b) => b.dia)).toEqual(['sáb']);
   });
 
   it('semana inteira zerada não vira divisão por zero', () => {
-    const barras = toBarras([
+    const bars = toBarras([
       { day_label: 'seg', amount_cents: 0 },
       { day_label: 'ter', amount_cents: 0 },
     ]);
-    expect(barras.every((b) => b.proporcao === 0)).toBe(true);
-    expect(barras.some((b) => b.destacada)).toBe(false);
-    expect(barras.some((b) => Number.isNaN(b.proporcao))).toBe(false);
+    expect(bars.every((b) => b.ratio === 0)).toBe(true);
+    expect(bars.some((b) => b.destacada)).toBe(false);
+    expect(bars.some((b) => Number.isNaN(b.ratio))).toBe(false);
   });
 
   it('lista vazia devolve lista vazia, sem quebrar', () => {
@@ -45,7 +45,7 @@ describe('toBarras', () => {
 
 describe('toRelatorio', () => {
   const cru: ReportAPI = {
-    period: 'semana',
+    period: 'week',
     rows: [
       {
         key: 'income',
@@ -76,27 +76,27 @@ describe('toRelatorio', () => {
     top_products: [{ name: 'Ração', qty_label: '14 un', amount_cents: 265860 }],
   };
 
-  const relatorio = toRelatorio(cru, 'semana');
+  const report = toReport(cru, 'week');
 
   it('formata o valor em dinheiro quando não há texto pronto', () => {
-    expect(relatorio.financeiro[0]?.valorFormatado).toBe('R$ 7.420,00');
+    expect(report.finance[0]?.formattedAmount).toBe('R$ 7.420,00');
   });
 
   it('usa o texto do servidor quando a linha não é dinheiro (margem em %)', () => {
-    expect(relatorio.financeiro[2]?.valorFormatado).toBe('51,3%');
+    expect(report.finance[2]?.formattedAmount).toBe('51,3%');
   });
 
   it('crescer despesa é ATENÇÃO, não coisa boa — mesmo com variação positiva', () => {
-    expect(relatorio.financeiro[1]?.tom).toBe('atencao');
-    expect(relatorio.financeiro[0]?.tom).toBe('positivo');
+    expect(report.finance[1]?.tone).toBe('warning');
+    expect(report.finance[0]?.tone).toBe('positive');
   });
 
   it('pinta o valor pelo significado da linha, não pelo sinal do número', () => {
-    expect(relatorio.financeiro[1]?.destaque).toBe('negativo');
-    expect(relatorio.financeiro[2]?.destaque).toBe('neutro');
+    expect(report.finance[1]?.highlight).toBe('negative');
+    expect(report.finance[2]?.highlight).toBe('neutral');
   });
 
   it('variação ausente vira string vazia, não "null" na tela', () => {
-    expect(relatorio.financeiro[2]?.variacao).toBe('');
+    expect(report.finance[2]?.trend).toBe('');
   });
 });

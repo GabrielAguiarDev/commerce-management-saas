@@ -14,27 +14,27 @@ import * as SecureStore from 'expo-secure-store';
  * precisam ser lidas de forma síncrona pelo zustand, ficam no AsyncStorage.
  */
 
-export interface AdaptadorDeArmazenamento {
-  ler(chave: string): Promise<string | null>;
-  gravar(chave: string, valor: string): Promise<void>;
-  remover(chave: string): Promise<void>;
+export interface StorageAdapter {
+  read(key: string): Promise<string | null>;
+  write(key: string, amount: string): Promise<void>;
+  remove(key: string): Promise<void>;
 }
 
-export const armazenamentoComum: AdaptadorDeArmazenamento = {
-  ler: (chave) => AsyncStorage.getItem(chave),
-  gravar: (chave, valor) => AsyncStorage.setItem(chave, valor),
-  remover: (chave) => AsyncStorage.removeItem(chave),
+export const plainStorage: StorageAdapter = {
+  read: (key) => AsyncStorage.getItem(key),
+  write: (key, amount) => AsyncStorage.setItem(key, amount),
+  remove: (key) => AsyncStorage.removeItem(key),
 };
 
-export const armazenamentoSeguro: AdaptadorDeArmazenamento = {
-  ler: (chave) => SecureStore.getItemAsync(chave),
-  gravar: (chave, valor) => SecureStore.setItemAsync(chave, valor),
-  remover: (chave) => SecureStore.deleteItemAsync(chave),
+export const secureStorage: StorageAdapter = {
+  read: (key) => SecureStore.getItemAsync(key),
+  write: (key, amount) => SecureStore.setItemAsync(key, amount),
+  remove: (key) => SecureStore.deleteItemAsync(key),
 };
 
 /** Chaves em um lugar só, para não existirem duas grafias da mesma coisa. */
-export const CHAVES_ARMAZENAMENTO = {
-  sessao: 'aguiarone.sessao',
-  preferencias: 'aguiarone.preferencias',
+export const STORAGE_KEYS = {
+  session: 'aguiarone.sessao',
+  preferences: 'aguiarone.preferencias',
   tokenAcesso: 'aguiarone.token',
 } as const;

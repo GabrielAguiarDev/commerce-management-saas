@@ -1,5 +1,5 @@
-import { USUARIOS_API } from '@data/usuarios';
-import { esperar } from '@services/mockLatency';
+import { USERS_API } from '@data/users';
+import { delay } from '@services/mockLatency';
 
 import type { SessionAPI, SignInPayloadAPI } from './sessionApiTypes';
 
@@ -13,10 +13,10 @@ import type { SessionAPI, SignInPayloadAPI } from './sessionApiTypes';
  */
 
 /** `null` = credencial inválida. Erro de verdade sobe como exceção. */
-export async function entrar(payload: SignInPayloadAPI): Promise<SessionAPI | null> {
-  await esperar(420);
+export async function signIn(payload: SignInPayloadAPI): Promise<SessionAPI | null> {
+  await delay(420);
 
-  const registro = USUARIOS_API[payload.email];
+  const registro = USERS_API[payload.email];
   if (!registro || payload.password.length < 6) return null;
 
   return {
@@ -26,12 +26,12 @@ export async function entrar(payload: SignInPayloadAPI): Promise<SessionAPI | nu
   };
 }
 
-export async function sair(): Promise<void> {
-  await esperar(120);
+export async function signOut(): Promise<void> {
+  await delay(120);
 }
 
-export async function pedirRecuperacaoDeSenha(email: string): Promise<void> {
-  await esperar(320);
+export async function requestPasswordReset(email: string): Promise<void> {
+  await delay(320);
   // No mock não há e-mail enviado — e de propósito não devolvemos se a conta
   // existe: responder "esse e-mail não existe" é enumeração de usuários.
   void email;

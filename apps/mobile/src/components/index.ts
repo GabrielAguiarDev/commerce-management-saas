@@ -11,29 +11,29 @@
 
 // ── Primitivos ──────────────────────────────────────────────────────────────
 export { Avatar } from './ui/Avatar';
-export { Botao, type VarianteBotao } from './ui/Botao';
+export { Button, type ButtonVariant } from './ui/Button';
 export { Box, type BoxProps } from './ui/Box';
-export { Campo } from './ui/Campo';
-export { Cartao } from './ui/Cartao';
-export { Chips, type OpcaoDeChip } from './ui/Chips';
-export { Divisor } from './ui/Divisor';
-export { EstadoVazio } from './ui/EstadoVazio';
-export { Icone, type NomeIcone } from './ui/Icone';
-export { Interruptor } from './ui/Interruptor';
-export { Pilula } from './ui/Pilula';
-export { Seletor, type OpcaoDeSeletor } from './ui/Seletor';
+export { Field } from './ui/Field';
+export { Card } from './ui/Card';
+export { Chips, type ChipOption } from './ui/Chips';
+export { Divider } from './ui/Divider';
+export { EmptyState } from './ui/EmptyState';
+export { Icon, type IconName } from './ui/Icon';
+export { Switch } from './ui/Switch';
+export { Pill } from './ui/Pill';
+export { Select, type SelectOption } from './ui/Select';
 export { Text, type TextProps } from './ui/Text';
-export { Toque, type ToqueProps } from './ui/Toque';
+export { Touchable, type TouchableProps } from './ui/Touchable';
 
 // ── Padrões ─────────────────────────────────────────────────────────────────
 export { AppProviders } from './AppProviders';
-export { AO_FADE, AO_PULSE, AO_SHEET, AO_UP } from './patterns/animacoes';
-export { BannerDeConexao } from './patterns/BannerDeConexao';
-export { BarraDeAbas, ALTURA_TAB_BAR } from './patterns/BarraDeAbas';
-export { BarraDoCarrinho } from './patterns/BarraDoCarrinho';
-export { BotaoNovaVenda } from './patterns/BotaoNovaVenda';
+export { AO_FADE, AO_PULSE, AO_SHEET, AO_UP } from './patterns/animations';
+export { ConnectionBanner } from './patterns/ConnectionBanner';
+export { TabBar, ALTURA_TAB_BAR } from './patterns/TabBar';
+export { CartBar } from './patterns/CartBar';
+export { NewSaleButton } from './patterns/NewSaleButton';
 export { BottomSheet } from './patterns/BottomSheet';
-export { ConfirmacaoHost } from './patterns/ConfirmacaoHost';
+export { ConfirmHost } from './patterns/ConfirmHost';
 export { Screen, ESPACO_INFERIOR } from './patterns/Screen';
 export { ToastHost } from './patterns/ToastHost';
 

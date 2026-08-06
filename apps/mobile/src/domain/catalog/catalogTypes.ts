@@ -1,51 +1,51 @@
 /** MODELO DE DOMÍNIO do catálogo. */
 
-export type SituacaoEstoque = 'em_dia' | 'baixo' | 'zerado';
+export type StockStatus = 'ok' | 'low' | 'out';
 
-export interface EstoqueDoProduto {
-  quantidade: number;
+export interface ProductStock {
+  quantity: number;
   minimo: number;
   /** Derivada no adapter para que a tela não recalcule regra de estoque. */
-  situacao: SituacaoEstoque;
+  status: StockStatus;
 }
 
-export interface Produto {
+export interface Product {
   id: string;
-  nome: string;
+  name: string;
   /** Código de barras / SKU. Serviço não tem. */
-  codigo: string | null;
-  precoCentavos: number;
-  custoCentavos: number | null;
+  code: string | null;
+  priceCents: number;
+  costCents: number | null;
   ehServico: boolean;
-  favorito: boolean;
+  favorite: boolean;
   /** `null` = produto que não controla estoque (serviço, ou módulo desligado). */
-  estoque: EstoqueDoProduto | null;
-  categoria: string | null;
+  stock: ProductStock | null;
+  category: string | null;
 }
 
 /** Chips da tela Produtos. `especial` é "Serviços" ou "Bebidas" conforme o ramo. */
-export type FiltroCatalogo = 'todos' | 'favoritos' | 'especial';
+export type CatalogFilter = 'all' | 'favorites' | 'special';
 
-export interface CriterioCatalogo {
-  busca: string;
-  filtro: FiltroCatalogo;
+export interface CatalogSortKey {
+  search: string;
+  filter: CatalogFilter;
   /** Rótulo do chip especial, que também define o critério aplicado. */
-  categoriaEspecial: string | null;
+  specialCategory: string | null;
 }
 
-export interface NovoProduto {
-  nome: string;
-  precoCentavos: number;
-  custoCentavos: number | null;
-  estoqueInicial: number | null;
-  estoqueMinimo: number | null;
+export interface NewProduct {
+  name: string;
+  priceCents: number;
+  costCents: number | null;
+  initialStock: number | null;
+  minimumStock: number | null;
 }
 
-export type CodigoErroCatalogo = 'nome_obrigatorio' | 'preco_invalido' | 'rede' | 'desconhecido';
+export type CatalogErrorCode = 'name_required' | 'invalid_price' | 'network' | 'unknown';
 
-export class CatalogoError extends Error {
-  constructor(readonly codigo: CodigoErroCatalogo, mensagem?: string) {
-    super(mensagem ?? codigo);
+export class CatalogError extends Error {
+  constructor(readonly code: CatalogErrorCode, message?: string) {
+    super(message ?? code);
     this.name = 'CatalogoError';
   }
 }

@@ -1,27 +1,27 @@
 export type {
-  CriterioCatalogo,
-  EstoqueDoProduto,
-  FiltroCatalogo,
-  NovoProduto,
-  Produto,
-  SituacaoEstoque,
+  CatalogSortKey,
+  ProductStock,
+  CatalogFilter,
+  NewProduct,
+  Product,
+  StockStatus,
 } from './catalogTypes';
-export { CatalogoError } from './catalogTypes';
-export { situacaoDoEstoque } from './catalogAdapter';
+export { CatalogError } from './catalogTypes';
+export { stockStatus } from './catalogAdapter';
 export {
-  buscaSemResultado,
+  searchHasNoResults,
   casaBusca,
-  filtrarCatalogo,
-  gradeDeVenda,
-  produtosComEstoque,
-  produtosEmAlerta,
-  resumoDeEstoque,
-  type ResumoEstoque,
+  filterCatalog,
+  saleGrid,
+  productsInStock,
+  lowStockProducts,
+  stockSummary,
+  type StockSummary,
 } from './catalogSelectors';
-export { categoriaEspecialDoTenant, validarNovoProduto } from './catalogService';
+export { tenantSpecialCategory, validateNewProduct } from './catalogService';
 export {
   catalogoKeys,
-  useAlternarFavorito,
-  useCadastrarProduto,
-  useCatalogo,
-} from './useCases/useCatalogo';
+  useToggleFavorite,
+  useCreateProduct,
+  useCatalog,
+} from './useCases/useCatalog';

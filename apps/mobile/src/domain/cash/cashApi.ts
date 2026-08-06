@@ -1,5 +1,5 @@
-import { HISTORICO_CAIXA_API, TURNO_ABERTO_API } from '@data/caixa';
-import { esperar } from '@services/mockLatency';
+import { CASH_HISTORY_API, OPEN_SHIFT_API } from '@data/cash';
+import { delay } from '@services/mockLatency';
 
 import type { CashAdjustmentAPI, CashHistoryAPI, CashShiftAPI } from './cashApiTypes';
 
@@ -8,21 +8,21 @@ import type { CashAdjustmentAPI, CashHistoryAPI, CashShiftAPI } from './cashApiT
  * ⚠️ ÚNICO ARQUIVO DESTE DOMÍNIO QUE MUDA COM O SUPABASE.
  */
 
-export async function buscarTurnoAberto(tenantId: string): Promise<CashShiftAPI | null> {
-  await esperar();
-  return TURNO_ABERTO_API[tenantId] ?? null;
+export async function fetchOpenShift(tenantId: string): Promise<CashShiftAPI | null> {
+  await delay();
+  return OPEN_SHIFT_API[tenantId] ?? null;
 }
 
-export async function listarHistorico(tenantId: string): Promise<CashHistoryAPI[]> {
-  await esperar();
-  return HISTORICO_CAIXA_API[tenantId] ?? [];
+export async function listHistory(tenantId: string): Promise<CashHistoryAPI[]> {
+  await delay();
+  return CASH_HISTORY_API[tenantId] ?? [];
 }
 
-export async function abrirTurno(
+export async function openShift(
   tenantId: string,
   aberturaCentavos: number,
 ): Promise<CashShiftAPI> {
-  await esperar(200);
+  await delay(200);
 
   const novo: CashShiftAPI = {
     id: `shf_${Date.now().toString(36)}`,
@@ -39,48 +39,48 @@ export async function abrirTurno(
     ],
   };
 
-  TURNO_ABERTO_API[tenantId] = novo;
+  OPEN_SHIFT_API[tenantId] = novo;
   return novo;
 }
 
-export async function registrarAjuste(
+export async function recordAdjustment(
   tenantId: string,
   payload: CashAdjustmentAPI,
 ): Promise<CashShiftAPI | null> {
-  await esperar(180);
+  await delay(180);
 
-  const turno = TURNO_ABERTO_API[tenantId];
-  if (!turno) return null;
+  const shift = OPEN_SHIFT_API[tenantId];
+  if (!shift) return null;
 
   const delta = payload.kind === 'withdrawal' ? -payload.amount_cents : payload.amount_cents;
-  const atualizado: CashShiftAPI = { ...turno, drawer_cents: turno.drawer_cents + delta };
-  TURNO_ABERTO_API[tenantId] = atualizado;
-  return atualizado;
+  const updated: CashShiftAPI = { ...shift, drawer_cents: shift.drawer_cents + delta };
+  OPEN_SHIFT_API[tenantId] = updated;
+  return updated;
 }
 
-export async function fecharTurno(
+export async function closeShift(
   tenantId: string,
   diferencaCentavos: number,
 ): Promise<CashHistoryAPI | null> {
-  await esperar(240);
+  await delay(240);
 
-  const turno = TURNO_ABERTO_API[tenantId];
-  if (!turno) return null;
+  const shift = OPEN_SHIFT_API[tenantId];
+  if (!shift) return null;
 
-  const total = turno.method_totals.reduce((s, m) => s + m.amount_cents, 0);
+  const total = shift.method_totals.reduce((s, m) => s + m.amount_cents, 0);
   const agora = new Date();
   const hh = (d: Date) =>
     `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
   const encerrado: CashHistoryAPI = {
-    id: turno.id,
+    id: shift.id,
     date_label: 'Hoje',
-    period_label: `${hh(new Date(turno.opened_at))} → ${hh(agora)}`,
+    period_label: `${hh(new Date(shift.opened_at))} → ${hh(agora)}`,
     total_cents: total,
     difference_cents: diferencaCentavos,
   };
 
-  TURNO_ABERTO_API[tenantId] = null;
-  HISTORICO_CAIXA_API[tenantId] = [encerrado, ...(HISTORICO_CAIXA_API[tenantId] ?? [])];
+  OPEN_SHIFT_API[tenantId] = null;
+  CASH_HISTORY_API[tenantId] = [encerrado, ...(CASH_HISTORY_API[tenantId] ?? [])];
   return encerrado;
 }

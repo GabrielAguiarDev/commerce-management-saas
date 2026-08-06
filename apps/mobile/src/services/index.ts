@@ -1,7 +1,7 @@
 export {
-  armazenamentoComum,
-  armazenamentoSeguro,
-  CHAVES_ARMAZENAMENTO,
-  type AdaptadorDeArmazenamento,
+  plainStorage,
+  secureStorage,
+  STORAGE_KEYS,
+  type StorageAdapter,
 } from './storageAdapter';
-export { esperar, LATENCIA_MOCK_MS } from './mockLatency';
+export { delay, MOCK_LATENCY_MS } from './mockLatency';

@@ -1,45 +1,45 @@
 /** MODELO DE DOMÍNIO do suporte. */
 
-export type StatusChamado = 'respondido' | 'em_andamento' | 'resolvido';
+export type TicketStatus = 'answered' | 'in_progress' | 'resolved';
 
-export interface Chamado {
+export interface Ticket {
   id: string;
   assunto: string;
-  resumo: string;
-  status: StatusChamado;
+  summary: string;
+  status: TicketStatus;
   /** "Respondido" / "Em andamento" / "Resolvido". */
   statusRotulo: string;
   naoLida: boolean;
 }
 
-export interface MensagemDoChamado {
+export interface TicketMessage {
   id: string;
-  texto: string;
+  text: string;
   /** `true` = escrita pelo dono do negócio (bolha teal, à direita). */
   minha: boolean;
   quando: string;
 }
 
-export const CATEGORIAS_CHAMADO = [
-  { chave: 'duvida', rotulo: 'Dúvida' },
-  { chave: 'problema', rotulo: 'Algo não funcionou' },
-  { chave: 'plano', rotulo: 'Plano e módulos' },
-  { chave: 'sugestao', rotulo: 'Sugestão' },
+export const TICKET_CATEGORIES = [
+  { key: 'duvida', label: 'Dúvida' },
+  { key: 'problema', label: 'Algo não funcionou' },
+  { key: 'plano', label: 'Plano e módulos' },
+  { key: 'sugestao', label: 'Sugestão' },
 ] as const;
 
-export type CategoriaChamado = (typeof CATEGORIAS_CHAMADO)[number]['chave'];
+export type TicketCategory = (typeof TICKET_CATEGORIES)[number]['key'];
 
-export interface NovoChamado {
+export interface NewTicket {
   assunto: string;
-  categoria: CategoriaChamado;
-  descricao: string;
+  category: TicketCategory;
+  description: string;
 }
 
-export type CodigoErroSuporte = 'assunto_obrigatorio' | 'descricao_obrigatoria' | 'rede';
+export type SupportErrorCode = 'subject_required' | 'description_required' | 'network';
 
-export class SuporteError extends Error {
-  constructor(readonly codigo: CodigoErroSuporte, mensagem?: string) {
-    super(mensagem ?? codigo);
+export class SupportError extends Error {
+  constructor(readonly code: SupportErrorCode, message?: string) {
+    super(message ?? code);
     this.name = 'SuporteError';
   }
 }

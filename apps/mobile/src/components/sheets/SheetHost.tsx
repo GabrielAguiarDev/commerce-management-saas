@@ -1,10 +1,10 @@
 import { useUIStore } from '@store/uiStore';
 
-import { SheetCarrinho } from './SheetCarrinho';
-import { SheetChamado } from './SheetChamado';
-import { SheetFechamento } from './SheetFechamento';
-import { SheetProduto } from './SheetProduto';
-import { SheetSimples } from './SheetSimples';
+import { CartSheet } from './CartSheet';
+import { TicketSheet } from './TicketSheet';
+import { CloseOutSheet } from './CloseOutSheet';
+import { ProductSheet } from './ProductSheet';
+import { SimpleSheet } from './SimpleSheet';
 
 /**
  * O único ponto de montagem de bottom sheet do app.
@@ -18,27 +18,27 @@ export function SheetHost() {
 
   if (!sheet) return null;
 
-  switch (sheet.tipo) {
-    case 'carrinho':
-      return <SheetCarrinho />;
-    case 'produto':
-      return <SheetProduto />;
-    case 'fechamento':
-      return <SheetFechamento />;
-    case 'chamado':
-      return <SheetChamado />;
-    case 'sangria':
-      return <SheetSimples tipo="sangria" />;
-    case 'reforco':
-      return <SheetSimples tipo="reforco" />;
-    case 'custo':
-      return <SheetSimples tipo="custo" />;
-    case 'movimento':
+  switch (sheet.type) {
+    case 'cart':
+      return <CartSheet />;
+    case 'product':
+      return <ProductSheet />;
+    case 'closeOut':
+      return <CloseOutSheet />;
+    case 'ticket':
+      return <TicketSheet />;
+    case 'withdrawal':
+      return <SimpleSheet type="withdrawal" />;
+    case 'topUp':
+      return <SimpleSheet type="topUp" />;
+    case 'cost':
+      return <SimpleSheet type="cost" />;
+    case 'movement':
       return (
-        <SheetSimples
-          tipo="movimento"
-          valorInicial={sheet.produtoNome ?? ''}
-          produtoId={sheet.produtoId}
+        <SimpleSheet
+          type="movement"
+          openingAmount={sheet.productName ?? ''}
+          productId={sheet.productId}
         />
       );
   }

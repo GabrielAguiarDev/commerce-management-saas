@@ -1,13 +1,13 @@
 import * as api from './reportsApi';
-import { toRelatorio } from './reportsAdapter';
-import type { PeriodoRelatorio, Relatorio } from './reportsTypes';
+import { toReport } from './reportsAdapter';
+import type { ReportPeriod, Report } from './reportsTypes';
 
-export async function obterRelatorio(
+export async function getReport(
   tenantId: string,
-  periodo: PeriodoRelatorio,
-): Promise<Relatorio | null> {
-  const raw = await api.buscarRelatorio(tenantId, periodo);
+  period: ReportPeriod,
+): Promise<Report | null> {
+  const raw = await api.fetchReport(tenantId, period);
   // Plano sem o módulo `reports` simplesmente não tem relatório — a tela nem é
   // alcançável. Devolver `null` em vez de lançar mantém o useCase simples.
-  return raw ? toRelatorio(raw, periodo) : null;
+  return raw ? toReport(raw, period) : null;
 }

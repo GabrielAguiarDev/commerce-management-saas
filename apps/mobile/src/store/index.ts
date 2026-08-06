@@ -1,23 +1,23 @@
-export { useSessaoStore, selecionarAutenticado } from './sessaoStore';
+export { useSessionStore, selectIsAuthenticated } from './sessionStore';
 export {
-  usePreferenciasStore,
-  formasAceitasAtivas,
-  FORMAS_DE_PAGAMENTO,
-  type FormaDePagamento,
-} from './preferenciasStore';
+  usePreferencesStore,
+  activePaymentMethods,
+  PAYMENT_METHODS,
+  type PaymentMethod,
+} from './preferencesStore';
 export {
-  useCarrinhoStore,
-  selecionarQuantidade,
-  selecionarTotal,
-  selecionarTemItens,
-} from './carrinhoStore';
+  useCartStore,
+  selectItemCount,
+  selectTotalCents,
+  selectHasItems,
+} from './cartStore';
 export {
   useUIStore,
-  DURACAO_TOAST_MS,
-  type Confirmacao,
+  TOAST_DURATION_MS,
+  type Confirm,
   type Sheet,
-  type TipoDeSheet,
+  type SheetType,
   type Toast,
-  type TomDoToast,
+  type ToastTone,
 } from './uiStore';
-export { useConexaoStore, DURACAO_SINCRONIZACAO_MS } from './conexaoStore';
+export { useConnectionStore, SYNC_DURATION_MS } from './connectionStore';

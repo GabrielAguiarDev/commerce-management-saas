@@ -13,8 +13,8 @@ import { useCallback, useEffect } from 'react';
 
 import { AppProviders } from '@components';
 import { useAppHydrated } from '@hooks/useAppHydrated';
-import { useMonitorDeConexao } from '@hooks/useMonitorDeConexao';
-import { usePreferenciasStore } from '@store/preferenciasStore';
+import { useConnectionMonitor } from '@hooks/useConnectionMonitor';
+import { usePreferencesStore } from '@store/preferencesStore';
 import { darkTheme, lightTheme } from '@theme';
 
 // Segura a splash nativa até fontes E stores estarem prontos. Fora do
@@ -22,8 +22,8 @@ import { darkTheme, lightTheme } from '@theme';
 void SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: 260, fade: true });
 
-export default function LayoutRaiz() {
-  const [fontesCarregadas, erroDeFonte] = useFonts({
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
     Manrope_400Regular,
     Manrope_500Medium,
     Manrope_600SemiBold,
@@ -33,11 +33,11 @@ export default function LayoutRaiz() {
 
   // Falha de fonte NÃO pode prender o app na splash: sem a Manrope o texto sai
   // na fonte do sistema, o que é feio mas utilizável — melhor que tela preta.
-  const fontesProntas = fontesCarregadas || erroDeFonte !== null;
+  const fontsReady = fontsLoaded || fontError !== null;
 
   return (
     <AppProviders>
-      <Chrome fontesProntas={fontesProntas} />
+      <Chrome fontsReady={fontsReady} />
     </AppProviders>
   );
 }
@@ -46,30 +46,30 @@ export default function LayoutRaiz() {
  * Precisa ser um componente separado: os hooks abaixo leem stores e tema, e
  * `AppProviders` só existe a partir daqui para dentro.
  */
-function Chrome({ fontesProntas }: { fontesProntas: boolean }) {
-  const hidratado = useAppHydrated();
-  const temaEscuro = usePreferenciasStore((s) => s.temaEscuro);
-  const tema = temaEscuro ? darkTheme : lightTheme;
+function Chrome({ fontsReady }: { fontsReady: boolean }) {
+  const hydrated = useAppHydrated();
+  const isDark = usePreferencesStore((s) => s.darkTheme);
+  const theme = isDark ? darkTheme : lightTheme;
 
-  useMonitorDeConexao();
+  useConnectionMonitor();
 
-  const esconderSplash = useCallback(() => {
-    if (fontesProntas && hidratado) void SplashScreen.hideAsync();
-  }, [fontesProntas, hidratado]);
+  const hideSplash = useCallback(() => {
+    if (fontsReady && hydrated) void SplashScreen.hideAsync();
+  }, [fontsReady, hydrated]);
 
-  useEffect(esconderSplash, [esconderSplash]);
+  useEffect(hideSplash, [hideSplash]);
 
-  if (!fontesProntas || !hidratado) return null;
+  if (!fontsReady || !hydrated) return null;
 
   return (
     <>
-      <StatusBar style={temaEscuro ? 'light' : 'dark'} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,
           // O header é desenhado pelo `Screen` (título, subtítulo, avatar e
           // voltar), então o nativo fica desligado no app inteiro.
-          contentStyle: { backgroundColor: tema.colors.bg },
+          contentStyle: { backgroundColor: theme.colors.bg },
         }}
       >
         <Stack.Screen name="index" />

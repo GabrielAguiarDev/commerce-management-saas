@@ -1,9 +1,9 @@
 import { Redirect } from 'expo-router';
 
-import { resolverRotaDeEntrada } from '@domain/navigation/rotas';
-import { useCapacidades } from '@domain/tenant';
+import { resolverRotaDeEntrada } from '@domain/navigation/routes';
+import { useCapabilities } from '@domain/tenant';
 import { useAppHydrated } from '@hooks/useAppHydrated';
-import { selecionarAutenticado, useSessaoStore } from '@store/sessaoStore';
+import { selectIsAuthenticated, useSessionStore } from '@store/sessionStore';
 
 /**
  * O PORTÃO.
@@ -16,20 +16,20 @@ import { selecionarAutenticado, useSessaoStore } from '@store/sessaoStore';
  * Enquanto a função devolve `null`, não renderizamos nada e a splash continua
  * segurando (o layout raiz só a esconde quando fontes e stores estão prontos).
  */
-export default function Portao() {
-  const hidratado = useAppHydrated();
-  const autenticado = useSessaoStore(selecionarAutenticado);
-  const { capacidades, carregando } = useCapacidades();
+export default function Gate() {
+  const hydrated = useAppHydrated();
+  const autenticado = useSessionStore(selectIsAuthenticated);
+  const { capabilities, loading } = useCapabilities();
 
-  const rota = resolverRotaDeEntrada({
-    hidratado,
+  const route = resolverRotaDeEntrada({
+    hydrated,
     autenticado,
     // `null` = ainda não sei. Sem esta distinção, o instante entre autenticar e
     // o plano chegar mandaria todo mundo para a tela de bloqueio.
-    temAcessoAoApp: !autenticado ? null : carregando ? null : capacidades.acessoApp,
+    hasAppAccess: !autenticado ? null : loading ? null : capabilities.acessoApp,
   });
 
-  if (!rota) return null;
+  if (!route) return null;
 
-  return <Redirect href={rota as never} />;
+  return <Redirect href={route as never} />;
 }

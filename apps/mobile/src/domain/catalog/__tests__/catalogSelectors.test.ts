@@ -1,14 +1,14 @@
-import { toProduto } from '../catalogAdapter';
+import { toProduct } from '../catalogAdapter';
 import type { ProductAPI } from '../catalogApiTypes';
 import {
-  LIMITE_GRADE_VENDA,
-  buscaSemResultado,
+  SALE_GRID_LIMIT,
+  searchHasNoResults,
   casaBusca,
-  filtrarCatalogo,
-  gradeDeVenda,
-  produtosComEstoque,
-  produtosEmAlerta,
-  resumoDeEstoque,
+  filterCatalog,
+  saleGrid,
+  productsInStock,
+  lowStockProducts,
+  stockSummary,
 } from '../catalogSelectors';
 
 function api(p: Partial<ProductAPI> & Pick<ProductAPI, 'id' | 'name'>): ProductAPI {
@@ -44,7 +44,7 @@ const CATALOGO = [
   }),
   api({ id: '7', name: 'Shampoo neutro 500ml', sku: '7896', stock_qty: 6, stock_min: 3 }),
   api({ id: '8', name: 'Consulta veterinária', sku: 'SERV2', is_service: true, category: 'Serviços' }),
-].map(toProduto);
+].map(toProduct);
 
 describe('casaBusca', () => {
   const racao = CATALOGO[0]!;
@@ -63,7 +63,7 @@ describe('casaBusca', () => {
   });
 
   it('não casa produto sem código quando se busca por código', () => {
-    const semCodigo = toProduto(api({ id: 'x', name: 'Sem código' }));
+    const semCodigo = toProduct(api({ id: 'x', name: 'Sem código' }));
     expect(casaBusca(semCodigo, '7891')).toBe(false);
   });
 });
@@ -71,48 +71,48 @@ describe('casaBusca', () => {
 describe('filtrarCatalogo', () => {
   it('Todos devolve o catálogo inteiro', () => {
     expect(
-      filtrarCatalogo(CATALOGO, { busca: '', filtro: 'todos', categoriaEspecial: 'Serviços' }),
+      filterCatalog(CATALOGO, { search: '', filter: 'all', specialCategory: 'Serviços' }),
     ).toHaveLength(8);
   });
 
   it('Favoritos exclui o que foi desfavoritado', () => {
-    const r = filtrarCatalogo(CATALOGO, {
-      busca: '',
-      filtro: 'favoritos',
-      categoriaEspecial: 'Serviços',
+    const r = filterCatalog(CATALOGO, {
+      search: '',
+      filter: 'favorites',
+      specialCategory: 'Serviços',
     });
     expect(r).toHaveLength(7);
-    expect(r.some((p) => p.nome === 'Brinquedo mordedor')).toBe(false);
+    expect(r.some((p) => p.name === 'Brinquedo mordedor')).toBe(false);
   });
 
   it('o chip especial "Serviços" filtra por ehServico', () => {
-    const r = filtrarCatalogo(CATALOGO, {
-      busca: '',
-      filtro: 'especial',
-      categoriaEspecial: 'Serviços',
+    const r = filterCatalog(CATALOGO, {
+      search: '',
+      filter: 'special',
+      specialCategory: 'Serviços',
     });
-    expect(r.map((p) => p.nome)).toEqual(['Banho & tosa', 'Consulta veterinária']);
+    expect(r.map((p) => p.name)).toEqual(['Banho & tosa', 'Consulta veterinária']);
   });
 
   it('o chip especial "Bebidas" filtra por categoria — o rótulo muda com o ramo', () => {
     const barraca = [
       api({ id: 'b1', name: 'Refrigerante lata', category: 'Bebidas' }),
       api({ id: 'b2', name: 'Acarajé completo', category: 'Comida' }),
-    ].map(toProduto);
+    ].map(toProduct);
 
-    const r = filtrarCatalogo(barraca, {
-      busca: '',
-      filtro: 'especial',
-      categoriaEspecial: 'Bebidas',
+    const r = filterCatalog(barraca, {
+      search: '',
+      filter: 'special',
+      specialCategory: 'Bebidas',
     });
-    expect(r.map((p) => p.nome)).toEqual(['Refrigerante lata']);
+    expect(r.map((p) => p.name)).toEqual(['Refrigerante lata']);
   });
 
   it('combina busca e chip', () => {
-    const r = filtrarCatalogo(CATALOGO, {
-      busca: 'consulta',
-      filtro: 'especial',
-      categoriaEspecial: 'Serviços',
+    const r = filterCatalog(CATALOGO, {
+      search: 'consulta',
+      filter: 'special',
+      specialCategory: 'Serviços',
     });
     expect(r).toHaveLength(1);
   });
@@ -120,56 +120,56 @@ describe('filtrarCatalogo', () => {
 
 describe('gradeDeVenda', () => {
   it('sem busca mostra só os favoritos', () => {
-    const r = gradeDeVenda(CATALOGO, '');
-    expect(r.some((p) => p.nome === 'Brinquedo mordedor')).toBe(false);
+    const r = saleGrid(CATALOGO, '');
+    expect(r.some((p) => p.name === 'Brinquedo mordedor')).toBe(false);
   });
 
   it('com busca alcança até o não favoritado', () => {
-    const r = gradeDeVenda(CATALOGO, 'mordedor');
-    expect(r.map((p) => p.nome)).toEqual(['Brinquedo mordedor']);
+    const r = saleGrid(CATALOGO, 'mordedor');
+    expect(r.map((p) => p.name)).toEqual(['Brinquedo mordedor']);
   });
 
   it('nunca passa do limite de cartões da grade', () => {
     const muitos = Array.from({ length: 30 }, (_, i) =>
-      toProduto(api({ id: `m${i}`, name: `Produto ${i}` })),
+      toProduct(api({ id: `m${i}`, name: `Produto ${i}` })),
     );
-    expect(gradeDeVenda(muitos, '')).toHaveLength(LIMITE_GRADE_VENDA);
+    expect(saleGrid(muitos, '')).toHaveLength(SALE_GRID_LIMIT);
   });
 });
 
 describe('buscaSemResultado', () => {
   it('é verdadeiro só quando nem a busca acha nada', () => {
-    expect(buscaSemResultado(CATALOGO, 'guarda-chuva')).toBe(true);
-    expect(buscaSemResultado(CATALOGO, 'racao')).toBe(false);
+    expect(searchHasNoResults(CATALOGO, 'guarda-chuva')).toBe(true);
+    expect(searchHasNoResults(CATALOGO, 'racao')).toBe(false);
   });
 
   it('catálogo só de não-favoritos NÃO é "nada encontrado"', () => {
     // Distinção que evita oferecer "Cadastrar produto" para quem só precisa
     // favoritar o que já tem.
-    const nenhumFavorito = [toProduto(api({ id: 'x', name: 'Item', is_favorite: false }))];
-    expect(gradeDeVenda(nenhumFavorito, '')).toHaveLength(0);
-    expect(buscaSemResultado(nenhumFavorito, '')).toBe(false);
+    const noFavorites = [toProduct(api({ id: 'x', name: 'Item', is_favorite: false }))];
+    expect(saleGrid(noFavorites, '')).toHaveLength(0);
+    expect(searchHasNoResults(noFavorites, '')).toBe(false);
   });
 });
 
 describe('resumoDeEstoque', () => {
   it('reproduz os contadores do protótipo: 4 em dia, 1 baixo, 1 zerado', () => {
-    expect(resumoDeEstoque(CATALOGO)).toEqual({ emDia: 4, baixo: 1, zerado: 1 });
+    expect(stockSummary(CATALOGO)).toEqual({ emDia: 4, low: 1, out: 1 });
   });
 
   it('ignora quem não controla estoque', () => {
-    expect(produtosComEstoque(CATALOGO)).toHaveLength(6);
+    expect(productsInStock(CATALOGO)).toHaveLength(6);
   });
 
   it('soma zero num catálogo só de serviços', () => {
     const servicos = CATALOGO.filter((p) => p.ehServico);
-    expect(resumoDeEstoque(servicos)).toEqual({ emDia: 0, baixo: 0, zerado: 0 });
+    expect(stockSummary(servicos)).toEqual({ emDia: 0, low: 0, out: 0 });
   });
 });
 
 describe('produtosEmAlerta', () => {
   it('lista zerado antes de baixo', () => {
-    expect(produtosEmAlerta(CATALOGO).map((p) => p.nome)).toEqual([
+    expect(lowStockProducts(CATALOGO).map((p) => p.name)).toEqual([
       'Sachê gato salmão',
       'Coleira antipulgas',
     ]);

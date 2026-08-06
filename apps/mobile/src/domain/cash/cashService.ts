@@ -1,49 +1,49 @@
-import { toAjustePayload, toTurnoAberto, toTurnoEncerrado } from './cashAdapter';
+import { toAjustePayload, toOpenShift, toClosedShift } from './cashAdapter';
 import * as api from './cashApi';
 import {
-  CaixaError,
-  type TipoDeAjuste,
-  type TurnoAberto,
-  type TurnoEncerrado,
+  CashError,
+  type AdjustmentType,
+  type OpenShift,
+  type ClosedShift,
 } from './cashTypes';
 
 /** AS REGRAS do caixa. */
 
-function normalizar(erro: unknown): never {
-  if (erro instanceof CaixaError) throw erro;
-  throw new CaixaError('rede', erro instanceof Error ? erro.message : undefined);
+function normalize(error: unknown): never {
+  if (error instanceof CashError) throw error;
+  throw new CashError('network', error instanceof Error ? error.message : undefined);
 }
 
-export async function obterTurnoAberto(tenantId: string): Promise<TurnoAberto | null> {
+export async function getOpenShift(tenantId: string): Promise<OpenShift | null> {
   try {
-    const raw = await api.buscarTurnoAberto(tenantId);
+    const raw = await api.fetchOpenShift(tenantId);
     // Caixa fechado é um estado legítimo da tela, não um erro.
-    return raw ? toTurnoAberto(raw) : null;
+    return raw ? toOpenShift(raw) : null;
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function obterHistorico(tenantId: string): Promise<TurnoEncerrado[]> {
+export async function getHistory(tenantId: string): Promise<ClosedShift[]> {
   try {
-    return (await api.listarHistorico(tenantId)).map(toTurnoEncerrado);
+    return (await api.listHistory(tenantId)).map(toClosedShift);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
 /** Abertura padrão do troco quando o dono só toca "Abrir caixa". */
 export const ABERTURA_PADRAO_CENTAVOS = 15000;
 
-export async function abrirCaixa(
+export async function openCash(
   tenantId: string,
   aberturaCentavos = ABERTURA_PADRAO_CENTAVOS,
-): Promise<TurnoAberto> {
-  if (aberturaCentavos < 0) throw new CaixaError('valor_invalido');
+): Promise<OpenShift> {
+  if (aberturaCentavos < 0) throw new CashError('invalid_amount');
   try {
-    return toTurnoAberto(await api.abrirTurno(tenantId, aberturaCentavos));
+    return toOpenShift(await api.openShift(tenantId, aberturaCentavos));
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
@@ -53,36 +53,36 @@ export async function abrirCaixa(
  * Valor precisa ser positivo: o SINAL é decidido pelo tipo do ajuste, não pelo
  * que o dono digitou. Deixar "-50" numa sangria viraria um reforço silencioso.
  */
-export async function registrarAjuste(
+export async function recordAdjustment(
   tenantId: string,
-  turnoId: string,
-  tipo: TipoDeAjuste,
-  valorCentavos: number,
+  shiftId: string,
+  type: AdjustmentType,
+  amountCents: number,
   motivo: string,
-): Promise<TurnoAberto> {
-  if (valorCentavos <= 0) throw new CaixaError('valor_invalido');
+): Promise<OpenShift> {
+  if (amountCents <= 0) throw new CashError('invalid_amount');
 
   try {
-    const raw = await api.registrarAjuste(
+    const raw = await api.recordAdjustment(
       tenantId,
-      toAjustePayload(turnoId, tipo, valorCentavos, motivo),
+      toAjustePayload(shiftId, type, amountCents, motivo),
     );
-    if (!raw) throw new CaixaError('caixa_fechado');
-    return toTurnoAberto(raw);
+    if (!raw) throw new CashError('cash_closed');
+    return toOpenShift(raw);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function fecharCaixa(
+export async function closeCash(
   tenantId: string,
   diferencaCentavos: number,
-): Promise<TurnoEncerrado> {
+): Promise<ClosedShift> {
   try {
-    const raw = await api.fecharTurno(tenantId, diferencaCentavos);
-    if (!raw) throw new CaixaError('caixa_fechado');
-    return toTurnoEncerrado(raw);
+    const raw = await api.closeShift(tenantId, diferencaCentavos);
+    if (!raw) throw new CashError('cash_closed');
+    return toClosedShift(raw);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }

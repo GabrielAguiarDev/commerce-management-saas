@@ -1,5 +1,5 @@
-import { MOVIMENTACOES_API } from '@data/estoque';
-import { esperar } from '@services/mockLatency';
+import { MOVEMENTS_API } from '@data/stock';
+import { delay } from '@services/mockLatency';
 
 import type { StockMovementAPI, StockMovementCreateAPI } from './stockApiTypes';
 
@@ -8,15 +8,15 @@ import type { StockMovementAPI, StockMovementCreateAPI } from './stockApiTypes';
  * ⚠️ ÚNICO ARQUIVO DESTE DOMÍNIO QUE MUDA COM O SUPABASE.
  */
 
-export async function listarMovimentacoes(tenantId: string): Promise<StockMovementAPI[]> {
-  await esperar();
-  return MOVIMENTACOES_API[tenantId] ?? [];
+export async function listStockMovements(tenantId: string): Promise<StockMovementAPI[]> {
+  await delay();
+  return MOVEMENTS_API[tenantId] ?? [];
 }
 
-export async function criarMovimentacao(
+export async function createStockMovement(
   payload: StockMovementCreateAPI,
 ): Promise<StockMovementAPI> {
-  await esperar(180);
+  await delay(180);
 
   const nova: StockMovementAPI = {
     id: `mov_${Date.now().toString(36)}`,
@@ -29,6 +29,6 @@ export async function criarMovimentacao(
     happened_label: 'agora',
   };
 
-  MOVIMENTACOES_API[payload.tenant_id] = [nova, ...(MOVIMENTACOES_API[payload.tenant_id] ?? [])];
+  MOVEMENTS_API[payload.tenant_id] = [nova, ...(MOVEMENTS_API[payload.tenant_id] ?? [])];
   return nova;
 }

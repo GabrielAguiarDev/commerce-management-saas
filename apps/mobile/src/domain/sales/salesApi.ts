@@ -1,5 +1,5 @@
-import { RESUMO_DIA_API, VENDAS_API } from '@data/vendas';
-import { esperar } from '@services/mockLatency';
+import { DAILY_SUMMARY_API, SALES_API } from '@data/sales';
+import { delay } from '@services/mockLatency';
 
 import type { DailySummaryAPI, SaleAPI, SaleCreateAPI } from './salesApiTypes';
 
@@ -8,18 +8,18 @@ import type { DailySummaryAPI, SaleAPI, SaleCreateAPI } from './salesApiTypes';
  * ⚠️ ÚNICO ARQUIVO DESTE DOMÍNIO QUE MUDA COM O SUPABASE.
  */
 
-export async function listarVendasDoDia(tenantId: string, limite = 3): Promise<SaleAPI[]> {
-  await esperar();
-  return (VENDAS_API[tenantId] ?? []).slice(0, limite);
+export async function listDailySales(tenantId: string, limite = 3): Promise<SaleAPI[]> {
+  await delay();
+  return (SALES_API[tenantId] ?? []).slice(0, limite);
 }
 
-export async function buscarResumoDoDia(tenantId: string): Promise<DailySummaryAPI | null> {
-  await esperar();
-  return RESUMO_DIA_API[tenantId] ?? null;
+export async function fetchDailySummary(tenantId: string): Promise<DailySummaryAPI | null> {
+  await delay();
+  return DAILY_SUMMARY_API[tenantId] ?? null;
 }
 
-export async function registrarVenda(payload: SaleCreateAPI): Promise<SaleAPI> {
-  await esperar(260);
+export async function recordSale(payload: SaleCreateAPI): Promise<SaleAPI> {
+  await delay(260);
 
   const nova: SaleAPI = {
     id: `sal_${Date.now().toString(36)}`,
@@ -31,17 +31,17 @@ export async function registrarVenda(payload: SaleCreateAPI): Promise<SaleAPI> {
     is_synced: payload.is_synced,
   };
 
-  VENDAS_API[payload.tenant_id] = [nova, ...(VENDAS_API[payload.tenant_id] ?? [])];
+  SALES_API[payload.tenant_id] = [nova, ...(SALES_API[payload.tenant_id] ?? [])];
 
   // O resumo do dia é uma view materializada no banco real; aqui somamos à mão
   // para que o card do Início reaja à venda que acabou de acontecer.
-  const resumo = RESUMO_DIA_API[payload.tenant_id];
-  if (resumo) {
-    RESUMO_DIA_API[payload.tenant_id] = {
-      ...resumo,
-      gross_cents: (resumo.gross_cents ?? 0) + payload.total_cents,
-      sale_count: (resumo.sale_count ?? 0) + 1,
-      item_count: (resumo.item_count ?? 0) + payload.items.reduce((s, i) => s + i.qty, 0),
+  const summary = DAILY_SUMMARY_API[payload.tenant_id];
+  if (summary) {
+    DAILY_SUMMARY_API[payload.tenant_id] = {
+      ...summary,
+      gross_cents: (summary.gross_cents ?? 0) + payload.total_cents,
+      sale_count: (summary.sale_count ?? 0) + 1,
+      item_count: (summary.item_count ?? 0) + payload.items.reduce((s, i) => s + i.qty, 0),
     };
   }
 

@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { usePreferenciasStore } from '@store/preferenciasStore';
+import { usePreferencesStore } from '@store/preferencesStore';
 import { darkTheme, lightTheme } from '@theme';
 
 /**
@@ -20,12 +20,12 @@ import { darkTheme, lightTheme } from '@theme';
  *     árvore de navegação.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
-  const temaEscuro = usePreferenciasStore((s) => s.temaEscuro);
-  const tema = useMemo(() => (temaEscuro ? darkTheme : lightTheme), [temaEscuro]);
+  const isDark = usePreferencesStore((s) => s.darkTheme);
+  const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
 
   // `useState` e não módulo: um QueryClient no escopo do módulo sobrevive ao
   // Fast Refresh com cache de outra sessão e produz bugs fantasma em dev.
-  const [cliente] = useState(
+  const [client] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
@@ -45,8 +45,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={cliente}>
-          <ThemeProvider theme={tema}>{children}</ThemeProvider>
+        <QueryClientProvider client={client}>
+          <ThemeProvider theme={theme}>{children}</ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -3,12 +3,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box } from '@components/ui/Box';
 import { Text } from '@components/ui/Text';
-import { Toque } from '@components/ui/Toque';
+import { Touchable } from '@components/ui/Touchable';
 import { useUIStore } from '@store/uiStore';
 import { palette } from '@theme';
 
-import { AO_UP } from './animacoes';
-import { ALTURA_TAB_BAR } from './BarraDeAbas';
+import { AO_UP } from './animations';
+import { ALTURA_TAB_BAR } from './TabBar';
 
 /**
  * O toast, com "Desfazer" opcional.
@@ -23,16 +23,16 @@ import { ALTURA_TAB_BAR } from './BarraDeAbas';
 export function ToastHost() {
   const insets = useSafeAreaInsets();
   const toast = useUIStore((s) => s.toast);
-  const aoDesfazer = useUIStore((s) => s.aoDesfazer);
-  const fecharToast = useUIStore((s) => s.fecharToast);
+  const onUndo = useUIStore((s) => s.onUndo);
+  const closeToast = useUIStore((s) => s.closeToast);
 
   if (!toast) return null;
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(AO_UP.duracao)
+      entering={FadeInDown.duration(AO_UP.duration)
         .easing(AO_UP.easing)
-        .withInitialValues({ transform: [{ translateY: AO_UP.deslocamento }] })}
+        .withInitialValues({ transform: [{ translateY: AO_UP.offset }] })}
       exiting={FadeOut.duration(160)}
       pointerEvents="box-none"
       style={{
@@ -45,7 +45,7 @@ export function ToastHost() {
       accessibilityLiveRegion="polite"
     >
       <Box
-        backgroundColor={toast.tom === 'erro' ? 'danger' : 'toastBg'}
+        backgroundColor={toast.tone === 'erro' ? 'danger' : 'toastBg'}
         borderRadius="r18"
         paddingVertical="s14"
         paddingHorizontal="s16"
@@ -62,18 +62,18 @@ export function ToastHost() {
       >
         <Box flex={1}>
           <Text variant="rowLabel" color="white" lineHeight={19}>
-            {toast.texto}
+            {toast.text}
           </Text>
         </Box>
 
-        {toast.comDesfazer && aoDesfazer ? (
-          <Toque
+        {toast.withUndo && onUndo ? (
+          <Touchable
             accessibilityLabel="Desfazer"
             onPress={() => {
               // Fechar ANTES de executar: o callback normalmente abre o sheet
               // do carrinho, e deixar o toast vivo por baixo dele confunde.
-              fecharToast();
-              aoDesfazer();
+              closeToast();
+              onUndo();
             }}
             height={34}
             paddingHorizontal="s13"
@@ -85,7 +85,7 @@ export function ToastHost() {
             <Text variant="buttonTiny" color="white">
               Desfazer
             </Text>
-          </Toque>
+          </Touchable>
         ) : null}
       </Box>
     </Animated.View>

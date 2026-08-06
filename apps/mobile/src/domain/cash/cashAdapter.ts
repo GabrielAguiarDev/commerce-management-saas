@@ -1,60 +1,60 @@
-import { lerCentavos } from '@utils/dinheiro';
+import { parseCents } from '@utils/money';
 
 import type { CashAdjustmentAPI, CashHistoryAPI, CashShiftAPI } from './cashApiTypes';
 import type {
-  DiferencaDeFechamento,
-  LinhaDeConferencia,
-  TipoDeAjuste,
-  TurnoAberto,
-  TurnoEncerrado,
+  CloseOutDifference,
+  CountLine,
+  AdjustmentType,
+  OpenShift,
+  ClosedShift,
 } from './cashTypes';
 
-function horaLocal(iso: string): string {
+function localTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '--:--';
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 /** O rótulo que o dono usa para "dinheiro vivo" no turno. */
-export const FORMA_DINHEIRO = 'Dinheiro';
+export const CASH_METHOD = 'Dinheiro';
 
-export function toTurnoAberto(raw: CashShiftAPI): TurnoAberto {
-  const recebimentos = raw.method_totals.map((m) => ({
-    forma: m.method,
-    valorCentavos: m.amount_cents,
+export function toOpenShift(raw: CashShiftAPI): OpenShift {
+  const receipts = raw.method_totals.map((m) => ({
+    method: m.method,
+    amountCents: m.amount_cents,
   }));
 
   return {
     id: raw.id,
-    abertoEm: horaLocal(raw.opened_at),
+    openedAt: localTime(raw.opened_at),
     aberturaCentavos: raw.opening_cents,
     gavetaCentavos: raw.drawer_cents,
-    vendasEmDinheiroCentavos:
-      recebimentos.find((r) => r.forma === FORMA_DINHEIRO)?.valorCentavos ?? 0,
-    recebimentos,
+    cashSalesCents:
+      receipts.find((r) => r.method === CASH_METHOD)?.amountCents ?? 0,
+    receipts,
   };
 }
 
-export function toTurnoEncerrado(raw: CashHistoryAPI): TurnoEncerrado {
+export function toClosedShift(raw: CashHistoryAPI): ClosedShift {
   return {
     id: raw.id,
-    dataRotulo: raw.date_label,
-    periodoRotulo: raw.period_label,
-    totalCentavos: raw.total_cents,
+    dateLabel: raw.date_label,
+    periodLabel: raw.period_label,
+    totalCents: raw.total_cents,
     diferencaCentavos: raw.difference_cents ?? 0,
   };
 }
 
 export function toAjustePayload(
-  turnoId: string,
-  tipo: TipoDeAjuste,
-  valorCentavos: number,
+  shiftId: string,
+  type: AdjustmentType,
+  amountCents: number,
   motivo: string,
 ): CashAdjustmentAPI {
   return {
-    shift_id: turnoId,
-    kind: tipo === 'sangria' ? 'withdrawal' : 'deposit',
-    amount_cents: valorCentavos,
+    shift_id: shiftId,
+    kind: type === 'withdrawal' ? 'withdrawal' : 'deposit',
+    amount_cents: amountCents,
     reason: motivo.trim() || null,
   };
 }
@@ -69,22 +69,22 @@ export function toAjustePayload(
  *
  * Função pura: dado o turno, produz sempre a mesma conferência.
  */
-export function linhasDeConferencia(turno: TurnoAberto): LinhaDeConferencia[] {
-  const porForma = new Map(turno.recebimentos.map((r) => [r.forma, r.valorCentavos]));
+export function countRows(shift: OpenShift): CountLine[] {
+  const porForma = new Map(shift.receipts.map((r) => [r.method, r.amountCents]));
 
-  const cartao = turno.recebimentos
-    .filter((r) => r.forma.toLowerCase().startsWith('cartão'))
-    .reduce((s, r) => s + r.valorCentavos, 0);
+  const card = shift.receipts
+    .filter((r) => r.method.toLowerCase().startsWith('cartão'))
+    .reduce((s, r) => s + r.amountCents, 0);
 
-  const linhas: LinhaDeConferencia[] = [
-    { forma: FORMA_DINHEIRO, esperadoCentavos: turno.gavetaCentavos },
+  const rows: CountLine[] = [
+    { method: CASH_METHOD, esperadoCentavos: shift.gavetaCentavos },
   ];
 
   const pix = porForma.get('Pix');
-  if (pix !== undefined) linhas.push({ forma: 'Pix', esperadoCentavos: pix });
-  if (cartao > 0) linhas.push({ forma: 'Cartão', esperadoCentavos: cartao });
+  if (pix !== undefined) rows.push({ method: 'Pix', esperadoCentavos: pix });
+  if (card > 0) rows.push({ method: 'Cartão', esperadoCentavos: card });
 
-  return linhas;
+  return rows;
 }
 
 /**
@@ -99,29 +99,29 @@ export function linhasDeConferencia(turno: TurnoAberto): LinhaDeConferencia[] {
  * Enquanto nenhuma linha foi preenchida, `informado` é `false` e a tela mostra
  * R$ 0,00 neutro em vez de um saldo negativo do total do turno.
  */
-export function calcularDiferenca(
-  linhas: readonly LinhaDeConferencia[],
+export function computeDifference(
+  rows: readonly CountLine[],
   conferido: Readonly<Record<string, string>>,
-): DiferencaDeFechamento {
+): CloseOutDifference {
   let diferenca = 0;
   let informado = false;
 
-  for (const linha of linhas) {
-    const digitado = conferido[linha.forma];
+  for (const row of rows) {
+    const digitado = conferido[row.method];
     if (digitado === undefined || digitado.trim() === '') continue;
     informado = true;
-    diferenca += (lerCentavos(digitado) ?? 0) - linha.esperadoCentavos;
+    diferenca += (parseCents(digitado) ?? 0) - row.esperadoCentavos;
   }
 
   return { informado, diferencaCentavos: informado ? diferenca : 0 };
 }
 
 /** Rótulo da diferença no histórico: "sem diferença" / "faltou X" / "sobrou X". */
-export function rotularDiferenca(
+export function labelDifference(
   centavos: number,
   formatar: (c: number) => string,
-): { texto: string; tom: 'neutro' | 'atencao' } {
-  if (centavos === 0) return { texto: 'sem diferença', tom: 'neutro' };
-  if (centavos < 0) return { texto: `faltou ${formatar(-centavos)}`, tom: 'atencao' };
-  return { texto: `sobrou ${formatar(centavos)}`, tom: 'atencao' };
+): { text: string; tone: 'neutral' | 'warning' } {
+  if (centavos === 0) return { text: 'sem diferença', tone: 'neutral' };
+  if (centavos < 0) return { text: `faltou ${formatar(-centavos)}`, tone: 'warning' };
+  return { text: `sobrou ${formatar(centavos)}`, tone: 'warning' };
 }

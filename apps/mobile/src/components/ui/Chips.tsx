@@ -2,19 +2,19 @@ import { ScrollView } from 'react-native';
 
 import { Box } from './Box';
 import { Text } from './Text';
-import { Toque } from './Toque';
+import { Touchable } from './Touchable';
 
-export interface OpcaoDeChip<T extends string> {
-  chave: T;
-  rotulo: string;
+export interface ChipOption<T extends string> {
+  key: T;
+  label: string;
 }
 
 interface ChipsProps<T extends string> {
-  opcoes: readonly OpcaoDeChip<T>[];
+  options: readonly ChipOption<T>[];
   selecionada: T;
-  aoSelecionar: (chave: T) => void;
+  onSelect: (key: T) => void;
   /** `pilula` = raio 999 (Produtos/Relatórios); `caixa` = raio 12 (Custos). */
-  forma?: 'pilula' | 'caixa';
+  method?: 'pilula' | 'cash';
   /** Chips que dividem a largura em vez de rolar (a fileira de Custos). */
   expandir?: boolean;
 }
@@ -30,41 +30,41 @@ interface ChipsProps<T extends string> {
  * quatro botões idênticos e o usuário não sabe qual filtro está ativo.
  */
 export function Chips<T extends string>({
-  opcoes,
+  options,
   selecionada,
-  aoSelecionar,
-  forma = 'pilula',
+  onSelect,
+  method = 'pilula',
   expandir = false,
 }: ChipsProps<T>) {
-  const conteudo = opcoes.map((o) => {
-    const ativo = o.chave === selecionada;
+  const content = options.map((o) => {
+    const active = o.key === selecionada;
     return (
-      <Toque
-        key={o.chave}
-        accessibilityLabel={o.rotulo}
-        accessibilityState={{ selected: ativo }}
-        onPress={() => aoSelecionar(o.chave)}
+      <Touchable
+        key={o.key}
+        accessibilityLabel={o.label}
+        accessibilityState={{ selected: active }}
+        onPress={() => onSelect(o.key)}
         flex={expandir ? 1 : undefined}
         height={expandir ? 38 : 36}
-        paddingHorizontal={expandir ? 's0' : forma === 'pilula' ? 's14' : 's13'}
-        borderRadius={forma === 'pilula' ? 'full' : 'r12'}
+        paddingHorizontal={expandir ? 's0' : method === 'pilula' ? 's14' : 's13'}
+        borderRadius={method === 'pilula' ? 'full' : 'r12'}
         borderWidth={1}
-        borderColor={ativo ? 'primary' : 'line'}
-        backgroundColor={ativo ? 'primary' : 'surface'}
+        borderColor={active ? 'primary' : 'line'}
+        backgroundColor={active ? 'primary' : 'surface'}
         alignItems="center"
         justifyContent="center"
       >
-        <Text variant="chipLabel" color={ativo ? 'onPrimary' : 'textMuted'}>
-          {o.rotulo}
+        <Text variant="chipLabel" color={active ? 'onPrimary' : 'textMuted'}>
+          {o.label}
         </Text>
-      </Toque>
+      </Touchable>
     );
   });
 
   if (expandir) {
     return (
       <Box flexDirection="row" gap="s8">
-        {conteudo}
+        {content}
       </Box>
     );
   }
@@ -75,7 +75,7 @@ export function Chips<T extends string>({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ gap: 8, paddingBottom: 2 }}
     >
-      {conteudo}
+      {content}
     </ScrollView>
   );
 }

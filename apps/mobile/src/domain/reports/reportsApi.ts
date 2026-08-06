@@ -1,5 +1,5 @@
-import { RELATORIOS_API } from '@data/relatorios';
-import { esperar } from '@services/mockLatency';
+import { REPORTS_API } from '@data/reports';
+import { delay } from '@services/mockLatency';
 
 import type { ReportAPI } from './reportsApiTypes';
 
@@ -11,11 +11,11 @@ import type { ReportAPI } from './reportsApiTypes';
  * a consulta real vai precisar, e deixá-lo de fora agora significaria mexer em
  * useCase e tela depois.
  */
-export async function buscarRelatorio(
+export async function fetchReport(
   tenantId: string,
-  periodo: string,
+  period: string,
 ): Promise<ReportAPI | null> {
-  await esperar(280);
-  const base = RELATORIOS_API[tenantId];
-  return base ? { ...base, period: periodo } : null;
+  await delay(280);
+  const base = REPORTS_API[tenantId];
+  return base ? { ...base, period: period } : null;
 }

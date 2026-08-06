@@ -1,18 +1,18 @@
 export type {
-  DiferencaDeFechamento,
-  LinhaDeConferencia,
-  RecebimentoPorForma,
-  TipoDeAjuste,
-  TurnoAberto,
-  TurnoEncerrado,
+  CloseOutDifference,
+  CountLine,
+  ReceiptsByMethod,
+  AdjustmentType,
+  OpenShift,
+  ClosedShift,
 } from './cashTypes';
-export { CaixaError } from './cashTypes';
-export { calcularDiferenca, linhasDeConferencia, rotularDiferenca } from './cashAdapter';
+export { CashError } from './cashTypes';
+export { computeDifference, countRows, labelDifference } from './cashAdapter';
 export {
   caixaKeys,
   useAbrirCaixa,
   useFecharCaixa,
-  useHistoricoDeCaixa,
-  useRegistrarAjuste,
-  useTurnoAberto,
-} from './useCases/useCaixa';
+  useCashHistory,
+  useRecordAdjustment,
+  useOpenShift,
+} from './useCases/useCash';

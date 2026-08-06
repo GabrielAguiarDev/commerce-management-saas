@@ -1,7 +1,7 @@
-import { iniciais } from '@utils/texto';
+import { initials } from '@utils/text';
 
 import type { SessionAPI } from './sessionApiTypes';
-import { AuthError, type Sessao } from './sessionTypes';
+import { AuthError, type Session } from './sessionTypes';
 
 /**
  * `SessionAPI` → `Sessao`.
@@ -12,24 +12,24 @@ import { AuthError, type Sessao } from './sessionTypes';
  * vira erro nomeado AQUI, na fronteira — não `undefined` explodindo três telas
  * adiante, quando ninguém mais lembra de onde veio.
  */
-export function toSessao(raw: SessionAPI): Sessao {
+export function toSession(raw: SessionAPI): Session {
   const meta = raw.user.user_metadata ?? {};
   const tenantId = meta.tenant_id ?? null;
 
   if (!tenantId) {
-    throw new AuthError('desconhecido', 'Sessão sem negócio associado.');
+    throw new AuthError('unknown', 'Sessão sem negócio associado.');
   }
 
   const email = raw.user.email ?? '';
-  const nome = meta.full_name?.trim() || email.split('@')[0] || 'Você';
+  const name = meta.full_name?.trim() || email.split('@')[0] || 'Você';
 
   return {
-    usuario: { id: raw.user.id, email, nome, iniciais: iniciais(nome) },
+    user: { id: raw.user.id, email, name, initials: initials(name) },
     tenantId,
     token: raw.access_token,
   };
 }
 
-export function toSignInPayload(email: string, senha: string) {
-  return { email: email.trim().toLowerCase(), password: senha };
+export function toSignInPayload(email: string, password: string) {
+  return { email: email.trim().toLowerCase(), password: password };
 }

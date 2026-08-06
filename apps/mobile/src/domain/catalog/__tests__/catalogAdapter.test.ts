@@ -1,5 +1,5 @@
 import type { ProductAPI } from '../catalogApiTypes';
-import { situacaoDoEstoque, toProduto, toProductCreatePayload } from '../catalogAdapter';
+import { stockStatus, toProduct, toProductCreatePayload } from '../catalogAdapter';
 
 const base: ProductAPI = {
   id: 'prd_1',
@@ -19,64 +19,64 @@ const base: ProductAPI = {
 
 describe('situacaoDoEstoque', () => {
   it('zerado tem precedência sobre baixo', () => {
-    expect(situacaoDoEstoque(0, 12)).toBe('zerado');
+    expect(stockStatus(0, 12)).toBe('out');
   });
 
   it('quantidade negativa também é zerado (estoque não fica devendo)', () => {
-    expect(situacaoDoEstoque(-2, 5)).toBe('zerado');
+    expect(stockStatus(-2, 5)).toBe('out');
   });
 
   it('baixo quando toca ou fura o mínimo', () => {
-    expect(situacaoDoEstoque(3, 5)).toBe('baixo');
-    expect(situacaoDoEstoque(5, 5)).toBe('baixo');
+    expect(stockStatus(3, 5)).toBe('low');
+    expect(stockStatus(5, 5)).toBe('low');
   });
 
   it('em dia acima do mínimo', () => {
-    expect(situacaoDoEstoque(6, 5)).toBe('em_dia');
+    expect(stockStatus(6, 5)).toBe('ok');
   });
 
   it('mínimo 0 significa "não me avise" — 1 unidade é em dia', () => {
-    expect(situacaoDoEstoque(1, 0)).toBe('em_dia');
+    expect(stockStatus(1, 0)).toBe('ok');
   });
 });
 
 describe('toProduto', () => {
   it('renomeia os campos do banco', () => {
-    const p = toProduto(base);
-    expect(p.nome).toBe('Ração premium cães 15kg');
-    expect(p.codigo).toBe('7891');
-    expect(p.precoCentavos).toBe(18990);
+    const p = toProduct(base);
+    expect(p.name).toBe('Ração premium cães 15kg');
+    expect(p.code).toBe('7891');
+    expect(p.priceCents).toBe(18990);
     expect(p.ehServico).toBe(false);
   });
 
   it('achata stock_qty/stock_min e deriva a situação', () => {
-    expect(toProduto(base).estoque).toEqual({ quantidade: 8, minimo: 4, situacao: 'em_dia' });
+    expect(toProduct(base).stock).toEqual({ quantity: 8, minimo: 4, status: 'ok' });
   });
 
   it('distingue "não controla estoque" (null) de "acabou" (0)', () => {
-    expect(toProduto({ ...base, stock_qty: null }).estoque).toBeNull();
-    expect(toProduto({ ...base, stock_qty: 0 }).estoque).toMatchObject({ situacao: 'zerado' });
+    expect(toProduct({ ...base, stock_qty: null }).stock).toBeNull();
+    expect(toProduct({ ...base, stock_qty: 0 }).stock).toMatchObject({ status: 'out' });
   });
 
   it('serviço nunca controla estoque, mesmo com quantidade no banco', () => {
-    expect(toProduto({ ...base, is_service: true, stock_qty: 5 }).estoque).toBeNull();
+    expect(toProduct({ ...base, is_service: true, stock_qty: 5 }).stock).toBeNull();
   });
 
   it('preço nulo vira zero em vez de quebrar a formatação', () => {
-    expect(toProduto({ ...base, price_cents: null }).precoCentavos).toBe(0);
+    expect(toProduct({ ...base, price_cents: null }).priceCents).toBe(0);
   });
 
   it('produto nasce favorito quando a coluna vem nula', () => {
-    expect(toProduto({ ...base, is_favorite: null }).favorito).toBe(true);
-    expect(toProduto({ ...base, is_favorite: false }).favorito).toBe(false);
+    expect(toProduct({ ...base, is_favorite: null }).favorite).toBe(true);
+    expect(toProduct({ ...base, is_favorite: false }).favorite).toBe(false);
   });
 
   it('mínimo nulo conta como 0', () => {
-    expect(toProduto({ ...base, stock_min: null }).estoque?.minimo).toBe(0);
+    expect(toProduct({ ...base, stock_min: null }).stock?.minimo).toBe(0);
   });
 
   it('descarta as colunas que a UI não usa', () => {
-    const p = toProduto(base) as unknown as Record<string, unknown>;
+    const p = toProduct(base) as unknown as Record<string, unknown>;
     expect(p.tenant_id).toBeUndefined();
     expect(p.created_at).toBeUndefined();
     expect(p.updated_at).toBeUndefined();
@@ -87,11 +87,11 @@ describe('toProductCreatePayload', () => {
   it('volta para o formato do banco, aparando o nome', () => {
     expect(
       toProductCreatePayload('tnt_1', {
-        nome: '  Coleira nova  ',
-        precoCentavos: 4590,
-        custoCentavos: null,
-        estoqueInicial: 10,
-        estoqueMinimo: 2,
+        name: '  Coleira nova  ',
+        priceCents: 4590,
+        costCents: null,
+        initialStock: 10,
+        minimumStock: 2,
       }),
     ).toEqual({
       tenant_id: 'tnt_1',
@@ -106,11 +106,11 @@ describe('toProductCreatePayload', () => {
 
   it('propaga null de estoque como "não controla", não como zero', () => {
     const payload = toProductCreatePayload('tnt_1', {
-      nome: 'Serviço',
-      precoCentavos: 100,
-      custoCentavos: null,
-      estoqueInicial: null,
-      estoqueMinimo: null,
+      name: 'Serviço',
+      priceCents: 100,
+      costCents: null,
+      initialStock: null,
+      minimumStock: null,
     });
     expect(payload.stock_qty).toBeNull();
   });

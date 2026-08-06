@@ -27,18 +27,18 @@ export type ChaveModulo = (typeof CHAVES_MODULO)[number];
 
 export interface Plano {
   /** 'free' | 'paid' | 'custom' no banco; aqui é texto por não ser regra. */
-  chave: string;
-  nome: string;
+  key: string;
+  name: string;
   renovaEm: Date | null;
 }
 
 export interface Tenant {
   id: string;
-  nome: string;
-  segmento: string | null;
-  telefone: string | null;
+  name: string;
+  segment: string | null;
+  phone: string | null;
   plano: Plano;
-  modulos: ChaveModulo[];
+  modules: ChaveModulo[];
 }
 
 /**
@@ -48,37 +48,37 @@ export interface Tenant {
  * a pergunta que a tela faz é "tem caixa?". Se amanhã o backend renomear a
  * chave, muda uma linha aqui.
  */
-export interface Capacidades {
+export interface Capabilities {
   /** Sem isto o app inteiro é bloqueado — é o módulo de ACESSO (`is_access`). */
   acessoApp: boolean;
-  temVendas: boolean;
-  temProdutos: boolean;
-  temCaixa: boolean;
-  temEstoque: boolean;
-  temCustos: boolean;
-  temRelatorios: boolean;
-  temSuporte: boolean;
+  hasSales: boolean;
+  hasProducts: boolean;
+  hasCash: boolean;
+  hasStock: boolean;
+  hasCosts: boolean;
+  hasReports: boolean;
+  hasSupport: boolean;
 }
 
 export interface Membro {
   id: string;
-  nome: string;
+  name: string;
   papel: string;
   acesso: string;
-  iniciais: string;
+  initials: string;
 }
 
-export interface Atividade {
+export interface Activity {
   id: string;
-  texto: string;
+  text: string;
   quando: string;
 }
 
-export type CodigoErroTenant = 'nao_encontrado' | 'rede' | 'desconhecido';
+export type TenantErrorCode = 'not_found' | 'network' | 'unknown';
 
 export class TenantError extends Error {
-  constructor(readonly codigo: CodigoErroTenant, mensagem?: string) {
-    super(mensagem ?? codigo);
+  constructor(readonly code: TenantErrorCode, message?: string) {
+    super(message ?? code);
     this.name = 'TenantError';
   }
 }

@@ -1,5 +1,5 @@
 import type { CostAPI, MonthSummaryAPI } from '../costsApiTypes';
-import { filtrarCustos, toCusto, toResumoDoMes } from '../costsAdapter';
+import { filterCosts, toCost, toMonthlySummary } from '../costsAdapter';
 
 const base: CostAPI = {
   id: 'cst_1',
@@ -13,24 +13,24 @@ const base: CostAPI = {
 
 describe('toCusto', () => {
   it('traduz o enum do banco e monta o rótulo do chip', () => {
-    const c = toCusto(base);
-    expect(c.tipo).toBe('fixo');
-    expect(c.rotuloTipo).toBe('Fixo · todo mês');
+    const c = toCost(base);
+    expect(c.type).toBe('fixed');
+    expect(c.typeLabel).toBe('Fixo · todo mês');
   });
 
   it('variável não ganha o "todo mês"', () => {
-    expect(toCusto({ ...base, kind: 'variable' }).rotuloTipo).toBe('Variável');
+    expect(toCost({ ...base, kind: 'variable' }).typeLabel).toBe('Variável');
   });
 
   it('enum desconhecido cai em variável em vez de sumir da lista', () => {
-    expect(toCusto({ ...base, kind: 'recurring_quarterly' }).tipo).toBe('variavel');
+    expect(toCost({ ...base, kind: 'recurring_quarterly' }).type).toBe('variable');
   });
 
   it('defende contra nulos do banco', () => {
-    const c = toCusto({ ...base, amount_cents: null, due_label: null, from_stock: null });
-    expect(c.valorCentavos).toBe(0);
+    const c = toCost({ ...base, amount_cents: null, due_label: null, from_stock: null });
+    expect(c.amountCents).toBe(0);
     expect(c.quando).toBe('—');
-    expect(c.veioDoEstoque).toBe(false);
+    expect(c.fromStock).toBe(false);
   });
 });
 
@@ -43,39 +43,39 @@ describe('toResumoDoMes', () => {
   };
 
   it('DERIVA "sobrou" em vez de ler do servidor', () => {
-    expect(toResumoDoMes(cru).sobrouCentavos).toBe(2846000 - 1498000);
+    expect(toMonthlySummary(cru).sobrouCentavos).toBe(2846000 - 1498000);
   });
 
   it('mês sem lançamento nenhum devolve zeros, não NaN', () => {
-    const vazio = toResumoDoMes({ ...cru, income_cents: null, expense_cents: null });
-    expect(vazio).toMatchObject({ entrouCentavos: 0, saiuCentavos: 0, sobrouCentavos: 0 });
+    const empty = toMonthlySummary({ ...cru, income_cents: null, expense_cents: null });
+    expect(empty).toMatchObject({ entrouCentavos: 0, saiuCentavos: 0, sobrouCentavos: 0 });
   });
 
   it('sobrou pode ser negativo — mês no vermelho é informação, não erro', () => {
-    expect(toResumoDoMes({ ...cru, income_cents: 100, expense_cents: 500 }).sobrouCentavos).toBe(
+    expect(toMonthlySummary({ ...cru, income_cents: 100, expense_cents: 500 }).sobrouCentavos).toBe(
       -400,
     );
   });
 });
 
 describe('filtrarCustos', () => {
-  const custos = [
-    toCusto(base),
-    toCusto({ ...base, id: 'cst_2', name: 'Energia', kind: 'variable' }),
-    toCusto({ ...base, id: 'cst_3', name: 'Feira', kind: 'variable' }),
+  const costs = [
+    toCost(base),
+    toCost({ ...base, id: 'cst_2', name: 'Energia', kind: 'variable' }),
+    toCost({ ...base, id: 'cst_3', name: 'Feira', kind: 'variable' }),
   ];
 
   it('Todos não filtra nada', () => {
-    expect(filtrarCustos(custos, 'todos')).toHaveLength(3);
+    expect(filterCosts(costs, 'all')).toHaveLength(3);
   });
 
   it('separa fixos de variáveis', () => {
-    expect(filtrarCustos(custos, 'fixos').map((c) => c.nome)).toEqual(['Aluguel da loja']);
-    expect(filtrarCustos(custos, 'variaveis').map((c) => c.nome)).toEqual(['Energia', 'Feira']);
+    expect(filterCosts(costs, 'fixed_only').map((c) => c.name)).toEqual(['Aluguel da loja']);
+    expect(filterCosts(costs, 'variable_only').map((c) => c.name)).toEqual(['Energia', 'Feira']);
   });
 
   it('não muta a lista recebida', () => {
-    filtrarCustos(custos, 'fixos');
-    expect(custos).toHaveLength(3);
+    filterCosts(costs, 'fixed_only');
+    expect(costs).toHaveLength(3);
   });
 });

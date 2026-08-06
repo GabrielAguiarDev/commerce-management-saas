@@ -1,19 +1,19 @@
-import { toProduto, toProductCreatePayload } from './catalogAdapter';
+import { toProduct, toProductCreatePayload } from './catalogAdapter';
 import * as api from './catalogApi';
-import { CatalogoError, type NovoProduto, type Produto } from './catalogTypes';
+import { CatalogError, type NewProduct, type Product } from './catalogTypes';
 
 /** AS REGRAS do catálogo. Valida antes da rede, normaliza o erro na saída. */
 
-function normalizar(erro: unknown): never {
-  if (erro instanceof CatalogoError) throw erro;
-  throw new CatalogoError('rede', erro instanceof Error ? erro.message : undefined);
+function normalize(error: unknown): never {
+  if (error instanceof CatalogError) throw error;
+  throw new CatalogError('network', error instanceof Error ? error.message : undefined);
 }
 
-export async function listarProdutos(tenantId: string): Promise<Produto[]> {
+export async function listProducts(tenantId: string): Promise<Product[]> {
   try {
-    return (await api.listarProdutos(tenantId)).map(toProduto);
+    return (await api.listProducts(tenantId)).map(toProduct);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
@@ -24,44 +24,44 @@ export async function listarProdutos(tenantId: string): Promise<Produto[]> {
  * branco vale zero (o dono digita depois) e preço negativo é erro: um produto
  * com preço negativo pagaria o cliente para levar.
  */
-export function validarNovoProduto(novo: NovoProduto): CatalogoError | null {
-  if (!novo.nome.trim()) return new CatalogoError('nome_obrigatorio');
-  if (novo.precoCentavos < 0) return new CatalogoError('preco_invalido');
+export function validateNewProduct(novo: NewProduct): CatalogError | null {
+  if (!novo.name.trim()) return new CatalogError('name_required');
+  if (novo.priceCents < 0) return new CatalogError('invalid_price');
   return null;
 }
 
-export async function cadastrarProduto(tenantId: string, novo: NovoProduto): Promise<Produto> {
-  const invalido = validarNovoProduto(novo);
+export async function createProduct(tenantId: string, novo: NewProduct): Promise<Product> {
+  const invalido = validateNewProduct(novo);
   if (invalido) throw invalido;
 
   try {
-    const raw = await api.criarProduto(toProductCreatePayload(tenantId, novo));
-    return toProduto(raw);
+    const raw = await api.createProduct(toProductCreatePayload(tenantId, novo));
+    return toProduct(raw);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function alternarFavorito(tenantId: string, produtoId: string): Promise<Produto> {
+export async function toggleFavorite(tenantId: string, productId: string): Promise<Product> {
   try {
-    const raw = await api.alternarFavorito(tenantId, produtoId);
-    if (!raw) throw new CatalogoError('desconhecido', 'Produto não encontrado.');
-    return toProduto(raw);
+    const raw = await api.toggleFavorite(tenantId, productId);
+    if (!raw) throw new CatalogError('unknown', 'Produto não encontrado.');
+    return toProduct(raw);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function movimentarEstoque(
+export async function moveStock(
   tenantId: string,
-  produtoId: string,
+  productId: string,
   delta: number,
 ): Promise<void> {
   try {
-    await api.movimentarEstoque(tenantId, produtoId, delta);
+    await api.moveStock(tenantId, productId, delta);
   } catch (e) {
-    normalizar(e);
+    normalize(e);
   }
 }
 
-export const categoriaEspecialDoTenant = api.categoriaEspecialDoTenant;
+export const tenantSpecialCategory = api.tenantSpecialCategory;

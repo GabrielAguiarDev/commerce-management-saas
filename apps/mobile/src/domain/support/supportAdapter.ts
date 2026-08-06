@@ -1,10 +1,10 @@
 import type { TicketAPI, TicketCreateAPI, TicketMessageAPI } from './supportApiTypes';
-import type { Chamado, MensagemDoChamado, NovoChamado, StatusChamado } from './supportTypes';
+import type { Ticket, TicketMessage, NewTicket, TicketStatus } from './supportTypes';
 
-const ROTULO: Record<StatusChamado, string> = {
-  respondido: 'Respondido',
-  em_andamento: 'Em andamento',
-  resolvido: 'Resolvido',
+const LABEL: Record<TicketStatus, string> = {
+  answered: 'Respondido',
+  in_progress: 'Em andamento',
+  resolved: 'Resolvido',
 };
 
 /**
@@ -14,44 +14,44 @@ const ROTULO: Record<StatusChamado, string> = {
  * com estado novo no servidor precisa continuar aparecendo, ainda que com o
  * rótulo genérico, até o app ser atualizado.
  */
-function toStatus(raw: string): StatusChamado {
-  if (raw === 'answered') return 'respondido';
-  if (raw === 'resolved') return 'resolvido';
-  return 'em_andamento';
+function toStatus(raw: string): TicketStatus {
+  if (raw === 'answered') return 'answered';
+  if (raw === 'resolved') return 'resolved';
+  return 'in_progress';
 }
 
-export function toChamado(raw: TicketAPI): Chamado {
+export function toTicket(raw: TicketAPI): Ticket {
   const status = toStatus(raw.status);
   return {
     id: raw.id,
     assunto: raw.subject,
-    resumo: raw.summary ?? '',
+    summary: raw.summary ?? '',
     status,
-    statusRotulo: ROTULO[status],
+    statusRotulo: LABEL[status],
     naoLida: raw.has_unread === true,
   };
 }
 
 /** `from_support` vira `minha` invertido: a tela pensa "é minha bolha?". */
-export function toMensagem(raw: TicketMessageAPI): MensagemDoChamado {
+export function toMessage(raw: TicketMessageAPI): TicketMessage {
   return {
     id: raw.id,
-    texto: raw.body,
+    text: raw.body,
     minha: !raw.from_support,
     quando: raw.created_label,
   };
 }
 
-export function toChamadoPayload(tenantId: string, novo: NovoChamado): TicketCreateAPI {
+export function toTicketPayload(tenantId: string, novo: NewTicket): TicketCreateAPI {
   return {
     tenant_id: tenantId,
     subject: novo.assunto.trim(),
-    category: novo.categoria,
-    body: novo.descricao.trim(),
+    category: novo.category,
+    body: novo.description.trim(),
   };
 }
 
 /** Quantos chamados têm mensagem não lida — o badge vermelho da tela "Mais". */
-export function contarNaoLidos(chamados: readonly Chamado[]): number {
-  return chamados.filter((c) => c.naoLida).length;
+export function countUnread(tickets: readonly Ticket[]): number {
+  return tickets.filter((c) => c.naoLida).length;
 }

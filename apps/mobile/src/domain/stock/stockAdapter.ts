@@ -1,5 +1,5 @@
 import type { StockMovementAPI, StockMovementCreateAPI } from './stockApiTypes';
-import type { Movimentacao } from './stockTypes';
+import type { StockMovement } from './stockTypes';
 
 /**
  * `reason` é um enum técnico no banco ('sale', 'purchase'...). A frase que o
@@ -24,31 +24,31 @@ function descreverOrigem(reason: string, ator: string | null): string {
 }
 
 /** Traço tipográfico (U+2212) para saída, como no design — não hífen ASCII. */
-export function formatarSinal(delta: number): string {
+export function formatSign(delta: number): string {
   return delta < 0 ? `−${Math.abs(delta)}` : `+${delta}`;
 }
 
-export function toMovimentacao(raw: StockMovementAPI): Movimentacao {
+export function toStockMovement(raw: StockMovementAPI): StockMovement {
   return {
     id: raw.id,
-    produtoNome: raw.product_name,
+    productName: raw.product_name,
     delta: raw.delta,
-    sinal: formatarSinal(raw.delta),
+    sinal: formatSign(raw.delta),
     origem: descreverOrigem(raw.reason, raw.actor_name),
     quando: raw.happened_label,
   };
 }
 
-export function toMovimentacaoPayload(
+export function toStockMovementPayload(
   tenantId: string,
-  produtoId: string | null,
-  produtoNome: string,
+  productId: string | null,
+  productName: string,
   delta: number,
 ): StockMovementCreateAPI {
   return {
     tenant_id: tenantId,
-    product_id: produtoId,
-    product_name: produtoNome.trim(),
+    product_id: productId,
+    product_name: productName.trim(),
     delta,
     reason: delta > 0 ? 'purchase' : 'manual',
   };
@@ -62,8 +62,8 @@ export function toMovimentacaoPayload(
  * U+2212 porque o teclado do iOS insere o segundo em alguns idiomas — e um
  * "−3" que virasse +3 tiraria o dono do controle do próprio estoque.
  */
-export function lerQuantidadeMovimento(texto: string): number | null {
-  const limpo = String(texto ?? '')
+export function parseMovementQuantity(text: string): number | null {
+  const limpo = String(text ?? '')
     .trim()
     .replace(/−/g, '-');
   if (!/^[+-]?\d+$/.test(limpo)) return null;

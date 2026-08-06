@@ -1,5 +1,5 @@
-import { ATIVIDADES_API, EQUIPE_API, TENANTS_API } from '@data/tenants';
-import { esperar } from '@services/mockLatency';
+import { ACTIVITIES_API, EQUIPE_API, TENANTS_API } from '@data/tenants';
+import { delay } from '@services/mockLatency';
 
 import type { ActivityAPI, TeamMemberAPI, TenantAPI, TenantUpdateAPI } from './tenantApiTypes';
 
@@ -14,31 +14,31 @@ import type { ActivityAPI, TeamMemberAPI, TenantAPI, TenantUpdateAPI } from './t
  * Só aqui existem latência simulada, relógio e aleatoriedade.
  */
 
-export async function buscarTenant(tenantId: string): Promise<TenantAPI | null> {
-  await esperar();
+export async function fetchTenant(tenantId: string): Promise<TenantAPI | null> {
+  await delay();
   return TENANTS_API[tenantId] ?? null;
 }
 
-export async function listarEquipe(tenantId: string): Promise<TeamMemberAPI[]> {
-  await esperar();
+export async function listTeam(tenantId: string): Promise<TeamMemberAPI[]> {
+  await delay();
   return EQUIPE_API[tenantId] ?? [];
 }
 
-export async function listarAtividades(tenantId: string): Promise<ActivityAPI[]> {
-  await esperar();
-  return ATIVIDADES_API[tenantId] ?? [];
+export async function listActivities(tenantId: string): Promise<ActivityAPI[]> {
+  await delay();
+  return ACTIVITIES_API[tenantId] ?? [];
 }
 
-export async function atualizarTenant(
+export async function updateTenant(
   tenantId: string,
   payload: TenantUpdateAPI,
 ): Promise<TenantAPI | null> {
-  await esperar();
-  const atual = TENANTS_API[tenantId];
-  if (!atual) return null;
+  await delay();
+  const current = TENANTS_API[tenantId];
+  if (!current) return null;
   // Mutação in-memory: o mock é o "banco" desta fase, e a tela precisa ver o
   // nome novo depois de salvar.
-  const novo: TenantAPI = { ...atual, name: payload.name, contact_phone: payload.contact_phone };
+  const novo: TenantAPI = { ...current, name: payload.name, contact_phone: payload.contact_phone };
   TENANTS_API[tenantId] = novo;
   return novo;
 }

@@ -1,6 +1,6 @@
-import { contem } from '@utils/texto';
+import { contains } from '@utils/text';
 
-import type { CriterioCatalogo, Produto } from './catalogTypes';
+import type { CatalogSortKey, Product } from './catalogTypes';
 
 /**
  * Seletores puros do catálogo.
@@ -11,34 +11,34 @@ import type { CriterioCatalogo, Produto } from './catalogTypes';
  */
 
 /** Casa por nome OU por código, ignorando acento e caixa. Busca vazia casa tudo. */
-export function casaBusca(produto: Produto, busca: string): boolean {
-  if (!busca.trim()) return true;
-  return contem(produto.nome, busca) || contem(produto.codigo ?? '', busca);
+export function casaBusca(product: Product, search: string): boolean {
+  if (!search.trim()) return true;
+  return contains(product.name, search) || contains(product.code ?? '', search);
 }
 
 /**
  * Lista da tela Produtos: busca + chip de filtro.
  *
- * O chip "especial" é "Serviços" no petshop e "Bebidas" na barraca de acarajé.
+ * O chip "special" é "Serviços" no petshop e "Bebidas" na barraca de acarajé.
  * Por isso o critério não é fixo: quando o rótulo é "Serviços" filtra por
  * `ehServico`; senão, filtra pela categoria de mesmo nome.
  */
-export function filtrarCatalogo(produtos: Produto[], criterio: CriterioCatalogo): Produto[] {
-  return produtos.filter((p) => {
-    if (!casaBusca(p, criterio.busca)) return false;
-    if (criterio.filtro === 'favoritos') return p.favorito;
-    if (criterio.filtro === 'especial') {
-      const rotulo = criterio.categoriaEspecial;
-      if (!rotulo) return true;
-      if (rotulo === 'Serviços') return p.ehServico;
-      return (p.categoria ?? '') === rotulo;
+export function filterCatalog(products: Product[], criterion: CatalogSortKey): Product[] {
+  return products.filter((p) => {
+    if (!casaBusca(p, criterion.search)) return false;
+    if (criterion.filter === 'favorites') return p.favorite;
+    if (criterion.filter === 'special') {
+      const label = criterion.specialCategory;
+      if (!label) return true;
+      if (label === 'Serviços') return p.ehServico;
+      return (p.category ?? '') === label;
     }
     return true;
   });
 }
 
 /** Quantos itens a grade de venda mostra antes de exigir busca. */
-export const LIMITE_GRADE_VENDA = 8;
+export const SALE_GRID_LIMIT = 8;
 
 /**
  * Grade da tela Vender.
@@ -48,10 +48,10 @@ export const LIMITE_GRADE_VENDA = 8;
  * catálogo inteiro entra na peneira. Em ambos os casos, no máximo 8 cartões:
  * mais que isso exige rolar, e rolar no meio da venda é o que se quer evitar.
  */
-export function gradeDeVenda(produtos: Produto[], busca: string): Produto[] {
-  const casados = produtos.filter((p) => casaBusca(p, busca));
-  const visiveis = busca.trim() ? casados : casados.filter((p) => p.favorito);
-  return visiveis.slice(0, LIMITE_GRADE_VENDA);
+export function saleGrid(products: Product[], search: string): Product[] {
+  const casados = products.filter((p) => casaBusca(p, search));
+  const visiveis = search.trim() ? casados : casados.filter((p) => p.favorite);
+  return visiveis.slice(0, SALE_GRID_LIMIT);
 }
 
 /**
@@ -61,36 +61,36 @@ export function gradeDeVenda(produtos: Produto[], busca: string): Produto[] {
  * Repara que olha para `casaBusca`, não para o resultado de `gradeDeVenda`:
  * um catálogo só de não-favoritos NÃO é "nada encontrado", é "nada favoritado".
  */
-export function buscaSemResultado(produtos: Produto[], busca: string): boolean {
-  return produtos.filter((p) => casaBusca(p, busca)).length === 0;
+export function searchHasNoResults(products: Product[], search: string): boolean {
+  return products.filter((p) => casaBusca(p, search)).length === 0;
 }
 
-export interface ResumoEstoque {
+export interface StockSummary {
   emDia: number;
-  baixo: number;
-  zerado: number;
+  low: number;
+  out: number;
 }
 
-export function resumoDeEstoque(produtos: Produto[]): ResumoEstoque {
-  return produtos.reduce<ResumoEstoque>(
+export function stockSummary(products: Product[]): StockSummary {
+  return products.reduce<StockSummary>(
     (acc, p) => {
-      if (!p.estoque) return acc;
-      if (p.estoque.situacao === 'zerado') return { ...acc, zerado: acc.zerado + 1 };
-      if (p.estoque.situacao === 'baixo') return { ...acc, baixo: acc.baixo + 1 };
+      if (!p.stock) return acc;
+      if (p.stock.status === 'out') return { ...acc, out: acc.out + 1 };
+      if (p.stock.status === 'low') return { ...acc, low: acc.low + 1 };
       return { ...acc, emDia: acc.emDia + 1 };
     },
-    { emDia: 0, baixo: 0, zerado: 0 },
+    { emDia: 0, low: 0, out: 0 },
   );
 }
 
 /** Só os que controlam estoque — a lista da tela Estoque. */
-export function produtosComEstoque(produtos: Produto[]): Produto[] {
-  return produtos.filter((p) => p.estoque !== null);
+export function productsInStock(products: Product[]): Product[] {
+  return products.filter((p) => p.stock !== null);
 }
 
 /** Os que pedem atenção, na ordem em que doem: zerados primeiro. */
-export function produtosEmAlerta(produtos: Produto[]): Produto[] {
-  return produtosComEstoque(produtos)
-    .filter((p) => p.estoque?.situacao !== 'em_dia')
-    .sort((a, b) => (a.estoque?.quantidade ?? 0) - (b.estoque?.quantidade ?? 0));
+export function lowStockProducts(products: Product[]): Product[] {
+  return productsInStock(products)
+    .filter((p) => p.stock?.status !== 'ok')
+    .sort((a, b) => (a.stock?.quantity ?? 0) - (b.stock?.quantity ?? 0));
 }

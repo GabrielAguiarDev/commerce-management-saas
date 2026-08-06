@@ -1,6 +1,6 @@
-export type { CodigoErroAuth, Sessao, Usuario } from './sessionTypes';
+export type { AuthErrorCode, Session, User } from './sessionTypes';
 export { AuthError } from './sessionTypes';
-export { SENHA_MINIMA, recuperarSenha, validarCredenciais } from './sessionService';
+export { SENHA_MINIMA, recuperarSenha, validateCredentials } from './sessionService';
 
 /**
  * Sem `useCases/` neste domínio, de propósito.

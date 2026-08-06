@@ -1,5 +1,5 @@
-import { usePreferenciasStore } from '@store/preferenciasStore';
-import { useSessaoStore } from '@store/sessaoStore';
+import { usePreferencesStore } from '@store/preferencesStore';
+import { useSessionStore } from '@store/sessionStore';
 
 /**
  * `true` quando TODOS os stores persistidos já leram o disco.
@@ -13,8 +13,8 @@ import { useSessaoStore } from '@store/sessaoStore';
  * @see app/index.tsx (o portão) e DEVELOPMENT.md › Notas
  */
 export function useAppHydrated(): boolean {
-  const sessao = useSessaoStore((s) => s.hidratado);
-  const preferencias = usePreferenciasStore((s) => s.hidratado);
+  const session = useSessionStore((s) => s.hydrated);
+  const preferences = usePreferencesStore((s) => s.hydrated);
 
-  return sessao && preferencias;
+  return session && preferences;
 }

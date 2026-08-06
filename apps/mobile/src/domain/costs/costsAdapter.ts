@@ -1,22 +1,22 @@
 import type { CostAPI, CostCreateAPI, MonthSummaryAPI } from './costsApiTypes';
-import type { Custo, FiltroCusto, ResumoDoMes, TipoDeCusto } from './costsTypes';
+import type { Cost, CostFilter, MonthlySummary, CostType } from './costsTypes';
 
-function toTipo(kind: string): TipoDeCusto {
+function toTipo(kind: string): CostType {
   // Qualquer valor desconhecido cai em variável: um custo classificado errado
   // ainda aparece na lista; um custo descartado por enum novo some sem aviso.
-  return kind === 'fixed' ? 'fixo' : 'variavel';
+  return kind === 'fixed' ? 'fixed' : 'variable';
 }
 
-export function toCusto(raw: CostAPI): Custo {
-  const tipo = toTipo(raw.kind);
+export function toCost(raw: CostAPI): Cost {
+  const type = toTipo(raw.kind);
   return {
     id: raw.id,
-    nome: raw.name,
-    valorCentavos: raw.amount_cents ?? 0,
-    tipo,
-    rotuloTipo: tipo === 'fixo' ? 'Fixo · todo mês' : 'Variável',
+    name: raw.name,
+    amountCents: raw.amount_cents ?? 0,
+    type,
+    typeLabel: type === 'fixed' ? 'Fixo · todo mês' : 'Variável',
     quando: raw.due_label ?? '—',
-    veioDoEstoque: raw.from_stock === true,
+    fromStock: raw.from_stock === true,
   };
 }
 
@@ -28,25 +28,25 @@ export function toCusto(raw: CostAPI): Custo {
  * tela — que é exatamente o tipo de erro que destrói a confiança do dono nos
  * próprios relatórios.
  */
-export function toResumoDoMes(raw: MonthSummaryAPI): ResumoDoMes {
+export function toMonthlySummary(raw: MonthSummaryAPI): MonthlySummary {
   const entrou = raw.income_cents ?? 0;
   const saiu = raw.expense_cents ?? 0;
   return {
     mes: raw.month_label,
-    periodo: raw.range_label,
+    period: raw.range_label,
     entrouCentavos: entrou,
     saiuCentavos: saiu,
     sobrouCentavos: entrou - saiu,
   };
 }
 
-export function toCustoPayload(tenantId: string, nome: string, valorCentavos: number): CostCreateAPI {
-  return { tenant_id: tenantId, name: nome.trim(), amount_cents: valorCentavos, kind: 'variable' };
+export function toCostPayload(tenantId: string, name: string, amountCents: number): CostCreateAPI {
+  return { tenant_id: tenantId, name: name.trim(), amount_cents: amountCents, kind: 'variable' };
 }
 
 /** Seletor puro dos chips Todos / Fixos / Variáveis. */
-export function filtrarCustos(custos: Custo[], filtro: FiltroCusto): Custo[] {
-  if (filtro === 'todos') return custos;
-  const alvo: TipoDeCusto = filtro === 'fixos' ? 'fixo' : 'variavel';
-  return custos.filter((c) => c.tipo === alvo);
+export function filterCosts(costs: Cost[], filter: CostFilter): Cost[] {
+  if (filter === 'all') return costs;
+  const alvo: CostType = filter === 'fixed_only' ? 'fixed' : 'variable';
+  return costs.filter((c) => c.type === alvo);
 }

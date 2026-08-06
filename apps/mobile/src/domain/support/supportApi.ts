@@ -1,5 +1,5 @@
-import { CHAMADOS_API, MENSAGENS_API } from '@data/suporte';
-import { esperar } from '@services/mockLatency';
+import { TICKETS_API, MESSAGES_API } from '@data/support';
+import { delay } from '@services/mockLatency';
 
 import type { TicketAPI, TicketCreateAPI, TicketMessageAPI, TicketReplyAPI } from './supportApiTypes';
 
@@ -8,27 +8,27 @@ import type { TicketAPI, TicketCreateAPI, TicketMessageAPI, TicketReplyAPI } fro
  * ⚠️ ÚNICO ARQUIVO DESTE DOMÍNIO QUE MUDA COM O SUPABASE.
  */
 
-export async function listarChamados(tenantId: string): Promise<TicketAPI[]> {
-  await esperar();
-  return CHAMADOS_API[tenantId] ?? [];
+export async function listTickets(tenantId: string): Promise<TicketAPI[]> {
+  await delay();
+  return TICKETS_API[tenantId] ?? [];
 }
 
-export async function listarMensagens(chamadoId: string): Promise<TicketMessageAPI[]> {
-  await esperar();
-  return MENSAGENS_API[chamadoId] ?? [];
+export async function listMessages(ticketId: string): Promise<TicketMessageAPI[]> {
+  await delay();
+  return MESSAGES_API[ticketId] ?? [];
 }
 
 /** Abrir o chamado marca como lido — no servidor real seria um `update`. */
-export async function marcarComoLido(tenantId: string, chamadoId: string): Promise<void> {
-  await esperar(60);
-  const lista = CHAMADOS_API[tenantId] ?? [];
-  CHAMADOS_API[tenantId] = lista.map((t) =>
-    t.id === chamadoId ? { ...t, has_unread: false } : t,
+export async function markAsRead(tenantId: string, ticketId: string): Promise<void> {
+  await delay(60);
+  const list = TICKETS_API[tenantId] ?? [];
+  TICKETS_API[tenantId] = list.map((t) =>
+    t.id === ticketId ? { ...t, has_unread: false } : t,
   );
 }
 
-export async function criarChamado(payload: TicketCreateAPI): Promise<TicketAPI> {
-  await esperar(320);
+export async function createTicket(payload: TicketCreateAPI): Promise<TicketAPI> {
+  await delay(320);
 
   const novo: TicketAPI = {
     id: `tkt_${Date.now().toString(36)}`,
@@ -40,8 +40,8 @@ export async function criarChamado(payload: TicketCreateAPI): Promise<TicketAPI>
     updated_at: new Date().toISOString(),
   };
 
-  CHAMADOS_API[payload.tenant_id] = [novo, ...(CHAMADOS_API[payload.tenant_id] ?? [])];
-  MENSAGENS_API[novo.id] = [
+  TICKETS_API[payload.tenant_id] = [novo, ...(TICKETS_API[payload.tenant_id] ?? [])];
+  MESSAGES_API[novo.id] = [
     {
       id: `${novo.id}_m1`,
       ticket_id: novo.id,
@@ -54,10 +54,10 @@ export async function criarChamado(payload: TicketCreateAPI): Promise<TicketAPI>
   return novo;
 }
 
-export async function responder(payload: TicketReplyAPI): Promise<TicketMessageAPI> {
-  await esperar(200);
+export async function reply(payload: TicketReplyAPI): Promise<TicketMessageAPI> {
+  await delay(200);
 
-  const mensagem: TicketMessageAPI = {
+  const message: TicketMessageAPI = {
     id: `msg_${Date.now().toString(36)}`,
     ticket_id: payload.ticket_id,
     body: payload.body,
@@ -65,6 +65,6 @@ export async function responder(payload: TicketReplyAPI): Promise<TicketMessageA
     created_label: 'agora',
   };
 
-  MENSAGENS_API[payload.ticket_id] = [...(MENSAGENS_API[payload.ticket_id] ?? []), mensagem];
-  return mensagem;
+  MESSAGES_API[payload.ticket_id] = [...(MESSAGES_API[payload.ticket_id] ?? []), message];
+  return message;
 }

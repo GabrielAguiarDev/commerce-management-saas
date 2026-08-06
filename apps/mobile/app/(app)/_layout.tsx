@@ -1,11 +1,11 @@
 import { Stack } from 'expo-router';
 
 import {
-  BarraDeAbas,
-  BarraDoCarrinho,
-  BotaoNovaVenda,
+  TabBar,
+  CartBar,
+  NewSaleButton,
   Box,
-  ConfirmacaoHost,
+  ConfirmHost,
   SheetHost,
   ToastHost,
 } from '@components';
@@ -29,37 +29,37 @@ import { useAppTheme } from '@hooks/useAppTheme';
  *
  * As quatro raízes ZERAM a pilha porque a tab bar usa `router.dismissTo`.
  */
-export default function LayoutDoApp() {
-  const tema = useAppTheme();
+export default function AppLayout() {
+  const theme = useAppTheme();
 
   return (
     <Box flex={1} backgroundColor="bg">
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: tema.colors.bg },
+          contentStyle: { backgroundColor: theme.colors.bg },
           animation: 'slide_from_right',
         }}
       >
-        <Stack.Screen name="inicio" options={{ animation: 'none' }} />
-        <Stack.Screen name="produtos" options={{ animation: 'none' }} />
-        <Stack.Screen name="mais" options={{ animation: 'none' }} />
-        <Stack.Screen name="caixa" options={{ animation: 'none' }} />
-        <Stack.Screen name="custos" options={{ animation: 'none' }} />
+        <Stack.Screen name="home" options={{ animation: 'none' }} />
+        <Stack.Screen name="products" options={{ animation: 'none' }} />
+        <Stack.Screen name="more" options={{ animation: 'none' }} />
+        <Stack.Screen name="cash" options={{ animation: 'none' }} />
+        <Stack.Screen name="costs" options={{ animation: 'none' }} />
         <Stack.Screen name="vender" />
-        <Stack.Screen name="estoque" />
-        <Stack.Screen name="relatorios" />
-        <Stack.Screen name="config" />
-        <Stack.Screen name="suporte" />
+        <Stack.Screen name="stock" />
+        <Stack.Screen name="reports" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="support" />
       </Stack>
 
       {/* A chrome. Ordem = ordem de empilhamento: sheet e confirm por último,
           porque precisam cobrir a tab bar e o FAB. */}
-      <BarraDeAbas />
-      <BotaoNovaVenda />
-      <BarraDoCarrinho />
+      <TabBar />
+      <NewSaleButton />
+      <CartBar />
       <SheetHost />
-      <ConfirmacaoHost />
+      <ConfirmHost />
       <ToastHost />
     </Box>
   );

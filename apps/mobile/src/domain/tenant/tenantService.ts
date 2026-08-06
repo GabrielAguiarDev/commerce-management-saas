@@ -1,6 +1,6 @@
 import * as api from './tenantApi';
-import { toAtividade, toMembro, toTenant, toTenantUpdatePayload } from './tenantAdapter';
-import { TenantError, type Atividade, type Membro, type Tenant } from './tenantTypes';
+import { toActivity, toMembro, toTenant, toTenantUpdatePayload } from './tenantAdapter';
+import { TenantError, type Activity, type Membro, type Tenant } from './tenantTypes';
 
 /**
  * AS REGRAS do domínio `tenant`.
@@ -10,34 +10,34 @@ import { TenantError, type Atividade, type Membro, type Tenant } from './tenantT
  * mensagem e não escreve um único `try/catch` de fetch.
  */
 
-function normalizar(erro: unknown): never {
-  if (erro instanceof TenantError) throw erro;
-  throw new TenantError('rede', erro instanceof Error ? erro.message : undefined);
+function normalize(error: unknown): never {
+  if (error instanceof TenantError) throw error;
+  throw new TenantError('network', error instanceof Error ? error.message : undefined);
 }
 
-export async function obterTenant(tenantId: string): Promise<Tenant> {
+export async function getTenant(tenantId: string): Promise<Tenant> {
   try {
-    const raw = await api.buscarTenant(tenantId);
-    if (!raw) throw new TenantError('nao_encontrado');
+    const raw = await api.fetchTenant(tenantId);
+    if (!raw) throw new TenantError('not_found');
     return toTenant(raw);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function obterEquipe(tenantId: string): Promise<Membro[]> {
+export async function getTeam(tenantId: string): Promise<Membro[]> {
   try {
-    return (await api.listarEquipe(tenantId)).map(toMembro);
+    return (await api.listTeam(tenantId)).map(toMembro);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function obterAtividades(tenantId: string): Promise<Atividade[]> {
+export async function getActivities(tenantId: string): Promise<Activity[]> {
   try {
-    return (await api.listarAtividades(tenantId)).map(toAtividade);
+    return (await api.listActivities(tenantId)).map(toActivity);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
@@ -45,17 +45,17 @@ export async function obterAtividades(tenantId: string): Promise<Atividade[]> {
  * Salvar dados do negócio. Valida ANTES de sair na rede: nome vazio nunca
  * chega ao servidor, e o erro que a tela recebe é do domínio, não do banco.
  */
-export async function salvarDadosDoNegocio(
+export async function saveBusinessDetails(
   tenantId: string,
-  nome: string,
-  telefone: string,
+  name: string,
+  phone: string,
 ): Promise<Tenant> {
-  if (!nome.trim()) throw new TenantError('desconhecido', 'O nome do negócio é obrigatório.');
+  if (!name.trim()) throw new TenantError('unknown', 'O nome do negócio é obrigatório.');
   try {
-    const raw = await api.atualizarTenant(tenantId, toTenantUpdatePayload(nome, telefone));
-    if (!raw) throw new TenantError('nao_encontrado');
+    const raw = await api.updateTenant(tenantId, toTenantUpdatePayload(name, phone));
+    if (!raw) throw new TenantError('not_found');
     return toTenant(raw);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }

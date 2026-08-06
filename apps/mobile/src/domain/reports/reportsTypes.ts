@@ -1,50 +1,50 @@
 /** MODELO DE DOMÍNIO dos relatórios. */
 
-export type PeriodoRelatorio = 'hoje' | 'semana' | 'mes' | 'personalizado';
+export type ReportPeriod = 'today' | 'week' | 'month' | 'custom';
 
-export const PERIODOS: { chave: PeriodoRelatorio; rotulo: string }[] = [
-  { chave: 'hoje', rotulo: 'Hoje' },
-  { chave: 'semana', rotulo: 'Esta semana' },
-  { chave: 'mes', rotulo: 'Este mês' },
-  { chave: 'personalizado', rotulo: 'Personalizado' },
+export const PERIODS: { key: ReportPeriod; label: string }[] = [
+  { key: 'today', label: 'Hoje' },
+  { key: 'week', label: 'Esta semana' },
+  { key: 'month', label: 'Este mês' },
+  { key: 'custom', label: 'Personalizado' },
 ];
 
 /** Como a variação deve ser lida: crescer despesa não é boa notícia. */
-export type TomDaVariacao = 'positivo' | 'atencao' | 'neutro';
+export type TrendTone = 'positive' | 'warning' | 'neutral';
 
-export interface LinhaFinanceira {
-  chave: string;
-  rotulo: string;
+export interface FinanceLine {
+  key: string;
+  label: string;
   /** Já formatado quando não é dinheiro (ex.: "51,3%" da margem). */
-  valorFormatado: string;
-  variacao: string;
-  tom: TomDaVariacao;
-  /** 'texto' | 'dinheiro' | 'positivo' | 'negativo' — decide a cor do valor. */
-  destaque: 'neutro' | 'positivo' | 'negativo';
+  formattedAmount: string;
+  trend: string;
+  tone: TrendTone;
+  /** 'texto' | 'dinheiro' | 'positive' | 'negative' — decide a cor do valor. */
+  highlight: 'neutral' | 'positive' | 'negative';
 }
 
-export interface BarraDoDia {
+export interface DayBar {
   dia: string;
-  valorCentavos: number;
+  amountCents: number;
   /** Altura relativa 0..1; a tela multiplica pela altura do gráfico. */
-  proporcao: number;
+  ratio: number;
   /** O maior dia da semana ganha o teal cheio. */
   destacada: boolean;
 }
 
-export interface ProdutoNoTopo {
-  nome: string;
-  quantidadeRotulo: string;
-  totalCentavos: number;
+export interface TopProduct {
+  name: string;
+  quantityLabel: string;
+  totalCents: number;
 }
 
-export interface Relatorio {
-  periodo: PeriodoRelatorio;
-  financeiro: LinhaFinanceira[];
-  barras: BarraDoDia[];
-  topProdutos: ProdutoNoTopo[];
+export interface Report {
+  period: ReportPeriod;
+  finance: FinanceLine[];
+  bars: DayBar[];
+  topProducts: TopProduct[];
 }
 
-export function rotuloDoPeriodo(p: PeriodoRelatorio): string {
-  return PERIODOS.find((x) => x.chave === p)?.rotulo ?? 'Esta semana';
+export function periodLabel(p: ReportPeriod): string {
+  return PERIODS.find((x) => x.key === p)?.label ?? 'Esta semana';
 }

@@ -1,5 +1,5 @@
 import type { TenantAPI } from '../tenantApiTypes';
-import { derivarCapacidades, rotularModulos, toTenant } from '../tenantAdapter';
+import { deriveCapabilities, labelModules, toTenant } from '../tenantAdapter';
 import type { ChaveModulo } from '../tenantTypes';
 
 const base: TenantAPI = {
@@ -22,9 +22,9 @@ const base: TenantAPI = {
 describe('toTenant', () => {
   it('renomeia os campos do banco para o modelo de domínio', () => {
     const t = toTenant(base);
-    expect(t.nome).toBe('Petshop Amigo');
-    expect(t.telefone).toBe('(71) 98123-4455');
-    expect(t.plano.nome).toBe('Plano Completo');
+    expect(t.name).toBe('Petshop Amigo');
+    expect(t.phone).toBe('(71) 98123-4455');
+    expect(t.plano.name).toBe('Plano Completo');
   });
 
   it('coage renews_at para Date', () => {
@@ -32,11 +32,11 @@ describe('toTenant', () => {
   });
 
   it('cai na chave do plano quando plan_name é nulo', () => {
-    expect(toTenant({ ...base, plan_name: null }).plano.nome).toBe('paid');
+    expect(toTenant({ ...base, plan_name: null }).plano.name).toBe('paid');
   });
 
   it('vira null — e não Invalid Date — com data inválida do servidor', () => {
-    expect(toTenant({ ...base, renews_at: 'ontem' }).plano.renovaEm).toBeNull();
+    expect(toTenant({ ...base, renews_at: 'yesterday' }).plano.renovaEm).toBeNull();
     expect(toTenant({ ...base, renews_at: null }).plano.renovaEm).toBeNull();
   });
 
@@ -45,7 +45,7 @@ describe('toTenant', () => {
       ...base,
       modules: [...base.modules, { key: 'nfe_futuro', name: 'NF-e', is_access: false }],
     });
-    expect(t.modulos).toEqual(['sales', 'cash', 'app']);
+    expect(t.modules).toEqual(['sales', 'cash', 'app']);
   });
 
   it('não vaza campos que a UI não usa', () => {
@@ -66,67 +66,67 @@ describe('derivarCapacidades', () => {
     'support',
     'app',
   ];
-  const essencial: ChaveModulo[] = ['sales', 'products', 'costs', 'support', 'app'];
+  const essential: ChaveModulo[] = ['sales', 'products', 'costs', 'support', 'app'];
 
   it('liga tudo no Plano Completo', () => {
-    const caps = derivarCapacidades(completo);
+    const caps = deriveCapabilities(completo);
     expect(caps).toEqual({
       acessoApp: true,
-      temVendas: true,
-      temProdutos: true,
-      temCaixa: true,
-      temEstoque: true,
-      temCustos: true,
-      temRelatorios: true,
-      temSuporte: true,
+      hasSales: true,
+      hasProducts: true,
+      hasCash: true,
+      hasStock: true,
+      hasCosts: true,
+      hasReports: true,
+      hasSupport: true,
     });
   });
 
   it('reproduz a tabela do protótipo para o perfil simples', () => {
-    const caps = derivarCapacidades(essencial);
-    expect(caps.temCaixa).toBe(false);
-    expect(caps.temEstoque).toBe(false);
-    expect(caps.temCustos).toBe(true);
-    expect(caps.temRelatorios).toBe(false);
+    const caps = deriveCapabilities(essential);
+    expect(caps.hasCash).toBe(false);
+    expect(caps.hasStock).toBe(false);
+    expect(caps.hasCosts).toBe(true);
+    expect(caps.hasReports).toBe(false);
   });
 
   it('sem o módulo `app` o acesso cai — é o gatilho da tela de bloqueio', () => {
-    const caps = derivarCapacidades(['sales', 'products', 'costs']);
+    const caps = deriveCapabilities(['sales', 'products', 'costs']);
     expect(caps.acessoApp).toBe(false);
   });
 
   it('vender e produtos acompanham o acesso ao app (não se vende plano sem tela)', () => {
-    const caps = derivarCapacidades(['app']);
-    expect(caps.temVendas).toBe(true);
-    expect(caps.temProdutos).toBe(true);
+    const caps = deriveCapabilities(['app']);
+    expect(caps.hasSales).toBe(true);
+    expect(caps.hasProducts).toBe(true);
   });
 
   it('plano vazio não liga nada', () => {
-    expect(derivarCapacidades([])).toEqual({
+    expect(deriveCapabilities([])).toEqual({
       acessoApp: false,
-      temVendas: false,
-      temProdutos: false,
-      temCaixa: false,
-      temEstoque: false,
-      temCustos: false,
-      temRelatorios: false,
-      temSuporte: false,
+      hasSales: false,
+      hasProducts: false,
+      hasCash: false,
+      hasStock: false,
+      hasCosts: false,
+      hasReports: false,
+      hasSupport: false,
     });
   });
 });
 
 describe('rotularModulos', () => {
   it('lista na ordem do menu, com "e" antes do último', () => {
-    expect(rotularModulos(['app', 'costs', 'products', 'sales'])).toBe(
+    expect(labelModules(['app', 'costs', 'products', 'sales'])).toBe(
       'Vendas, Produtos, Custos e App',
     );
   });
 
   it('não usa vírgula com um módulo só', () => {
-    expect(rotularModulos(['app'])).toBe('App');
+    expect(labelModules(['app'])).toBe('App');
   });
 
   it('degrada com elegância no plano vazio', () => {
-    expect(rotularModulos([])).toBe('nenhum');
+    expect(labelModules([])).toBe('nenhum');
   });
 });

@@ -1,10 +1,10 @@
-import { iniciais } from '@utils/texto';
+import { initials } from '@utils/text';
 
 import type { ActivityAPI, TeamMemberAPI, TenantAPI, TenantUpdateAPI } from './tenantApiTypes';
 import {
   CHAVES_MODULO,
-  type Atividade,
-  type Capacidades,
+  type Activity,
+  type Capabilities,
   type ChaveModulo,
   type Membro,
   type Tenant,
@@ -28,36 +28,36 @@ export function toTenant(raw: TenantAPI): Tenant {
 
   return {
     id: raw.id,
-    nome: raw.name,
-    segmento: raw.segment,
-    telefone: raw.contact_phone,
+    name: raw.name,
+    segment: raw.segment,
+    phone: raw.contact_phone,
     plano: {
-      chave: raw.plan,
-      nome: raw.plan_name ?? raw.plan,
+      key: raw.plan,
+      name: raw.plan_name ?? raw.plan,
       // Data inválida vinda do servidor não pode virar `Invalid Date` solto na
       // tela: some da UI como "sem data de renovação".
       renovaEm: renova && !Number.isNaN(renova.getTime()) ? renova : null,
     },
-    modulos: (raw.modules ?? []).map((m) => m.key).filter(ehChaveConhecida),
+    modules: (raw.modules ?? []).map((m) => m.key).filter(ehChaveConhecida),
   };
 }
 
 export function toMembro(raw: TeamMemberAPI): Membro {
   return {
     id: raw.id,
-    nome: raw.full_name,
+    name: raw.full_name,
     papel: raw.role_name ?? '—',
     acesso: raw.access_summary ?? '—',
-    iniciais: iniciais(raw.full_name),
+    initials: initials(raw.full_name),
   };
 }
 
-export function toAtividade(raw: ActivityAPI): Atividade {
-  return { id: raw.id, texto: raw.description, quando: raw.happened_label };
+export function toActivity(raw: ActivityAPI): Activity {
+  return { id: raw.id, text: raw.description, quando: raw.happened_label };
 }
 
-export function toTenantUpdatePayload(nome: string, telefone: string): TenantUpdateAPI {
-  return { name: nome.trim(), contact_phone: telefone.trim() || null };
+export function toTenantUpdatePayload(name: string, phone: string): TenantUpdateAPI {
+  return { name: name.trim(), contact_phone: phone.trim() || null };
 }
 
 /**
@@ -71,19 +71,19 @@ export function toTenantUpdatePayload(nome: string, telefone: string): TenantUpd
  * produto não teria tela nenhuma para abrir — é o mesmo raciocínio que o portal
  * usa com `BASE_MODULES` (apps/portal-client/lib/modulos.ts).
  */
-export function derivarCapacidades(modulos: readonly ChaveModulo[]): Capacidades {
-  const tem = (k: ChaveModulo) => modulos.includes(k);
+export function deriveCapabilities(modules: readonly ChaveModulo[]): Capabilities {
+  const tem = (k: ChaveModulo) => modules.includes(k);
   const acessoApp = tem('app');
 
   return {
     acessoApp,
-    temVendas: acessoApp || tem('sales'),
-    temProdutos: acessoApp || tem('products'),
-    temCaixa: tem('cash'),
-    temEstoque: tem('stock'),
-    temCustos: tem('costs'),
-    temRelatorios: tem('reports'),
-    temSuporte: tem('support'),
+    hasSales: acessoApp || tem('sales'),
+    hasProducts: acessoApp || tem('products'),
+    hasCash: tem('cash'),
+    hasStock: tem('stock'),
+    hasCosts: tem('costs'),
+    hasReports: tem('reports'),
+    hasSupport: tem('support'),
   };
 }
 
@@ -92,19 +92,19 @@ export function derivarCapacidades(modulos: readonly ChaveModulo[]): Capacidades
  * Ordem fixa (a do menu), não a que o banco devolveu — assim o texto não muda
  * sozinho entre duas cargas.
  */
-const ORDEM_ROTULOS: { chave: ChaveModulo; rotulo: string }[] = [
-  { chave: 'sales', rotulo: 'Vendas' },
-  { chave: 'products', rotulo: 'Produtos' },
-  { chave: 'cash', rotulo: 'Caixa' },
-  { chave: 'stock', rotulo: 'Estoque' },
-  { chave: 'costs', rotulo: 'Custos' },
-  { chave: 'reports', rotulo: 'Relatórios' },
-  { chave: 'app', rotulo: 'App' },
+const LABEL_ORDER: { key: ChaveModulo; label: string }[] = [
+  { key: 'sales', label: 'Vendas' },
+  { key: 'products', label: 'Produtos' },
+  { key: 'cash', label: 'Caixa' },
+  { key: 'stock', label: 'Estoque' },
+  { key: 'costs', label: 'Custos' },
+  { key: 'reports', label: 'Relatórios' },
+  { key: 'app', label: 'App' },
 ];
 
-export function rotularModulos(modulos: readonly ChaveModulo[]): string {
-  const nomes = ORDEM_ROTULOS.filter((m) => modulos.includes(m.chave)).map((m) => m.rotulo);
-  if (nomes.length === 0) return 'nenhum';
-  if (nomes.length === 1) return nomes[0] as string;
-  return `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`;
+export function labelModules(modules: readonly ChaveModulo[]): string {
+  const names = LABEL_ORDER.filter((m) => modules.includes(m.key)).map((m) => m.label);
+  if (names.length === 0) return 'nenhum';
+  if (names.length === 1) return names[0] as string;
+  return `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
 }

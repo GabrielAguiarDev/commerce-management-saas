@@ -3,12 +3,12 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Botao, Box, Campo, Text, Toque } from '@components';
-import { ROTAS } from '@domain/navigation/rotas';
+import { Button, Box, Field, Text, Touchable } from '@components';
+import { ROUTES } from '@domain/navigation/routes';
 import * as sessionService from '@domain/session/sessionService';
 import { AuthError } from '@domain/session/sessionTypes';
-import { ERROS_AUTH, TOASTS } from '@i18n';
-import { useSessaoStore } from '@store/sessaoStore';
+import { useTranslation } from '@i18n';
+import { useSessionStore } from '@store/sessionStore';
 import { useUIStore } from '@store/uiStore';
 
 /**
@@ -18,36 +18,37 @@ import { useUIStore } from '@store/uiStore';
  * chips de demo do protótipo, que ficaram fora de escopo. Ver
  * `src/data/usuarios.ts` para as três credenciais de demonstração.
  */
-export default function TelaDeLogin() {
+export default function LoginScreen() {
+  const t = useTranslation();
   const insets = useSafeAreaInsets();
 
-  const entrar = useSessaoStore((s) => s.entrar);
-  const entrando = useSessaoStore((s) => s.entrando);
-  const mostrarToast = useUIStore((s) => s.mostrarToast);
+  const signIn = useSessionStore((s) => s.signIn);
+  const signingIn = useSessionStore((s) => s.signingIn);
+  const showToast = useUIStore((s) => s.showToast);
 
   const [email, setEmail] = useState('maria@petshopamigo.com.br');
-  const [senha, setSenha] = useState('minhasenha');
+  const [password, setPassword] = useState('minhasenha');
   const [verSenha, setVerSenha] = useState(false);
 
   async function acessar() {
     try {
-      await entrar(email, senha);
+      await signIn(email, password);
       // `replace`, não `push`: a tela de login não pode voltar por gesto depois
       // de autenticar. O portão decide o destino real (início ou bloqueio).
-      router.replace(ROTAS.entrada as never);
-    } catch (erro) {
-      const codigo = erro instanceof AuthError ? erro.codigo : 'desconhecido';
-      mostrarToast(ERROS_AUTH[codigo], { tom: 'erro' });
+      router.replace(ROUTES.entrada as never);
+    } catch (error) {
+      const code = error instanceof AuthError ? error.code : 'unknown';
+      showToast(t.errors.auth[code], { tone: 'erro' });
     }
   }
 
-  async function esqueciSenha() {
+  async function forgotPassword() {
     try {
       await sessionService.recuperarSenha(email);
-      mostrarToast(TOASTS.recuperacaoEnviada);
-    } catch (erro) {
-      const codigo = erro instanceof AuthError ? erro.codigo : 'desconhecido';
-      mostrarToast(ERROS_AUTH[codigo], { tom: 'erro' });
+      showToast(t.toasts.recoverySent);
+    } catch (error) {
+      const code = error instanceof AuthError ? error.code : 'unknown';
+      showToast(t.errors.auth[code], { tone: 'erro' });
     }
   }
 
@@ -95,13 +96,13 @@ export default function TelaDeLogin() {
           </Text>
 
           <Box marginBottom="s16">
-            <Campo
-              sobrePetrol
-              rotulo="E-mail"
-              valor={email}
-              aoMudar={setEmail}
+            <Field
+              onPetrol
+              label="E-mail"
+              value={email}
+              onChangeText={setEmail}
               placeholder="voce@seunegocio.com.br"
-              altura={52}
+              height={52}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -110,18 +111,18 @@ export default function TelaDeLogin() {
           </Box>
 
           <Box marginBottom="s10">
-            <Campo
-              sobrePetrol
-              rotulo="Senha"
-              valor={senha}
-              aoMudar={setSenha}
+            <Field
+              onPetrol
+              label="Senha"
+              value={password}
+              onChangeText={setPassword}
               placeholder="Sua senha"
-              altura={52}
+              height={52}
               secureTextEntry={!verSenha}
               autoCapitalize="none"
               textContentType="password"
-              acessorio={
-                <Toque
+              accessory={
+                <Touchable
                   accessibilityLabel={verSenha ? 'Ocultar senha' : 'Mostrar senha'}
                   onPress={() => setVerSenha((v) => !v)}
                   height={40}
@@ -131,26 +132,26 @@ export default function TelaDeLogin() {
                   <Text variant="tinyBold" color="primary">
                     {verSenha ? 'Ocultar' : 'Mostrar'}
                   </Text>
-                </Toque>
+                </Touchable>
               }
             />
           </Box>
 
           <Box alignItems="flex-end" marginBottom="s22">
-            <Toque accessibilityLabel="Esqueci minha senha" onPress={esqueciSenha} padding="s6">
+            <Touchable accessibilityLabel="Esqueci minha senha" onPress={forgotPassword} padding="s6">
               <Text variant="chipLabel" color="onPetrolLink">
                 Esqueci minha senha
               </Text>
-            </Toque>
+            </Touchable>
           </Box>
 
-          <Botao
-            titulo="Entrar"
-            aoTocar={acessar}
-            altura={56}
-            raio={16}
-            variantTexto="buttonLg"
-            carregando={entrando}
+          <Button
+            title="Entrar"
+            onPress={acessar}
+            height={56}
+            radius={16}
+            textVariant="buttonLg"
+            loading={signingIn}
           />
 
           <Text variant="captionSm" color="onPetrolGhost" textAlign="center" marginTop="s24">

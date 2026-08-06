@@ -1,65 +1,65 @@
 import * as api from './supportApi';
-import { toChamado, toChamadoPayload, toMensagem } from './supportAdapter';
+import { toTicket, toTicketPayload, toMessage } from './supportAdapter';
 import {
-  SuporteError,
-  type Chamado,
-  type MensagemDoChamado,
-  type NovoChamado,
+  SupportError,
+  type Ticket,
+  type TicketMessage,
+  type NewTicket,
 } from './supportTypes';
 
 /** AS REGRAS do suporte. */
 
-function normalizar(erro: unknown): never {
-  if (erro instanceof SuporteError) throw erro;
-  throw new SuporteError('rede', erro instanceof Error ? erro.message : undefined);
+function normalize(error: unknown): never {
+  if (error instanceof SupportError) throw error;
+  throw new SupportError('network', error instanceof Error ? error.message : undefined);
 }
 
-export async function listarChamados(tenantId: string): Promise<Chamado[]> {
+export async function listTickets(tenantId: string): Promise<Ticket[]> {
   try {
-    return (await api.listarChamados(tenantId)).map(toChamado);
+    return (await api.listTickets(tenantId)).map(toTicket);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function listarMensagens(chamadoId: string): Promise<MensagemDoChamado[]> {
+export async function listMessages(ticketId: string): Promise<TicketMessage[]> {
   try {
-    return (await api.listarMensagens(chamadoId)).map(toMensagem);
+    return (await api.listMessages(ticketId)).map(toMessage);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function marcarComoLido(tenantId: string, chamadoId: string): Promise<void> {
+export async function markAsRead(tenantId: string, ticketId: string): Promise<void> {
   try {
-    await api.marcarComoLido(tenantId, chamadoId);
+    await api.markAsRead(tenantId, ticketId);
   } catch {
     // Falhar em marcar como lido não pode impedir a leitura do chamado.
   }
 }
 
-export function validarNovoChamado(novo: NovoChamado): SuporteError | null {
-  if (!novo.assunto.trim()) return new SuporteError('assunto_obrigatorio');
-  if (!novo.descricao.trim()) return new SuporteError('descricao_obrigatoria');
+export function validateNewTicket(novo: NewTicket): SupportError | null {
+  if (!novo.assunto.trim()) return new SupportError('subject_required');
+  if (!novo.description.trim()) return new SupportError('description_required');
   return null;
 }
 
-export async function abrirChamado(tenantId: string, novo: NovoChamado): Promise<Chamado> {
-  const invalido = validarNovoChamado(novo);
+export async function openTicket(tenantId: string, novo: NewTicket): Promise<Ticket> {
+  const invalido = validateNewTicket(novo);
   if (invalido) throw invalido;
 
   try {
-    return toChamado(await api.criarChamado(toChamadoPayload(tenantId, novo)));
+    return toTicket(await api.createTicket(toTicketPayload(tenantId, novo)));
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
-export async function responder(chamadoId: string, texto: string): Promise<MensagemDoChamado> {
-  if (!texto.trim()) throw new SuporteError('descricao_obrigatoria');
+export async function reply(ticketId: string, text: string): Promise<TicketMessage> {
+  if (!text.trim()) throw new SupportError('description_required');
   try {
-    return toMensagem(await api.responder({ ticket_id: chamadoId, body: texto.trim() }));
+    return toMessage(await api.reply({ ticket_id: ticketId, body: text.trim() }));
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }

@@ -1,11 +1,11 @@
 export type {
-  BarraDoDia,
-  LinhaFinanceira,
-  PeriodoRelatorio,
-  ProdutoNoTopo,
-  Relatorio,
-  TomDaVariacao,
+  DayBar,
+  FinanceLine,
+  ReportPeriod,
+  TopProduct,
+  Report,
+  TrendTone,
 } from './reportsTypes';
-export { PERIODOS, rotuloDoPeriodo } from './reportsTypes';
+export { PERIODS, periodLabel } from './reportsTypes';
 export { toBarras } from './reportsAdapter';
-export { relatoriosKeys, useRelatorio } from './useCases/useRelatorio';
+export { reportsKeys, useReports } from './useCases/useReports';

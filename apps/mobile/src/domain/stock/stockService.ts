@@ -1,21 +1,21 @@
-import { movimentarEstoque as ajustarSaldoDoProduto } from '@domain/catalog/catalogService';
+import { moveStock as adjustProductBalance } from '@domain/catalog/catalogService';
 
 import * as api from './stockApi';
-import { toMovimentacao, toMovimentacaoPayload } from './stockAdapter';
-import { EstoqueError, type Movimentacao } from './stockTypes';
+import { toStockMovement, toStockMovementPayload } from './stockAdapter';
+import { StockError, type StockMovement } from './stockTypes';
 
 /** AS REGRAS das movimentações de estoque. */
 
-function normalizar(erro: unknown): never {
-  if (erro instanceof EstoqueError) throw erro;
-  throw new EstoqueError('rede', erro instanceof Error ? erro.message : undefined);
+function normalize(error: unknown): never {
+  if (error instanceof StockError) throw error;
+  throw new StockError('network', error instanceof Error ? error.message : undefined);
 }
 
-export async function listarMovimentacoes(tenantId: string): Promise<Movimentacao[]> {
+export async function listStockMovements(tenantId: string): Promise<StockMovement[]> {
   try {
-    return (await api.listarMovimentacoes(tenantId)).map(toMovimentacao);
+    return (await api.listStockMovements(tenantId)).map(toStockMovement);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
 
@@ -28,22 +28,22 @@ export async function listarMovimentacoes(tenantId: string): Promise<Movimentaca
  * service é quem garante a ordem — e o comentário fica aqui para que ninguém
  * "simplifique" tirando o segundo passo.
  */
-export async function registrarMovimentacao(
+export async function recordStockMovement(
   tenantId: string,
-  produtoId: string | null,
-  produtoNome: string,
+  productId: string | null,
+  productName: string,
   delta: number,
-): Promise<Movimentacao> {
-  if (!produtoNome.trim()) throw new EstoqueError('produto_obrigatorio');
-  if (!Number.isInteger(delta) || delta === 0) throw new EstoqueError('quantidade_invalida');
+): Promise<StockMovement> {
+  if (!productName.trim()) throw new StockError('product_required');
+  if (!Number.isInteger(delta) || delta === 0) throw new StockError('invalid_quantity');
 
   try {
-    const raw = await api.criarMovimentacao(
-      toMovimentacaoPayload(tenantId, produtoId, produtoNome, delta),
+    const raw = await api.createStockMovement(
+      toStockMovementPayload(tenantId, productId, productName, delta),
     );
-    if (produtoId) await ajustarSaldoDoProduto(tenantId, produtoId, delta);
-    return toMovimentacao(raw);
+    if (productId) await adjustProductBalance(tenantId, productId, delta);
+    return toStockMovement(raw);
   } catch (e) {
-    return normalizar(e);
+    return normalize(e);
   }
 }
