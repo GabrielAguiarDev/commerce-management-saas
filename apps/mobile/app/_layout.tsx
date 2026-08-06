@@ -74,7 +74,7 @@ function Chrome({ fontsReady }: { fontsReady: boolean }) {
       >
         <Stack.Screen name="index" />
         <Stack.Screen name="login" options={{ animation: 'fade' }} />
-        <Stack.Screen name="bloqueio" options={{ animation: 'fade' }} />
+        <Stack.Screen name="blocked" options={{ animation: 'fade' }} />
         <Stack.Screen name="(app)" options={{ animation: 'fade' }} />
       </Stack>
     </>

@@ -15,7 +15,7 @@ import { formatBRL } from '@utils/money';
  * Fechado → convite para abrir + histórico de turnos.
  * Aberto  → card petrol com a gaveta, recebido por forma e as três ações.
  *
- * Manter numa rota só (e não `/caixa` + `/caixa/aberto`) é fiel ao produto: o
+ * Manter numa rota só (e não `/cash` + `/cash/aberto`) é fiel ao produto: o
  * dono pensa "o caixa", não "duas telas". Abrir o caixa não deve empurrar
  * ninguém para outra rota nem colocar um botão voltar no meio do turno.
  */

@@ -50,7 +50,7 @@ export interface Tenant {
  */
 export interface Capabilities {
   /** Sem isto o app inteiro é bloqueado — é o módulo de ACESSO (`is_access`). */
-  acessoApp: boolean;
+  hasAppAccess: boolean;
   hasSales: boolean;
   hasProducts: boolean;
   hasCash: boolean;

@@ -35,7 +35,7 @@ export default function LoginScreen() {
       await signIn(email, password);
       // `replace`, não `push`: a tela de login não pode voltar por gesto depois
       // de autenticar. O portão decide o destino real (início ou bloqueio).
-      router.replace(ROUTES.entrada as never);
+      router.replace(ROUTES.entry as never);
     } catch (error) {
       const code = error instanceof AuthError ? error.code : 'unknown';
       showToast(t.errors.auth[code], { tone: 'erro' });

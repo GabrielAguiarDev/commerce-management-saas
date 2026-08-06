@@ -12,20 +12,29 @@ import type { TabBarItem, MoreItem } from './navigationTypes';
  * navegação. A resposta mora aqui, num arquivo sem React e testado no node.
  */
 
+/**
+ * The path of every route, in ONE place.
+ *
+ * These strings must match the file names under `app/` exactly — expo-router
+ * is file-based, so a value here that no route file answers to silently falls
+ * through to `+not-found`. That is not hypothetical: renaming the route files
+ * to English while these values still said `/inicio` sent the entry redirect,
+ * and the 404 screen's own "go home" button, straight back to `+not-found`.
+ */
 export const ROUTES = {
-  entrada: '/',
+  entry: '/',
   login: '/login',
-  bloqueio: '/bloqueio',
-  inicio: '/inicio',
-  vender: '/vender',
-  products: '/produtos',
-  mais: '/mais',
-  cash: '/caixa',
-  stock: '/estoque',
-  costs: '/custos',
-  reports: '/relatorios',
-  config: '/config',
-  support: '/suporte',
+  blocked: '/blocked',
+  home: '/home',
+  sell: '/sell',
+  products: '/products',
+  more: '/more',
+  cash: '/cash',
+  stock: '/stock',
+  costs: '/costs',
+  reports: '/reports',
+  settings: '/settings',
+  support: '/support',
 } as const;
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES];
@@ -33,7 +42,7 @@ export type Route = (typeof ROUTES)[keyof typeof ROUTES];
 export interface GateState {
   /** `false` enquanto os stores persistidos ainda não hidrataram. */
   hydrated: boolean;
-  autenticado: boolean;
+  isAuthenticated: boolean;
   /** `null` enquanto o tenant do usuário ainda não carregou. */
   hasAppAccess: boolean | null;
 }
@@ -51,12 +60,12 @@ export interface GateState {
  *  3. o PLANO inclui o app? o bloqueio é entitlement, não erro de senha —
  *     por isso vem depois de autenticar, e não antes.
  */
-export function resolverRotaDeEntrada(state: GateState): Route | null {
+export function resolveEntryRoute(state: GateState): Route | null {
   if (!state.hydrated) return null;
-  if (!state.autenticado) return ROUTES.login;
+  if (!state.isAuthenticated) return ROUTES.login;
   if (state.hasAppAccess === null) return null;
-  if (!state.hasAppAccess) return ROUTES.bloqueio;
-  return ROUTES.inicio;
+  if (!state.hasAppAccess) return ROUTES.blocked;
+  return ROUTES.home;
 }
 
 /**
@@ -65,7 +74,7 @@ export function resolverRotaDeEntrada(state: GateState): Route | null {
  * Vem do protótipo (`irCaixaOuCustos`, linha 1173) e é a expressão mais visível
  * do entitlement: o mesmo botão, dois destinos, conforme o que foi contratado.
  */
-export function atalhoDaTabBar(caps: Capabilities): TabBarItem {
+export function tabBarShortcut(caps: Capabilities): TabBarItem {
   return caps.hasCash
     ? { key: 'cash', label: 'Caixa', route: ROUTES.cash, icon: 'cash' }
     : { key: 'costs', label: 'Custos', route: ROUTES.costs, icon: 'costs' };
@@ -73,10 +82,10 @@ export function atalhoDaTabBar(caps: Capabilities): TabBarItem {
 
 export function tabBarItems(caps: Capabilities): TabBarItem[] {
   return [
-    { key: 'home', label: 'Início', route: ROUTES.inicio, icon: 'home' },
+    { key: 'home', label: 'Início', route: ROUTES.home, icon: 'home' },
     { key: 'products', label: 'Produtos', route: ROUTES.products, icon: 'products' },
-    atalhoDaTabBar(caps),
-    { key: 'more', label: 'Mais', route: ROUTES.mais, icon: 'more' },
+    tabBarShortcut(caps),
+    { key: 'more', label: 'Mais', route: ROUTES.more, icon: 'more' },
   ];
 }
 
@@ -136,7 +145,7 @@ export function moreItems(caps: Capabilities, unreadTickets = 0): MoreItem[] {
     key: 'settings',
     name: 'Configurações',
     description: 'Negócio, equipe e plano',
-    route: ROUTES.config,
+    route: ROUTES.settings,
     icon: 'settings',
     badge: '',
   });

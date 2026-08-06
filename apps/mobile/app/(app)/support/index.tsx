@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 
 import { Button, Box, Pill, Screen, Text, Touchable } from '@components';
+import { ROUTES } from '@domain/navigation/routes';
 import { useTickets, useMarkAsRead } from '@domain/support';
 import type { TicketStatus } from '@domain/support';
 import { useUIStore } from '@store/uiStore';
@@ -27,7 +28,7 @@ export default function SupportScreen() {
             // Marcar como lido ANTES de navegar: o badge da tela "Mais" precisa
             // apagar mesmo que o usuário volte imediatamente.
             if (ticket.naoLida) markAsRead(ticket.id);
-            router.push(`/suporte/${ticket.id}` as never);
+            router.push(`${ROUTES.support}/${ticket.id}` as never);
           }}
           backgroundColor="surface"
           borderColor="line"

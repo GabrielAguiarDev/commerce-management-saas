@@ -46,7 +46,7 @@ export default function AppLayout() {
         <Stack.Screen name="more" options={{ animation: 'none' }} />
         <Stack.Screen name="cash" options={{ animation: 'none' }} />
         <Stack.Screen name="costs" options={{ animation: 'none' }} />
-        <Stack.Screen name="vender" />
+        <Stack.Screen name="sell" />
         <Stack.Screen name="stock" />
         <Stack.Screen name="reports" />
         <Stack.Screen name="settings" />

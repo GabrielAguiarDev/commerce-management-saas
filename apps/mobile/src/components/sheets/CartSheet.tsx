@@ -79,7 +79,7 @@ export function CartSheet() {
           closeSheet();
           // Depois de fechar a venda o balconista quase sempre começa outra:
           // o protótipo leva de volta para Vender, e é o certo.
-          if (path !== ROUTES.vender) goToRoot(ROUTES.vender);
+          if (path !== ROUTES.sell) goToRoot(ROUTES.sell);
 
           showToast(
             online

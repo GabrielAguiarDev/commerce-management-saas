@@ -73,12 +73,12 @@ export function toTenantUpdatePayload(name: string, phone: string): TenantUpdate
  */
 export function deriveCapabilities(modules: readonly ChaveModulo[]): Capabilities {
   const tem = (k: ChaveModulo) => modules.includes(k);
-  const acessoApp = tem('app');
+  const hasAppAccess = tem('app');
 
   return {
-    acessoApp,
-    hasSales: acessoApp || tem('sales'),
-    hasProducts: acessoApp || tem('products'),
+    hasAppAccess,
+    hasSales: hasAppAccess || tem('sales'),
+    hasProducts: hasAppAccess || tem('products'),
     hasCash: tem('cash'),
     hasStock: tem('stock'),
     hasCosts: tem('costs'),

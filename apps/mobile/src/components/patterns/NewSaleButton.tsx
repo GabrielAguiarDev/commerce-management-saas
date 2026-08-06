@@ -28,14 +28,14 @@ export function NewSaleButton() {
   const hasItems = useCartStore((s) => s.items.length > 0);
   const theme = useAppTheme();
 
-  if (path === ROUTES.vender || hasItems) return null;
+  if (path === ROUTES.sell || hasItems) return null;
 
   return (
     <Touchable
       accessibilityLabel="Nova venda"
       // Vender também é raiz no protótipo: chegar nela zera a pilha, venha-se
       // de onde vier.
-      onPress={() => goToRoot(ROUTES.vender)}
+      onPress={() => goToRoot(ROUTES.sell)}
       position="absolute"
       right={18}
       style={{

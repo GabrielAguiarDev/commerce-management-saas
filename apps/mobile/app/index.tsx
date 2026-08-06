@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
-import { resolverRotaDeEntrada } from '@domain/navigation/routes';
+import { resolveEntryRoute } from '@domain/navigation/routes';
 import { useCapabilities } from '@domain/tenant';
 import { useAppHydrated } from '@hooks/useAppHydrated';
 import { selectIsAuthenticated, useSessionStore } from '@store/sessionStore';
@@ -18,15 +18,15 @@ import { selectIsAuthenticated, useSessionStore } from '@store/sessionStore';
  */
 export default function Gate() {
   const hydrated = useAppHydrated();
-  const autenticado = useSessionStore(selectIsAuthenticated);
+  const isAuthenticated = useSessionStore(selectIsAuthenticated);
   const { capabilities, loading } = useCapabilities();
 
-  const route = resolverRotaDeEntrada({
+  const route = resolveEntryRoute({
     hydrated,
-    autenticado,
+    isAuthenticated,
     // `null` = ainda não sei. Sem esta distinção, o instante entre autenticar e
     // o plano chegar mandaria todo mundo para a tela de bloqueio.
-    hasAppAccess: !autenticado ? null : loading ? null : capabilities.acessoApp,
+    hasAppAccess: !isAuthenticated ? null : loading ? null : capabilities.hasAppAccess,
   });
 
   if (!route) return null;

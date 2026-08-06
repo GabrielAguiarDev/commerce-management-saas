@@ -71,7 +71,7 @@ describe('derivarCapacidades', () => {
   it('liga tudo no Plano Completo', () => {
     const caps = deriveCapabilities(completo);
     expect(caps).toEqual({
-      acessoApp: true,
+      hasAppAccess: true,
       hasSales: true,
       hasProducts: true,
       hasCash: true,
@@ -92,7 +92,7 @@ describe('derivarCapacidades', () => {
 
   it('sem o módulo `app` o acesso cai — é o gatilho da tela de bloqueio', () => {
     const caps = deriveCapabilities(['sales', 'products', 'costs']);
-    expect(caps.acessoApp).toBe(false);
+    expect(caps.hasAppAccess).toBe(false);
   });
 
   it('vender e produtos acompanham o acesso ao app (não se vende plano sem tela)', () => {
@@ -103,7 +103,7 @@ describe('derivarCapacidades', () => {
 
   it('plano vazio não liga nada', () => {
     expect(deriveCapabilities([])).toEqual({
-      acessoApp: false,
+      hasAppAccess: false,
       hasSales: false,
       hasProducts: false,
       hasCash: false,
