@@ -1,6 +1,23 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# node_modules plano (como npm/yarn) em vez da árvore isolada padrão do pnpm.
+#
+# POR QUE: o Metro (React Native, apps/mobile) resolve módulos percorrendo o
+# `node_modules` fisicamente e não entende os links do store do pnpm. Com o
+# linking isolado, o bundle quebra em dependências TRANSITIVAS que não são
+# nossas — `@expo/metro-runtime` importa `whatwg-fetch`, o próprio
+# `react-native` importa `invariant`, e a lista cresce a cada SDK. Declarar
+# cada uma no package.json do app seria remendar sintoma.
+#
+# É a configuração indicada pela documentação do Expo para monorepo pnpm.
+# Em pnpm 10+ ela vive AQUI, não no `.npmrc` (que é ignorado para esta chave).
+#
+# Custo: perde-se a proteção contra dependência fantasma (usar um pacote sem
+# declarar). Os apps Next não são afetados — já resolviam de forma plana.
+nodeLinker: hoisted
+
 allowBuilds:
   '@swc/core': true
   esbuild: true

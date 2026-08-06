@@ -1,7 +1,11 @@
 # compiled output
 /dist
-/node_modules
 /build
+
+# dependências — em QUALQUER nível, não só na raiz.
+# A regra antiga (`/node_modules`) só valia para a raiz, e por isso os links de
+# `packages/ui/node_modules` acabaram versionados sem querer.
+node_modules/
 
 # Logs
 logs

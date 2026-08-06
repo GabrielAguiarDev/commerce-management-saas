@@ -1,0 +1,93 @@
+import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Box } from '@components/ui/Box';
+import { Text } from '@components/ui/Text';
+import { Toque } from '@components/ui/Toque';
+import { useUIStore } from '@store/uiStore';
+import { palette } from '@theme';
+
+import { AO_UP } from './animacoes';
+import { ALTURA_TAB_BAR } from './BarraDeAbas';
+
+/**
+ * O toast, com "Desfazer" opcional.
+ *
+ * Fica ACIMA da barra do carrinho (bottom 172 no protótipo, que é tab bar +
+ * barra + folga) para que os três possam coexistir na tela de venda sem se
+ * cobrirem.
+ *
+ * O fundo é petrol fixo nos dois temas — decisão do design, registrada em
+ * `palette.toast`. Toast de erro vira vermelho.
+ */
+export function ToastHost() {
+  const insets = useSafeAreaInsets();
+  const toast = useUIStore((s) => s.toast);
+  const aoDesfazer = useUIStore((s) => s.aoDesfazer);
+  const fecharToast = useUIStore((s) => s.fecharToast);
+
+  if (!toast) return null;
+
+  return (
+    <Animated.View
+      entering={FadeInDown.duration(AO_UP.duracao)
+        .easing(AO_UP.easing)
+        .withInitialValues({ transform: [{ translateY: AO_UP.deslocamento }] })}
+      exiting={FadeOut.duration(160)}
+      pointerEvents="box-none"
+      style={{
+        position: 'absolute',
+        left: 14,
+        right: 14,
+        bottom: ALTURA_TAB_BAR + insets.bottom + 84,
+        zIndex: 40,
+      }}
+      accessibilityLiveRegion="polite"
+    >
+      <Box
+        backgroundColor={toast.tom === 'erro' ? 'danger' : 'toastBg'}
+        borderRadius="r18"
+        paddingVertical="s14"
+        paddingHorizontal="s16"
+        flexDirection="row"
+        alignItems="center"
+        gap="s12"
+        style={{
+          shadowColor: palette.toast,
+          shadowOpacity: 0.7,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 16 },
+          elevation: 12,
+        }}
+      >
+        <Box flex={1}>
+          <Text variant="rowLabel" color="white" lineHeight={19}>
+            {toast.texto}
+          </Text>
+        </Box>
+
+        {toast.comDesfazer && aoDesfazer ? (
+          <Toque
+            accessibilityLabel="Desfazer"
+            onPress={() => {
+              // Fechar ANTES de executar: o callback normalmente abre o sheet
+              // do carrinho, e deixar o toast vivo por baixo dele confunde.
+              fecharToast();
+              aoDesfazer();
+            }}
+            height={34}
+            paddingHorizontal="s13"
+            borderRadius="r11"
+            backgroundColor="pillGhostSoft"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Text variant="buttonTiny" color="white">
+              Desfazer
+            </Text>
+          </Toque>
+        ) : null}
+      </Box>
+    </Animated.View>
+  );
+}
