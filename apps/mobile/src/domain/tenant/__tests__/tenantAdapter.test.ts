@@ -6,7 +6,7 @@ const base: TenantAPI = {
   id: 'tnt_1',
   name: 'Petshop Amigo',
   segment: 'Pet',
-  contact_phone: '(71) 98123-4455',
+  phone: '(71) 98123-4455',
   status: 'active',
   plan: 'paid',
   plan_name: 'Plano Completo',

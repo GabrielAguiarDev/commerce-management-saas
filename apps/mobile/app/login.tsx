@@ -12,11 +12,14 @@ import { useSessionStore } from '@store/sessionStore';
 import { useUIStore } from '@store/uiStore';
 
 /**
- * Entrada.
+ * Entrada. `supabase.auth.signInWithPassword`, via `sessionStore.signIn`.
  *
- * O e-mail decide o perfil (e, portanto, os módulos): é o que substitui os
- * chips de demo do protótipo, que ficaram fora de escopo. Ver
- * `src/data/usuarios.ts` para as três credenciais de demonstração.
+ * O plano (e portanto os módulos) vem do TENANT do usuário autenticado, lido de
+ * `profiles` — não do e-mail digitado, como era na fase de mock.
+ *
+ * A tela não distingue "e-mail não existe" de "senha errada", e isso é
+ * deliberado: responder qual dos dois falhou permite descobrir quem tem conta
+ * no sistema. O próprio Supabase devolve o mesmo erro para os dois casos.
  */
 export default function LoginScreen() {
   const t = useTranslation();
@@ -26,8 +29,8 @@ export default function LoginScreen() {
   const signingIn = useSessionStore((s) => s.signingIn);
   const showToast = useUIStore((s) => s.showToast);
 
-  const [email, setEmail] = useState('maria@petshopamigo.com.br');
-  const [password, setPassword] = useState('minhasenha');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [verSenha, setVerSenha] = useState(false);
 
   async function acessar() {

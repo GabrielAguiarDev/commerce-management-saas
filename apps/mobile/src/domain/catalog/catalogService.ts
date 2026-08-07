@@ -52,16 +52,14 @@ export async function toggleFavorite(tenantId: string, productId: string): Promi
   }
 }
 
-export async function moveStock(
-  tenantId: string,
-  productId: string,
-  delta: number,
-): Promise<void> {
-  try {
-    await api.moveStock(tenantId, productId, delta);
-  } catch (e) {
-    normalize(e);
-  }
-}
-
-export const tenantSpecialCategory = api.tenantSpecialCategory;
+/**
+ * `moveStock` FOI REMOVIDO daqui na virada para o Supabase.
+ *
+ * Ele existia para ajustar o saldo do produto depois de gravar a movimentação —
+ * duas escritas que o mock precisava fazer em sequência. No banco real isso é
+ * UMA operação: `apply_stock_movement` grava o movimento E ajusta
+ * `products.stock_quantity` na mesma transação, que é exatamente o que o
+ * comentário antigo do `stockService` pedia.
+ *
+ * Manter a função seria descontar o estoque DUAS VEZES a cada movimentação.
+ */

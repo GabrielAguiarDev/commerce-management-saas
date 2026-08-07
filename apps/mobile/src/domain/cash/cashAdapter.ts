@@ -116,6 +116,26 @@ export function computeDifference(
   return { informado, diferencaCentavos: informado ? diferenca : 0 };
 }
 
+/**
+ * O DINHEIRO CONTADO na gaveta — o único número que o fechamento manda ao banco.
+ *
+ * `close_cash_register` recebe o CONTADO EM ESPÉCIE e calcula o esperado e a
+ * diferença por conta própria. Pix e cartão não entram: eles caem na conta,
+ * não na gaveta, e são conferidos no extrato.
+ *
+ * `null` quando a linha do dinheiro não foi preenchida — e isso é diferente de
+ * zero. Zero significa "a gaveta está vazia", uma afirmação e tanto para
+ * carimbar no fechamento de quem só queria conferir o Pix. Quem decide o que
+ * fazer com o `null` é a tela.
+ */
+export function countedCashCents(
+  conferido: Readonly<Record<string, string>>,
+): number | null {
+  const digitado = conferido[CASH_METHOD];
+  if (digitado === undefined || digitado.trim() === '') return null;
+  return parseCents(digitado) ?? 0;
+}
+
 /** Rótulo da diferença no histórico: "sem diferença" / "faltou X" / "sobrou X". */
 export function labelDifference(
   centavos: number,

@@ -74,7 +74,12 @@ export interface Activity {
   quando: string;
 }
 
-export type TenantErrorCode = 'not_found' | 'network' | 'unknown';
+/**
+ * `forbidden` = o banco recusou a escrita (RLS), não é falha de rede. Hoje é o
+ * caso de salvar os dados do negócio: falta a política de UPDATE em `tenants`.
+ * Ver o comentário em `tenantApi.updateTenant`.
+ */
+export type TenantErrorCode = 'not_found' | 'forbidden' | 'network' | 'unknown';
 
 export class TenantError extends Error {
   constructor(readonly code: TenantErrorCode, message?: string) {

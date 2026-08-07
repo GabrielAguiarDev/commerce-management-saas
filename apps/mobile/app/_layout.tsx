@@ -11,7 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect } from 'react';
 
-import { AppProviders } from '@components';
+import { AppProviders, Box, ToastHost } from '@components';
 import { useAppHydrated } from '@hooks/useAppHydrated';
 import { useConnectionMonitor } from '@hooks/useConnectionMonitor';
 import { usePreferencesStore } from '@store/preferencesStore';
@@ -62,7 +62,7 @@ function Chrome({ fontsReady }: { fontsReady: boolean }) {
   if (!fontsReady || !hydrated) return null;
 
   return (
-    <>
+    <Box flex={1} backgroundColor="bg">
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
@@ -77,6 +77,12 @@ function Chrome({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="blocked" options={{ animation: 'fade' }} />
         <Stack.Screen name="(app)" options={{ animation: 'fade' }} />
       </Stack>
-    </>
+
+      {/* O toast fica AQUI, e não no layout de `(app)`, porque `login` e
+          `blocked` também o usam e estão fora daquele grupo. Era o motivo de
+          os erros de login não aparecerem: a store recebia o toast e nada o
+          renderizava. Ver o comentário em ToastHost. */}
+      <ToastHost />
+    </Box>
   );
 }

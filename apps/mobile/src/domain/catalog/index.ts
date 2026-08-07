@@ -15,10 +15,11 @@ export {
   saleGrid,
   productsInStock,
   lowStockProducts,
+  specialCategoryOf,
   stockSummary,
   type StockSummary,
 } from './catalogSelectors';
-export { tenantSpecialCategory, validateNewProduct } from './catalogService';
+export { validateNewProduct } from './catalogService';
 export {
   catalogoKeys,
   useToggleFavorite,

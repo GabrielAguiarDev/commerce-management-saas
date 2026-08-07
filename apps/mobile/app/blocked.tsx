@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 
 import { Button, Box, Icon, Text } from '@components';
 import { ROUTES } from '@domain/navigation/routes';
+import { useSupportWhatsApp } from '@domain/support';
 import { useTranslation } from '@i18n';
 import { useSessionStore } from '@store/sessionStore';
 import { useUIStore } from '@store/uiStore';
@@ -17,6 +18,21 @@ export default function BlockedScreen() {
   const t = useTranslation();
   const signOut = useSessionStore((s) => s.signOut);
   const showToast = useUIStore((s) => s.showToast);
+
+  // O canal é EXTERNO (WhatsApp), e não o suporte in-app: o suporte de dentro
+  // do app é justamente o que este plano não tem. Mandar a pessoa abrir um
+  // chamado interno seria trancar a porta por dentro — ela precisa falar com a
+  // gente exatamente para destravar o que a impede de falar com a gente.
+  const { abrir: abrirWhatsApp, carregando } = useSupportWhatsApp();
+
+  async function falarComSuporte() {
+    // `disponivel` não é consultado aqui de propósito: o botão fica habilitado
+    // e o aviso vem depois de tentar. Um botão desabilitado sem explicação, na
+    // única tela que esta pessoa consegue abrir, é pior que um aviso claro.
+    if (!(await abrirWhatsApp())) {
+      showToast(t.toasts.whatsappUnavailable, { tone: 'erro' });
+    }
+  }
 
   async function voltarParaEntrada() {
     // Encerra a sessão junto: deixar a sessão viva faria o portão trazer o
@@ -51,11 +67,8 @@ export default function BlockedScreen() {
 
       <Button
         title="Falar com o suporte"
-        // O suporte é uma tela de dentro do app, e o app é justamente o que
-        // este plano não tem. Enquanto não houver um canal externo (WhatsApp ou
-        // e-mail via Linking), o botão explica o caminho em vez de levar a uma
-        // rota inalcançável. Registrado em DEVELOPMENT.md › Pendências.
-        onPress={() => showToast(t.toasts.ticketOpened)}
+        onPress={falarComSuporte}
+        loading={carregando}
         height={54}
         radius={16}
       />

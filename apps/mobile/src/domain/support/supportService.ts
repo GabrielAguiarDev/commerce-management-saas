@@ -1,4 +1,5 @@
 import * as api from './supportApi';
+import { sanitizePhone } from './whatsapp';
 import { toTicket, toTicketPayload, toMessage } from './supportAdapter';
 import {
   SupportError,
@@ -61,5 +62,21 @@ export async function reply(ticketId: string, text: string): Promise<TicketMessa
     return toMessage(await api.reply({ ticket_id: ticketId, body: text.trim() }));
   } catch (e) {
     return normalize(e);
+  }
+}
+
+/**
+ * O número de WhatsApp da plataforma. `null` = não dá para usar o canal.
+ *
+ * NUNCA lança, e isso é deliberado: quem chama é a tela de BLOQUEIO, que já é o
+ * fim da linha do usuário. Deixar um erro subir ali derrubaria a única tela que
+ * ele consegue ver, por causa de um botão. `null` faz o botão avisar que não
+ * deu — degradar é melhor que quebrar.
+ */
+export async function getWhatsAppContact(): Promise<string | null> {
+  try {
+    return sanitizePhone(await api.fetchWhatsAppContact());
+  } catch {
+    return null;
   }
 }

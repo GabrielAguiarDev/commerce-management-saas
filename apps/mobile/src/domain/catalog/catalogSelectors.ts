@@ -5,9 +5,8 @@ import type { CatalogSortKey, Product } from './catalogTypes';
 /**
  * Seletores puros do catálogo.
  *
- * Ficam no domínio (e não em `@data`) porque operam sobre o MODELO já
- * adaptado — `@data` guarda o formato cru da API. São funções puras, testadas
- * na suíte `logica`, e nenhuma delas conhece React.
+ * Operam sobre o MODELO já adaptado, nunca sobre o formato cru da API. São
+ * funções puras, testadas na suíte `logica`, e nenhuma delas conhece React.
  */
 
 /** Casa por nome OU por código, ignorando acento e caixa. Busca vazia casa tudo. */
@@ -35,6 +34,47 @@ export function filterCatalog(products: Product[], criterion: CatalogSortKey): P
     }
     return true;
   });
+}
+
+/**
+ * O RÓTULO DO 3º CHIP da tela Produtos — "Serviços", "Bebidas", ou nenhum.
+ *
+ * Substitui o antigo `tenantSpecialCategory`, que na fase de mock era uma
+ * tabela fixa de tenant → rótulo dentro do `catalogApi`. Isso não sobrevive ao
+ * backend real: não existe (nem deve existir) uma coluna dizendo qual chip
+ * mostrar. O rótulo é uma LEITURA DO CATÁLOGO, e por isso vira função pura.
+ *
+ * A regra, na ordem:
+ *  1. tem serviço cadastrado? o chip é "Serviços" — é a divisão que mais
+ *     importa para quem vende as duas coisas (banho e ração, no petshop);
+ *  2. senão, a categoria mais comum do catálogo, desde que ela realmente
+ *     separe algo: precisa cobrir ao menos 2 produtos e NÃO ser a única
+ *     categoria existente. Um chip que seleciona o catálogo inteiro ocupa
+ *     espaço sem filtrar nada;
+ *  3. senão, `null` — e a tela simplesmente não mostra o terceiro chip.
+ */
+export function specialCategoryOf(products: Product[]): string | null {
+  if (products.some((p) => p.ehServico)) return 'Serviços';
+
+  const count = new Map<string, number>();
+  for (const p of products) {
+    const category = p.category?.trim();
+    if (!category) continue;
+    count.set(category, (count.get(category) ?? 0) + 1);
+  }
+
+  if (count.size < 2) return null;
+
+  let best: string | null = null;
+  let bestCount = 1;
+  for (const [category, n] of count) {
+    if (n > bestCount) {
+      best = category;
+      bestCount = n;
+    }
+  }
+
+  return best;
 }
 
 /** Quantos itens a grade de venda mostra antes de exigir busca. */

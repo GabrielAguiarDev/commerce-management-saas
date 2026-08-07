@@ -6,7 +6,13 @@ import { Box } from '@components/ui/Box';
 import { Field } from '@components/ui/Field';
 import { Divider } from '@components/ui/Divider';
 import { Text } from '@components/ui/Text';
-import { computeDifference, countRows, useFecharCaixa, useOpenShift } from '@domain/cash';
+import {
+  computeDifference,
+  countedCashCents,
+  countRows,
+  useFecharCaixa,
+  useOpenShift,
+} from '@domain/cash';
 import { useTranslation } from '@i18n';
 import { CashError } from '@domain/cash/cashTypes';
 import { useUIStore } from '@store/uiStore';
@@ -34,22 +40,39 @@ export function CloseOutSheet() {
   const diferenca = computeDifference(rows, conferido);
 
   function requestCloseOut() {
+    if (!shift) return;
+
+    // O que vai para o banco é o CONTADO EM DINHEIRO — `close_cash_register`
+    // calcula o esperado e a diferença lá dentro. A `diferenca` acima continua
+    // existindo para a tela mostrar em tempo real enquanto se digita, mas o
+    // número que fica gravado é o do banco: a conta do fechamento não pode
+    // depender do que o celular achava que sabia sobre as vendas do turno.
+    //
+    // Linha do dinheiro em branco vale ZERO aqui, e só aqui: fechar o caixa é
+    // afirmar quanto há na gaveta, e não afirmar nada não é uma opção na hora
+    // de carimbar. Ver `countedCashCents`, que devolve `null` justamente para
+    // deixar esta decisão na tela.
+    const contado = countedCashCents(conferido) ?? 0;
+
     requestConfirm({
       title: t.confirms.closeCash.title,
       text: t.confirms.closeCash.text,
       buttonLabel: t.confirms.closeCash.button,
       destructive: false,
       onConfirm: () =>
-        closeCash(diferenca.diferencaCentavos, {
-          onSuccess: () => {
-            closeSheet();
-            showToast(t.toasts.cashClosed);
+        closeCash(
+          { shiftId: shift.id, contadoEmDinheiroCentavos: contado },
+          {
+            onSuccess: () => {
+              closeSheet();
+              showToast(t.toasts.cashClosed);
+            },
+            onError: (error) => {
+              const code = error instanceof CashError ? error.code : 'unknown';
+              showToast(t.errors.cash[code], { tone: 'erro' });
+            },
           },
-          onError: (error) => {
-            const code = error instanceof CashError ? error.code : 'unknown';
-            showToast(t.errors.cash[code], { tone: 'erro' });
-          },
-        }),
+        ),
     });
   }
 

@@ -53,7 +53,9 @@ export async function saveBusinessDetails(
   if (!name.trim()) throw new TenantError('unknown', 'O nome do negócio é obrigatório.');
   try {
     const raw = await api.updateTenant(tenantId, toTenantUpdatePayload(name, phone));
-    if (!raw) throw new TenantError('not_found');
+    // `null` aqui é o RLS recusando em silêncio (zero linhas afetadas), não um
+    // negócio inexistente — ele acabou de ser lido para preencher o formulário.
+    if (!raw) throw new TenantError('forbidden');
     return toTenant(raw);
   } catch (e) {
     return normalize(e);

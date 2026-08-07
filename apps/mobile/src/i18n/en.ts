@@ -5,6 +5,7 @@ import type { CostErrorCode } from '@domain/costs/costsTypes';
 import type { StockErrorCode } from '@domain/stock/stockTypes';
 import type { SupportErrorCode } from '@domain/support/supportTypes';
 import type { SaleErrorCode } from '@domain/sales/salesTypes';
+import type { TenantErrorCode } from '@domain/tenant/tenantTypes';
 
 /**
  * The EN catalog is the SOURCE OF TRUTH for the message shape.
@@ -37,9 +38,28 @@ export const en = {
       invalid_email: 'Check the e-mail address you typed.',
       short_password: 'The password must be at least 6 characters long.',
       invalid_credentials: 'E-mail or password do not match.',
+      // The three below are ACCESS DENIALS, not failures: whoever sees them
+      // typed the right password. Telling them to "check the password" would
+      // have them retry forever.
+      no_tenant: 'This account is not linked to a business yet. Contact support.',
+      platform_admin: 'Administrator accounts use the admin panel, not the app.',
+      suspended: 'This account is suspended. Talk to the owner of the business.',
       network: 'No connection to the server. Try again in a moment.',
+      // The server answered fine — the phone could not STORE the session.
+      // Saying "no connection" here sends you to debug the healthy side.
+      storage: 'Could not save your session on this device. Contact support.',
       unknown: 'We could not sign you in right now. Contact support.',
     } as Record<AuthErrorCode, string>,
+
+    tenant: {
+      not_found: 'We could not find your business data.',
+      // Deliberately does NOT say "you lack permission": the owner has every
+      // reason to expect to edit their own business. The missing UPDATE policy
+      // on `tenants` is our bug, not their mistake.
+      forbidden: 'Saving the business details is not available yet. Contact support.',
+      network: 'Could not save right now. Try again.',
+      unknown: 'Something went wrong with your business data.',
+    } as Record<TenantErrorCode, string>,
 
     catalog: {
       name_required: 'Give the product a name to save it.',
@@ -103,6 +123,12 @@ export const en = {
     spreadsheetExported: 'Spreadsheet generated and saved to the phone.',
     replySent: 'Message sent to support.',
     ticketOpened: 'Ticket opened. We reply within 1 business day.',
+    // Shown when the WhatsApp channel could not be opened — either the number
+    // is not readable from the database or the device refused the link. Names
+    // the alternative instead of just apologising: whoever sees this is on the
+    // blocked screen and has no other way through.
+    whatsappUnavailable:
+      'Could not open WhatsApp. Write to contato@aguiarone.com.br and we will get back to you.',
     attachmentUnavailable: 'Pick a photo from the gallery or take one now.',
     synced: 'Everything synced. Nothing was lost.',
   },

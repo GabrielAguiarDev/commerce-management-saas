@@ -72,8 +72,18 @@ export function useFecharCaixa() {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: (diferencaCentavos: number) =>
-      service.closeCash(tenantId as string, diferencaCentavos),
+    mutationFn: (data: {
+      shiftId: string;
+      /** O CONTADO em espécie. O banco calcula o esperado e a diferença. */
+      contadoEmDinheiroCentavos: number;
+      observacao?: string;
+    }) =>
+      service.closeCash(
+        tenantId as string,
+        data.shiftId,
+        data.contadoEmDinheiroCentavos,
+        data.observacao,
+      ),
     onSuccess: () => client.invalidateQueries({ queryKey: caixaKeys.all }),
   });
 }

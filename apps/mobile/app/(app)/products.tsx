@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button, Box, Field, Chips, Icon, Pill, Screen, Text, Touchable } from '@components';
 import type { ChipOption } from '@components';
 import {
-  tenantSpecialCategory,
+  specialCategoryOf,
   filterCatalog,
   useToggleFavorite,
   useCatalog,
@@ -12,7 +12,6 @@ import type { CatalogFilter, Product, StockStatus } from '@domain/catalog';
 import { useCapabilities } from '@domain/tenant';
 import type { Messages } from '@i18n';
 import { useTranslation } from '@i18n';
-import { useSessionStore } from '@store/sessionStore';
 import { useUIStore } from '@store/uiStore';
 import { formatBRL } from '@utils/money';
 import type { ThemeColor } from '@theme';
@@ -39,7 +38,6 @@ function badgeLabel(product: Product, t: Messages): string {
 
 export default function ProductsScreen() {
   const t = useTranslation();
-  const tenantId = useSessionStore((s) => s.tenantId);
   const { capabilities } = useCapabilities();
   const { data: products = [] } = useCatalog();
   const { mutate: toggleFavorite } = useToggleFavorite();
@@ -50,8 +48,9 @@ export default function ProductsScreen() {
   const [filter, setFilter] = useState<CatalogFilter>('all');
 
   // O rótulo do 3º chip muda com o ramo: "Serviços" no petshop, "Bebidas" na
-  // barraca. Vem do dado do negócio, não de um `if` de perfil na tela.
-  const specialCategory = tenantId ? tenantSpecialCategory(tenantId) : null;
+  // barraca. Sai do PRÓPRIO CATÁLOGO (função pura, testada), não de um `if` de
+  // perfil na tela nem de uma tabela de tenant → rótulo no backend.
+  const specialCategory = specialCategoryOf(products);
 
   const options: ChipOption<CatalogFilter>[] = [
     { key: 'all', label: 'Todos' },

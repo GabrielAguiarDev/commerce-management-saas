@@ -18,10 +18,10 @@ function ehChaveConhecida(k: string): k is ChaveModulo {
 /**
  * `TenantAPI` → `Tenant`.
  *
- * Faz o que adapter faz: renomeia (`contact_phone` → `telefone`), coage
- * (`renews_at` string ISO → `Date`), defende contra nulo (`plan_name` ausente
- * cai no nome da chave do plano) e DESCARTA o que a tela não usa (`status`,
- * `monthly_fee` — cobrança é assunto do portal, não do app).
+ * Faz o que adapter faz: coage (`renews_at` string ISO → `Date`), defende
+ * contra nulo (`plan_name` ausente cai no nome da chave do plano) e DESCARTA o
+ * que a tela não usa (`status`, `monthly_fee` — cobrança é assunto do portal,
+ * não do app).
  */
 export function toTenant(raw: TenantAPI): Tenant {
   const renova = raw.renews_at ? new Date(raw.renews_at) : null;
@@ -30,7 +30,7 @@ export function toTenant(raw: TenantAPI): Tenant {
     id: raw.id,
     name: raw.name,
     segment: raw.segment,
-    phone: raw.contact_phone,
+    phone: raw.phone,
     plano: {
       key: raw.plan,
       name: raw.plan_name ?? raw.plan,
@@ -57,7 +57,7 @@ export function toActivity(raw: ActivityAPI): Activity {
 }
 
 export function toTenantUpdatePayload(name: string, phone: string): TenantUpdateAPI {
-  return { name: name.trim(), contact_phone: phone.trim() || null };
+  return { name: name.trim(), phone: phone.trim() || null };
 }
 
 /**

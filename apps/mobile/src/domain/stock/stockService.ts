@@ -1,5 +1,3 @@
-import { moveStock as adjustProductBalance } from '@domain/catalog/catalogService';
-
 import * as api from './stockApi';
 import { toStockMovement, toStockMovementPayload } from './stockAdapter';
 import { StockError, type StockMovement } from './stockTypes';
@@ -20,13 +18,15 @@ export async function listStockMovements(tenantId: string): Promise<StockMovemen
 }
 
 /**
- * Registra a movimentação E ajusta o saldo do produto.
+ * Registra a movimentação E ajusta o saldo do produto — em UMA operação.
  *
- * Duas escritas que precisam andar juntas: no Supabase isso vira uma função
- * SQL única (como `admin_create_tenant` faz no portal), justamente para não
- * existir movimentação sem saldo ou saldo sem histórico. Enquanto é mock, o
- * service é quem garante a ordem — e o comentário fica aqui para que ninguém
- * "simplifique" tirando o segundo passo.
+ * Na fase de mock isto eram duas escritas em sequência, e havia um comentário
+ * aqui pedindo que virassem uma função SQL única. Virou: `apply_stock_movement`
+ * grava o movimento e atualiza `products.stock_quantity` na mesma transação.
+ *
+ * ⚠️ NÃO acrescente de volta um segundo passo ajustando o saldo pela aplicação
+ * (o antigo `catalogService.moveStock`, hoje removido). Ele descontaria o
+ * estoque DUAS VEZES por movimentação.
  */
 export async function recordStockMovement(
   tenantId: string,
@@ -41,7 +41,6 @@ export async function recordStockMovement(
     const raw = await api.createStockMovement(
       toStockMovementPayload(tenantId, productId, productName, delta),
     );
-    if (productId) await adjustProductBalance(tenantId, productId, delta);
     return toStockMovement(raw);
   } catch (e) {
     return normalize(e);

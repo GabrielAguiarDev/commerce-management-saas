@@ -92,7 +92,26 @@ export function parseCents(input: string): number | null {
   return isNegative ? -cents : cents;
 }
 
-/** Decimal reais coming from an API (`189.9`) → cents (`18990`). */
-export function realToCents(real: number): number {
-  return Math.round(real * 100);
+/**
+ * Decimal reais coming from an API (`189.9`) → cents (`18990`).
+ *
+ * `null`/`undefined`/`NaN` collapse to 0. Supabase returns `numeric` columns
+ * as JS numbers, and a null column (a product with no cost, a day with no
+ * sales) must not become `NaN` and poison every sum downstream.
+ */
+export function realToCents(real: number | null | undefined): number {
+  const n = Number(real);
+  return Number.isFinite(n) ? Math.round(n * 100) : 0;
+}
+
+/**
+ * Cents (`18990`) → decimal reais (`189.9`), for WRITING to the database.
+ *
+ * The database stores money as `numeric` in reais; this app stores it as
+ * integer cents. This is the only direction that leaves the app, and it is
+ * deliberately the last thing that happens before the insert — rounding to two
+ * decimals here means the value written is exactly the value shown on screen.
+ */
+export function centsToReal(cents: number): number {
+  return Math.round(cents) / 100;
 }

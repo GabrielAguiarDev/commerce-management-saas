@@ -1,14 +1,6 @@
 import { Stack } from 'expo-router';
 
-import {
-  TabBar,
-  CartBar,
-  NewSaleButton,
-  Box,
-  ConfirmHost,
-  SheetHost,
-  ToastHost,
-} from '@components';
+import { TabBar, CartBar, NewSaleButton, Box, ConfirmHost, SheetHost } from '@components';
 import { useAppTheme } from '@hooks/useAppTheme';
 
 /**
@@ -54,13 +46,16 @@ export default function AppLayout() {
       </Stack>
 
       {/* A chrome. Ordem = ordem de empilhamento: sheet e confirm por último,
-          porque precisam cobrir a tab bar e o FAB. */}
+          porque precisam cobrir a tab bar e o FAB.
+
+          O ToastHost NÃO está aqui: ele vive no layout RAIZ, porque `login` e
+          `blocked` também precisam dele e estão fora deste grupo. Montá-lo nos
+          dois lugares mostraria o mesmo toast duplicado aqui dentro. */}
       <TabBar />
       <NewSaleButton />
       <CartBar />
       <SheetHost />
       <ConfirmHost />
-      <ToastHost />
     </Box>
   );
 }

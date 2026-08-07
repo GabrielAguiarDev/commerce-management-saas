@@ -4,7 +4,7 @@ Contexto vivo do projeto. **Leia este arquivo por inteiro antes de mexer no cód
 Ele vale mais que intuição: registra o que foi decidido, por quê, e as armadilhas
 já descobertas.
 
-Última atualização: **2026-08-06**
+Última atualização: **2026-08-06** (fase 5 — integração Supabase)
 
 ---
 
@@ -56,9 +56,10 @@ deliberado: quando o backend entrar, o adapter já fala a língua do banco.
 | Gestos | `react-native-gesture-handler` | arrasto de fechar o bottom sheet | agente |
 | Ícones | `react-native-svg` | os `path` são copiados do protótipo, não aproximados | agente |
 | Tipografia | Manrope via `@expo-google-fonts/manrope` + `useFonts` | especificada no design | design |
-| Credenciais | `expo-secure-store` (token) + AsyncStorage (preferências) | token em AsyncStorage é texto puro em disco | blueprint |
+| Backend | `@supabase/supabase-js` + RLS | mesmo projeto do portal web; nenhuma consulta passa `tenant_id` | brief |
+| Credenciais | `LargeSecureStore` (AES-256 no SecureStore + cifrado no AsyncStorage) | sessão em AsyncStorage é texto puro em disco, e não cabe no SecureStore | doc Supabase |
 | Conexão | `@react-native-community/netinfo` | o chip de demo do protótipo saiu de escopo; o comportamento ficou | brief |
-| Testes | `jest` puro (node) para lógica | suíte de 157 testes em ~0,3s | blueprint |
+| Testes | `jest` puro (node) para lógica | suíte de 196 testes em ~0,4s | blueprint |
 
 ### Decisões que valem registro
 
@@ -75,10 +76,10 @@ da tela divergir do recibo.
 do sistema. É onde o protótipo põe o toggle (Configurações › Preferências) e
 mantém a identidade petrol/teal igual nos dois modos.
 
-**O perfil vem do e-mail do login, não de um chip.** Os chips de demo ficaram
-fora de escopo por decisão do brief. Para não perder os três caminhos do design,
-o mock tem três credenciais (ver §7). Isso também é como vai funcionar de
-verdade: o plano vem do tenant do usuário.
+**O plano vem do tenant do usuário autenticado, não de um chip nem do e-mail.**
+Os chips de demo ficaram fora de escopo por decisão do brief. Na fase de mock o
+e-mail escolhia o tenant; hoje quem decide é `profiles.tenant_id` do usuário
+logado, e os módulos saem de `v_active_modules`. Ver §7.
 
 **Pilha de navegação com chrome sobreposta, e não abas.** Ver §4.
 
@@ -105,14 +106,19 @@ src/
     AppProviders.tsx        composição única de providers
     index.ts                a API pública do DS — telas importam SÓ daqui
   theme/                    palette.ts (hex) · theme.ts (tokens) · fonts.ts
+  config/                   env.ts — as EXPO_PUBLIC_, lidas e conferidas
   domain/<nome>/            Types / ApiTypes / Api / Adapter / Service / useCases
-  data/                     fixtures NO FORMATO CRU DA API
-  services/                 storageAdapter, mockLatency
+  domain/shared/dbEnums.ts  o vocabulário das colunas de estado do banco
+  services/                 supabase.ts · secureSessionStorage.ts · storageAdapter
   store/                    zustand: um arquivo por store
-  hooks/                    useAppHydrated, useAppTheme, useMonitorDeConexao, navegacao
+  hooks/                    useAppHydrated, useAppTheme, useConnectionMonitor,
+                            useSessionSync, navigation
   i18n/                     mensagens (erros, toasts, confirmações)
-  utils/                    dinheiro.ts, texto.ts (+ __tests__)
+  utils/                    money.ts, text.ts, dates.ts (+ __tests__)
 ```
+
+> `src/data/` (fixtures) e `services/mockLatency.ts` **não existem mais** —
+> saíram na fase 5, quando o último `*Api.ts` passou a falar com o Supabase.
 
 ### Regras duras
 
@@ -129,7 +135,10 @@ src/
 
 ### Aliases
 
-`@components @config @data @domain/* @hooks @i18n @services @store @theme @utils/*`
+`@components @config @domain/* @hooks @i18n @services @store @theme @utils/*`
+
+(`@data` ainda está declarado nos três arquivos, mas a pasta não existe mais
+desde a fase 5. Remover é seguro; deixar não custa nada.)
 
 Declarados em **três** lugares que precisam andar juntos: `tsconfig.json`
 (tsc), `babel.config.js` (runtime, via `module-resolver`) e `jest.config.js`
@@ -208,16 +217,25 @@ index.ts             a API pública do domínio
 | `support` | chamados, thread, novo chamado |
 | `navigation` | rotas, gate, tab bar e grade do "Mais" — puro, sem React |
 
-### O mock devolve o formato CRU
+### O mock devolvia o formato CRU — e foi por isso que a virada funcionou
 
-`src/data/*` guarda fixtures em **inglês, snake_case, com nulos** — não o modelo
-de domínio. É a diferença entre um adapter vivo e um adapter decorativo: assim
-todo dado do app atravessa a tradução desde o primeiro dia, e a virada para o
-Supabase mexe em **uma função por domínio**.
+Durante a fase 2, `src/data/*` guardou fixtures em **inglês, snake_case, com
+nulos** — nunca o modelo de domínio. Era a diferença entre um adapter vivo e um
+decorativo: todo dado do app atravessou a tradução desde o primeiro dia.
 
-Nulos deliberados nos fixtures, para o adapter ter o que defender:
-`stock_qty: null` (não controla estoque) vs. `stock_qty: 0` (acabou);
-`plan_name: null`; `difference_cents: null`; um resumo do dia inteiramente nulo.
+O resultado apareceu na fase 5: **nenhum adapter, nenhum seletor e nenhum teste
+precisou mudar** para trocar o mock pelo Supabase. Os nulos que os fixtures
+carregavam de propósito (`stock_qty: null` = não controla estoque vs.
+`stock_qty: 0` = acabou; `plan_name: null`; `difference_cents: null`) eram
+exatamente os que o banco real produz.
+
+Onde o palpite errou — unidade do dinheiro, origem do `tenant_id`, colunas que
+não existem — está registrado em §11.1. Errar nesses pontos custou barato
+justamente porque a fronteira estava isolada.
+
+**Os `*ApiTypes.ts` não são espelhos de tabela.** Vários são DTOs COMPOSTOS: o
+`*Api.ts` junta duas ou três leituras num objeto só. A composição é trabalho da
+fronteira de rede; a tradução, do adapter.
 
 ### Regras puras que valem conhecer
 
@@ -239,7 +257,7 @@ Nulos deliberados nos fixtures, para o adapter ter o que defender:
 
 | store | persistido? | conteúdo |
 |---|---|---|
-| `sessaoStore` | sim (usuário + tenantId) | token vai para o **SecureStore**, não aqui |
+| `sessionStore` | **não** (mudou na fase 5) | usuário, tenantId, roleId. Quem persiste a sessão é o cliente Supabase, criptografada — duas cópias divergiriam. Reconstruído no boot por `restore()` |
 | `preferenciasStore` | sim | tema escuro, formas de pagamento aceitas |
 | `carrinhoStore` | **não** | itens, forma de pagamento, snapshot do Desfazer |
 | `uiStore` | não | toast, confirmação, sheet (um de cada por vez) |
@@ -258,15 +276,39 @@ Nulos deliberados nos fixtures, para o adapter ter o que defender:
 
 ---
 
-## 7. Credenciais de demonstração
+## 7. Acesso — Supabase Auth real
 
-Qualquer senha com 6+ caracteres. O e-mail escolhe o tenant e, com ele, o plano:
+As credenciais de demonstração **acabaram** na fase 5, junto com `src/data/`.
+Quem entra é um usuário de verdade do projeto `Commerce Management`, e o plano
+vem do tenant dele, não do e-mail digitado.
 
-| e-mail | negócio | plano | módulos |
-|---|---|---|---|
-| `maria@petshopamigo.com.br` | Petshop Amigo | Completo | caixa, estoque, custos, relatórios |
-| `rita@acarajedarita.com.br` | Acarajé da Rita | Essencial | só custos |
-| `joao@mercadinho.com.br` | Mercadinho da Esquina | sem `app` | → **tela de bloqueio** |
+### O que decide cada tela de entrada
+
+| condição | onde é verificada | destino |
+|---|---|---|
+| senha errada / conta inexistente | `sessionApi.signIn` (400 do Supabase) | fica no login, "e-mail ou senha não conferem" |
+| `profiles.is_platform_admin` | `sessionAdapter.toSession` | login, "conta de administrador usa o painel" |
+| `profiles.tenant_id` nulo | `sessionAdapter.toSession` | login, "conta não ligada a um negócio" |
+| `profiles.status` ≠ `active` | `sessionAdapter.toSession` | login, "acesso suspenso" |
+| `has_module('app')` = `false` | `useAppAccess` → o portão | **tela de bloqueio** |
+
+As três negativas do adapter **derrubam a sessão do Supabase** antes de propagar
+o erro (`sessionService.signIn`). Sem isso a sessão ficaria de pé e o próximo
+relaunch entraria direto, contornando a regra que acabou de barrar.
+
+`has_module` vem depois e é separado de propósito: é entitlement, não
+identidade, e leva a uma tela diferente. Ele responde `true` / `false` / `null`
+— e `null` (carregando ou sem rede) **segura o portão** em vez de bloquear.
+Confundir os dois manda para a tela de bloqueio quem só está sem sinal.
+
+### Ambiente
+
+`.env` (fora do Git) com `EXPO_PUBLIC_SUPABASE_URL` e
+`EXPO_PUBLIC_SUPABASE_ANON_KEY` — as mesmas do portal do cliente. Ver
+`.env.example`. **A `service_role` nunca entra aqui**: um app é um binário na
+mão do cliente, e qualquer chave embutida nele deve ser considerada pública.
+Conferido no bundle exportado: a URL e a chave publishable estão lá (é o
+esperado), e `service_role` não aparece.
 
 ---
 
@@ -350,6 +392,26 @@ dentro de um bottom sheet; um overlay comum ficaria por baixo.
 **10. Toast: um por vez, e o timer do anterior é cancelado.** Sem isso, o timer
 velho apaga o toast novo antes da hora.
 
+**10b. O `ToastHost` mora no layout RAIZ, não no de `(app)`.** Ficou no
+`(app)/_layout.tsx` por muito tempo — mas `login` e `blocked` estão FORA desse
+grupo. Nas duas telas o `showToast` escrevia na store e **nada renderizava**: o
+toque no botão não produzia efeito nenhum.
+
+Doeu mais no LOGIN, onde o toast é o único retorno de erro que existe. Senha
+errada, conta sem negócio, falha de rede — tudo silencioso, e o sintoma que
+chegava era "o login não faz nada", que manda depurar navegação e rede em vez
+da camada de UI.
+
+Uma instância só. Montar na raiz **e** em `(app)` mostraria o toast duplicado
+dentro do app. Como o afastamento inferior do design pressupõe tab bar + barra
+do carrinho, o componente pergunta a `useSegments()` se está dentro de `(app)`
+e desce para a margem normal quando não está — senão o toast flutuaria no meio
+da tela de login.
+
+Se criar uma tela nova fora de `(app)` que precise de confirmação ou de sheet,
+`ConfirmHost` e `SheetHost` têm exatamente o mesmo problema: continuam só em
+`(app)`, de propósito, porque hoje só o app os usa.
+
 **11. `conexaoStore.definirOnline` ignora chamada com o mesmo valor.** O NetInfo
 emite eventos repetidos ao trocar de rede; sem a guarda, o banner
 "sincronizando…" reiniciava sozinho a cada emissão.
@@ -373,6 +435,105 @@ infinito — o que mais incomoda) e na entrada do sheet.
 
 ---
 
+> As armadilhas abaixo são do BACKEND. Todas foram verificadas contra o banco
+> real, não deduzidas da documentação.
+
+**16. Existe um TRIGGER em `sale_items` que já baixa o estoque.** Inserir um
+item de venda desconta `products.stock_quantity` e grava o `stock_movements` do
+tipo `sale` — verificado: saldo 100 → 97 ao inserir 3 unidades. **Descontar de
+novo pela aplicação tira o dobro de cada venda**, e a primeira versão da
+integração do portal fez exatamente isso. Por isso `salesApi.recordSale` só
+grava a venda e os itens, e o comentário lá é longo de propósito.
+
+O trigger **não** reage a mudança de `sales.status`: estornar uma venda não
+devolve o estoque sozinho. O app ainda não estorna; quando estornar, é preciso
+devolver à mão, como `app/vendas/actions.ts` faz no portal.
+
+**17. `apply_stock_movement` IGNORA o `p_type` — ela só SOMA o `p_quantity`.**
+Verificado: saldo 10, tipo `out`, quantidade 3 → saldo **13**. Quem carrega o
+significado é o SINAL da quantidade, e quem decide o sinal é quem chama. O
+`p_type` serve só para o histórico ler depois.
+
+`stockApi.createStockMovement` passa o `delta` **já assinado**, como vem do
+`stockAdapter` (que lê "+10" e "−3" do campo). Mandar `Math.abs(delta)` com
+`p_type: 'out'` esperando que a função subtraia **aumentaria** o estoque.
+
+A função também **não** atualiza `products.cost` nem lança a despesa em `costs`.
+O portal faz as duas coisas à mão; o app ainda não, porque o sheet de
+movimentação não pede custo unitário.
+
+**18. `sender_side` do cliente é `'client'`, não `'customer'`.** É o que o
+portal grava e o que o painel admin lê. A grafia errada não daria erro nenhum —
+a mensagem seria salva e apareceria na conversa; o que quebraria em silêncio é
+a leitura de "não lida", que é o que alimenta o badge da tela "Mais".
+
+**19. Datas: `toISOString()` NÃO serve para colunas `date` puras.**
+`costs.cost_date` e `v_daily_sales.day` são `date` sem fuso. Às 21h de Brasília
+o ISO já aponta para o dia seguinte — um custo lançado à noite cairia fora do
+mês em que foi pago, e "vendas de hoje" perderia o próprio dia. Por isso
+`@utils/dates` tem `toDateOnly`, que monta `YYYY-MM-DD` no fuso LOCAL, e tem
+teste dedicado. Para colunas `timestamptz` (`sold_at`, `created_at`) o ISO está
+certo — o fuso vai embutido.
+
+**20. `!inner` nos embeds que servem de FILTRO.** Em
+`sale_items?select=...,sales!inner(...)` com filtro em `sales.status`, sem o
+`!inner` o PostgREST devolve o item com `sales: null` em vez de removê-lo — e
+itens de vendas estornadas entram na soma do dia.
+
+**21. O `select` do PostgREST precisa ser string LITERAL.** O tipo é inferido do
+texto; uma concatenação vira `string` e o resultado perde a forma, levando o
+TypeScript junto. Vale para todos os `*Api.ts`.
+
+**22. `maybeSingle()` e não `single()` quando "zero linhas" é um estado real.**
+Usuário do Auth sem linha em `profiles` acontece (conta criada e ainda não
+vinculada a um negócio). Com `single`, isso vira erro de rede — e a tela diria
+"sem conexão" para quem está perfeitamente conectado.
+
+**23. O auto-refresh do token precisa do `AppState`.** O `autoRefreshToken` é um
+`setInterval`, e o sistema congela timers em segundo plano. Num app de balcão a
+tela apaga entre um cliente e outro; sem `startAutoRefresh`/`stopAutoRefresh`
+atrelados ao `AppState`, o token vence e a primeira ação ao voltar — justamente
+uma venda — falha com 401. Está em `services/supabase.ts`, fora de qualquer
+hook, porque o assinante precisa ser único.
+
+**24. A sessão NÃO cabe no SecureStore.** O limite é ~2 KB por valor e a sessão
+do Supabase passa disso (dois JWTs + metadados). Gravá-la direto ali falha e o
+usuário é deslogado a cada relaunch, sem explicação. Daí o `LargeSecureStore`:
+chave AES-256 no SecureStore (32 bytes), conteúdo cifrado no AsyncStorage.
+
+**25. `react-native-get-random-values` é NATIVO — instalar não basta, tem que
+reconstruir.** `pnpm add` põe o JS no `node_modules`; o código nativo só entra
+no binário com `pnpm ios` / `pnpm android` (`expo run:*`). Num app compilado
+ANTES da instalação, o import passa e a chamada estoura — e estoura no meio do
+login, na hora de gravar a sessão, ou seja **depois** de o Supabase já ter
+autenticado com sucesso.
+
+O sintoma é traiçoeiro: o login "não faz nada" e não navega. Pior ainda se todo
+erro de `signIn` for traduzido como `network` — a mensagem "sem conexão com o
+servidor" manda depurar exatamente o lado que está saudável. Por isso existem
+`SessionStorageError` e o código de erro `storage`, e por isso
+`ensureRandomness()` falha com uma mensagem que diz para reconstruir.
+
+**26. O `ios/` pode estar defasado em relação ao `node_modules`, e o erro do
+CocoaPods não diz isso.** Aconteceu de verdade: `Podfile.lock` em
+`ExpoModulesCore 57.0.7` enquanto o `node_modules` já tinha `57.0.10` (o
+`pnpm-workspace.yaml` pede as versões novas em `minimumReleaseAgeExclude`). O
+CocoaPods reclama de **um** pod e sugere `pod update <aquele> --no-repo-update`
+— mas quando vários derivaram (ali eram três: Core, Asset e FileSystem), o
+update de um só cascateia no seguinte.
+
+O que resolve de uma vez, sem destruir o projeto Xcode:
+
+```bash
+cd apps/mobile/ios && pod update --no-repo-update
+```
+
+`ios/` e `android/` são pastas GERADAS (estão no `.gitignore`), então
+regenerá-las é seguro. Se `pod update` não bastar, o próximo passo é
+`npx expo prebuild --clean -p ios`.
+
+---
+
 ## 9. Mapa de progresso
 
 - [x] **Fase 1 — Fundação.** Expo Router, aliases nos três lugares, tema restyle
@@ -390,7 +551,12 @@ infinito — o que mais incomoda) e na entrada do sheet.
       Estoque, Custos, Relatórios, Configurações (4 abas), Suporte (lista +
       thread) e os 5 sheets.
       *Portão: typecheck ✅ lint ✅ test ✅ export ios ✅*
-- [ ] **Fase 5 — Backend Supabase.** Trocar o corpo dos `*Api.ts`. Ver §11.
+- [x] **Fase 5 — Backend Supabase (integração online).** Cliente com sessão
+      criptografada, login real, portão por `has_module('app')` e os nove
+      domínios lendo/escrevendo no banco. `src/data/` e `mockLatency` removidos.
+      *Portão: typecheck ✅ lint ✅ test ✅ (196) export ios ✅*
+- [ ] **Fase 6 — Offline com sincronização.** Não iniciada, e deliberadamente
+      fora da fase 5. Ver §13.
 
 ---
 
@@ -412,9 +578,12 @@ mostra hoje um toast explicando o que faria):
 1. **Sentry + ErrorBoundary** no `app/_layout.tsx`. App em produção sem crash
    reporting é depuração às cegas. É a primeira coisa a fazer.
 2. **Segundo projeto de jest (`jest-expo` + RNTL)** para componentes críticos:
-   `SheetCarrinho`, `SheetFechamento`, `BarraDeAbas` por entitlement. A infra já
-   está pronta (`jest.config.js` usa `projects`, e `jest-expo` +
+   `CartSheet`, `CloseOutSheet`, `TabBar` por entitlement. A infra já está
+   pronta (`jest.config.js` usa `projects`, e `jest-expo` +
    `@testing-library/react-native` já estão instalados) — falta o segundo bloco.
+   Ficou mais urgente depois da fase 5: o `CloseOutSheet` agora manda o
+   **contado em dinheiro** para o banco, e um erro ali carimba diferença errada
+   no fechamento do caixa.
 3. **E2E com Maestro** nos fluxos que dão dinheiro: login → montar carrinho →
    finalizar; abrir caixa → sangria → fechar com diferença.
 4. **CI (GitHub Actions)**: `typecheck + lint + test` em cada PR.
@@ -433,23 +602,129 @@ mostra hoje um toast explicando o que faria):
 
 ---
 
-## 11. A virada para o Supabase (fase 5)
+## 11. A virada para o Supabase (fase 5) — FEITA
 
-Deve ser mecânica. O que muda:
+A aposta da arquitetura se pagou: **os nove adapters, os seletores, as stores e
+quase todas as telas ficaram intactos.** O que mudou foi o corpo dos `*Api.ts`.
+Mas a previsão original errou em cinco pontos, e cada um deles é uma lição.
 
-1. **O corpo de cada `<nome>Api.ts`** — nove arquivos, todos marcados com
-   `⚠️ ÚNICO ARQUIVO DESTE DOMÍNIO QUE MUDA COM O SUPABASE`. Cada função vira um
-   `supabase.from(...).select(...)`, mantendo assinatura e tipo de retorno.
-2. `sessionApi.entrar` vira `supabase.auth.signInWithPassword` — o
-   `sessionApiTypes.ts` já está modelado no formato do Supabase Auth.
-3. `src/data/*` deixa de ser importado pelos Api (pode virar seed de teste).
-4. `src/services/mockLatency.ts` sai de cena.
-5. `stockService.registrarMovimentacao` faz **duas** escritas (movimentação +
-   saldo). No banco isso vira uma função SQL única, no mesmo espírito de
-   `admin_create_tenant` — para não existir movimentação sem saldo.
+### 11.1 O que a fase de mock adivinhou errado
 
-O que **não** muda: adapters, services, useCases, seletores, stores, componentes
-e telas. Se a virada estiver dando trabalho, foi a camada que vazou antes.
+**1. O `tenant_id` não vem do `user_metadata`.** Vem de `public.profiles`. A
+diferença não é cosmética: `user_metadata` é **gravável pelo próprio usuário**
+(`supabase.auth.updateUser`), então dava para escrever o `tenant_id` de outro
+negócio e o app acreditaria. `profiles` é protegida por RLS e só o admin
+escreve. É a mesma leitura que o portal faz em `lib/sessao.ts`.
+
+**2. Dinheiro no banco é `numeric` em REAIS, não inteiro em centavos.** O app
+continua trabalhando só com centavos — a conversão acontece na **fronteira de
+rede**, nos dois sentidos (`realToCents` na leitura, `centsToReal` na escrita).
+Ficou no `*Api.ts` e não no adapter de propósito: é uma diferença de UNIDADE
+entre dois sistemas, não uma tradução de modelo, e mantê-la ali foi o que
+permitiu não tocar em nenhum adapter nem em nenhum teste.
+
+**3. Vários `*ApiTypes.ts` viraram DTOs COMPOSTOS**, e não espelhos de tabela.
+`TenantAPI` junta `tenants` + `plans` + `v_active_modules`; `DailySummaryAPI`
+junta `v_daily_sales` + um agregado de `sale_items`. A composição é trabalho da
+fronteira; a tradução, do adapter. Isso não estava previsto e é o motivo de o
+contrato ter sobrevivido.
+
+**4. `renews_at` não existe** em `tenants`. O campo continua no contrato,
+sempre `null` — a tela já sabe escondê-lo. Inventar uma data calculada seria
+pior: apareceria como fato na tela do cliente.
+
+**5. `stockService` não faz mais duas escritas.** A previsão estava certa —
+virou uma função SQL única. Ver a armadilha 17.
+
+### 11.2 O que mudou fora dos `*Api.ts` (e por quê)
+
+| onde | mudança | motivo |
+|---|---|---|
+| `sessionStore` | **deixou de ser persistido** | quem persiste a sessão agora é o cliente Supabase, criptografada. Duas cópias divergiriam no pior momento: token revogado no servidor, `user` ainda no disco |
+| `sessionAdapter` | ganhou as 3 negativas de acesso | `no_tenant`, `platform_admin`, `suspended` — quem cai nelas digitou a senha certa |
+| `catalogService.moveStock` | **removido** | `apply_stock_movement` já ajusta o saldo. Mantê-lo descontaria o estoque duas vezes |
+| `cashService.closeCash` | recebe o **contado**, não a diferença | quem calcula esperado e diferença é `close_cash_register`, no banco |
+| `tenantSpecialCategory` | virou `specialCategoryOf(products)`, puro | era uma tabela fixa tenant → rótulo dentro do Api. Não sobrevive a backend real: o rótulo é leitura do próprio catálogo |
+| `settings.tsx` | ganhou `onError` no salvar | sem ele, a recusa do RLS não daria retorno NENHUM na tela |
+
+---
+
+## 12. O que o banco precisa (descoberto na integração)
+
+Ordenado por quanto dói. Os dois primeiros são visíveis para o cliente hoje.
+
+**1. Falta a política de UPDATE em `tenants`.** Configurações › Negócio **não
+salva**. A escrita passa sem erro e afeta zero linhas — por isso o
+`tenantApi.updateTenant` confere a contagem e devolve `null`, que vira o erro
+`forbidden` e um toast honesto. Sem essa checagem, a tela diria "salvo" e o nome
+voltaria ao antigo na carga seguinte.
+
+```sql
+create policy "dono atualiza o próprio negócio" on tenants
+  for update using (id = current_tenant_id())
+  with check (id = current_tenant_id());
+```
+
+**2. Não existe `activity_log`.** O feed de atividades em Configurações vem
+**sempre vazio**. `listActivities` devolve `[]` de propósito: sintetizar
+"atividades" a partir de vendas e movimentações pareceria um log de auditoria
+sem ser um, e alguém acabaria confiando nisso para saber quem fez o quê.
+
+**3. Falta CHECK (ou enum) nas colunas de estado.** Verificado no levantamento
+do portal: `'__x__'` foi **aceito** em `sales.payment_method`, `sales.status`,
+`costs.type`, `costs.origin` e `cash_registers.status`. Enquanto não houver,
+`src/domain/shared/dbEnums.ts` é a única coisa segurando o vocabulário deste
+lado — e ele **precisa continuar igual** ao de `apps/portal-client/lib/dados/`.
+
+**4. `create_sale` transacional.** Registrar uma venda são duas escritas sem
+transação (`sales`, depois `sale_items`). O `salesApi` apaga a venda órfã se a
+segunda falhar, mas isso é remendo: o certo é uma função no banco, que de quebra
+levaria a baixa de estoque para dentro dela.
+
+**5. E-mail do funcionário.** Vive em `auth.users`, fora do alcance do RLS.
+A aba Equipe mostra o campo vazio, igual ao portal.
+
+**5b. `platform_settings` não é legível pelo app — resolvido por função.**
+A tabela tem política `is_platform_admin` (ver
+`apps/portal-admin/lib/autorizacao.ts`), então o usuário de tenant recebe **200
+com zero linhas**, não 403 — "bloqueado pelo RLS" e "chave inexistente" chegam
+idênticos ao app.
+
+O botão "Falar com o suporte" da tela de bloqueio precisa do número, então a
+migration `20260807000000_platform_whatsapp_contact.sql` cria
+`platform_whatsapp_contact()` — SECURITY DEFINER, executável por
+`authenticated`, expondo **um** valor. A tabela continua fechada.
+
+Escolhida no lugar de uma policy de SELECT na tabela porque
+`platform_settings` é um chaveiro genérico (guarda também `trial_days`,
+`default_modules`, `inactivity_notify`): abrir a tabela cria uma superfície que
+precisaria ser revista a cada chave nova, e revisão que depende de alguém
+lembrar é revisão que uma hora não acontece.
+
+⚠️ **Enquanto a migration não for aplicada, a RPC não existe e o botão cai no
+fallback** — avisa e oferece o e-mail. É o comportamento correto, não um bug.
+
+**6. O custo praticado na venda não é guardado.** `sale_items` tem `unit_price`
+(o preço no momento, correto) mas não o custo. O lucro do dia é calculado com o
+custo **atual** do produto — se o fornecedor mudou o preço ontem, o lucro de
+hoje sai com o custo novo. Um `unit_cost` em `sale_items` resolveria.
+
+---
+
+## 13. Offline com sincronização — NÃO IMPLEMENTADO
+
+Fase separada e posterior, deliberadamente fora do escopo da integração. O que
+já está no lugar para quando ela chegar, e o que vai doer:
+
+- `conexaoStore` e `useConnectionMonitor` já existem e já mostram o banner.
+- `SaleAPI.is_synced` já existe no contrato, hoje sempre `true`. É o campo que
+  passa a significar algo.
+- **O ponto mais difícil não é a leitura, é a escrita.** Venda, sangria e
+  fechamento de caixa geram id no servidor; uma fila offline precisa de id local
+  e de reconciliação. E `close_cash_register` calcula a diferença no banco — não
+  dá para fechar caixa offline sem duplicar essa conta no cliente.
+- A baixa de estoque é feita por **trigger** no banco. Uma venda enfileirada
+  offline não desconta nada até subir, então o saldo mostrado fica otimista.
 
 ---
 

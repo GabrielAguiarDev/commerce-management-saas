@@ -18,8 +18,26 @@ export const ptBR: Messages = {
       invalid_email: 'Confira o e-mail digitado.',
       short_password: 'A senha precisa ter pelo menos 6 caracteres.',
       invalid_credentials: 'E-mail ou senha não conferem.',
+      // As três abaixo são NEGATIVAS DE ACESSO, não falhas: quem as vê digitou
+      // a senha certa. Dizer "confira a senha" o faria tentar para sempre.
+      no_tenant: 'Esta conta ainda não está ligada a um negócio. Fale com o suporte.',
+      platform_admin: 'Conta de administrador usa o painel, não o aplicativo.',
+      suspended: 'Este acesso está suspenso. Fale com o dono do negócio.',
       network: 'Sem conexão com o servidor. Tente de novo em instantes.',
+      // O servidor respondeu bem — o aparelho é que não conseguiu GRAVAR a
+      // sessão. Dizer "sem conexão" aqui manda depurar o lado saudável.
+      storage: 'Não deu para salvar sua sessão neste aparelho. Fale com o suporte.',
       unknown: 'Não conseguimos entrar agora. Fale com o suporte.',
+    },
+
+    tenant: {
+      not_found: 'Não encontramos os dados do seu negócio.',
+      // De propósito NÃO diz "você não tem permissão": o dono tem toda razão em
+      // esperar editar o próprio negócio. A política de UPDATE que falta em
+      // `tenants` é bug nosso, não erro dele.
+      forbidden: 'Salvar os dados do negócio ainda não está disponível. Fale com o suporte.',
+      network: 'Não deu para salvar agora. Tente de novo.',
+      unknown: 'Algo deu errado com os dados do seu negócio.',
     },
 
     catalog: {
@@ -84,6 +102,11 @@ export const ptBR: Messages = {
     spreadsheetExported: 'Planilha gerada e salva no celular.',
     replySent: 'Mensagem enviada ao suporte.',
     ticketOpened: 'Chamado aberto. Respondemos em até 1 dia útil.',
+    // Aparece quando o canal do WhatsApp não abriu — número ilegível no banco
+    // ou aparelho recusou o link. Dá a alternativa em vez de só pedir desculpa:
+    // quem vê isto está na tela de bloqueio e não tem outro caminho.
+    whatsappUnavailable:
+      'Não foi possível abrir o WhatsApp. Escreva para contato@aguiarone.com.br que a gente responde.',
     attachmentUnavailable: 'Escolha uma foto da galeria ou tire uma agora.',
     synced: 'Tudo sincronizado. Nada se perdeu.',
   },

@@ -74,12 +74,29 @@ export async function recordAdjustment(
   }
 }
 
+/**
+ * FECHAR O CAIXA.
+ *
+ * Recebe o CONTADO EM DINHEIRO, não a diferença: quem calcula o esperado e a
+ * diferença é `close_cash_register`, no banco. A diferença que o app mostra
+ * durante a conferência é para o dono entender o que está fazendo; a que fica
+ * gravada é a do banco, e as duas não podem sair de contas diferentes.
+ */
 export async function closeCash(
   tenantId: string,
-  diferencaCentavos: number,
+  shiftId: string,
+  contadoEmDinheiroCentavos: number,
+  observacao = '',
 ): Promise<ClosedShift> {
+  if (contadoEmDinheiroCentavos < 0) throw new CashError('invalid_amount');
+
   try {
-    const raw = await api.closeShift(tenantId, diferencaCentavos);
+    const raw = await api.closeShift(
+      tenantId,
+      shiftId,
+      contadoEmDinheiroCentavos,
+      observacao || null,
+    );
     if (!raw) throw new CashError('cash_closed');
     return toClosedShift(raw);
   } catch (e) {

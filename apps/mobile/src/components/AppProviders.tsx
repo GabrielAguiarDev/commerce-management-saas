@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { useSessionSync } from '@hooks/useSessionSync';
 import { usePreferencesStore } from '@store/preferencesStore';
 import { darkTheme, lightTheme } from '@theme';
 
@@ -22,6 +23,11 @@ import { darkTheme, lightTheme } from '@theme';
 export function AppProviders({ children }: { children: ReactNode }) {
   const isDark = usePreferencesStore((s) => s.darkTheme);
   const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
+
+  // A sessão do Supabase, restaurada no boot e vigiada daí em diante. Fica
+  // aqui, no provider, porque precisa existir uma única inscrição para o app
+  // inteiro — em componente de tela, remontaria a cada navegação.
+  useSessionSync();
 
   // `useState` e não módulo: um QueryClient no escopo do módulo sobrevive ao
   // Fast Refresh com cache de outra sessão e produz bugs fantasma em dev.

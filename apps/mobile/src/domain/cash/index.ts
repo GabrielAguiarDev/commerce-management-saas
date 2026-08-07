@@ -7,7 +7,12 @@ export type {
   ClosedShift,
 } from './cashTypes';
 export { CashError } from './cashTypes';
-export { computeDifference, countRows, labelDifference } from './cashAdapter';
+export {
+  computeDifference,
+  countedCashCents,
+  countRows,
+  labelDifference,
+} from './cashAdapter';
 export {
   caixaKeys,
   useAbrirCaixa,

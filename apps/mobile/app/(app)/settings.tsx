@@ -15,6 +15,7 @@ import {
 import { ROUTES } from '@domain/navigation/routes';
 import {
   labelModules,
+  TenantError,
   useActivities,
   useTeam,
   useSaveBusinessDetails,
@@ -129,7 +130,17 @@ function BusinessTab() {
         onPress={() =>
           save(
             { name, phone },
-            { onSuccess: () => showToast(t.toasts.businessSaved) },
+            {
+              onSuccess: () => showToast(t.toasts.businessSaved),
+              // Sem este ramo, uma recusa do banco não daria retorno NENHUM na
+              // tela — o botão pararia de girar e o nome voltaria ao antigo na
+              // próxima carga. Hoje isto dispara de verdade: falta a política
+              // de UPDATE em `tenants`. Ver tenantApi.updateTenant.
+              onError: (error) => {
+                const code = error instanceof TenantError ? error.code : 'unknown';
+                showToast(t.errors.tenant[code], { tone: 'erro' });
+              },
+            },
           )
         }
         height={50}

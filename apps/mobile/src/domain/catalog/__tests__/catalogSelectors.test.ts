@@ -8,8 +8,10 @@ import {
   saleGrid,
   productsInStock,
   lowStockProducts,
+  specialCategoryOf,
   stockSummary,
 } from '../catalogSelectors';
+import type { Product } from '../catalogTypes';
 
 function api(p: Partial<ProductAPI> & Pick<ProductAPI, 'id' | 'name'>): ProductAPI {
   return {
@@ -173,5 +175,70 @@ describe('produtosEmAlerta', () => {
       'Sachê gato salmão',
       'Coleira antipulgas',
     ]);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* specialCategoryOf — o rótulo do 3º chip                                     */
+/* -------------------------------------------------------------------------- */
+
+describe('specialCategoryOf', () => {
+  const produto = (over: Partial<Product> = {}): Product => ({
+    id: 'p',
+    name: 'Item',
+    code: null,
+    priceCents: 1000,
+    costCents: null,
+    ehServico: false,
+    favorite: true,
+    stock: null,
+    category: null,
+    ...over,
+  });
+
+  it('serviço no catálogo vence tudo — o chip é "Serviços"', () => {
+    // É a divisão que mais importa para quem vende as duas coisas: banho e
+    // ração, no petshop.
+    const list = [
+      produto({ id: '1', ehServico: true }),
+      produto({ id: '2', category: 'Ração' }),
+      produto({ id: '3', category: 'Ração' }),
+    ];
+    expect(specialCategoryOf(list)).toBe('Serviços');
+  });
+
+  it('sem serviço, usa a categoria mais comum', () => {
+    const list = [
+      produto({ id: '1', category: 'Bebidas' }),
+      produto({ id: '2', category: 'Bebidas' }),
+      produto({ id: '3', category: 'Salgados' }),
+    ];
+    expect(specialCategoryOf(list)).toBe('Bebidas');
+  });
+
+  it('categoria única não vira chip — ela não separa nada', () => {
+    // Um chip que seleciona o catálogo inteiro ocupa espaço sem filtrar.
+    const list = [
+      produto({ id: '1', category: 'Bebidas' }),
+      produto({ id: '2', category: 'Bebidas' }),
+    ];
+    expect(specialCategoryOf(list)).toBeNull();
+  });
+
+  it('catálogo sem categoria nenhuma não tem chip', () => {
+    expect(specialCategoryOf([produto({ id: '1' }), produto({ id: '2' })])).toBeNull();
+  });
+
+  it('catálogo vazio não quebra', () => {
+    expect(specialCategoryOf([])).toBeNull();
+  });
+
+  it('ignora categoria que é só espaço em branco', () => {
+    const list = [
+      produto({ id: '1', category: '   ' }),
+      produto({ id: '2', category: 'Bebidas' }),
+      produto({ id: '3', category: 'Bebidas' }),
+    ];
+    expect(specialCategoryOf(list)).toBeNull();
   });
 });
