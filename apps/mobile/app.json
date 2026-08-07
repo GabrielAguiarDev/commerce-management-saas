@@ -14,16 +14,12 @@
     "android": {
       "package": "br.com.aguiarone.app",
       "adaptiveIcon": {
-        "backgroundColor": "#123C4A",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#020E18"
       },
       "predictiveBackGestureEnabled": false,
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png",
       "bundler": "metro",
       "output": "single"
     },
@@ -34,12 +30,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#123C4A",
+          "backgroundColor": "#020E18",
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain",
           "dark": {
-            "backgroundColor": "#0D2029"
+            "backgroundColor": "#020E18"
           }
         }
       ]
