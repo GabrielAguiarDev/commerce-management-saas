@@ -105,9 +105,11 @@ export interface Payment {
 export interface SettingItem {
   id: string;
   label: Loc;
-  type: "mods" | "numero" | "select";
+  type: "mods" | "numero" | "select" | "telefone";
   value: string | number | string[];
   options?: [string, Loc][];
+  /** Linha de apoio sob o rótulo, para o ajuste cujo efeito não é óbvio. */
+  hint?: Loc;
 }
 
 export interface MonthlyRevenue {

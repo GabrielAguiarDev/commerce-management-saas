@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, type ActionResult } from "@/lib/autorizacao";
+import { normalizeWhatsapp } from "@/lib/telefone";
 
 /**
  * Grava um ajuste em `platform_settings`.
@@ -17,6 +18,7 @@ const ALLOWED_KEYS = new Set([
   "trial_days",
   "inactivity_notify",
   "default_language",
+  "whatsapp_contact",
 ]);
 
 export async function saveSetting(
@@ -40,9 +42,22 @@ export async function saveSetting(
     return { ok: false, message: "Selecione os módulos padrão." };
   }
 
+  // O que vai para o banco. Só o WhatsApp mexe nisto: o campo é de texto livre,
+  // e é AQUI que o número vira a forma internacional só com dígitos. Normalizar
+  // na tela não bastaria — quem lê a chave depois (o app mobile, pelo
+  // `platform_whatsapp_contact()`) monta um `wa.me` direto com o que estiver
+  // gravado, então a garantia do formato tem que ficar do lado do servidor.
+  let value: string | number | string[] = amount;
+
+  if (key === "whatsapp_contact") {
+    const phone = normalizeWhatsapp(amount);
+    if (!phone.ok) return { ok: false, message: phone.message };
+    value = phone.value;
+  }
+
   const { error } = await auth.supabase
     .from("platform_settings")
-    .upsert({ key: key, value: amount, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    .upsert({ key: key, value: value, updated_at: new Date().toISOString() }, { onConflict: "key" });
 
   if (error) {
     console.error("[salvarConfiguracao] falha:", error.message);

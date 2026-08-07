@@ -23,6 +23,7 @@ const SETTINGS: {
   label: Loc;
   type: SettingItem["type"];
   options?: [string, Loc][];
+  hint?: Loc;
 }[] = [
   {
     key: "default_modules",
@@ -58,6 +59,15 @@ const SETTINGS: {
       ["en-US", { pt: "Inglês (EUA)", en: "English (US)" }],
     ],
   },
+  {
+    key: "whatsapp_contact",
+    label: { pt: "WhatsApp de contato", en: "Contact WhatsApp" },
+    type: "telefone",
+    hint: {
+      pt: "Usado nos links de contato do site e do app.",
+      en: "Used in the contact links on the website and in the app.",
+    },
+  },
 ];
 
 /** Valor de partida quando a chave ainda não existe na tabela. */
@@ -87,7 +97,7 @@ export async function listSettings(): Promise<SettingsResult> {
   const stored = new Map((data ?? []).map((l) => [l.key as string, l.value]));
 
   return {
-    settings: SETTINGS.map(({ key, label, type, options }) => {
+    settings: SETTINGS.map(({ key, label, type, options, hint }) => {
       const gross = stored.get(key);
       return {
         id: key,
@@ -107,6 +117,7 @@ export async function listSettings(): Promise<SettingsResult> {
                 ? Number(gross) || 0
                 : String(gross),
         ...(options ? { options } : {}),
+        ...(hint ? { hint } : {}),
       };
     }),
     error: null,

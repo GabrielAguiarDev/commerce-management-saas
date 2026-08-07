@@ -6,6 +6,7 @@ import { saveSetting } from "@/app/configuracoes/actions";
 import { useAdmin } from "@/components/AdminProvider";
 import { Button, Field, css, MONO, Select } from "@aguiar/ui";
 import { EditarIcone } from "@/lib/icons";
+import { formatWhatsapp } from "@/lib/telefone";
 import { chip } from "@aguiar/ui";
 import type { SettingItem } from "@/types/types";
 
@@ -36,9 +37,25 @@ export function ConfigView() {
     return m ? m.name[id] || m.name.pt : k;
   };
 
+  /**
+   * Valor de partida do rascunho ao abrir o lápis.
+   *
+   * A lista é copiada para o toque nos chips não mexer no valor que veio do
+   * banco. O telefone começa legível — os dígitos crus são o que se guarda, não
+   * o que se confere — e vazio continua vazio: um "—" dentro do campo seria o
+   * primeiro caractere a apagar.
+   */
+  const openDraft = (cfg: SettingItem): SettingItem["value"] => {
+    if (Array.isArray(cfg.value)) return cfg.value.slice();
+    if (cfg.type === "telefone") return cfg.value ? formatWhatsapp(String(cfg.value)) : "";
+    return cfg.value;
+  };
+
   /** Human-readable form of a setting's value, whatever its type. */
   const valueLabel = (cfg: SettingItem, v: SettingItem["value"]): string => {
     if (cfg.type === "numero") return `${v} ${L.diasSufixo}`;
+    // O banco guarda "5573999935628"; ninguém confere treze dígitos colados.
+    if (cfg.type === "telefone") return formatWhatsapp(String(v));
     if (cfg.type === "mods") {
       const list = Array.isArray(v) ? v : [];
       return list.length ? list.map(moduleName).join(" · ") : "—";
@@ -75,18 +92,20 @@ export function ConfigView() {
                   "flex-wrap:wrap;padding:13px 15px;border:1px solid var(--border-soft);border-radius:10px",
               )}
             >
-              <span style={css("font-size:13px;color:var(--text)")}>
-                {cfg.label[id] || cfg.label.pt}
+              <span style={css("display:flex;flex-direction:column;gap:3px;min-width:0")}>
+                <span style={css("font-size:13px;color:var(--text)")}>
+                  {cfg.label[id] || cfg.label.pt}
+                </span>
+                {cfg.hint && (
+                  <span style={css("font-size:11.5px;color:var(--text2);line-height:1.45")}>
+                    {cfg.hint[id] || cfg.hint.pt}
+                  </span>
+                )}
               </span>
 
               {!editing ? (
                 <Button
-                  onClick={() =>
-                    a.set({
-                      editingSetting: cfg.id,
-                      settingDraft: Array.isArray(cfg.value) ? cfg.value.slice() : cfg.value,
-                    })
-                  }
+                  onClick={() => a.set({ editingSetting: cfg.id, settingDraft: openDraft(cfg) })}
                   className="hv-acc-soft-borda"
                   style={css(
                     "display:flex;align-items:center;gap:8px;border:1px solid transparent;" +
@@ -124,6 +143,22 @@ export function ConfigView() {
                       onChange={(e) => a.set({ settingDraft: parseInt(e.target.value, 10) || 0 })}
                       aria-label={cfg.label[id] || cfg.label.pt}
                       cssText={`width:96px;font-family:`}
+                    />
+                  )}
+
+                  {cfg.type === "telefone" && (
+                    <Field
+                      type="tel"
+                      inputMode="tel"
+                      value={String(rasc)}
+                      // O que foi digitado entra no rascunho como está, com
+                      // parêntese e traço. Formatar a cada tecla brigaria com
+                      // quem apaga no meio do número; quem arruma a forma é a
+                      // Server Action, na hora de gravar.
+                      onChange={(e) => a.set({ settingDraft: e.target.value })}
+                      placeholder="(73) 99999-5628"
+                      aria-label={cfg.label[id] || cfg.label.pt}
+                      cssText="width:170px"
                     />
                   )}
 
