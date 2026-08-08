@@ -10,6 +10,8 @@
 
 export const palette = {
   // ── Claro ────────────────────────────────────────────────────────────────
+  brandPrimary: '#1B9ABD',
+  brandSecondary: '#020E18',
   bgLight: '#eef2f4',
   surfaceLight: '#ffffff',
   surface2Light: '#f4f8f9',

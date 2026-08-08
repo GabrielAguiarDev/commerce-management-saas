@@ -163,9 +163,11 @@ const tokensClaros = {
   textPrimary: palette.textLight,
   textMuted: palette.mutedLight,
 
-  primary: palette.tealLight,
+  primary: palette.brandPrimary,
   primarySoft: palette.tealSoftLight,
   onPrimary: palette.white,
+
+  secondary: palette.brandSecondary,
 
   success: palette.greenLight,
   successSoft: palette.greenSoftLight,

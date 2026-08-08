@@ -73,7 +73,20 @@ function Chrome({ fontsReady }: { fontsReady: boolean }) {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="login" options={{ animation: 'fade' }} />
+
+        {/* Sair da conta é `router.replace` para cá (ver `(tabs)/more.tsx`), e a
+            animação de ENTRADA do login é que desenha essa saída. `fade` fazia o
+            app dissolver; `slide_from_right` é o empurrão nativo do iOS — com o
+            paralaxe e a sombra de borda que o sistema já dá de graça.
+
+            `animationTypeForReplace` é explícito porque o padrão do
+            react-native-screens para um `replace` é `pop`, e aí o slide viria da
+            ESQUERDA (sensação de "voltar"). Trocar para `pop` se um dia o
+            desejado for esse. */}
+        <Stack.Screen
+          name="login"
+          options={{ animation: 'slide_from_right', animationTypeForReplace: 'push' }}
+        />
         <Stack.Screen name="blocked" options={{ animation: 'fade' }} />
         <Stack.Screen name="(app)" options={{ animation: 'fade' }} />
       </Stack>

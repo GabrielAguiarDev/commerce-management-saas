@@ -44,7 +44,7 @@ export default function HomeScreen() {
       subtitle={`${tenant?.name ?? '—'} · ${longDate()}`}
       showBack={false}
     >
-      <Box backgroundColor="petrol" borderRadius="r22" padding="s20">
+      <Box backgroundColor="secondary" borderRadius="r22" padding="s20">
         <Text variant="chipLabel" color="onPetrol" opacity={0.65}>
           Vendas de hoje
         </Text>
