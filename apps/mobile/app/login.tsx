@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AuthScreen, Button, Box, Field, Icon, Text, Touchable } from '@components';
 import { ROUTES } from '@domain/navigation/routes';
 import { AuthError } from '@domain/session/sessionTypes';
+import { useSupportWhatsApp } from '@domain/support';
 import { useTranslation } from '@i18n';
 import { useSessionStore } from '@store/sessionStore';
 import { useUIStore } from '@store/uiStore';
@@ -30,6 +31,10 @@ export default function LoginScreen() {
   const signingIn = useSessionStore((s) => s.signingIn);
   const showToast = useUIStore((s) => s.showToast);
 
+  // O mesmo canal externo da tela de bloqueio, pelo mesmo motivo: quem não tem
+  // conta não tem como abrir um chamado dentro do app.
+  const { abrir: abrirWhatsApp, carregando: abrindoWhatsApp } = useSupportWhatsApp();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [verSenha, setVerSenha] = useState(false);
@@ -43,6 +48,12 @@ export default function LoginScreen() {
     } catch (error) {
       const code = error instanceof AuthError ? error.code : 'unknown';
       showToast(t.errors.auth[code], { tone: 'erro' });
+    }
+  }
+
+  async function falarComSuporte() {
+    if (!(await abrirWhatsApp())) {
+      showToast(t.toasts.whatsappUnavailable, { tone: 'erro' });
     }
   }
 
@@ -114,6 +125,22 @@ export default function LoginScreen() {
         >
           <Text variant="titleSm" color="primary">
             {t.auth.signIn.forgot}
+          </Text>
+        </Touchable>
+      </Box>
+
+      <Box flexDirection="row" justifyContent="center" alignItems="center" gap="s5" marginTop="s34">
+        <Text variant="captionSm" color="onPetrolGhost">
+          {t.auth.signIn.noAccount}
+        </Text>
+        <Touchable
+          accessibilityLabel={t.auth.signIn.contactSupport}
+          accessibilityState={{ busy: abrindoWhatsApp }}
+          onPress={falarComSuporte}
+          paddingVertical="s6"
+        >
+          <Text variant="tinyBold" color="onPetrolLink">
+            {t.auth.signIn.contactSupport}
           </Text>
         </Touchable>
       </Box>
