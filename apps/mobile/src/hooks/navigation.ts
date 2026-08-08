@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 
 import { isTabRoute } from '@domain/navigation/routes';
 
@@ -10,8 +10,9 @@ import { isTabRoute } from '@domain/navigation/routes';
  *
  *  - **aba** (Início, Produtos, Caixa, Custos, Mais) → `goToRoot`, que é um
  *    `jumpTo` dentro do navegador de abas. Sem desmontar nada, sem voltar.
- *  - **tela empilhada** (Estoque, Relatórios, Configurações, Suporte) →
- *    `push`, com botão voltar e a tab bar continuando visível por cima.
+ *  - **tela empilhada** (Vender, Estoque, Relatórios, Configurações, Suporte) →
+ *    `push`: ela sobe por cima das abas, em tela cheia, COBRINDO a tab bar, e
+ *    volta com o botão voltar do header.
  *
  * Quem chama não precisa saber em qual grupo a rota mora — a grade do "Mais" e
  * os atalhos do Início montam a lista a partir do plano e só dizem para onde
@@ -46,10 +47,27 @@ export function goTo(route: string): void {
  *    rolagem e os filtros onde o usuário deixou. `replace` desmontava a aba que
  *    saía e remontava a que entrava — o "recarregamento" a cada toque.
  *
- * Para `/sell`, que é raiz mas NÃO é aba, `navigate` empilha sobre as abas —
- * com a tab bar continuando visível por cima, porque ela é overlay do layout.
+ * Para `/sell`, que é raiz mas NÃO é aba, as duas etapas juntas dão o resultado
+ * certo: sai de qualquer tela empilhada e sobe UMA tela de Vender sobre as
+ * abas. Voltar de lá cai na aba de origem, com a tab bar de volta.
  */
 export function goToRoot(route: string): void {
   if (router.canDismiss()) router.dismissAll();
   router.navigate(route as never);
+}
+
+/**
+ * A tela atual é uma ABA (com tab bar embaixo) ou uma tela empilhada?
+ *
+ * A pergunta existe porque a tab bar deixou de ser universal: ela agora vive
+ * dentro do grupo `(tabs)` e some quando qualquer tela sobe por cima. Tudo que
+ * se posiciona a partir do rodapé — a barra do carrinho, o toast, o espaço
+ * reservado no fim do conteúdo — precisa saber se aqueles 88px existem nesta
+ * tela, senão flutua alto demais nas telas internas.
+ *
+ * A regra em si continua sendo a função pura `isTabRoute`, testada no node;
+ * aqui é só a leitura do caminho atual.
+ */
+export function useOnTabScreen(): boolean {
+  return isTabRoute(usePathname());
 }

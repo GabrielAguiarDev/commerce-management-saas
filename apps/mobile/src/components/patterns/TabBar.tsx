@@ -14,11 +14,16 @@ import { goToRoot } from '@hooks/navigation';
 export const ALTURA_TAB_BAR = 88;
 
 /**
- * A CASCA DO APP — sempre visível, nunca remontada.
+ * A CASCA DAS ABAS — estável nelas, ausente fora delas.
  *
- * Ela é montada uma única vez pelo layout de `(app)`, como overlay absoluto
- * irmão da pilha, e permanece: trocar de aba não a toca, e telas empilhadas
- * (Estoque, Suporte, Configurações) passam POR BAIXO dela.
+ * Ela é montada uma única vez pelo layout de `(tabs)`, como overlay absoluto
+ * irmão do navegador de abas, e permanece: trocar de aba não a toca, então ela
+ * não pisca. Mas ela pertence à tela `(tabs)`, e é isso que faz as telas
+ * INTERNAS (Vender, Estoque, Suporte, Configurações) subirem POR CIMA dela em
+ * tela cheia, em vez de passarem por baixo como antes.
+ *
+ * Por isso ela não precisa saber em que rota está para se esconder: a estrutura
+ * da navegação já responde. O `path` daqui serve só para pintar o item ativo.
  *
  * ⚠️ ESTE COMPONENTE NÃO TEM ESTADO DE CARREGAMENTO, e isso é deliberado.
  *

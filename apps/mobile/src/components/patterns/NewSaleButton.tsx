@@ -1,4 +1,3 @@
-import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box } from '@components/ui/Box';
@@ -25,8 +24,13 @@ const TAMANHO = 52;
  * em duas situações (estando em Vender, e com o carrinho cheio). O design o
  * coloca no MEIO da barra, e isso muda a natureza dele: um FAB pode sumir, um
  * item de barra não — sumir deixaria um buraco de 84px entre Produtos e o
- * atalho. Por isso ele agora é incondicional, e o que responde à tela ativa é o
- * rótulo, que fica teal em `/sell` exatamente como os das outras abas.
+ * atalho. Por isso ele é incondicional.
+ *
+ * ELE PARECE UMA ABA MAS NÃO É UMA. Vender é uma tela de PILHA, fora do grupo
+ * `(tabs)`: precisa da tela inteira para a grade de produtos, então sobe por
+ * cima e cobre esta barra. Como consequência o rótulo nunca fica ativo — este
+ * botão só existe nas abas, e nas abas nunca estamos em `/sell`. O estado ativo
+ * que havia aqui era código morto e saiu.
  *
  * A geometria vem do design: o círculo apoiado a 57px do fundo, e o rótulo a
  * 29,5px, na mesma linha dos rótulos das abas. Aqui isso é expresso de baixo
@@ -38,9 +42,6 @@ const TAMANHO = 52;
  */
 export function NewSaleButton() {
   const insets = useSafeAreaInsets();
-  const path = usePathname();
-
-  const active = path === ROUTES.sell;
 
   return (
     <Box
@@ -55,8 +56,9 @@ export function NewSaleButton() {
     >
       <Touchable
         accessibilityLabel="Nova venda"
-        // Vender também é raiz no protótipo: chegar nela zera a pilha, venha-se
-        // de onde vier.
+        // EMPILHA, não troca de aba: `goToRoot` limpa a pilha e sobe Vender
+        // sobre as abas, em tela cheia. Voltar de lá cai na aba de origem, com
+        // a tab bar de volta.
         onPress={() => goToRoot(ROUTES.sell)}
         alignItems="center"
         gap="s8"
@@ -74,7 +76,7 @@ export function NewSaleButton() {
           <Icon name="cart" size={24} color="onPrimary" />
         </Box>
 
-        <Text variant="tabLabel" color={active ? 'primary' : 'textMuted'}>
+        <Text variant="tabLabel" color="textMuted">
           Vender
         </Text>
       </Touchable>

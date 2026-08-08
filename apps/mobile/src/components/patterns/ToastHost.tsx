@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@components/ui/Box';
 import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
+import { useOnTabScreen } from '@hooks/navigation';
 import { useUIStore } from '@store/uiStore';
 import { palette } from '@theme';
 
@@ -32,21 +33,27 @@ import { ALTURA_TAB_BAR } from './TabBar';
 export function ToastHost() {
   const insets = useSafeAreaInsets();
   const segments = useSegments();
+  const onTab = useOnTabScreen();
   const toast = useUIStore((s) => s.toast);
   const onUndo = useUIStore((s) => s.onUndo);
   const closeToast = useUIStore((s) => s.closeToast);
 
   /**
-   * Dentro do app, o toast fica ACIMA da barra do carrinho (tab bar + barra +
-   * folga = 172 no protótipo), para que os três coexistam na tela de venda sem
-   * se cobrirem.
+   * O toast se empilha sobre tudo que já está no rodapé, e o rodapé tem três
+   * composições diferentes:
    *
-   * Em `login` e `blocked` não existe tab bar nem carrinho: manter aquele
-   * afastamento deixaria o toast flutuando no meio da tela, longe de qualquer
-   * coisa. Aí ele desce para a margem inferior normal.
+   *  - **aba**: tab bar (88) + espaço da barra do carrinho (84) = os 172 do
+   *    protótipo, para que os três coexistam sem se cobrirem;
+   *  - **tela interna** (Vender, Estoque, Configurações…): não há tab bar, só o
+   *    espaço do carrinho — que continua podendo aparecer ali;
+   *  - **fora do app** (`login`, `blocked`): não há nem um nem outro, e manter
+   *    o afastamento deixaria o toast boiando no meio da tela.
    */
   const dentroDoApp = segments[0] === '(app)';
-  const bottom = dentroDoApp ? ALTURA_TAB_BAR + insets.bottom + 84 : insets.bottom + 24;
+  const ESPACO_CARRINHO = 84;
+  const bottom = dentroDoApp
+    ? (onTab ? ALTURA_TAB_BAR : 0) + insets.bottom + ESPACO_CARRINHO
+    : insets.bottom + 24;
 
   if (!toast) return null;
 

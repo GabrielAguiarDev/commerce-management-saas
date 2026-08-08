@@ -1,8 +1,9 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Box, Field, ESPACO_INFERIOR, Screen, Text, Touchable } from '@components';
+import { Box, Field, ESPACO_INFERIOR_INTERNO, Screen, Text, Touchable } from '@components';
 import { useTicketMessages, useReplyToTicket } from '@domain/support';
 import { useTranslation } from '@i18n';
 import { useUIStore } from '@store/uiStore';
@@ -16,6 +17,7 @@ import { useUIStore } from '@store/uiStore';
  */
 export default function TicketScreen() {
   const t = useTranslation();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: mensagens = [] } = useTicketMessages(id);
   const { mutate: reply, isPending } = useReplyToTicket(id);
@@ -78,8 +80,10 @@ export default function TicketScreen() {
           flexDirection="row"
           gap="s8"
           paddingTop="s6"
-          // Espaço para a tab bar, que continua visível sobre esta tela.
-          style={{ paddingBottom: ESPACO_INFERIOR - 40 }}
+          // Esta é uma tela INTERNA: não há tab bar embaixo, mas a barra do
+          // carrinho pode aparecer aqui (o balconista consulta um chamado no
+          // meio de uma venda), e ela cobriria o campo de resposta.
+          style={{ paddingBottom: ESPACO_INFERIOR_INTERNO + insets.bottom }}
         >
           <Box flex={1}>
             <Field

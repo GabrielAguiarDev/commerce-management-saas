@@ -1,7 +1,7 @@
 import { Redirect, Stack } from 'expo-router';
 import { useState } from 'react';
 
-import { TabBar, CartBar, NewSaleButton, Box, ConfirmHost, SheetHost, StartupError } from '@components';
+import { CartBar, Box, ConfirmHost, SheetHost, StartupError } from '@components';
 import { ROUTES, resolveAppGate } from '@domain/navigation/routes';
 import { useAppAccess } from '@domain/session';
 import { useCurrentTenant } from '@domain/tenant';
@@ -29,18 +29,25 @@ export const unstable_settings = { anchor: '(tabs)' };
  * instante — era isso que aparecia como a tab bar sumindo e voltando. Só a
  * sessão morrer expulsa quem já entrou (ver a ordem em `resolveAppGate`).
  *
- * DECISÃO DE ARQUITETURA 2 — pilha com overlay, e não abas na raiz.
+ * DECISÃO DE ARQUITETURA 2 — a pilha é aqui; a tab bar NÃO.
  *
- * O protótipo tem tab bar sempre visível E botão voltar em metade das telas
- * (`pilha` + `go()`). Aqui a navegação é um `Stack` de verdade — push/pop
- * nativos, gesto de voltar do iOS, `router.canGoBack()` confiável — e a tab
- * bar, o FAB, a barra do carrinho, o confirm e o sheet são um overlay absoluto
- * IRMÃO da pilha. É a leitura literal do protótipo, onde essa chrome é
- * `position:absolute` sobre o conteúdo rolável, e é o que mantém a barra
- * visível também em Estoque, Suporte e Configurações.
+ * Esta é uma `Stack` de verdade — push/pop nativos, gesto de voltar do iOS,
+ * `router.canGoBack()` confiável. O primeiro item dela é o navegador de abas
+ * `(tabs)`, e todo o resto (Vender, Estoque, Relatórios, Configurações,
+ * Suporte) são telas que SOBEM por cima dele.
  *
- * As quatro raízes da tab bar não são telas desta pilha: vivem no navegador de
- * abas `(tabs)`, o primeiro item dela. Ver `app/(app)/(tabs)/_layout.tsx`.
+ * A tab bar e o botão Vender já moraram aqui, como overlay absoluto irmão da
+ * pilha — o que os deixava visíveis sobre TODAS as telas, inclusive as
+ * empilhadas. Eles desceram um nível, para dentro de `(tabs)/_layout.tsx`:
+ * assim pertencem à tela `(tabs)` e qualquer push os cobre, que é o que
+ * separa "tela de aba" de "tela interna". Ver o comentário lá.
+ *
+ * O que SOBROU aqui é o que precisa valer na pilha inteira:
+ *
+ *  - `CartBar`, porque uma venda em montagem tem que sobreviver a uma consulta
+ *    de estoque — e é justamente em Vender, que é tela empilhada, que ela mais
+ *    importa. Ela se reposiciona sozinha conforme haja tab bar embaixo;
+ *  - `SheetHost` e `ConfirmHost`, que são modais e cobrem tudo por definição.
  */
 export default function AppLayout() {
   const hydrated = useAppHydrated();
@@ -106,10 +113,19 @@ function AppShell() {
           animation: 'slide_from_right',
         }}
       >
-        {/* O navegador de abas. Sem animação: trocar de aba por dentro dele já
-            é instantâneo, e animar a entrada faria a pilha piscar ao voltar de
+        {/* O navegador de abas — o PISO da pilha, e a única tela daqui que
+            mostra a tab bar. Sem animação: trocar de aba por dentro dele já é
+            instantâneo, e animar a entrada faria a pilha piscar ao voltar de
             Estoque para uma aba. */}
         <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+
+        {/* As telas INTERNAS. Todas sobem por cima de `(tabs)` em tela cheia,
+            sem herdar a tab bar, e voltam com o botão voltar que o `Screen`
+            desenha a partir de `router.canGoBack()`.
+
+            `sell` está entre elas de propósito: é acionada pelo botão central
+            da barra, mas precisa da tela inteira para a grade de produtos —
+            então empilha como as outras em vez de virar aba. */}
         <Stack.Screen name="sell" />
         <Stack.Screen name="stock" />
         <Stack.Screen name="reports" />
@@ -117,18 +133,18 @@ function AppShell() {
         <Stack.Screen name="support" />
       </Stack>
 
-      {/* A chrome. Ordem = ordem de empilhamento: sheet e confirm por último,
-          porque precisam cobrir a tab bar e o FAB.
+      {/* A chrome que vale na PILHA INTEIRA. Ordem = ordem de empilhamento:
+          sheet e confirm por último, porque precisam cobrir o resto.
 
           Nada aqui desmonta ao navegar: são irmãos da pilha, montados uma vez
-          quando o guardião liberou. A `TabBar` em particular não tem mais
-          estado de carregamento — as capacidades já chegaram lá em cima.
+          quando o guardião liberou.
 
-          O ToastHost NÃO está aqui: ele vive no layout RAIZ, porque `login` e
+          A tab bar e o botão Vender NÃO estão mais aqui — ver o cabeçalho
+          deste arquivo e `(tabs)/_layout.tsx`.
+
+          O ToastHost também não: ele vive no layout RAIZ, porque `login` e
           `blocked` também precisam dele e estão fora deste grupo. Montá-lo nos
           dois lugares mostraria o mesmo toast duplicado aqui dentro. */}
-      <TabBar />
-      <NewSaleButton />
       <CartBar />
       <SheetHost />
       <ConfirmHost />

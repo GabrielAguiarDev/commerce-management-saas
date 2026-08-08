@@ -8,6 +8,7 @@ import { Box } from '@components/ui/Box';
 import { Icon } from '@components/ui/Icon';
 import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
+import { useOnTabScreen } from '@hooks/navigation';
 import { useSessionStore } from '@store/sessionStore';
 
 import { ConnectionBanner } from './ConnectionBanner';
@@ -15,8 +16,20 @@ import { ConnectionBanner } from './ConnectionBanner';
 /**
  * Altura reservada no fim do conteúdo para a tab bar (88), a barra do carrinho
  * e o FAB não cobrirem o último item. O protótipo usa 150px de padding-bottom.
+ *
+ * Vale nas ABAS. Ver `ESPACO_INFERIOR_INTERNO` para as telas de pilha.
  */
 export const ESPACO_INFERIOR = 150;
+
+/**
+ * O mesmo, nas telas INTERNAS (Vender, Estoque, Configurações, Suporte…), onde
+ * a tab bar não sobe: sobra reservar a barra do carrinho (60) mais folga. A
+ * safe area entra por cima disto, e não no lugar dela.
+ *
+ * Sem esta distinção, cada tela interna terminava com ~90px de vazio no fim da
+ * rolagem, reservados para uma barra que não está mais lá.
+ */
+export const ESPACO_INFERIOR_INTERNO = 92;
 
 interface ScreenProps {
   title: string;
@@ -34,10 +47,15 @@ interface ScreenProps {
 /**
  * O ESQUELETO de toda tela do app: header, banner de conexão e conteúdo.
  *
- * A tab bar, o FAB e a barra do carrinho NÃO estão aqui — vivem no layout do
- * grupo `(app)`, sobrepostos à pilha inteira. Foi essa divisão que permitiu ter
+ * A chrome não está aqui — a tab bar e o botão Vender vivem no layout de
+ * `(tabs)`, a barra do carrinho no de `(app)`. Esta divisão é o que permite ter
  * navegação nativa de verdade (push/pop, gesto de voltar do iOS) com a chrome
- * fixa que o protótipo desenha, sem transformar cada tela numa aba.
+ * flutuante que o protótipo desenha, sem transformar cada tela numa aba.
+ *
+ * O MESMO COMPONENTE serve aba e tela interna, e as duas diferenças visíveis
+ * saem daqui sem ninguém precisar passar prop: o botão voltar (que existe
+ * quando há pilha) e o espaço reservado no rodapé (que muda conforme a tab bar
+ * esteja embaixo ou não).
  */
 export function Screen({
   title,
@@ -48,11 +66,18 @@ export function Screen({
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const user = useSessionStore((s) => s.user);
+  const onTab = useOnTabScreen();
 
   // `router.canGoBack()` é a fonte da verdade da pilha: replicar isso num
   // estado próprio (como a `pilha` do protótipo) desincroniza na primeira vez
   // que alguém navega por deep link.
+  //
+  // Nas abas ele é `false` (o `backBehavior="none"` do navegador de abas
+  // garante isso), nas telas internas é `true` — então o botão voltar aparece
+  // exatamente onde a tab bar não está, sem nenhuma lista de rotas.
   const canGoBack = showBack ?? router.canGoBack();
+
+  const bottomSpace = onTab ? ESPACO_INFERIOR : ESPACO_INFERIOR_INTERNO + insets.bottom;
 
   const content = (
     <Box gap="s12" paddingHorizontal="s16" paddingTop="s2">
@@ -106,7 +131,7 @@ export function Screen({
       ) : (
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: ESPACO_INFERIOR }}
+          contentContainerStyle={{ paddingBottom: bottomSpace }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

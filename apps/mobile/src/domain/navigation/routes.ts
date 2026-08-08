@@ -52,7 +52,14 @@ export type Route = (typeof ROUTES)[keyof typeof ROUTES];
  * barra em cada plano (ver `tabBarShortcut`): os dois são destino de raiz, e o
  * que não está na barra continua alcançável pela grade do "Mais".
  *
- * `/sell` NÃO está: é raiz no protótipo, mas se empilha sobre as abas.
+ * `/sell` NÃO está, e é a exceção que vale explicar: ela é acionada pelo botão
+ * central da barra, o que a faz PARECER uma aba, mas precisa da tela inteira
+ * para a grade de produtos. Então ela empilha sobre as abas como qualquer tela
+ * interna, cobrindo a tab bar.
+ *
+ * Esta lista também é a resposta de "tem tab bar embaixo desta tela?", que é o
+ * que a barra do carrinho, o toast e o rodapé do `Screen` precisam saber para
+ * não flutuarem sobre um rodapé vazio. Ver `useOnTabScreen`.
  */
 const TAB_ROUTES: readonly string[] = [
   ROUTES.home,

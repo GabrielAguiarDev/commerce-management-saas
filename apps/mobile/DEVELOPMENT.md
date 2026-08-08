@@ -81,10 +81,10 @@ Os chips de demo ficaram fora de escopo por decisão do brief. Na fase de mock o
 e-mail escolhia o tenant; hoje quem decide é `profiles.tenant_id` do usuário
 logado, e os módulos saem de `v_active_modules`. Ver §7.
 
-**Abas persistentes por dentro, pilha com chrome sobreposta por fora.** As cinco
-raízes vivem num `Tabs` que nunca desmonta; o resto empilha sobre ele, com a tab
-bar como overlay por cima de tudo. E o acesso é verificado UMA vez, num guardião
-acima das abas. Ver §4.
+**Abas persistentes por dentro, telas internas empilhadas por fora.** As cinco
+raízes vivem num `Tabs` que nunca desmonta; o resto empilha **por cima**, em tela
+cheia e sem tab bar. E o acesso é verificado UMA vez, num guardião acima das
+abas. Ver §4.
 
 **`nodeLinker: hoisted` no workspace.** Ver §8, Armadilha 1 — foi mudança na
 raiz do monorepo, não só no app.
@@ -98,10 +98,10 @@ app/                        SOMENTE rotas
   _layout.tsx               splash hold + AppProviders + Stack raiz
   index.tsx                 a PORTA DA RUA (resolveEntryRoute, função pura)
   login.tsx  blocked.tsx  +not-found.tsx
-  (app)/_layout.tsx         o GUARDIÃO (resolveAppGate) + Stack + chrome fixa
-  (app)/(tabs)/_layout.tsx  as abas — montadas uma vez, barra própria em null
+  (app)/_layout.tsx         o GUARDIÃO (resolveAppGate) + Stack + carrinho/modais
+  (app)/(tabs)/_layout.tsx  as abas + a TAB BAR e o botão Vender (só aqui)
   (app)/(tabs)/{home,products,cash,costs,more}.tsx      ← trocam por jumpTo
-  (app)/{sell,stock,reports,settings}.tsx               ← empilham
+  (app)/{sell,stock,reports,settings}.tsx               ← empilham, SEM tab bar
   (app)/support/{index,[id]}.tsx
 src/
   components/
@@ -201,13 +201,35 @@ mais" que pisca.
 `/home` nunca passava por lá. Sendo o guardião um layout, essa porta dos fundos
 não existe.
 
-### A tab bar é a casca, e casca não pisca
+### A tab bar pertence às abas — e é a estrutura que decide, não a tela
 
-A chrome (tab bar, FAB, barra do carrinho, confirm, sheet) é um **overlay
-absoluto irmão da pilha**, em `(app)/_layout.tsx`. É a leitura literal do
-protótipo, onde ela é `position:absolute` sobre o conteúdo rolável — e é o que
-mantém a barra visível também em Estoque, Suporte e Configurações, que um `Tabs`
-comum esconderia ao empilhar.
+A tab bar e o botão Vender são um **overlay absoluto dentro de
+`(tabs)/_layout.tsx`**: irmãos do navegador de abas, não da pilha. Como
+pertencem à tela `(tabs)`, qualquer `push` da pilha de fora sobe por cima e os
+cobre. É daí que sai a separação entre **tela de aba** e **tela interna**, sem
+uma linha de "mostrar ou não" espalhada por tela.
+
+Eles já moraram um nível acima, irmãos da `Stack` em `(app)/_layout.tsx`, o que
+os deixava visíveis sobre a pilha inteira. O efeito era que Configurações,
+Suporte e Vender apareciam com a barra de navegação principal embaixo, como se
+fossem destinos de topo — e Vender, que é a tela que mais precisa de altura para
+a grade de produtos, perdia 88px para uma barra que não usa.
+
+Continuam sendo overlay absoluto (e não a prop `tabBar` do navegador) por duas
+razões: o desenho pede a barra flutuando sobre o conteúdo rolável, e o botão
+Vender precisa transbordar para fora dela.
+
+No `(app)/_layout.tsx` ficou só o que vale na pilha inteira: a **barra do
+carrinho** — some-la em Vender seria escondê-la exatamente onde é usada — e os
+hosts de sheet e confirm, que são modais.
+
+**Três coisas se posicionam a partir do rodapé** e por isso precisam saber se há
+tab bar embaixo: a barra do carrinho, o toast e o espaço reservado no fim do
+`Screen`. Todas perguntam a `useOnTabScreen()`, que é `isTabRoute(usePathname())`
+— a mesma função pura já testada no node. Sem isso elas boiariam sobre um rodapé
+vazio nas telas internas. Na barra do carrinho a mudança é **animada** (mesma
+curva do `aoUp`): ela acontece durante a transição de tela, e sem interpolar
+vira um solavanco no meio do slide.
 
 A `TabBar` **não tem mais estado de carregamento**. Ela já teve `if (loading)
 return null`, para não mostrar "Custos" num Plano Completo enquanto o plano não
@@ -217,10 +239,10 @@ capacidades resolvidas. Quando a barra renderiza, não há instante a esconder.
 
 ### Duas famílias de rota, e elas não se alcançam igual
 
-| | onde mora | como se alcança |
-|---|---|---|
-| **abas** — Início, Produtos, Caixa, Custos, Mais | `(app)/(tabs)/` | `goToRoot()` → `dismissAll` + `navigate` (jumpTo) |
-| **empilhadas** — Vender, Estoque, Relatórios, Configurações, Suporte | `(app)/` | `router.push()`, com botão voltar |
+| | onde mora | como se alcança | tab bar |
+|---|---|---|---|
+| **abas** — Início, Produtos, Caixa, Custos, Mais | `(app)/(tabs)/` | `goToRoot()` → `dismissAll` + `navigate` (jumpTo) | sim |
+| **internas** — Vender, Estoque, Relatórios, Configurações, Suporte | `(app)/` | `router.push()`, com botão voltar | **não** |
 
 `goTo(rota)` escolhe entre as duas a partir de `isTabRoute()` — quem chama (a
 grade do "Mais", os atalhos do Início) só diz para onde quer ir. Um `push` numa
@@ -237,19 +259,24 @@ montadas não custam cinco telas trabalhando.
 
 A barra do navegador de abas é `tabBar={() => null}`: o navegador é puramente
 estrutural (guarda o estado das abas), e quem desenha e escuta o toque é a
-`TabBar` do design system, um nível acima. Caixa **e** Custos moram nas abas,
+`TabBar` do design system, irmã dele. Caixa **e** Custos moram nas abas,
 embora só um dos dois seja o 3º item da barra em cada plano — os dois são destino
 de raiz, e o que não está na barra continua acessível pela grade do "Mais".
 
-`/sell` é raiz no protótipo mas **não** é aba: ela se empilha sobre as abas, com
-a tab bar continuando visível por cima. Consequência visível: Nova venda passou a
-ter botão voltar, porque agora existe de verdade uma tela embaixo dela. Antes o
-`replace` fingia que não — e o voltar do Android já saía do app.
+**`/sell` é a exceção que vale explicar.** Ela é acionada pelo botão central da
+tab bar, o que a faz *parecer* uma aba — mas é tela de pilha, e abre em tela
+cheia **sem** a barra. O motivo é a grade de produtos: é a tela do app que mais
+precisa de altura, e 88px de barra que ela não usa saem caros. O toque no botão
+central portanto NAVEGA (empilha), não troca de aba; voltar cai na aba de origem
+com a tab bar de volta. Consequência visível: Nova venda tem botão voltar,
+porque agora existe de verdade uma tela embaixo dela.
 
 `backBehavior="none"` no `Tabs` é obrigatório aqui. O padrão (`firstRoute`) faria
 o navegador tratar "voltar" como "ir para Início", `router.canGoBack()` viraria
 `true` em Produtos/Caixa/Custos e o `Screen` desenharia um botão voltar que o
-protótipo não tem.
+protótipo não tem. É também o que faz o botão voltar aparecer exatamente onde a
+tab bar não está: `false` nas abas, `true` na pilha de fora — sem lista de rotas
+nenhuma.
 
 ### Carregamento de dados fica DENTRO do conteúdo
 
@@ -474,10 +501,11 @@ chegava era "o login não faz nada", que manda depurar navegação e rede em vez
 da camada de UI.
 
 Uma instância só. Montar na raiz **e** em `(app)` mostraria o toast duplicado
-dentro do app. Como o afastamento inferior do design pressupõe tab bar + barra
-do carrinho, o componente pergunta a `useSegments()` se está dentro de `(app)`
-e desce para a margem normal quando não está — senão o toast flutuaria no meio
-da tela de login.
+dentro do app. O afastamento inferior tem três composições, e o componente
+pergunta as duas coisas que as separam: `useSegments()` para saber se está
+dentro de `(app)` (fora dele não há tab bar nem carrinho, e manter o afastamento
+faria o toast flutuar no meio da tela de login) e `useOnTabScreen()` para saber
+se há tab bar embaixo (numa tela interna há só o espaço do carrinho).
 
 Se criar uma tela nova fora de `(app)` que precise de confirmação ou de sheet,
 `ConfirmHost` e `SheetHost` têm exatamente o mesmo problema: continuam só em
@@ -636,6 +664,13 @@ regenerá-las é seguro. Se `pod update` não bastar, o próximo passo é
       carregamento de dados virou `Skeleton` dentro do conteúdo. Trocar de aba
       passou a ser um `jumpTo` — instantâneo, sem refetch e sem piscar. Ver §4.
       *Portão: typecheck ✅ lint ✅ test ✅ (231) export ios ✅*
+- [x] **Fase 5.2 — Aba × tela interna.** A tab bar e o botão Vender desceram do
+      layout de `(app)` para o de `(tabs)`, e com isso passaram a existir só nas
+      quatro abas principais. Configurações, Suporte, Estoque, Relatórios e
+      Vender abrem em tela cheia, com header e voltar, e desempilham de volta
+      para a aba de origem. As rotas já estavam nos grupos certos — o que mudou
+      foi o nível em que a chrome é montada. Ver §4.
+      *Portão: typecheck ✅ lint ✅ test ✅ (231)*
 - [ ] **Fase 6 — Offline com sincronização.** Não iniciada, e deliberadamente
       fora da fase 5. Ver §13.
 
