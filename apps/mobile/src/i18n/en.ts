@@ -1,3 +1,4 @@
+import type { RecoveryErrorCode } from '@domain/session/passwordRecovery';
 import type { AuthErrorCode } from '@domain/session/sessionTypes';
 import type { CashErrorCode } from '@domain/cash/cashTypes';
 import type { CatalogErrorCode } from '@domain/catalog/catalogTypes';
@@ -100,10 +101,23 @@ export const en = {
       description_required: 'Tell us what happened so we can help.',
       network: 'Could not send right now. Try again.',
     } as Record<SupportErrorCode, string>,
+
+    // Password recovery. The whole flow is a SIMULATION for now — see
+    // `domain/session/passwordRecovery.ts`.
+    recovery: {
+      invalid_email: 'Check the e-mail address you typed.',
+      incomplete_code: 'Type the 4 digits of the code.',
+      invalid_code: 'This code does not match. Check your e-mail.',
+      short_password: 'The new password must be at least 6 characters long.',
+      password_mismatch: 'The two passwords are not the same.',
+    } as Record<RecoveryErrorCode, string>,
   },
 
   toasts: {
     recoverySent: 'We sent a recovery link to your e-mail.',
+    /** The simulated flow: says it worked without claiming an e-mail was sent. */
+    recoveryCodeReady: 'Code ready. In the simulation it is not sent by e-mail.',
+    passwordChanged: 'New password saved. Sign in with it.',
     cameraUnavailable: 'The barcode camera would open here.',
     editUnavailable: (name: string) =>
       `This would open editing for ${name}. Changing the price applies only to future sales.`,
@@ -165,6 +179,73 @@ export const en = {
     text: 'Just a moment while we set up your business.',
     /** Read by screen readers in place of the dots, which are decorative. */
     a11yLabel: 'Opening the app',
+  },
+
+  /**
+   * The ENTRY screens: sign in and the (still simulated) password recovery.
+   *
+   * Their copy lives here, and not inline in the screens like the older ones,
+   * because these four screens are almost entirely copy — take the sentences
+   * out and what is left is a form. Keeping them in the catalog is also what
+   * lets the two locales stay provably in sync.
+   */
+  auth: {
+    tagline: 'Simple management for your business',
+
+    signIn: {
+      title: 'Sign in to your account',
+      emailLabel: 'E-mail address',
+      emailPlaceholder: 'you@yourbusiness.com',
+      passwordLabel: 'Password',
+      passwordPlaceholder: 'Your password',
+      showPassword: 'Show password',
+      hidePassword: 'Hide password',
+      submit: 'Sign in',
+      forgot: 'Forgot your password?',
+      // There is no sign-up in the app: accounts are created by the admin
+      // panel. So the "no account?" line leads to a conversation, not a form.
+      noAccount: 'No account yet?',
+      contactSupport: 'Talk to support',
+    },
+
+    forgot: {
+      title: 'Forgot your password',
+      intro: 'Type the e-mail of your account. We send you a 4-digit code to create a new password.',
+      emailLabel: 'E-mail address',
+      submit: 'Send code',
+      back: 'Back',
+    },
+
+    code: {
+      title: 'Check your e-mail',
+      /** "We sent a 4-digit code to ga••••@gmail.com". */
+      sentTo: (email: string) => `We sent a 4-digit code to ${email}`,
+      codeLabel: 'Verification code',
+      resendIn: (seconds: number) => `Resend code in ${seconds} s`,
+      resend: 'Resend code',
+      submit: 'Confirm',
+    },
+
+    newPassword: {
+      title: 'Create a new password',
+      intro: 'It must be at least 6 characters. Choose one you can remember.',
+      passwordLabel: 'New password',
+      confirmLabel: 'Repeat the new password',
+      submit: 'Save new password',
+    },
+
+    /**
+     * The banner that says out loud that recovery is not real yet.
+     *
+     * It names the demo code on purpose: without it there is no way to reach
+     * the success path, and a mock nobody can walk through does not get
+     * reviewed. It disappears with the mock.
+     */
+    mockNotice: (code: string) =>
+      `Simulation: nothing is sent by e-mail yet and no password changes. Use the code ${code} to see the rest of the flow.`,
+
+    /** The same warning, one line, on the last screen of the flow. */
+    mockShortNotice: 'Simulation: the password is not really changed yet.',
   },
 
   paymentMethods: {

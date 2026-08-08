@@ -24,6 +24,15 @@ import type { TabBarItem, MoreItem } from './navigationTypes';
 export const ROUTES = {
   entry: '/',
   login: '/login',
+  /**
+   * As três da recuperação de senha. Elas EMPILHAM sobre o login (têm botão
+   * voltar e o gesto do iOS), e não se alcançam por deep link vindo de fora:
+   * cada uma depende do que a anterior apurou — o código só faz sentido depois
+   * do e-mail. Ver `app/forgot-password.tsx`.
+   */
+  forgotPassword: '/forgot-password',
+  verifyCode: '/verify-code',
+  newPassword: '/new-password',
   blocked: '/blocked',
   home: '/home',
   sell: '/sell',

@@ -1,6 +1,21 @@
 export type { AuthErrorCode, Session, User } from './sessionTypes';
 export { AuthError } from './sessionTypes';
-export { SENHA_MINIMA, recuperarSenha, validateCredentials } from './sessionService';
+export { SENHA_MINIMA, isValidEmail, recuperarSenha, validateCredentials } from './sessionService';
+
+// A recuperação de senha é uma SIMULAÇÃO — ver o cabeçalho do arquivo.
+export type { RecoveryErrorCode } from './passwordRecovery';
+export {
+  CODE_LENGTH,
+  DEMO_CODE,
+  RESEND_SECONDS,
+  RecoveryError,
+  conferirCodigo,
+  mascararEmail,
+  pedirCodigo,
+  redefinirSenha,
+  validarCodigo,
+  validarNovaSenha,
+} from './passwordRecovery';
 export { sessionKeys, useAppAccess } from './useCases/useAppAccess';
 
 /**

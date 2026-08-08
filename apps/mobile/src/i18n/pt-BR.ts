@@ -79,10 +79,22 @@ export const ptBR: Messages = {
       description_required: 'Conte o que aconteceu para a gente ajudar.',
       network: 'Não deu para enviar agora. Tente de novo.',
     },
+
+    // Recuperação de senha — o fluxo inteiro ainda é SIMULAÇÃO. Ver
+    // `domain/session/passwordRecovery.ts`.
+    recovery: {
+      invalid_email: 'Confira o e-mail digitado.',
+      incomplete_code: 'Digite os 4 números do código.',
+      invalid_code: 'Esse código não confere. Confira o seu e-mail.',
+      short_password: 'A nova senha precisa ter pelo menos 6 caracteres.',
+      password_mismatch: 'As duas senhas não são iguais.',
+    },
   },
 
   toasts: {
     recoverySent: 'Enviamos um link de recuperação para o seu e-mail.',
+    recoveryCodeReady: 'Código pronto. Na simulação ele não sai por e-mail.',
+    passwordChanged: 'Senha nova salva. Entre com ela.',
     cameraUnavailable: 'Câmera do código de barras abriria aqui.',
     editUnavailable: (name: string) =>
       `Aqui abriria a edição de ${name}. Mudar o preço vale só para as próximas vendas.`,
@@ -138,6 +150,57 @@ export const ptBR: Messages = {
     title: 'Preparando tudo para você',
     text: 'Só um instante enquanto organizamos o seu negócio.',
     a11yLabel: 'Abrindo o aplicativo',
+  },
+
+  auth: {
+    tagline: 'Gestão simples do seu negócio',
+
+    signIn: {
+      title: 'Entre na sua conta',
+      emailLabel: 'E-mail',
+      emailPlaceholder: 'voce@seunegocio.com.br',
+      passwordLabel: 'Senha',
+      passwordPlaceholder: 'Sua senha',
+      showPassword: 'Mostrar senha',
+      hidePassword: 'Ocultar senha',
+      submit: 'Entrar',
+      forgot: 'Esqueceu a senha?',
+      // Não existe cadastro pelo app: a conta é criada no painel. Por isso a
+      // linha de "ainda não tem conta" leva a uma conversa, não a um formulário.
+      noAccount: 'Ainda não tem conta?',
+      contactSupport: 'Fale com o suporte',
+    },
+
+    forgot: {
+      title: 'Esqueci minha senha',
+      intro:
+        'Digite o e-mail da sua conta. A gente manda um código de 4 números para você criar uma senha nova.',
+      emailLabel: 'E-mail',
+      submit: 'Enviar código',
+      back: 'Voltar',
+    },
+
+    code: {
+      title: 'Confira seu e-mail',
+      sentTo: (email: string) => `Enviamos um código de 4 números para ${email}`,
+      codeLabel: 'Código de verificação',
+      resendIn: (seconds: number) => `Reenviar código em ${seconds} s`,
+      resend: 'Reenviar código',
+      submit: 'Confirmar',
+    },
+
+    newPassword: {
+      title: 'Crie uma senha nova',
+      intro: 'Precisa ter pelo menos 6 caracteres. Escolha uma que você consiga lembrar.',
+      passwordLabel: 'Nova senha',
+      confirmLabel: 'Repita a nova senha',
+      submit: 'Salvar nova senha',
+    },
+
+    mockNotice: (code: string) =>
+      `Simulação: ainda não sai e-mail nenhum e nenhuma senha muda. Use o código ${code} para ver o resto do fluxo.`,
+
+    mockShortNotice: 'Simulação: a senha ainda não muda de verdade.',
   },
 
   paymentMethods: {

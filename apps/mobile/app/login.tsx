@@ -1,15 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Box, Field, Text, Touchable } from '@components';
+import { AuthScreen, Button, Box, Field, Icon, Text, Touchable } from '@components';
 import { ROUTES } from '@domain/navigation/routes';
-import * as sessionService from '@domain/session/sessionService';
 import { AuthError } from '@domain/session/sessionTypes';
 import { useTranslation } from '@i18n';
 import { useSessionStore } from '@store/sessionStore';
 import { useUIStore } from '@store/uiStore';
+import { RAIO_PILULA } from '@theme';
 
 /**
  * Entrada. `supabase.auth.signInWithPassword`, via `sessionStore.signIn`.
@@ -20,10 +18,13 @@ import { useUIStore } from '@store/uiStore';
  * A tela não distingue "e-mail não existe" de "senha errada", e isso é
  * deliberado: responder qual dos dois falhou permite descobrir quem tem conta
  * no sistema. O próprio Supabase devolve o mesmo erro para os dois casos.
+ *
+ * NÃO HÁ CADASTRO AQUI, e é uma decisão de produto, não uma tela que falta: a
+ * conta nasce no painel admin, junto com o tenant e os módulos contratados. Por
+ * isso o rodapé leva ao WhatsApp do suporte em vez de a um formulário.
  */
 export default function LoginScreen() {
   const t = useTranslation();
-  const insets = useSafeAreaInsets();
 
   const signIn = useSessionStore((s) => s.signIn);
   const signingIn = useSessionStore((s) => s.signingIn);
@@ -45,123 +46,77 @@ export default function LoginScreen() {
     }
   }
 
-  async function forgotPassword() {
-    try {
-      await sessionService.recuperarSenha(email);
-      showToast(t.toasts.recoverySent);
-    } catch (error) {
-      const code = error instanceof AuthError ? error.code : 'unknown';
-      showToast(t.errors.auth[code], { tone: 'erro' });
-    }
-  }
-
   return (
-    <Box flex={1} backgroundColor="petrol">
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: 'center',
-            paddingHorizontal: 28,
-            paddingTop: insets.top + 20,
-            paddingBottom: insets.bottom + 40,
-          }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Box flexDirection="row" alignItems="center" gap="s11" marginBottom="s34">
-            <Box
-              width={44}
+    <AuthScreen title={t.auth.signIn.title} showBrand showBack={false}>
+      <Box gap="s16" marginBottom="s24">
+        <Field
+          onPetrol
+          highlightOnFocus
+          label={t.auth.signIn.emailLabel}
+          value={email}
+          onChangeText={setEmail}
+          placeholder={t.auth.signIn.emailPlaceholder}
+          height={56}
+          radius={12}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          textContentType="emailAddress"
+          prefix={<Icon name="mail" size={19} color="onPetrolMuted" />}
+        />
+
+        <Field
+          onPetrol
+          highlightOnFocus
+          label={t.auth.signIn.passwordLabel}
+          value={password}
+          onChangeText={setPassword}
+          placeholder={t.auth.signIn.passwordPlaceholder}
+          height={56}
+          radius={12}
+          secureTextEntry={!verSenha}
+          autoCapitalize="none"
+          autoComplete="current-password"
+          textContentType="password"
+          onSubmitEditing={acessar}
+          returnKeyType="go"
+          prefix={<Icon name="lock" size={19} color="onPetrolMuted" />}
+          accessory={
+            <Touchable
+              accessibilityLabel={
+                verSenha ? t.auth.signIn.hidePassword : t.auth.signIn.showPassword
+              }
+              onPress={() => setVerSenha((v) => !v)}
               height={44}
-              borderRadius="r14"
-              backgroundColor="primary"
-              alignItems="center"
+              paddingHorizontal="s6"
               justifyContent="center"
             >
-              <Text variant="logoLetter" color="white">
-                A
-              </Text>
-            </Box>
-            <Box>
-              <Text variant="brandTitle" color="white">
-                Aguiar One
-              </Text>
-              <Text variant="captionSm" color="onPetrolFaint" marginTop="s4">
-                Gestão simples do seu negócio
-              </Text>
-            </Box>
-          </Box>
-
-          <Text variant="titleLg" color="white" marginBottom="s16" accessibilityRole="header">
-            Bem-vindo de volta
-          </Text>
-
-          <Box marginBottom="s16">
-            <Field
-              onPetrol
-              label="E-mail"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="voce@seunegocio.com.br"
-              height={52}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-            />
-          </Box>
-
-          <Box marginBottom="s10">
-            <Field
-              onPetrol
-              label="Senha"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Sua senha"
-              height={52}
-              secureTextEntry={!verSenha}
-              autoCapitalize="none"
-              textContentType="password"
-              accessory={
-                <Touchable
-                  accessibilityLabel={verSenha ? 'Ocultar senha' : 'Mostrar senha'}
-                  onPress={() => setVerSenha((v) => !v)}
-                  height={40}
-                  paddingHorizontal="s12"
-                  justifyContent="center"
-                >
-                  <Text variant="tinyBold" color="primary">
-                    {verSenha ? 'Ocultar' : 'Mostrar'}
-                  </Text>
-                </Touchable>
-              }
-            />
-          </Box>
-
-          <Box alignItems="flex-end" marginBottom="s22">
-            <Touchable accessibilityLabel="Esqueci minha senha" onPress={forgotPassword} padding="s6">
-              <Text variant="chipLabel" color="onPetrolLink">
-                Esqueci minha senha
-              </Text>
+              <Icon name={verSenha ? 'eye' : 'eyeOff'} size={20} color="onPetrolMuted" />
             </Touchable>
-          </Box>
+          }
+        />
+      </Box>
 
-          <Button
-            title="Entrar"
-            onPress={acessar}
-            height={56}
-            radius={16}
-            textVariant="buttonLg"
-            loading={signingIn}
-          />
+      <Button
+        title={t.auth.signIn.submit}
+        onPress={acessar}
+        height={56}
+        radius={RAIO_PILULA}
+        textVariant="buttonLg"
+        loading={signingIn}
+      />
 
-          <Text variant="captionSm" color="onPetrolGhost" textAlign="center" marginTop="s24">
-            Ainda não tem conta? Fale com o suporte
+      <Box alignItems="center" marginTop="s16">
+        <Touchable
+          accessibilityLabel={t.auth.signIn.forgot}
+          onPress={() => router.push(ROUTES.forgotPassword as never)}
+          padding="s6"
+        >
+          <Text variant="titleSm" color="primary">
+            {t.auth.signIn.forgot}
           </Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Box>
+        </Touchable>
+      </Box>
+    </AuthScreen>
   );
 }

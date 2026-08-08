@@ -4,7 +4,8 @@ Contexto vivo do projeto. **Leia este arquivo por inteiro antes de mexer no cód
 Ele vale mais que intuição: registra o que foi decidido, por quê, e as armadilhas
 já descobertas.
 
-Última atualização: **2026-08-06** (fase 5 — integração Supabase)
+Última atualização: **2026-08-08** (telas de entrada: login redesenhado e
+recuperação de senha **simulada** — ver §7.1)
 
 ---
 
@@ -18,7 +19,8 @@ sem jargão contábil ("Sobrou hoje", "Quanto te custa", "O que sai do seu bolso
 e `portal-admin`. Compartilha com eles o modelo de **tenant + módulos**.
 
 **16 rotas**, sendo 12 telas de conteúdo, 5 bottom sheets e 3 estados de topo
-(login, bloqueio, app).
+(login, bloqueio, app) — mais as **três telas da recuperação de senha**, que
+empilham sobre o login e hoje são uma simulação (§7.1).
 
 ### O ponto arquitetural central: módulos são entitlements
 
@@ -98,6 +100,7 @@ app/                        SOMENTE rotas
   _layout.tsx               splash hold + AppProviders + Stack raiz
   index.tsx                 a PORTA DA RUA (resolveEntryRoute, função pura)
   login.tsx  blocked.tsx  +not-found.tsx
+  forgot-password.tsx  verify-code.tsx  new-password.tsx   ← recuperação SIMULADA
   (app)/_layout.tsx         o GUARDIÃO (resolveAppGate) + Stack + carrinho/modais
   (app)/(tabs)/_layout.tsx  as abas + a TAB BAR e o botão Vender (só aqui)
   (app)/(tabs)/{home,products,cash,costs,more}.tsx      ← trocam por jumpTo
@@ -106,7 +109,8 @@ app/                        SOMENTE rotas
 src/
   components/
     ui/                     primitivos (Box, Text, Botao, Campo, Chips, Skeleton…)
-    patterns/               compostos (Screen, TabBar, BottomSheet, hosts…)
+    patterns/               compostos (Screen, AuthScreen, TabBar, BottomSheet,
+                            CodeInput, hosts…)
     sheets/                 os 5 bottom sheets + SheetHost
     AppProviders.tsx        composição única de providers
     index.ts                a API pública do DS — telas importam SÓ daqui
@@ -399,6 +403,86 @@ identidade, e leva a uma tela diferente. Ele responde `true` / `false` / `null`
 — e `null` (carregando ou sem rede) **segura o portão** em vez de bloquear.
 Confundir os dois manda para a tela de bloqueio quem só está sem sinal.
 
+### 7.1 As telas de ENTRADA — login redesenhado e recuperação SIMULADA
+
+Quatro telas dividem o mesmo esqueleto, o `AuthScreen` (fundo petrol, conteúdo
+centrado, título grande, botão voltar no topo quando há pilha). Ele existe
+separado do `Screen` porque as duas famílias não têm nada em comum: o `Screen`
+desenha header com avatar do usuário, banner de conexão e espaço para a tab bar
+— nada disso faz sentido antes de haver usuário.
+
+Duas coisas ficaram do jeito que já eram, depois de tentar o contrário:
+
+- **O botão voltar fica FORA da rolagem**, no topo. Dentro do conteúdo
+  centralizado ele descia até o meio da tela nas telas curtas — e um voltar que
+  muda de lugar conforme o conteúdo deixa de ser um voltar. Mesma posição e
+  mesmo alvo do botão do `Screen`.
+- **O login passa `showBack={false}`, e isso NÃO é redundância.** `app/index.tsx`
+  fica embaixo dele na pilha (é a rota de passagem que redirecionou para lá),
+  então `router.canGoBack()` responde `true` no login para sempre. O voltar
+  levaria à porta da rua, que redireciona de volta para o login.
+- **Ao salvar a senha nova, a pilha da recuperação é ZERADA** (`dismissAll` antes
+  do `replace`). Só o `replace` trocaria a tela do topo e deixaria "conferir
+  código" viva embaixo do login, alcançável pelo gesto de voltar do iOS — e
+  conferindo um código que acabou de ser usado.
+- **O rótulo fica ACIMA do campo**, e não entalhado na borda. O entalhe exige um
+  retângulo com o fundo da tela cobrindo a linha, e esse retângulo interrompe a
+  borda arredondada — o campo perde o desenho fechado que é a identidade dele no
+  app inteiro. O que sobrou da ideia é o `highlightOnFocus`: a borda **e o
+  rótulo** acendem em teal enquanto o campo tem foco.
+
+**O login continua sendo só e-mail e senha, e continua sem cadastro.** A conta
+nasce no painel admin, junto com o tenant e os módulos contratados. Por isso o
+rodapé "Ainda não tem conta? Fale com o suporte" abre o **WhatsApp** com o
+número de `platform_settings.whatsapp_contact` — o mesmo canal externo da tela
+de bloqueio, pelo mesmo motivo (quem não tem conta não tem como abrir chamado
+dentro do app). Reaproveita o `useSupportWhatsApp` inteiro.
+
+> ⚠️ Isso exigiu a migration `20260808000000_platform_whatsapp_contact_anon.sql`:
+> a função `platform_whatsapp_contact()` era executável só por `authenticated`,
+> e no login ainda não há sessão. **Sem aplicar a migration, o botão cai no
+> toast de "não foi possível abrir o WhatsApp"** — o fluxo degrada, não quebra.
+
+**A recuperação de senha é uma SIMULAÇÃO, de ponta a ponta.** Três telas
+(`forgot-password` → `verify-code` → `new-password`), com um aviso na primeira
+dizendo isso em voz alta e anunciando o código da demonstração (`1234`). Nenhum
+e-mail sai, nenhuma senha muda.
+
+O que sustenta o mock é **um arquivo só**, `domain/session/passwordRecovery.ts`:
+é ele que vira `Api` + `Adapter` + `Service` quando o fluxo real existir, e
+nenhuma das três telas muda quando isso acontecer. O que já é definitivo e está
+sob teste são as regras puras — `mascararEmail`, o tamanho do código, o mínimo
+da senha, a conferência das duas senhas — e os códigos de erro.
+
+Decisões que valem registro:
+
+- **O `sessionService.recuperarSenha` (Supabase `resetPasswordForEmail`) NÃO é
+  usado por estas telas.** Mandar um e-mail de verdade e depois pedir um código
+  inventado deixaria duas recuperações concorrentes na mão do usuário — e a
+  real leva para uma página web fora do app. Ele continua exportado, esperando.
+- **O e-mail viaja mascarado entre as telas**, como parâmetro de rota. Uma store
+  global para uma conversa de três telas seria estado demais, e a tela do código
+  não precisa do endereço por extenso.
+- **`sessionRules.ts` nasceu por causa do jest.** A regex de e-mail e o mínimo
+  de senha moravam no `sessionService`, que importa o armazenamento seguro e
+  portanto puxa `react-native`. Um teste node que importasse aquilo quebrava na
+  primeira linha. As duas regras puras se mudaram; o service e a recuperação
+  leem de lá — e continuam com UMA peneira de e-mail só.
+- **Nenhum botão desabilitado sem explicação.** "Confirmar" com o código
+  incompleto fica ativo e responde com o aviso, como já fazia o "Falar com o
+  suporte" da tela de bloqueio.
+- **As quatro caixas do código são UM campo só** (`CodeInput`): um `TextInput`
+  invisível esticado por cima delas, com o teclado do sistema. Chegou a existir
+  um teclado numérico desenhado e ele saiu — não pagava o que custava. O campo
+  único dá de graça o **preenchimento automático do código no iOS**
+  (`textContentType="oneTimeCode"`), o colar, e o apagar sem dança de foco entre
+  campos, que é a origem clássica dos bugs dessas telas.
+- **O `AuthScreen` aceita um `footer`** ancorado na base, fora da rolagem e
+  dentro do `KeyboardAvoidingView` (sobe com o teclado). É onde vive o
+  "Confirmar" da tela do código: com o conteúdo centralizado, o botão logo
+  abaixo dele flutuava no meio da tela. O login e o "enviar código" **não** usam
+  o rodapé — ali o botão pertence ao formulário, logo abaixo do último campo.
+
 ### Ambiente
 
 `.env` (fora do Git) com `EXPO_PUBLIC_SUPABASE_URL` e
@@ -688,6 +772,15 @@ mostra hoje um toast explicando o que faria):
 - **"Falar com o suporte" na tela de bloqueio** → precisa de canal EXTERNO
   (WhatsApp/e-mail via `Linking`), porque o suporte in-app é justamente o que
   aquele plano não tem.
+
+- **Recuperação de senha de verdade** → hoje as três telas são uma simulação
+  (§7.1). O caminho é trocar o miolo de `domain/session/passwordRecovery.ts` por
+  `Api`/`Adapter`/`Service` como os outros domínios, e decidir entre o OTP que a
+  interface já desenha (`supabase.auth.verifyOtp` com `type: 'recovery'`, que
+  devolve sessão e permite trocar a senha dentro do app) e o link do
+  `resetPasswordForEmail` — este último exige `redirectTo` com o scheme
+  `aguiarone://` e uma rota que receba o deep link. **O aviso de simulação e o
+  código `1234` saem da tela junto com o mock.**
 
 **Melhorias propostas, não implementadas** (fora do escopo pedido):
 

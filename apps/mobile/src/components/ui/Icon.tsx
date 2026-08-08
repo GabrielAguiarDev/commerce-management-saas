@@ -29,7 +29,16 @@ export type IconName =
   | 'more'
   | 'cart'
   | 'lock'
-  | 'alert';
+  | 'alert'
+  /**
+   * Os três das telas de ENTRADA. Diferente do resto do conjunto, não vêm do
+   * protótipo — ele não tem tela de login com ícone dentro do campo. São
+   * desenhados no mesmo traço (2.2 no `viewBox` de 24, ponta e junta
+   * arredondadas) para não destoarem dos que vieram.
+   */
+  | 'mail'
+  | 'eye'
+  | 'eyeOff';
 
 interface IconProps {
   name: IconName;
@@ -56,6 +65,9 @@ const STROKE_WIDTH: Record<IconName, number> = {
   cart: 2,
   lock: 1.8,
   alert: 2,
+  mail: 1.9,
+  eye: 1.9,
+  eyeOff: 1.9,
 };
 
 export function Icon({ name, size = 22, color = 'textPrimary', colorOverride }: IconProps) {
@@ -178,6 +190,33 @@ export function Icon({ name, size = 22, color = 'textPrimary', colorOverride }: 
           <Circle cx={12} cy={12} r={9} {...common} />
         </>
       )}
+
+      {name === 'mail' && (
+        <>
+          <Rect x={3} y={5} width={18} height={14} rx={3} {...common} />
+          <Path d="M4.5 8l7.5 5 7.5-5" {...common} />
+        </>
+      )}
+
+      {name === 'eye' && (
+        <>
+          <Path d="M2.5 12S6.8 5.5 12 5.5 21.5 12 21.5 12 17.2 18.5 12 18.5 2.5 12 2.5 12z" {...common} />
+          <Circle cx={12} cy={12} r={3} {...common} />
+        </>
+      )}
+
+      {name === 'eyeOff' && (
+        <>
+          {/* Só os DOIS trechos do olho que a barra não corta, mais a barra.
+              Desenhar o olho inteiro por baixo dela deixa o ícone sujo no
+              tamanho em que ele é usado de verdade (20px). */}
+          <Path d="M6.7 6.9C4.2 8.5 2.5 12 2.5 12s4.3 6.5 9.5 6.5c1.6 0 3-.4 4.2-1" {...common} />
+          <Path d="M9.6 5.8c.8-.2 1.6-.3 2.4-.3 5.2 0 9.5 6.5 9.5 6.5s-1.2 1.9-3.2 3.5" {...common} />
+          <Path d="M14.1 14.1a3 3 0 1 1-4.2-4.2" {...common} />
+          <Path d="M4 4l16 16" {...common} />
+        </>
+      )}
+
     </Svg>
   );
 }

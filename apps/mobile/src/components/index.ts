@@ -29,11 +29,13 @@ export { Touchable, type TouchableProps } from './ui/Touchable';
 // ── Padrões ─────────────────────────────────────────────────────────────────
 export { AppProviders } from './AppProviders';
 export { AO_FADE, AO_PULSE, AO_SHEET, AO_UP } from './patterns/animations';
+export { AuthScreen } from './patterns/AuthScreen';
 export { ConnectionBanner } from './patterns/ConnectionBanner';
 export { TabBar, ALTURA_TAB_BAR } from './patterns/TabBar';
 export { CartBar } from './patterns/CartBar';
 export { NewSaleButton } from './patterns/NewSaleButton';
 export { BottomSheet } from './patterns/BottomSheet';
+export { CodeInput } from './patterns/CodeInput';
 export { ConfirmHost } from './patterns/ConfirmHost';
 export { Screen, ESPACO_INFERIOR, ESPACO_INFERIOR_INTERNO } from './patterns/Screen';
 export { TabPane } from './patterns/TabPane';

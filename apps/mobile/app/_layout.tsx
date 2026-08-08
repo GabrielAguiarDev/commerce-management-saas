@@ -95,6 +95,14 @@ function Chrome({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="index" options={{ animation: 'none' }} />
 
         <Stack.Screen name="login" />
+
+        {/* As três da recuperação de senha EMPILHAM sobre o login: têm botão
+            voltar e o gesto do iOS, porque desistir no meio tem que devolver a
+            pessoa para onde ela estava tentando entrar. Ver `login.tsx`. */}
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="verify-code" />
+        <Stack.Screen name="new-password" />
+
         <Stack.Screen name="blocked" />
         <Stack.Screen name="(app)" />
       </Stack>

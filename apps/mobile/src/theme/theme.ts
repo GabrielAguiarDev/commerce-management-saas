@@ -91,7 +91,17 @@ const textVariants = {
   moneyMd: { fontFamily: fontFamily.extrabold, fontSize: 15, lineHeight: 19 },
   moneyBase: { fontFamily: fontFamily.extrabold, fontSize: 14.5, lineHeight: 19 },
 
+  /** O dígito dentro de uma caixa do código de 4 dígitos. */
+  codeDigit: { fontFamily: fontFamily.extrabold, fontSize: 24, lineHeight: 30 },
+
   // Títulos
+  /**
+   * O título das telas de ENTRADA (login, recuperação de senha) — o maior texto
+   * do app depois dos valores em dinheiro. Existe separado do `blockTitle`
+   * porque essas telas não têm header nem conteúdo competindo por atenção: o
+   * título é o elemento principal e quebra em duas linhas de propósito.
+   */
+  authTitle: { fontFamily: fontFamily.extrabold, fontSize: 32, lineHeight: 39, letterSpacing: -0.8 },
   brandTitle: { fontFamily: fontFamily.extrabold, fontSize: 22, lineHeight: 22, letterSpacing: -0.4 },
   screenTitle: { fontFamily: fontFamily.extrabold, fontSize: 21, lineHeight: 24, letterSpacing: -0.3 },
   blockTitle: { fontFamily: fontFamily.extrabold, fontSize: 21, lineHeight: 27 },
@@ -248,6 +258,14 @@ export type TokenRaio = keyof Theme['borderRadii'];
  * compila, em vez de explodir na renderização.
  */
 export type Raio = (typeof borderRadii)[TokenRaio];
+
+/**
+ * O raio de PÍLULA em pixels, para quem recebe `Raio` (o `Button`).
+ *
+ * Existe para o botão das telas de entrada não escrever `radius={999}` — um
+ * número que só significa alguma coisa para quem já leu `borderRadii.full`.
+ */
+export const RAIO_PILULA: Raio = borderRadii.full;
 
 const tokenPorValor = Object.fromEntries(
   Object.entries(borderRadii).map(([token, amount]) => [amount, token]),
