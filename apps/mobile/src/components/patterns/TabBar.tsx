@@ -1,4 +1,5 @@
 import { usePathname } from 'expo-router';
+import { Fragment } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box } from '@components/ui/Box';
@@ -53,33 +54,41 @@ export function TabBar() {
       style={{ height: ALTURA_TAB_BAR + insets.bottom, paddingBottom: insets.bottom }}
       accessibilityRole="tablist"
     >
-      {items.map((item) => {
+      {items.map((item, index) => {
         const active = path === item.route;
         return (
-          <Touchable
-            key={item.key}
-            accessibilityLabel={item.label}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            onPress={() => {
-              if (active) return;
-              // As quatro abas ZERAM a pilha, como o `go()` do protótipo.
-              goToRoot(item.route);
-            }}
-            flex={1}
-            alignItems="center"
-            gap="s5"
-            paddingVertical="s6"
-          >
-            <Icon
-              name={item.icon as IconName}
-              size={22}
-              color={active ? 'primary' : 'textMuted'}
-            />
-            <Text variant="tabLabel" color={active ? 'primary' : 'textMuted'}>
-              {item.label}
-            </Text>
-          </Touchable>
+          <Fragment key={item.key}>
+            {/* O VÃO DO BOTÃO CENTRAL. 84px fixos entre o 2º e o 3º item, como
+                no design — é o espaço onde o `NewSaleButton` pousa. Ele precisa
+                estar AQUI, e não ser só um recuo do botão, porque as quatro
+                abas são `flex: 1`: sem tirar largura do fluxo, elas se
+                repartiriam a barra inteira e os rótulos ficariam por baixo do
+                círculo. */}
+            {index === 2 && <Box width={84} />}
+            <Touchable
+              accessibilityLabel={item.label}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              onPress={() => {
+                if (active) return;
+                // As quatro abas ZERAM a pilha, como o `go()` do protótipo.
+                goToRoot(item.route);
+              }}
+              flex={1}
+              alignItems="center"
+              gap="s5"
+              paddingVertical="s6"
+            >
+              <Icon
+                name={item.icon as IconName}
+                size={22}
+                color={active ? 'primary' : 'textMuted'}
+              />
+              <Text variant="tabLabel" color={active ? 'primary' : 'textMuted'}>
+                {item.label}
+              </Text>
+            </Touchable>
+          </Fragment>
         );
       })}
     </Box>

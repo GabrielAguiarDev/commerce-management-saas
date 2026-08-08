@@ -1,65 +1,83 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Box } from '@components/ui/Box';
 import { Icon } from '@components/ui/Icon';
+import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
 import { ROUTES } from '@domain/navigation/routes';
 import { goToRoot } from '@hooks/navigation';
-import { useAppTheme } from '@hooks/useAppTheme';
-import { palette } from '@theme';
-import { useCartStore } from '@store/cartStore';
-
-import { ALTURA_TAB_BAR } from './TabBar';
-
-const TAMANHO = 58;
 
 /**
- * O FAB de nova venda.
+ * 52, e não os 44 do design.
  *
- * Some em duas situações, exatamente como no protótipo (`mostrarFab`):
- *  - já se está em Vender (não há para onde ir);
- *  - o carrinho tem itens — porque aí quem ocupa aquele espaço é a barra do
- *    carrinho, e dois botões flutuantes no mesmo canto disputariam o polegar.
+ * O desenho original vem de um protótipo em tela de navegador, onde 44px de
+ * círculo já pareciam grandes. No aparelho, sendo ESTE o botão que o balconista
+ * usa dezenas de vezes por dia, ele merece polegar de sobra. O vão reservado na
+ * barra é de 84, então ainda sobram 16 de folga de cada lado.
+ */
+const TAMANHO = 52;
+
+/**
+ * O botão CENTRAL da tab bar — "Vender".
+ *
+ * Ele já foi um FAB no canto inferior direito, com gradiente e sombra, que sumia
+ * em duas situações (estando em Vender, e com o carrinho cheio). O design o
+ * coloca no MEIO da barra, e isso muda a natureza dele: um FAB pode sumir, um
+ * item de barra não — sumir deixaria um buraco de 84px entre Produtos e o
+ * atalho. Por isso ele agora é incondicional, e o que responde à tela ativa é o
+ * rótulo, que fica teal em `/sell` exatamente como os das outras abas.
+ *
+ * A geometria vem do design: o círculo apoiado a 57px do fundo, e o rótulo a
+ * 29,5px, na mesma linha dos rótulos das abas. Aqui isso é expresso de baixo
+ * para cima (rótulo a 30 + `gap` de 14), que dá o mesmo desenho sem depender de
+ * dois valores absolutos concordarem — e é o que faz o círculo crescer PARA
+ * CIMA quando `TAMANHO` muda, mantendo o rótulo alinhado com os das abas.
+ *
+ * O vão que ele ocupa é reservado pela própria `TabBar`. Ver o espaçador lá.
  */
 export function NewSaleButton() {
   const insets = useSafeAreaInsets();
   const path = usePathname();
-  const hasItems = useCartStore((s) => s.items.length > 0);
-  const theme = useAppTheme();
 
-  if (path === ROUTES.sell || hasItems) return null;
+  const active = path === ROUTES.sell;
 
   return (
-    <Touchable
-      accessibilityLabel="Nova venda"
-      // Vender também é raiz no protótipo: chegar nela zera a pilha, venha-se
-      // de onde vier.
-      onPress={() => goToRoot(ROUTES.sell)}
+    <Box
       position="absolute"
-      right={18}
-      style={{
-        bottom: ALTURA_TAB_BAR + insets.bottom + 16,
-        shadowColor: palette.fabBottom,
-        shadowOpacity: 0.5,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 8 },
-        elevation: 8,
-      }}
-      width={TAMANHO}
-      height={TAMANHO}
-      borderRadius="full"
-      overflow="hidden"
+      left={0}
+      right={0}
+      alignItems="center"
+      style={{ bottom: 32 + insets.bottom }}
+      // Sem isto, esta caixa cobriria a largura inteira da barra e engoliria os
+      // toques das quatro abas que passam por baixo dela.
+      pointerEvents="box-none"
     >
-      <LinearGradient
-        // O gradiente do design: #149ba6 → teal do tema → #0b6b74. O tom do
-        // meio vem do tema para acompanhar claro/escuro; as pontas são fixas.
-        colors={[palette.fabTop, theme.colors.primary, palette.fabBottom]}
-        locations={[0, 0.6, 1]}
-        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+      <Touchable
+        accessibilityLabel="Nova venda"
+        // Vender também é raiz no protótipo: chegar nela zera a pilha, venha-se
+        // de onde vier.
+        onPress={() => goToRoot(ROUTES.sell)}
+        alignItems="center"
+        gap="s8"
       >
-        <Icon name="cart" size={24} colorOverride={palette.white} />
-      </LinearGradient>
-    </Touchable>
+        <Box
+          width={TAMANHO}
+          height={TAMANHO}
+          borderRadius="full"
+          backgroundColor="primary"
+          alignItems="center"
+          justifyContent="center"
+        >
+          {/* 24 acompanha o círculo: o design usa 20 num círculo de 44, e é
+              essa proporção (~0,45) que mantém o ícone respirando dentro dele. */}
+          <Icon name="cart" size={24} color="onPrimary" />
+        </Box>
+
+        <Text variant="tabLabel" color={active ? 'primary' : 'textMuted'}>
+          Vender
+        </Text>
+      </Touchable>
+    </Box>
   );
 }
