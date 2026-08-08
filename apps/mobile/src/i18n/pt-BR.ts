@@ -156,7 +156,10 @@ export const ptBR: Messages = {
     tagline: 'Gestão simples do seu negócio',
 
     signIn: {
-      title: 'Entre na sua conta',
+      // Saúda antes de instruir: quem chega aqui é quase sempre alguém que já
+      // entrou ontem, não um visitante decidindo se cria conta.
+      title: 'Bem-vindo de volta!',
+      subtitle: 'Entre na sua conta para continuar',
       emailLabel: 'E-mail',
       emailPlaceholder: 'voce@seunegocio.com.br',
       passwordLabel: 'Senha',
@@ -167,8 +170,14 @@ export const ptBR: Messages = {
       forgot: 'Esqueceu a senha?',
       // Não existe cadastro pelo app: a conta é criada no painel. Por isso a
       // linha de "ainda não tem conta" leva a uma conversa, não a um formulário.
+      // Separa o "Entrar" do convite ao suporte: são dois caminhos, não uma
+      // ação e o rodapé dela.
+      or: 'ou',
       noAccount: 'Ainda não tem conta?',
       contactSupport: 'Fale com o suporte',
+      // O selo do rodapé. Não promete criptografia nem cita norma nenhuma: diz
+      // só o que o balconista precisa ouvir antes de digitar a senha no balcão.
+      dataProtected: 'Seus dados estão protegidos',
     },
 
     forgot: {

@@ -1,4 +1,5 @@
-import { ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, StyleSheet } from 'react-native';
 
 import { useAppTheme } from '@hooks/useAppTheme';
 import { tokenDeRaio, type Raio, type TextVariant, type ThemeColor } from '@theme';
@@ -8,7 +9,7 @@ import { Text } from './Text';
 import { Touchable } from './Touchable';
 
 /**
- * As cinco formas de botão do design, e nada além disso.
+ * As formas de botão do design, e nada além disso.
  *
  * `primario`   — teal cheio, texto branco. A ação principal da tela.
  * `destrutivo` — vermelho cheio. Só nas confirmações que apagam algo.
@@ -16,6 +17,12 @@ import { Touchable } from './Touchable';
  * `fantasma`   — sem fundo nem borda. "Cancelar venda", "Agora não".
  * `tracejado`  — borda pontilhada teal. "+ Cadastro rápido".
  * `contorno`   — só borda, texto teal. "Quero mudar meu plano".
+ * `gradiente`  — azul em degradê. SÓ o "Entrar" da tela de entrada.
+ *
+ * O `gradiente` é o único que não usa cor do tema corrente, e é deliberado: ele
+ * vive sobre o fundo fixo da entrada, que também não muda com o tema. Usá-lo
+ * numa tela de dentro do app o faria destoar do resto — para lá existe o
+ * `primario`.
  */
 export type ButtonVariant =
   | 'primario'
@@ -23,7 +30,8 @@ export type ButtonVariant =
   | 'secundario'
   | 'fantasma'
   | 'tracejado'
-  | 'contorno';
+  | 'contorno'
+  | 'gradiente';
 
 interface ButtonProps {
   title: string;
@@ -55,8 +63,12 @@ export function Button({
   const theme = useAppTheme();
   const inactive = disabled || loading;
 
-  const cheio = variant === 'primario' || variant === 'destrutivo';
+  const gradiente = variant === 'gradiente';
+  const cheio = variant === 'primario' || variant === 'destrutivo' || gradiente;
 
+  // O degradê é uma CAMADA, não uma cor de fundo: quem pinta é a `LinearGradient`
+  // esticada por dentro do botão, e o fundo do próprio botão fica transparente
+  // para não aparecer por baixo dela nas bordas arredondadas.
   const fundo: ThemeColor =
     variant === 'primario'
       ? 'primary'
@@ -97,7 +109,21 @@ export function Button({
       justifyContent="center"
       flexDirection="row"
       opacity={inactive ? 0.55 : 1}
+      // Sem isto o degradê, que é um filho absoluto de canto a canto, escapa
+      // pelos quatro cantos arredondados no Android.
+      overflow={gradiente ? 'hidden' : undefined}
     >
+      {gradiente ? (
+        <LinearGradient
+          colors={[theme.colors.ctaTop, theme.colors.ctaBottom]}
+          // De cima para baixo, com um desvio à direita: é a mesma inclinação
+          // da luz que desce no fundo da tela.
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+
       {loading ? (
         <ActivityIndicator color={cheio ? theme.colors.onPrimary : theme.colors.primary} />
       ) : (

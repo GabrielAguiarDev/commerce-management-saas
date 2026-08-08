@@ -31,14 +31,18 @@ export type IconName =
   | 'lock'
   | 'alert'
   /**
-   * Os três das telas de ENTRADA. Diferente do resto do conjunto, não vêm do
+   * Os seis das telas de ENTRADA. Diferente do resto do conjunto, não vêm do
    * protótipo — ele não tem tela de login com ícone dentro do campo. São
    * desenhados no mesmo traço (2.2 no `viewBox` de 24, ponta e junta
    * arredondadas) para não destoarem dos que vieram.
    */
   | 'mail'
   | 'eye'
-  | 'eyeOff';
+  | 'eyeOff'
+  /** A loja do convite ao suporte, o "entra aqui" dele e o selo do rodapé. */
+  | 'store'
+  | 'chevronRight'
+  | 'shield';
 
 interface IconProps {
   name: IconName;
@@ -68,6 +72,9 @@ const STROKE_WIDTH: Record<IconName, number> = {
   mail: 1.9,
   eye: 1.9,
   eyeOff: 1.9,
+  store: 1.9,
+  chevronRight: 2.2,
+  shield: 1.9,
 };
 
 export function Icon({ name, size = 22, color = 'textPrimary', colorOverride }: IconProps) {
@@ -217,6 +224,25 @@ export function Icon({ name, size = 22, color = 'textPrimary', colorOverride }: 
         </>
       )}
 
+      {name === 'store' && (
+        <>
+          {/* Toldo, corpo e porta. O toldo é uma faixa reta, e não as ondinhas
+              de barraca de feira: no tamanho em que ele é usado (22px) a onda
+              vira ruído e o desenho deixa de ser reconhecível como loja. */}
+          <Path d="M3.2 9.5L5.2 4.5h13.6l2 5" {...common} />
+          <Path d="M4.8 9.5v9.2a1.8 1.8 0 0 0 1.8 1.8h10.8a1.8 1.8 0 0 0 1.8-1.8V9.5" {...common} />
+          <Path d="M9.6 20.5v-5.2h4.8v5.2" {...common} />
+        </>
+      )}
+
+      {name === 'chevronRight' && <Path d="M9 5l7 7-7 7" {...common} />}
+
+      {name === 'shield' && (
+        <>
+          <Path d="M12 3.2l7 2.5v5.5c0 4.2-2.8 7.4-7 9.6-4.2-2.2-7-5.4-7-9.6V5.7z" {...common} />
+          <Path d="M9.1 11.9l2.1 2.1 3.7-4" {...common} />
+        </>
+      )}
     </Svg>
   );
 }

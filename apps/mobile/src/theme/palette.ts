@@ -85,6 +85,40 @@ export const palette = {
   /** Borda do card de alerta de estoque (âmbar com alpha). */
   amberBorder: 'rgba(169,112,15,0.2)',
   amberIconBg: 'rgba(169,112,15,0.14)',
+
+  // ── Tela de ENTRADA ──────────────────────────────────────────────────────
+  // Fixas nos dois temas, como o toast: o login é sempre escuro. Ele acontece
+  // ANTES de haver usuário, e portanto antes de haver preferência de tema — um
+  // login que muda de cor conforme o que ficou salvo do dono anterior do
+  // aparelho é uma primeira tela que não se parece com ela mesma.
+
+  /** O "A" da marca, do topo claro à base na cor primária. */
+  logoTop: '#4cc4e6',
+  logoBottom: '#1b9abd',
+
+  /** O fundo, do azul do topo ao quase-preto da base. */
+  authTop: '#0e5375',
+  authMid: '#072634',
+  authBottom: '#020e18',
+
+  /** O halo atrás da marca. A opacidade é dada nas paradas do gradiente. */
+  authGlow: '#2fb6e6',
+
+  /** A marca gigante e quase invisível atrás do topo. */
+  authWatermark: 'rgba(126,208,238,0.05)',
+
+  /**
+   * O azul dos links sobre o fundo da entrada.
+   *
+   * Não é o `primary`: no tema escuro ele é teal esverdeado (`#2fb3ba`), e
+   * sobre este fundo azul o link sairia de outra família de cor que o resto da
+   * tela.
+   */
+  authLink: '#35abd6',
+
+  /** O gradiente do botão "Entrar". */
+  ctaTop: '#38b7de',
+  ctaBottom: '#1a90bd',
 } as const;
 
 export type PaletteColor = keyof typeof palette;

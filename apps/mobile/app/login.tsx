@@ -8,7 +8,6 @@ import { useSupportWhatsApp } from '@domain/support';
 import { useTranslation } from '@i18n';
 import { useSessionStore } from '@store/sessionStore';
 import { useUIStore } from '@store/uiStore';
-import { RAIO_PILULA } from '@theme';
 
 /**
  * Entrada. `supabase.auth.signInWithPassword`, via `sessionStore.signIn`.
@@ -58,8 +57,25 @@ export default function LoginScreen() {
   }
 
   return (
-    <AuthScreen title={t.auth.signIn.title} showBrand showBack={false}>
-      <Box gap="s16" marginBottom="s24">
+    <AuthScreen
+      variant="entrada"
+      title={t.auth.signIn.title}
+      subtitle={t.auth.signIn.subtitle}
+      showBack={false}
+      // O selo fica ANCORADO na base, fora da rolagem, e não no fim do
+      // conteúdo: ele fala do aparelho, não do formulário. Rolando junto com os
+      // campos, apareceria e sumiria conforme o teclado — que é exatamente o
+      // momento em que ele tem algo a dizer.
+      footer={
+        <Box flexDirection="row" justifyContent="center" alignItems="center" gap="s8">
+          <Icon name="shield" size={15} color="onPetrolGhost" />
+          <Text variant="captionSm" color="onPetrolGhost">
+            {t.auth.signIn.dataProtected}
+          </Text>
+        </Box>
+      }
+    >
+      <Box gap="s16">
         <Field
           onPetrol
           highlightOnFocus
@@ -68,7 +84,7 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           placeholder={t.auth.signIn.emailPlaceholder}
           height={56}
-          radius={12}
+          radius={14}
           keyboardType="email-address"
           autoCapitalize="none"
           autoComplete="email"
@@ -84,7 +100,7 @@ export default function LoginScreen() {
           onChangeText={setPassword}
           placeholder={t.auth.signIn.passwordPlaceholder}
           height={56}
-          radius={12}
+          radius={14}
           secureTextEntry={!verSenha}
           autoCapitalize="none"
           autoComplete="current-password"
@@ -108,42 +124,95 @@ export default function LoginScreen() {
         />
       </Box>
 
-      <Button
-        title={t.auth.signIn.submit}
-        onPress={acessar}
-        height={56}
-        radius={RAIO_PILULA}
-        textVariant="buttonLg"
-        loading={signingIn}
-      />
-
-      <Box alignItems="center" marginTop="s16">
+      {/* Encostado à DIREITA e logo abaixo da senha, e não centrado sob o botão:
+          é a saída de quem travou no campo que está acima dele. Ali embaixo, ele
+          só é lido depois de já se ter tentado entrar. */}
+      <Box alignItems="flex-end" marginTop="s12" marginBottom="s20">
         <Touchable
           accessibilityLabel={t.auth.signIn.forgot}
           onPress={() => router.push(ROUTES.forgotPassword as never)}
-          padding="s6"
+          paddingVertical="s4"
         >
-          <Text variant="titleSm" color="primary">
+          <Text variant="titleSm" color="authLink">
             {t.auth.signIn.forgot}
           </Text>
         </Touchable>
       </Box>
 
-      <Box flexDirection="row" justifyContent="center" alignItems="center" gap="s5" marginTop="s34">
-        <Text variant="captionSm" color="onPetrolGhost">
-          {t.auth.signIn.noAccount}
-        </Text>
-        <Touchable
-          accessibilityLabel={t.auth.signIn.contactSupport}
-          accessibilityState={{ busy: abrindoWhatsApp }}
-          onPress={falarComSuporte}
-          paddingVertical="s6"
+      <Button
+        variant="gradiente"
+        title={t.auth.signIn.submit}
+        onPress={acessar}
+        height={56}
+        radius={16}
+        textVariant="buttonLg"
+        loading={signingIn}
+      />
+
+      <SeparadorOu label={t.auth.signIn.or} />
+
+      {/* Um CARTÃO, e não a linha de texto que havia aqui. O convite ao suporte
+          é a única outra coisa que se pode fazer nesta tela, e uma linha solta
+          no rodapé não parecia tocável — quem não tem conta ficava sem saída
+          numa tela que só sabe receber quem já tem. */}
+      <Touchable
+        accessibilityLabel={`${t.auth.signIn.noAccount} ${t.auth.signIn.contactSupport}`}
+        accessibilityState={{ busy: abrindoWhatsApp }}
+        onPress={falarComSuporte}
+        flexDirection="row"
+        alignItems="center"
+        gap="s14"
+        height={76}
+        paddingHorizontal="s14"
+        borderRadius="r16"
+        borderWidth={1}
+        borderColor="fieldBorderOnPetrol"
+        backgroundColor="fieldOnPetrol"
+      >
+        <Box
+          width={44}
+          height={44}
+          borderRadius="r12"
+          backgroundColor="pillOnPetrol"
+          alignItems="center"
+          justifyContent="center"
         >
-          <Text variant="tinyBold" color="onPetrolLink">
+          <Icon name="store" size={21} color="onPetrol" />
+        </Box>
+
+        <Box flex={1} gap="s3">
+          <Text variant="bodySm" color="onPetrolFaint">
+            {t.auth.signIn.noAccount}
+          </Text>
+          <Text variant="titleSm" color="authLink">
             {t.auth.signIn.contactSupport}
           </Text>
-        </Touchable>
-      </Box>
+        </Box>
+
+        <Icon name="chevronRight" size={17} color="onPetrolGhost" />
+      </Touchable>
     </AuthScreen>
+  );
+}
+
+/** A linha com o "ou" no meio — duas réguas e a palavra entre elas. */
+function SeparadorOu({ label }: { label: string }) {
+  return (
+    <Box
+      flexDirection="row"
+      alignItems="center"
+      gap="s14"
+      marginTop="s24"
+      marginBottom="s20"
+      // Decorativo: o leitor de tela já ouve os dois blocos em ordem, e um "ou"
+      // solto entre eles só atrapalharia.
+      accessibilityElementsHidden
+    >
+      <Box flex={1} height={1} backgroundColor="fieldBorderOnPetrol" />
+      <Text variant="captionSm" color="onPetrolGhost">
+        {label}
+      </Text>
+      <Box flex={1} height={1} backgroundColor="fieldBorderOnPetrol" />
+    </Box>
   );
 }

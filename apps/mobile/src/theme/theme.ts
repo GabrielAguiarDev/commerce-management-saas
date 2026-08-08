@@ -102,6 +102,15 @@ const textVariants = {
    * título é o elemento principal e quebra em duas linhas de propósito.
    */
   authTitle: { fontFamily: fontFamily.extrabold, fontSize: 32, lineHeight: 39, letterSpacing: -0.8 },
+  /**
+   * O "Bem-vindo de volta!" do LOGIN — menor que o `authTitle` dos outros três
+   * passos de entrada, e de propósito: ali o título é o único elemento grande
+   * da tela, aqui ele divide o topo com a marca. Do mesmo tamanho ele brigaria
+   * com o "Aguiar One" logo acima.
+   */
+  authWelcome: { fontFamily: fontFamily.extrabold, fontSize: 23, lineHeight: 29, letterSpacing: -0.4 },
+  /** "Aguiar One" por extenso, sob o "A", na abertura do app. */
+  brandWordmark: { fontFamily: fontFamily.extrabold, fontSize: 29, lineHeight: 36, letterSpacing: -0.7 },
   brandTitle: { fontFamily: fontFamily.extrabold, fontSize: 22, lineHeight: 22, letterSpacing: -0.4 },
   screenTitle: { fontFamily: fontFamily.extrabold, fontSize: 21, lineHeight: 24, letterSpacing: -0.3 },
   blockTitle: { fontFamily: fontFamily.extrabold, fontSize: 21, lineHeight: 27 },
@@ -205,6 +214,18 @@ const tokensClaros = {
   toastBg: palette.toast,
   scrimSheet: palette.scrimSheet,
   scrimDialog: palette.scrimDialog,
+
+  // A entrada não tem par escuro: ver o comentário na paleta.
+  logoTop: palette.logoTop,
+  logoBottom: palette.logoBottom,
+  authTop: palette.authTop,
+  authMid: palette.authMid,
+  authBottom: palette.authBottom,
+  authGlow: palette.authGlow,
+  authWatermark: palette.authWatermark,
+  authLink: palette.authLink,
+  ctaTop: palette.ctaTop,
+  ctaBottom: palette.ctaBottom,
 };
 
 type Cores = { [K in keyof typeof tokensClaros]: string };

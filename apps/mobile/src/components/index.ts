@@ -19,6 +19,7 @@ export { Chips, type ChipOption } from './ui/Chips';
 export { Divider } from './ui/Divider';
 export { EmptyState } from './ui/EmptyState';
 export { Icon, type IconName } from './ui/Icon';
+export { Logo } from './ui/Logo';
 export { Switch } from './ui/Switch';
 export { Pill } from './ui/Pill';
 export { Select, type SelectOption } from './ui/Select';
@@ -29,6 +30,7 @@ export { Touchable, type TouchableProps } from './ui/Touchable';
 // ── Padrões ─────────────────────────────────────────────────────────────────
 export { AppProviders } from './AppProviders';
 export { AO_FADE, AO_PULSE, AO_SHEET, AO_UP } from './patterns/animations';
+export { AuthBackdrop } from './patterns/AuthBackdrop';
 export { AuthScreen } from './patterns/AuthScreen';
 export { ConnectionBanner } from './patterns/ConnectionBanner';
 export { TabBar, ALTURA_TAB_BAR } from './patterns/TabBar';

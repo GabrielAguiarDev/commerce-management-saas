@@ -193,7 +193,10 @@ export const en = {
     tagline: 'Simple management for your business',
 
     signIn: {
-      title: 'Sign in to your account',
+      // Greets before instructing: whoever lands here almost always signed in
+      // yesterday — they are not a visitor deciding whether to open an account.
+      title: 'Welcome back!',
+      subtitle: 'Sign in to your account to continue',
       emailLabel: 'E-mail address',
       emailPlaceholder: 'you@yourbusiness.com',
       passwordLabel: 'Password',
@@ -204,8 +207,14 @@ export const en = {
       forgot: 'Forgot your password?',
       // There is no sign-up in the app: accounts are created by the admin
       // panel. So the "no account?" line leads to a conversation, not a form.
+      // Splits "Sign in" from the invitation to support: two paths, not an
+      // action and its footnote.
+      or: 'or',
       noAccount: 'No account yet?',
       contactSupport: 'Talk to support',
+      // The footer seal. Promises no encryption and cites no standard: it says
+      // only what the shopkeeper needs to hear before typing a password.
+      dataProtected: 'Your data is protected',
     },
 
     forgot: {
