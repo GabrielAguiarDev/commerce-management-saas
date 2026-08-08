@@ -79,8 +79,12 @@ export function Screen({
 
   const bottomSpace = onTab ? ESPACO_INFERIOR : ESPACO_INFERIOR_INTERNO + insets.bottom;
 
-  const content = (
-    <Box gap="s12" paddingHorizontal="s16" paddingTop="s2">
+  // `flex={1}` só no caso SEM rolagem: ali o conteúdo é quem tem altura própria
+  // (a thread do suporte, o navegador de abas de Configurações) e precisa
+  // receber a altura restante da tela. Dentro do `ScrollView` seria o oposto —
+  // altura fixa impediria a rolagem.
+  const content = (flexible: boolean) => (
+    <Box flex={flexible ? 1 : undefined} gap="s12" paddingHorizontal="s16" paddingTop="s2">
       {children}
     </Box>
   );
@@ -127,7 +131,7 @@ export function Screen({
       <ConnectionBanner />
 
       {noScroll ? (
-        <Box flex={1}>{content}</Box>
+        content(true)
       ) : (
         <ScrollView
           style={{ flex: 1 }}
@@ -135,7 +139,7 @@ export function Screen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {content}
+          {content(false)}
         </ScrollView>
       )}
     </Box>

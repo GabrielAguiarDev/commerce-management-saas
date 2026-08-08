@@ -36,6 +36,7 @@ export { NewSaleButton } from './patterns/NewSaleButton';
 export { BottomSheet } from './patterns/BottomSheet';
 export { ConfirmHost } from './patterns/ConfirmHost';
 export { Screen, ESPACO_INFERIOR, ESPACO_INFERIOR_INTERNO } from './patterns/Screen';
+export { TabPane } from './patterns/TabPane';
 export { StartupError } from './patterns/StartupError';
 export { ToastHost } from './patterns/ToastHost';
 
