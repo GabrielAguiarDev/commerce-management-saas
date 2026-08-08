@@ -70,25 +70,33 @@ function Chrome({ fontsReady }: { fontsReady: boolean }) {
           // O header é desenhado pelo `Screen` (título, subtítulo, avatar e
           // voltar), então o nativo fica desligado no app inteiro.
           contentStyle: { backgroundColor: theme.colors.bg },
+
+          // SLIDE, e não `fade`, no stack inteiro — a mesma animação que
+          // `(app)` já usa entre as telas internas. São as três trocas mais
+          // pesadas do app (entrar, sair, ser bloqueado) e eram as únicas que
+          // dissolviam: o fade parecia lento porque tem que apagar uma tela
+          // ANTES de a outra existir, enquanto o slide mostra as duas ao mesmo
+          // tempo e termina na mesma duração parecendo metade.
+          //
+          // `slide_from_right` é o empurrão NATIVO do iOS — o paralaxe e a
+          // sombra de borda vêm de graça do sistema.
+          animation: 'slide_from_right',
+
+          // Todas as trocas daqui são `replace` (o login não pode voltar por
+          // gesto, e sair também não), e o padrão do react-native-screens para
+          // um `replace` é animar como `pop` — o slide viria da ESQUERDA, com
+          // sensação de "voltar". `push` mantém a direção padrão.
+          animationTypeForReplace: 'push',
         }}
       >
-        <Stack.Screen name="index" />
+        {/* Rota de PASSAGEM: renderiza `null` e redireciona. Animá-la faria a
+            entrada no app custar DUAS transições encadeadas — uma para chegar
+            aqui, outra para sair. Ver o cabeçalho de `index.tsx`. */}
+        <Stack.Screen name="index" options={{ animation: 'none' }} />
 
-        {/* Sair da conta é `router.replace` para cá (ver `(tabs)/more.tsx`), e a
-            animação de ENTRADA do login é que desenha essa saída. `fade` fazia o
-            app dissolver; `slide_from_right` é o empurrão nativo do iOS — com o
-            paralaxe e a sombra de borda que o sistema já dá de graça.
-
-            `animationTypeForReplace` é explícito porque o padrão do
-            react-native-screens para um `replace` é `pop`, e aí o slide viria da
-            ESQUERDA (sensação de "voltar"). Trocar para `pop` se um dia o
-            desejado for esse. */}
-        <Stack.Screen
-          name="login"
-          options={{ animation: 'slide_from_right', animationTypeForReplace: 'push' }}
-        />
-        <Stack.Screen name="blocked" options={{ animation: 'fade' }} />
-        <Stack.Screen name="(app)" options={{ animation: 'fade' }} />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="blocked" />
+        <Stack.Screen name="(app)" />
       </Stack>
 
       {/* O toast fica AQUI, e não no layout de `(app)`, porque `login` e

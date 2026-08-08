@@ -1,7 +1,16 @@
 import { Redirect, Stack } from 'expo-router';
 import { useState } from 'react';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { CartBar, Box, ConfirmHost, SheetHost, StartupError } from '@components';
+import {
+  AO_FADE,
+  CartBar,
+  Box,
+  ConfirmHost,
+  SheetHost,
+  StartupError,
+  StartupLoading,
+} from '@components';
 import { ROUTES, resolveAppGate } from '@domain/navigation/routes';
 import { useAppAccess } from '@domain/session';
 import { useCurrentTenant } from '@domain/tenant';
@@ -95,8 +104,9 @@ export default function AppLayout() {
   }
 
   // `hold` é a única espera do app inteiro, e dura o tempo de UMA verificação
-  // na entrada. Fundo do tema, não branco: vindo do login, a splash já saiu.
-  if (gate === 'hold') return <Box flex={1} backgroundColor="bg" />;
+  // na entrada. Já foi um `Box` vazio — tela lisa, sem uma palavra, e portanto
+  // indistinguível de um app que travou logo depois do login. Ver StartupLoading.
+  if (gate === 'hold') return <StartupLoading />;
 
   return <AppShell />;
 }
@@ -105,49 +115,61 @@ function AppShell() {
   const theme = useAppTheme();
 
   return (
-    <Box flex={1} backgroundColor="bg">
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.bg },
-          animation: 'slide_from_right',
-        }}
-      >
-        {/* O navegador de abas — o PISO da pilha, e a única tela daqui que
-            mostra a tab bar. Sem animação: trocar de aba por dentro dele já é
-            instantâneo, e animar a entrada faria a pilha piscar ao voltar de
-            Estoque para uma aba. */}
-        <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
+    // A ÚNICA transição do app que é fade — e de propósito.
+    //
+    // Sair da espera não é navegar: `hold` → `allow` troca o que ESTE layout
+    // devolve, sem push nem replace, então não há stack para deslizar. E um
+    // slide seria errado mesmo se houvesse: a `StartupLoading` não é uma tela
+    // que o usuário deixou para trás, é a mesma tela terminando de carregar.
+    // Deslizar inventaria um passo de navegação que ele não deu.
+    //
+    // Toca UMA VEZ por sessão: a trava `released` do portão não volta atrás,
+    // então nem refetch em segundo plano nem volta do background remontam isto.
+    <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(AO_FADE.duration)}>
+      <Box flex={1} backgroundColor="bg">
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: theme.colors.bg },
+            animation: 'slide_from_right',
+          }}
+        >
+          {/* O navegador de abas — o PISO da pilha, e a única tela daqui que
+              mostra a tab bar. Sem animação: trocar de aba por dentro dele já é
+              instantâneo, e animar a entrada faria a pilha piscar ao voltar de
+              Estoque para uma aba. */}
+          <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
 
-        {/* As telas INTERNAS. Todas sobem por cima de `(tabs)` em tela cheia,
-            sem herdar a tab bar, e voltam com o botão voltar que o `Screen`
-            desenha a partir de `router.canGoBack()`.
+          {/* As telas INTERNAS. Todas sobem por cima de `(tabs)` em tela cheia,
+              sem herdar a tab bar, e voltam com o botão voltar que o `Screen`
+              desenha a partir de `router.canGoBack()`.
 
-            `sell` está entre elas de propósito: é acionada pelo botão central
-            da barra, mas precisa da tela inteira para a grade de produtos —
-            então empilha como as outras em vez de virar aba. */}
-        <Stack.Screen name="sell" />
-        <Stack.Screen name="stock" />
-        <Stack.Screen name="reports" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="support" />
-      </Stack>
+              `sell` está entre elas de propósito: é acionada pelo botão central
+              da barra, mas precisa da tela inteira para a grade de produtos —
+              então empilha como as outras em vez de virar aba. */}
+          <Stack.Screen name="sell" />
+          <Stack.Screen name="stock" />
+          <Stack.Screen name="reports" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="support" />
+        </Stack>
 
-      {/* A chrome que vale na PILHA INTEIRA. Ordem = ordem de empilhamento:
-          sheet e confirm por último, porque precisam cobrir o resto.
+        {/* A chrome que vale na PILHA INTEIRA. Ordem = ordem de empilhamento:
+            sheet e confirm por último, porque precisam cobrir o resto.
 
-          Nada aqui desmonta ao navegar: são irmãos da pilha, montados uma vez
-          quando o guardião liberou.
+            Nada aqui desmonta ao navegar: são irmãos da pilha, montados uma vez
+            quando o guardião liberou.
 
-          A tab bar e o botão Vender NÃO estão mais aqui — ver o cabeçalho
-          deste arquivo e `(tabs)/_layout.tsx`.
+            A tab bar e o botão Vender NÃO estão mais aqui — ver o cabeçalho
+            deste arquivo e `(tabs)/_layout.tsx`.
 
-          O ToastHost também não: ele vive no layout RAIZ, porque `login` e
-          `blocked` também precisam dele e estão fora deste grupo. Montá-lo nos
-          dois lugares mostraria o mesmo toast duplicado aqui dentro. */}
-      <CartBar />
-      <SheetHost />
-      <ConfirmHost />
-    </Box>
+            O ToastHost também não: ele vive no layout RAIZ, porque `login` e
+            `blocked` também precisam dele e estão fora deste grupo. Montá-lo nos
+            dois lugares mostraria o mesmo toast duplicado aqui dentro. */}
+        <CartBar />
+        <SheetHost />
+        <ConfirmHost />
+      </Box>
+    </Animated.View>
   );
 }

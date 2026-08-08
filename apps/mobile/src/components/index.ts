@@ -38,6 +38,7 @@ export { ConfirmHost } from './patterns/ConfirmHost';
 export { Screen, ESPACO_INFERIOR, ESPACO_INFERIOR_INTERNO } from './patterns/Screen';
 export { TabPane } from './patterns/TabPane';
 export { StartupError } from './patterns/StartupError';
+export { StartupLoading } from './patterns/StartupLoading';
 export { ToastHost } from './patterns/ToastHost';
 
 // ── Sheets ──────────────────────────────────────────────────────────────────

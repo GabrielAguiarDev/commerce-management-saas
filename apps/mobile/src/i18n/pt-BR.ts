@@ -134,6 +134,12 @@ export const ptBR: Messages = {
     syncing: 'Voltou a conexão — sincronizando suas vendas…',
   },
 
+  startup: {
+    title: 'Preparando tudo para você',
+    text: 'Só um instante enquanto organizamos o seu negócio.',
+    a11yLabel: 'Abrindo o aplicativo',
+  },
+
   paymentMethods: {
     cash: 'Dinheiro',
     pix: 'Pix',

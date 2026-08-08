@@ -156,6 +156,17 @@ export const en = {
     syncing: 'Connection is back — syncing your sales…',
   },
 
+  // The wait between signing in and the app opening, while the gate checks
+  // which modules the plan includes. Deliberately says nothing about
+  // "checking your plan": the user did not ask for an audit, they asked to
+  // get in. See StartupLoading.
+  startup: {
+    title: 'Getting everything ready',
+    text: 'Just a moment while we set up your business.',
+    /** Read by screen readers in place of the dots, which are decorative. */
+    a11yLabel: 'Opening the app',
+  },
+
   paymentMethods: {
     cash: 'Cash',
     pix: 'Pix',
