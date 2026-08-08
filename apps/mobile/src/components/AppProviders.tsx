@@ -1,3 +1,4 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { ThemeProvider } from '@shopify/restyle';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -17,8 +18,14 @@ import { darkTheme, lightTheme } from '@theme';
  *     fechar o bottom sheet simplesmente não recebe evento no Android.
  *  2. `SafeAreaProvider` antes de qualquer tela: `useSafeAreaInsets` é usado
  *     pelo Screen, pela tab bar, pelo FAB e pelo toast.
- *  3. `ThemeProvider` por último, para que a troca de tema não remonte a
+ *  3. `ThemeProvider` antes do resto, para que a troca de tema não remonte a
  *     árvore de navegação.
+ *  4. `BottomSheetModalProvider` por ÚLTIMO, e não em volta de tudo: ele é o
+ *     host do portal onde os bottom sheets são renderizados de fato. Como o
+ *     `@gorhom/portal` monta o nó na posição do host, o contexto que o
+ *     conteúdo do sheet enxerga é o daqui — se o provider ficasse acima do
+ *     `ThemeProvider`, os sheets ficariam sem tema, sem query client e sem
+ *     safe area.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   const isDark = usePreferencesStore((s) => s.darkTheme);
@@ -52,7 +59,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={client}>
-          <ThemeProvider theme={theme}>{children}</ThemeProvider>
+          <ThemeProvider theme={theme}>
+            <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
+          </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

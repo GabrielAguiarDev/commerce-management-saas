@@ -1,6 +1,8 @@
+import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { forwardRef } from 'react';
 import { TextInput, type TextInputProps } from 'react-native';
 
+import { useIsInsideSheet } from '@components/patterns/sheetContext';
 import { useAppTheme } from '@hooks/useAppTheme';
 import { fontFamily, tokenDeRaio, type Raio } from '@theme';
 
@@ -50,6 +52,13 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
 ) {
   const theme = useAppTheme();
 
+  // Dentro de um bottom sheet o input tem que ser o da lib: é ele que avisa o
+  // sheet de que o foco entrou em um campo, para o sheet subir com o teclado
+  // em vez de ficar escondido atrás dele. O cast existe porque o
+  // `BottomSheetTextInput` tipa a ref com o `TextInput` do gesture-handler,
+  // que é o mesmo componente com outro caminho de importação.
+  const Input = (useIsInsideSheet() ? BottomSheetTextInput : TextInput) as typeof TextInput;
+
   return (
     <Box>
       {label ? (
@@ -75,7 +84,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
       >
         {prefix ? <Box marginRight="s10">{prefix}</Box> : null}
 
-        <TextInput
+        <Input
           ref={ref}
           value={value}
           onChangeText={onChangeText}

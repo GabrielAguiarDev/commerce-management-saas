@@ -1,35 +1,24 @@
-import type { ReactNode } from 'react';
-import { Dimensions, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInDown,
-  runOnJS,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import {
+  BottomSheetBackdrop,
+  BottomSheetModal,
+  BottomSheetScrollView,
+  useBottomSheetTimingConfigs,
+  type BottomSheetBackdropProps,
+} from '@gorhom/bottom-sheet';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box } from '@components/ui/Box';
 import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
+import { useAppTheme } from '@hooks/useAppTheme';
 
-import { AO_FADE, AO_SHEET } from './animations';
+import { AO_SHEET } from './animations';
+import { InsideSheetProvider, useSheetVisibility } from './sheetContext';
 
 /** 82% da tela, como no protótipo (`max-height:82%`). */
 const ALTURA_MAXIMA = Dimensions.get('window').height * 0.82;
-/** Arrasto além disto fecha o sheet ao soltar. */
-const LIMIAR_FECHAR = 90;
-
-/**
- * A entrada `aoSheet`. Definida FORA do componente de propósito: um
- * `LayoutAnimationConfig` recriado a cada render faria a animação reiniciar em
- * toda atualização de estado do sheet — digitar num campo, por exemplo.
- */
-const SLIDE_DE_BAIXO = SlideInDown.duration(AO_SHEET.duration).easing(AO_SHEET.easing);
 
 interface BottomSheetProps {
   title: string;
@@ -38,116 +27,152 @@ interface BottomSheetProps {
 }
 
 /**
- * O bottom sheet do app.
+ * O bottom sheet do app, sobre `@gorhom/bottom-sheet`.
  *
- * Implementado à mão em vez de `Modal` nativo ou rota `transparentModal` por
- * dois motivos concretos:
+ * A API é a mesma de antes (`title`, `onClose`, `children`) — os cinco sheets
+ * do produto continuam sendo só conteúdo. O que mudou é quem cuida do gesto,
+ * do backdrop e do teclado: era código nosso, agora é a lib.
  *
- *  1. O sheet do carrinho precisa reabrir a partir do "Desfazer" do TOAST, que
- *     vive fora da pilha de navegação. Como rota, isso exigiria empurrar uma
- *     rota a partir de um componente global — e no iOS tudo o que é empilhado
- *     DEPOIS de um modal também é apresentado como modal, o que quebraria a
- *     navegação seguinte.
- *  2. O design pede o mesmo desenho de sheet nos cinco casos, com a chrome do
- *     app viva por baixo. Um overlay dentro do layout entrega isso de graça.
+ * Duas escolhas que não são óbvias:
  *
- * Como `gestureEnabled` do navegador não vale aqui, o gesto de saída é
- * responsabilidade deste componente: arrastar para baixo fecha, e o arrasto
- * acompanha o dedo. Sheet sem gesto de saída é sheet que só fecha no ✕.
+ *  • O cabeçalho (alcinha + título + ✕) é o `handleComponent`, não parte do
+ *    conteúdo. É o que mantém o título FIXO quando a lista rola — no carrinho
+ *    com muitos itens isso importa — e ainda deixa a área inteira arrastável,
+ *    porque é exatamente onde a lib prende o gesto do handle.
+ *
+ *  • `enableDynamicSizing` no lugar de `snapPoints` fixos: o sheet tem a
+ *    altura do próprio conteúdo, que era o comportamento do componente antigo.
+ *    `maxDynamicContentSize` recoloca o teto de 82% do protótipo, e a partir
+ *    dele o `BottomSheetScrollView` rola.
+ *
+ * Fechar tem sempre o mesmo caminho, venha de onde vier — do ✕, do backdrop,
+ * do arrasto para baixo ou de um `closeSheet()` do conteúdo depois de salvar:
+ * a lib anima a saída e SÓ ENTÃO o `onDismiss` limpa a store (`onClose`) e
+ * libera o `SheetHost` para desmontar (`onClosed`). Ver `sheetContext`.
  */
 export function BottomSheet({ title, onClose, children }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
-  const noMovement = useReducedMotion();
-  const offset = useSharedValue(0);
+  const theme = useAppTheme();
+  const { open, onClosed } = useSheetVisibility();
+  const sheetRef = useRef<BottomSheetModal>(null);
 
-  const arrastar = Gesture.Pan()
-    .onChange((evento) => {
-      // Só para baixo: puxar para cima não estica o sheet.
-      offset.value = Math.max(0, offset.value + evento.changeY);
-    })
-    .onEnd((evento) => {
-      const rapido = evento.velocityY > 800;
-      if (offset.value > LIMIAR_FECHAR || rapido) {
-        runOnJS(onClose)();
-      } else {
-        offset.value = withTiming(0, { duration: 160 });
-      }
-    });
+  // O `SheetHost` monta este componente quando a store abre um sheet; o modal
+  // da lib, porém, só aparece depois de `present()`. O mesmo efeito cobre a
+  // volta: quando a store fecha o sheet, `open` cai e a saída é animada.
+  useEffect(() => {
+    if (open) sheetRef.current?.present();
+    else sheetRef.current?.dismiss();
+  }, [open]);
 
-  const estilo = useAnimatedStyle(() => ({
-    transform: [{ translateY: offset.value }],
-  }));
+  const dismiss = useCallback(() => sheetRef.current?.dismiss(), []);
+
+  // O ✕, o backdrop e o arrasto dispensam o sheet direto na lib, sem passar
+  // pela store — então é aqui, no fim da animação, que a store é zerada.
+  // `closeSheet` é idempotente, o que torna seguro o caminho inverso (a store
+  // fechou primeiro e a animação só confirma).
+  const handleDismiss = useCallback(() => {
+    onClose();
+    onClosed();
+  }, [onClose, onClosed]);
+
+  // O `aoSheet` do design, agora como config de animação da lib: 260ms na
+  // curva cubic-bezier(.2,.8,.25,1).
+  const animacao = useBottomSheetTimingConfigs({
+    duration: AO_SHEET.duration,
+    easing: AO_SHEET.easing,
+  });
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+        accessibilityLabel="Fechar"
+        // A opacidade já vive no token (`rgba(...,0.5)`), então aqui ela é 1 —
+        // senão o scrim sairia pela metade do que o design pede.
+        opacity={1}
+        style={{ backgroundColor: theme.colors.scrimSheet }}
+      />
+    ),
+    [theme.colors.scrimSheet],
+  );
+
+  const renderHandle = useCallback(
+    () => (
+      <Box paddingTop="s10" paddingHorizontal="s18" paddingBottom="s14">
+        <Box
+          width={44}
+          height={5}
+          borderRadius="full"
+          backgroundColor="line"
+          alignSelf="center"
+          marginBottom="s14"
+        />
+
+        <Box flexDirection="row" alignItems="center" gap="s10">
+          <Box flex={1}>
+            <Text variant="sheetTitle" accessibilityRole="header">
+              {title}
+            </Text>
+          </Box>
+          <Touchable
+            accessibilityLabel="Fechar"
+            onPress={dismiss}
+            width={34}
+            height={34}
+            borderRadius="r11"
+            borderWidth={1}
+            borderColor="line"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Text variant="rowLabel" color="textMuted">
+              ✕
+            </Text>
+          </Touchable>
+        </Box>
+      </Box>
+    ),
+    [title, dismiss],
+  );
 
   return (
-    <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="flex-end">
-      <Animated.View
-        entering={FadeIn.duration(AO_FADE.duration)}
-        exiting={FadeOut.duration(AO_FADE.duration)}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-      >
-        <Touchable accessibilityLabel="Fechar" onPress={onClose} flex={1} backgroundColor="scrimSheet" />
-      </Animated.View>
-
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <GestureDetector gesture={arrastar}>
-          <Animated.View
-            // O `aoSheet` do design: sobe de baixo com cubic-bezier(.2,.8,.25,1).
-            // Com "reduzir movimento" ligado, aparece com fade e sem deslocar.
-            entering={noMovement ? FadeIn.duration(AO_FADE.duration) : SLIDE_DE_BAIXO}
-            exiting={FadeOut.duration(AO_SHEET.exitDuration)}
-            style={estilo}
-          >
-            <Box
-              backgroundColor="surface"
-              borderTopLeftRadius="r28"
-              borderTopRightRadius="r28"
-              paddingTop="s10"
-              paddingHorizontal="s18"
-              style={{ paddingBottom: 26 + insets.bottom, maxHeight: ALTURA_MAXIMA }}
-            >
-              <Box
-                width={44}
-                height={5}
-                borderRadius="full"
-                backgroundColor="line"
-                alignSelf="center"
-                marginBottom="s14"
-              />
-
-              <Box flexDirection="row" alignItems="center" gap="s10" marginBottom="s14">
-                <Box flex={1}>
-                  <Text variant="sheetTitle" accessibilityRole="header">
-                    {title}
-                  </Text>
-                </Box>
-                <Touchable
-                  accessibilityLabel="Fechar"
-                  onPress={onClose}
-                  width={34}
-                  height={34}
-                  borderRadius="r11"
-                  borderWidth={1}
-                  borderColor="line"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Text variant="rowLabel" color="textMuted">
-                    ✕
-                  </Text>
-                </Touchable>
-              </Box>
-
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                bounces={false}
-              >
-                {children}
-              </ScrollView>
-            </Box>
-          </Animated.View>
-        </GestureDetector>
-      </KeyboardAvoidingView>
-    </Box>
+    <BottomSheetModal
+      ref={sheetRef}
+      onDismiss={handleDismiss}
+      enablePanDownToClose
+      enableDynamicSizing
+      maxDynamicContentSize={ALTURA_MAXIMA}
+      topInset={insets.top}
+      animationConfigs={animacao}
+      backdropComponent={renderBackdrop}
+      handleComponent={renderHandle}
+      backgroundStyle={{
+        backgroundColor: theme.colors.surface,
+        borderTopLeftRadius: theme.borderRadii.r28,
+        borderTopRightRadius: theme.borderRadii.r28,
+      }}
+      // Há campo de texto em quatro dos cinco sheets: `interactive` faz o sheet
+      // subir junto com o teclado, e `restore` o traz de volta ao fechar.
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
+    >
+      <InsideSheetProvider value>
+        <BottomSheetScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          contentContainerStyle={{
+            paddingHorizontal: theme.spacing.s18,
+            paddingBottom: theme.spacing.s26 + insets.bottom,
+          }}
+        >
+          {children}
+        </BottomSheetScrollView>
+      </InsideSheetProvider>
+    </BottomSheetModal>
   );
 }
