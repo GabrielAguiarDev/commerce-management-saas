@@ -1,4 +1,4 @@
-import { Button, Box, Card, Divider, Icon, Pill, Screen, Text } from '@components';
+import { Button, Box, Card, Divider, Icon, Pill, Screen, Skeleton, Text } from '@components';
 import {
   labelDifference,
   useAbrirCaixa,
@@ -29,13 +29,18 @@ export default function CashScreen() {
 
   const subtitle = shift ? 'Turno aberto hoje' : 'Nenhum turno aberto';
 
-  // Enquanto não se sabe se o caixa está aberto, mostra a moldura da tela sem
-  // conteúdo: alternar de "fechado" para "aberto" depois de renderizar seria
-  // um salto visual feio bem no meio do turno.
+  // Enquanto não se sabe se o caixa está aberto, o ESQUELETO ocupa o lugar —
+  // e não o vazio de antes. Alternar de "fechado" para "aberto" depois de
+  // renderizar seria um salto visual feio bem no meio do turno; sumir com o
+  // corpo da tela é pior ainda, porque some junto a sensação de que o app
+  // respondeu. Header e tab bar continuam desenhados ao redor: quem espera vê
+  // a navegação inteira, só sem o número.
   if (isPending) {
     return (
       <Screen title="Caixa" subtitle={subtitle}>
-        {null}
+        <Skeleton height={128} borderRadius="r22" />
+        <Skeleton height={168} borderRadius="r20" />
+        <Skeleton height={52} borderRadius="r16" />
       </Screen>
     );
   }

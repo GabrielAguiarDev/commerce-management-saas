@@ -81,7 +81,10 @@ Os chips de demo ficaram fora de escopo por decisão do brief. Na fase de mock o
 e-mail escolhia o tenant; hoje quem decide é `profiles.tenant_id` do usuário
 logado, e os módulos saem de `v_active_modules`. Ver §7.
 
-**Pilha de navegação com chrome sobreposta, e não abas.** Ver §4.
+**Abas persistentes por dentro, pilha com chrome sobreposta por fora.** As cinco
+raízes vivem num `Tabs` que nunca desmonta; o resto empilha sobre ele, com a tab
+bar como overlay por cima de tudo. E o acesso é verificado UMA vez, num guardião
+acima das abas. Ver §4.
 
 **`nodeLinker: hoisted` no workspace.** Ver §8, Armadilha 1 — foi mudança na
 raiz do monorepo, não só no app.
@@ -93,15 +96,17 @@ raiz do monorepo, não só no app.
 ```
 app/                        SOMENTE rotas
   _layout.tsx               splash hold + AppProviders + Stack raiz
-  index.tsx                 o PORTÃO (usa resolverRotaDeEntrada, função pura)
-  login.tsx  bloqueio.tsx  +not-found.tsx
-  (app)/_layout.tsx         Stack do app + chrome fixa (tab bar, FAB, sheets…)
-  (app)/{inicio,vender,produtos,mais,caixa,estoque,custos,relatorios,config}.tsx
-  (app)/suporte/{index,[id]}.tsx
+  index.tsx                 a PORTA DA RUA (resolveEntryRoute, função pura)
+  login.tsx  blocked.tsx  +not-found.tsx
+  (app)/_layout.tsx         o GUARDIÃO (resolveAppGate) + Stack + chrome fixa
+  (app)/(tabs)/_layout.tsx  as abas — montadas uma vez, barra própria em null
+  (app)/(tabs)/{home,products,cash,costs,more}.tsx      ← trocam por jumpTo
+  (app)/{sell,stock,reports,settings}.tsx               ← empilham
+  (app)/support/{index,[id]}.tsx
 src/
   components/
-    ui/                     primitivos (Box, Text, Botao, Campo, Chips…)
-    patterns/               compostos (Screen, BarraDeAbas, BottomSheet, hosts…)
+    ui/                     primitivos (Box, Text, Botao, Campo, Chips, Skeleton…)
+    patterns/               compostos (Screen, TabBar, BottomSheet, hosts…)
     sheets/                 os 5 bottom sheets + SheetHost
     AppProviders.tsx        composição única de providers
     index.ts                a API pública do DS — telas importam SÓ daqui
@@ -158,34 +163,100 @@ pnpm start         # dev server
 
 ## 4. Navegação — a decisão e o porquê
 
-O protótipo tem **tab bar sempre visível E botão voltar em metade das telas**
-(estado `pilha` + função `go()`). Um `Tabs` do Expo Router não entrega isso:
-dentro de uma aba não há pilha para voltar, e telas como Estoque ou Suporte
-perderiam ou o voltar, ou a tab bar.
+Três camadas, e cada uma existe por um motivo diferente:
 
-**Solução adotada:** `app/(app)/_layout.tsx` é um `Stack` normal — push/pop
-nativos, gesto de voltar do iOS, `router.canGoBack()` confiável — e a chrome
-(tab bar, FAB, barra do carrinho, toast, confirm, sheet) é um **overlay absoluto
-irmão da pilha**. É a leitura literal do protótipo, onde essa chrome é
-`position:absolute` sobre o conteúdo rolável.
-
-**As cinco raízes** (Início, Produtos, o atalho Caixa/Custos, Mais e Vender)
-zeram a pilha via `irParaRaiz()` (`src/hooks/navegacao.ts`):
-
-```ts
-if (router.canDismiss()) router.dismissAll();
-router.replace(rota);
+```
+app/_layout.tsx              splash hold + providers + Stack raiz
+app/index.tsx                a PORTA DA RUA — login ou app (só isso)
+app/(app)/_layout.tsx        o GUARDIÃO (acesso, uma vez) + Stack + chrome fixa
+app/(app)/(tabs)/_layout.tsx as ABAS — montadas uma vez, nunca desmontadas
 ```
 
-`router.dismissTo()` sozinho **não serve**: quando o destino não está na pilha,
-ele substitui só a tela do topo — saindo de Início › Estoque e tocando em
-Produtos, o Início continuaria embaixo e o voltar apareceria numa aba raiz.
+### O guardião roda UMA VEZ, acima das abas
 
-**O portão** (`app/index.tsx`) não decide nada: pergunta a
-`resolverRotaDeEntrada()` (pura, testada) e obedece. Enquanto ela devolve `null`,
-nada é renderizado e a splash continua segurando. Isso evita a versão clássica do
-bug: dois `useEffect` de navegação disputando e o app em laço entre login e
-início.
+A verificação de acesso (sessão válida, `has_module('app')`, tenant, plano) **não
+muda entre uma aba e outra** — é o mesmo usuário na mesma sessão. Ela mora em
+`app/(app)/_layout.tsx`, que é um LAYOUT: envolve toda a navegação, monta uma vez
+e permanece montado enquanto o usuário estiver dentro do app.
+
+`resolveAppGate()` (pura, testada) responde `hold | login | error | blocked |
+allow`, e o guardião obedece. A peça central é a **trava** (`released`): depois
+de liberar uma vez, nenhuma revalidação em segundo plano — voltar do background,
+reconectar, `onAuthStateChange`, refetch do react-query — devolve o portão para
+`hold`. Só a **sessão sumir** expulsa quem já entrou, e por isso `login` é
+perguntado ANTES da trava.
+
+> Isso corrige um bug de verdade: `hold` esconde a navegação inteira, e sem a
+> trava qualquer revalidação a escondia por um instante. Na tela, isso aparecia
+> como a interface toda — tab bar inclusive — sumindo e voltando a cada troca de
+> aba.
+
+A trava é ajustada **durante o render** (`setReleased(true)`), o padrão oficial
+do React para estado derivado: é idempotente e vale já neste render. Num
+`useEffect`, a liberação só valeria no render seguinte — e é esse "um render a
+mais" que pisca.
+
+`app/index.tsx` deixou de perguntar pelo entitlement. Ela é rota de PASSAGEM (o
+`Redirect` a desmonta no mesmo instante), então quem chegava por deep link em
+`/home` nunca passava por lá. Sendo o guardião um layout, essa porta dos fundos
+não existe.
+
+### A tab bar é a casca, e casca não pisca
+
+A chrome (tab bar, FAB, barra do carrinho, confirm, sheet) é um **overlay
+absoluto irmão da pilha**, em `(app)/_layout.tsx`. É a leitura literal do
+protótipo, onde ela é `position:absolute` sobre o conteúdo rolável — e é o que
+mantém a barra visível também em Estoque, Suporte e Configurações, que um `Tabs`
+comum esconderia ao empilhar.
+
+A `TabBar` **não tem mais estado de carregamento**. Ela já teve `if (loading)
+return null`, para não mostrar "Custos" num Plano Completo enquanto o plano não
+chegasse; o efeito colateral era pior que o problema — a barra inteira sumia. A
+espera foi para o guardião (`capabilitiesSettled`), que só libera com as
+capacidades resolvidas. Quando a barra renderiza, não há instante a esconder.
+
+### Duas famílias de rota, e elas não se alcançam igual
+
+| | onde mora | como se alcança |
+|---|---|---|
+| **abas** — Início, Produtos, Caixa, Custos, Mais | `(app)/(tabs)/` | `goToRoot()` → `dismissAll` + `navigate` (jumpTo) |
+| **empilhadas** — Vender, Estoque, Relatórios, Configurações, Suporte | `(app)/` | `router.push()`, com botão voltar |
+
+`goTo(rota)` escolhe entre as duas a partir de `isTabRoute()` — quem chama (a
+grade do "Mais", os atalhos do Início) só diz para onde quer ir. Um `push` numa
+rota de aba não funciona (navegador de abas não tem pilha) e não é erro de
+compilação; o jest cobre isso comparando `isTabRoute()` com a pasta real.
+
+**Por que abas agora, se antes eram `Stack`.** As raízes já foram telas de uma
+pilha, trocadas com `dismissAll` + `replace`. Funcionava, mas `replace`
+**desmonta** a tela que sai: voltar para Início remontava a tela, refazia o
+render inteiro e perdia rolagem e filtros. Num `Tabs`, cada aba é montada na
+primeira visita e permanece; trocar é um `jumpTo`, instantâneo e sem refetch.
+`freezeOnBlur` mantém as inativas montadas mas suspensas, então cinco abas
+montadas não custam cinco telas trabalhando.
+
+A barra do navegador de abas é `tabBar={() => null}`: o navegador é puramente
+estrutural (guarda o estado das abas), e quem desenha e escuta o toque é a
+`TabBar` do design system, um nível acima. Caixa **e** Custos moram nas abas,
+embora só um dos dois seja o 3º item da barra em cada plano — os dois são destino
+de raiz, e o que não está na barra continua acessível pela grade do "Mais".
+
+`/sell` é raiz no protótipo mas **não** é aba: ela se empilha sobre as abas, com
+a tab bar continuando visível por cima. Consequência visível: Nova venda passou a
+ter botão voltar, porque agora existe de verdade uma tela embaixo dela. Antes o
+`replace` fingia que não — e o voltar do Android já saía do app.
+
+`backBehavior="none"` no `Tabs` é obrigatório aqui. O padrão (`firstRoute`) faria
+o navegador tratar "voltar" como "ir para Início", `router.canGoBack()` viraria
+`true` em Produtos/Caixa/Custos e o `Screen` desenharia um botão voltar que o
+protótipo não tem.
+
+### Carregamento de dados fica DENTRO do conteúdo
+
+Carregar os dados de uma tela ao entrar nela é normal; esconder a tela para isso
+não é. O componente `Skeleton` ocupa o espaço exato do conteúdo que vem, com
+header e tab bar já desenhados ao redor (Caixa, Início, Produtos). A única espera
+que cobre a tela inteira é o `hold` do guardião — uma vez, na entrada do app.
 
 ---
 
@@ -416,10 +487,14 @@ Se criar uma tela nova fora de `(app)` que precise de confirmação ou de sheet,
 emite eventos repetidos ao trocar de rede; sem a guarda, o banner
 "sincronizando…" reiniciava sozinho a cada emissão.
 
-**12. `useCapacidades` expõe `carregando`.** Enquanto o plano não chegou, TODAS
-as capacidades são falsas — a tab bar mostraria "Custos" num Plano Completo por
-uma fração de segundo. Por isso a `BarraDeAbas` não renderiza durante o
-carregamento, e o portão trata `temAcessoAoApp` como `null` (≠ `false`).
+**12. `useCapabilities` expõe `loading` — mas quem espera é o GUARDIÃO.**
+Enquanto o plano não chegou, TODAS as capacidades são falsas: a tab bar mostraria
+"Custos" num Plano Completo por uma fração de segundo. A `TabBar` já resolvia
+isso não renderizando durante o carregamento — e assim a casca do app sumia da
+tela. A espera subiu para `(app)/_layout.tsx` (`capabilitiesSettled`), que segura
+UMA vez na entrada; a barra, quando renderiza, já tem a verdade. O guardião
+continua tratando `hasAppAccess` como `null` (≠ `false`) pelo mesmo motivo de
+sempre: "ainda não sei" não é "seu plano não inclui". Ver §4.
 
 **13. Fonte que não carrega não pode prender a splash.** `useFonts` devolve
 `[carregadas, erro]`; o layout raiz considera pronto quando **qualquer um dos
@@ -555,6 +630,12 @@ regenerá-las é seguro. Se `pod update` não bastar, o próximo passo é
       criptografada, login real, portão por `has_module('app')` e os nove
       domínios lendo/escrevendo no banco. `src/data/` e `mockLatency` removidos.
       *Portão: typecheck ✅ lint ✅ test ✅ (196) export ios ✅*
+- [x] **Fase 5.1 — Navegação persistente.** As cinco raízes viraram um `Tabs`
+      que não desmonta, a verificação de acesso subiu para um guardião acima das
+      abas (com trava), a tab bar perdeu o estado de carregamento e o
+      carregamento de dados virou `Skeleton` dentro do conteúdo. Trocar de aba
+      passou a ser um `jumpTo` — instantâneo, sem refetch e sem piscar. Ver §4.
+      *Portão: typecheck ✅ lint ✅ test ✅ (231) export ios ✅*
 - [ ] **Fase 6 — Offline com sincronização.** Não iniciada, e deliberadamente
       fora da fase 5. Ver §13.
 

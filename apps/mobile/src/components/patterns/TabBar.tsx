@@ -12,15 +12,28 @@ import { goToRoot } from '@hooks/navigation';
 /** 88px é a altura do design. A safe area entra POR CIMA, não no lugar dela. */
 export const ALTURA_TAB_BAR = 88;
 
+/**
+ * A CASCA DO APP — sempre visível, nunca remontada.
+ *
+ * Ela é montada uma única vez pelo layout de `(app)`, como overlay absoluto
+ * irmão da pilha, e permanece: trocar de aba não a toca, e telas empilhadas
+ * (Estoque, Suporte, Configurações) passam POR BAIXO dela.
+ *
+ * ⚠️ ESTE COMPONENTE NÃO TEM ESTADO DE CARREGAMENTO, e isso é deliberado.
+ *
+ * Ele já teve: `if (loading) return null`, para não mostrar "Custos" num Plano
+ * Completo enquanto o plano não chegasse. O efeito colateral era pior que o
+ * problema — a barra inteira sumia da tela sempre que a consulta do tenant
+ * estivesse pendente, e voltava depois. Uma casca que pisca não é casca.
+ *
+ * A espera foi para onde ela pertence: o guardião em `(app)/_layout.tsx` só
+ * libera a navegação com as capacidades já resolvidas. Quando esta barra
+ * renderiza, `capabilities` já é a verdade — não há instante a esconder.
+ */
 export function TabBar() {
   const insets = useSafeAreaInsets();
   const path = usePathname();
-  const { capabilities, loading } = useCapabilities();
-
-  // Enquanto o plano não chegou, todas as capacidades são falsas e o 3º item
-  // seria "Custos" mesmo num Plano Completo. Segurar a barra por esse instante
-  // é melhor que mostrá-la trocando de rótulo na cara do usuário.
-  if (loading) return null;
+  const { capabilities } = useCapabilities();
 
   const items = tabBarItems(capabilities);
 

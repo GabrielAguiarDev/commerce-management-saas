@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Button, Box, Field, Chips, Icon, Pill, Screen, Text, Touchable } from '@components';
+import { Button, Box, Field, Chips, Icon, Pill, Screen, Skeleton, Text, Touchable } from '@components';
 import type { ChipOption } from '@components';
 import {
   specialCategoryOf,
@@ -39,7 +39,7 @@ function badgeLabel(product: Product, t: Messages): string {
 export default function ProductsScreen() {
   const t = useTranslation();
   const { capabilities } = useCapabilities();
-  const { data: products = [] } = useCatalog();
+  const { data: products = [], isPending } = useCatalog();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const openSheet = useUIStore((s) => s.openSheet);
   const showToast = useUIStore((s) => s.showToast);
@@ -74,6 +74,13 @@ export default function ProductsScreen() {
       />
 
       <Chips options={options} selecionada={filter} onSelect={setFilter} />
+
+      {/* Busca e filtros ficam de pé e utilizáveis enquanto o catálogo vem: o
+          que carrega é a LISTA, não a tela. Três linhas fantasmas dão à página
+          a altura que ela terá, para o conteúdo não pular quando chegar. */}
+      {isPending
+        ? [0, 1, 2].map((i) => <Skeleton key={i} height={96} borderRadius="r18" />)
+        : null}
 
       {list.map((product) => (
         <Box

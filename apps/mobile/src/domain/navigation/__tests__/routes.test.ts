@@ -11,9 +11,12 @@ import {
   tabBarShortcut,
   tabBarItems,
   moreItems,
+  resolveAppGate,
   resolveEntryRoute,
   isRouteAllowed,
+  isTabRoute,
 } from '../routes';
+import type { AppGateState } from '../routes';
 
 const COMPLETO = deriveCapabilities([
   'sales',
@@ -29,44 +32,86 @@ const ESSENTIAL = deriveCapabilities(['sales', 'products', 'costs', 'support', '
 
 describe('resolverRotaDeEntrada', () => {
   it('segura a splash enquanto os stores não hidrataram', () => {
-    expect(
-      resolveEntryRoute({ hydrated: false, isAuthenticated: true, hasAppAccess: true }),
-    ).toBeNull();
+    expect(resolveEntryRoute({ hydrated: false, isAuthenticated: true })).toBeNull();
   });
 
   it('manda para o login sem sessão', () => {
-    expect(
-      resolveEntryRoute({ hydrated: true, isAuthenticated: false, hasAppAccess: null }),
-    ).toBe(ROUTES.login);
+    expect(resolveEntryRoute({ hydrated: true, isAuthenticated: false })).toBe(ROUTES.login);
   });
 
-  it('segura a splash enquanto o plano do tenant ainda não chegou', () => {
-    expect(
-      resolveEntryRoute({ hydrated: true, isAuthenticated: true, hasAppAccess: null }),
-    ).toBeNull();
-  });
-
-  it('manda para o bloqueio quando o plano não inclui o app', () => {
-    expect(
-      resolveEntryRoute({ hydrated: true, isAuthenticated: true, hasAppAccess: false }),
-    ).toBe(ROUTES.blocked);
-  });
-
-  it('manda para o início quando tudo está no lugar', () => {
-    expect(
-      resolveEntryRoute({ hydrated: true, isAuthenticated: true, hasAppAccess: true }),
-    ).toBe(ROUTES.home);
+  it('manda para o início com sessão — o entitlement é do guardião, não daqui', () => {
+    expect(resolveEntryRoute({ hydrated: true, isAuthenticated: true })).toBe(ROUTES.home);
   });
 
   it('é idempotente: mesma entrada, mesma saída, sem efeito colateral', () => {
-    const entrada = { hydrated: true, isAuthenticated: true, hasAppAccess: true } as const;
+    const entrada = { hydrated: true, isAuthenticated: true } as const;
     expect(resolveEntryRoute(entrada)).toBe(resolveEntryRoute(entrada));
   });
+});
 
-  it('não autenticado tem precedência sobre plano sem app', () => {
-    expect(
-      resolveEntryRoute({ hydrated: true, isAuthenticated: false, hasAppAccess: false }),
-    ).toBe(ROUTES.login);
+describe('resolveAppGate', () => {
+  /** Tudo no lugar; cada teste muda só o que precisa provar. */
+  const OK: AppGateState = {
+    hydrated: true,
+    isAuthenticated: true,
+    hasAppAccess: true,
+    accessFailed: false,
+    capabilitiesSettled: true,
+    released: false,
+  };
+
+  it('segura enquanto os stores não hidrataram', () => {
+    expect(resolveAppGate({ ...OK, hydrated: false })).toBe('hold');
+  });
+
+  it('manda para o login sem sessão', () => {
+    expect(resolveAppGate({ ...OK, isAuthenticated: false })).toBe('login');
+  });
+
+  it('segura enquanto não sabe se o plano inclui o app', () => {
+    expect(resolveAppGate({ ...OK, hasAppAccess: null })).toBe('hold');
+  });
+
+  it('não confunde "ainda não sei" com "o plano não inclui"', () => {
+    expect(resolveAppGate({ ...OK, hasAppAccess: null })).not.toBe('blocked');
+    expect(resolveAppGate({ ...OK, hasAppAccess: false })).toBe('blocked');
+  });
+
+  it('mostra erro quando a consulta do entitlement desistiu', () => {
+    expect(resolveAppGate({ ...OK, accessFailed: true, hasAppAccess: null })).toBe('error');
+  });
+
+  it('segura enquanto o plano (capacidades) não chegou — a tab bar depende dele', () => {
+    expect(resolveAppGate({ ...OK, capabilitiesSettled: false })).toBe('hold');
+  });
+
+  it('libera quando tudo está no lugar', () => {
+    expect(resolveAppGate(OK)).toBe('allow');
+  });
+
+  /**
+   * A TRAVA — o coração da correção do flash.
+   *
+   * Depois de liberado, nenhuma revalidação em segundo plano pode devolver o
+   * portão para `hold`: `hold` esconde a navegação inteira, e era esse instante
+   * que aparecia como a tab bar sumindo e voltando a cada troca de aba.
+   */
+  describe('a trava', () => {
+    it('não volta a segurar quando o entitlement é reconsultado', () => {
+      expect(resolveAppGate({ ...OK, released: true, hasAppAccess: null })).toBe('allow');
+    });
+
+    it('não volta a segurar quando o plano é reconsultado', () => {
+      expect(resolveAppGate({ ...OK, released: true, capabilitiesSettled: false })).toBe('allow');
+    });
+
+    it('não mostra erro por uma falha de rede depois de já ter entrado', () => {
+      expect(resolveAppGate({ ...OK, released: true, accessFailed: true })).toBe('allow');
+    });
+
+    it('MAS a sessão sumir expulsa mesmo quem já entrou', () => {
+      expect(resolveAppGate({ ...OK, released: true, isAuthenticated: false })).toBe('login');
+    });
   });
 });
 
@@ -112,6 +157,43 @@ describe('itensDoMais', () => {
   });
 });
 
+/**
+ * Empilhar sobre uma aba não funciona — navegador de abas não tem pilha —, e o
+ * erro só apareceria em runtime, num plano específico, na terceira tela. Aqui
+ * ele é pego no jest.
+ */
+describe('isTabRoute', () => {
+  it('reconhece as cinco rotas que vivem no navegador de abas', () => {
+    expect(isTabRoute(ROUTES.home)).toBe(true);
+    expect(isTabRoute(ROUTES.products)).toBe(true);
+    expect(isTabRoute(ROUTES.cash)).toBe(true);
+    expect(isTabRoute(ROUTES.costs)).toBe(true);
+    expect(isTabRoute(ROUTES.more)).toBe(true);
+  });
+
+  it('Vender é raiz mas NÃO é aba: empilha sobre elas', () => {
+    expect(isTabRoute(ROUTES.sell)).toBe(false);
+  });
+
+  it('as telas empilhadas não são abas', () => {
+    expect(isTabRoute(ROUTES.stock)).toBe(false);
+    expect(isTabRoute(ROUTES.reports)).toBe(false);
+    expect(isTabRoute(ROUTES.settings)).toBe(false);
+    expect(isTabRoute(ROUTES.support)).toBe(false);
+  });
+
+  it('todo destino do 3º item da tab bar é uma aba, em qualquer plano', () => {
+    expect(isTabRoute(tabBarShortcut(COMPLETO).route)).toBe(true);
+    expect(isTabRoute(tabBarShortcut(ESSENTIAL).route)).toBe(true);
+  });
+
+  it('todo item da tab bar é uma aba, em qualquer plano', () => {
+    for (const item of [...tabBarItems(COMPLETO), ...tabBarItems(ESSENTIAL)]) {
+      expect(isTabRoute(item.route)).toBe(true);
+    }
+  });
+});
+
 describe('rotaPermitida', () => {
   it('barra a rota de um módulo que o plano não inclui (deep link)', () => {
     expect(isRouteAllowed(ROUTES.stock, ESSENTIAL)).toBe(false);
@@ -150,11 +232,19 @@ describe('ROUTES x arquivos de rota', () => {
   /** Segmento de grupo — `(app)` — não aparece na URL. */
   const isGroup = (segment: string) => segment.startsWith('(') && segment.endsWith(')');
 
-  function collect(dir: string, prefix: string[] = []): string[] {
+  /** A rota e os grupos que a envolvem — `(app)`, `(tabs)`. */
+  interface RouteFile {
+    route: string;
+    groups: string[];
+  }
+
+  function collect(dir: string, prefix: string[] = [], groups: string[] = []): RouteFile[] {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry: fs.Dirent) => {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        return collect(full, isGroup(entry.name) ? prefix : [...prefix, entry.name]);
+        return isGroup(entry.name)
+          ? collect(full, prefix, [...groups, entry.name])
+          : collect(full, [...prefix, entry.name], groups);
       }
       if (!entry.name.endsWith('.tsx')) return [];
 
@@ -163,13 +253,31 @@ describe('ROUTES x arquivos de rota', () => {
       if (base.startsWith('_') || base.startsWith('+')) return [];
 
       const segments = base === 'index' ? prefix : [...prefix, base];
-      return [`/${segments.join('/')}`.replace(/\/$/, '') || '/'];
+      return [{ route: `/${segments.join('/')}`.replace(/\/$/, '') || '/', groups }];
     });
   }
 
-  const existing = new Set(collect(appDir));
+  const files = collect(appDir);
+  const existing = new Set(files.map((f) => f.route));
+  const inTabsGroup = new Set(
+    files.filter((f) => f.groups.includes('(tabs)')).map((f) => f.route),
+  );
 
   it.each(Object.entries(ROUTES))('%s (%s) tem um arquivo de rota', (_key, route) => {
     expect(existing).toContain(route);
   });
+
+  /**
+   * A outra metade do mesmo problema.
+   *
+   * `isTabRoute` diz como se navega até uma rota; a pasta diz onde ela mora. Se
+   * as duas discordarem, o app faz `push` numa aba (não funciona) ou `jumpTo`
+   * numa tela empilhada (não existe) — e nada disso é erro de compilação.
+   */
+  it.each(Object.values(ROUTES))(
+    '%s: estar em (tabs) e ser aba são a mesma coisa',
+    (route) => {
+      expect(isTabRoute(route)).toBe(inTabsGroup.has(route));
+    },
+  );
 });

@@ -5,6 +5,7 @@ import type { IconName } from '@components';
 import { ROUTES, moreItems } from '@domain/navigation/routes';
 import { countUnread, useTickets } from '@domain/support';
 import { useCapabilities } from '@domain/tenant';
+import { goTo } from '@hooks/navigation';
 import { useTranslation } from '@i18n';
 import { useCartStore } from '@store/cartStore';
 import { useSessionStore } from '@store/sessionStore';
@@ -48,7 +49,9 @@ export default function MoreScreen() {
           <Touchable
             key={item.key}
             accessibilityLabel={`${item.name}. ${item.description}${item.badge ? `. ${item.badge} não lida` : ''}`}
-            onPress={() => router.push(item.route as never)}
+            // `goTo`, e não `push`: Caixa e Custos são ABAS, e empilhar sobre
+            // uma aba não funciona. Ver o comentário em `goTo`.
+            onPress={() => goTo(item.route)}
             flexBasis="47%"
             flexGrow={1}
             minHeight={118}

@@ -39,33 +39,115 @@ export const ROUTES = {
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES];
 
-export interface GateState {
+/**
+ * As rotas que vivem DENTRO do navegador de abas (`app/(app)/(tabs)/`).
+ *
+ * A lista importa porque as duas famílias de rota se alcançam de maneiras
+ * diferentes: uma aba se ALCANÇA (`navigate` → jumpTo, sem desmontar nada), uma
+ * tela comum se EMPILHA (`push`, com botão voltar). Empilhar sobre uma aba não
+ * funciona — o navegador de abas não tem pilha —, e é o tipo de erro que só
+ * aparece em runtime, num plano específico, na terceira tela.
+ *
+ * Note que Caixa E Custos estão aqui, embora só um dos dois seja o 3º item da
+ * barra em cada plano (ver `tabBarShortcut`): os dois são destino de raiz, e o
+ * que não está na barra continua alcançável pela grade do "Mais".
+ *
+ * `/sell` NÃO está: é raiz no protótipo, mas se empilha sobre as abas.
+ */
+const TAB_ROUTES: readonly string[] = [
+  ROUTES.home,
+  ROUTES.products,
+  ROUTES.cash,
+  ROUTES.costs,
+  ROUTES.more,
+];
+
+export function isTabRoute(route: string): boolean {
+  return TAB_ROUTES.includes(route);
+}
+
+export interface EntryState {
   /** `false` enquanto os stores persistidos ainda não hidrataram. */
   hydrated: boolean;
   isAuthenticated: boolean;
-  /** `null` enquanto o tenant do usuário ainda não carregou. */
-  hasAppAccess: boolean | null;
 }
 
 /**
- * O PORTÃO: para onde ir agora.
+ * A PORTA DA RUA: login ou app.
  *
  * Idempotente e sem efeito colateral — pode ser chamada a cada render sem
  * medo. `null` significa "ainda não sei, segure a splash": é o que impede a
  * tela de login de piscar por 200ms para quem já estava logado.
  *
+ * Ela NÃO pergunta pelo entitlement. Quem decide entre entrar e a tela de
+ * bloqueio é o GUARDIÃO do grupo `(app)` (`resolveAppGate` abaixo), e a razão é
+ * arquitetural: `/` é uma rota de passagem — quem chega por deep link em
+ * `/home` nunca passa por aqui. Verificar o plano só neste arquivo deixava a
+ * porta dos fundos aberta.
+ */
+export function resolveEntryRoute(state: EntryState): Route | null {
+  if (!state.hydrated) return null;
+  return state.isAuthenticated ? ROUTES.home : ROUTES.login;
+}
+
+/**
+ * O que o guardião do app deve fazer AGORA.
+ *
+ *   `hold`    → segurar (ainda não sei): nada é renderizado além do fundo;
+ *   `login`   → não há sessão;
+ *   `error`   → não deu para confirmar o plano (rede/servidor);
+ *   `blocked` → o plano realmente não inclui o app;
+ *   `allow`   → libera a navegação inteira.
+ */
+export type AppGate = 'hold' | 'login' | 'error' | 'blocked' | 'allow';
+
+export interface AppGateState {
+  hydrated: boolean;
+  isAuthenticated: boolean;
+  /** `null` = ainda não sei. NÃO confundir com `false` (o plano não inclui). */
+  hasAppAccess: boolean | null;
+  /** A consulta do entitlement desistiu depois das tentativas. */
+  accessFailed: boolean;
+  /** As capacidades do plano já chegaram (sucesso OU erro). */
+  capabilitiesSettled: boolean;
+  /**
+   * O guardião JÁ LIBEROU uma vez nesta sessão.
+   *
+   * Esta é a trava que separa "verificar na entrada" de "verificar a cada
+   * navegação". Sem ela, qualquer refetch em segundo plano (voltar do
+   * background, reconectar, `onAuthStateChange`) devolveria `hold` por um
+   * instante — e `hold` esconde a navegação inteira. Era exatamente esse
+   * instante que aparecia como a tab bar sumindo e voltando.
+   *
+   * Depois de liberado, só uma coisa fecha o portão de novo: a SESSÃO sumir.
+   * Por isso `login` é perguntado ANTES da trava.
+   */
+  released: boolean;
+}
+
+/**
+ * O GUARDIÃO — chamado uma vez, acima das abas.
+ *
  * Ordem das perguntas importa:
  *  1. hidratou? senão não dá para saber se há sessão;
- *  2. tem sessão? senão é login;
- *  3. o PLANO inclui o app? o bloqueio é entitlement, não erro de senha —
- *     por isso vem depois de autenticar, e não antes.
+ *  2. tem sessão? senão é login — e isto vem antes da trava, porque perder a
+ *     sessão é a única coisa que pode expulsar quem já entrou;
+ *  3. já liberou? então libera de novo, sem reconsultar nada;
+ *  4. a consulta falhou de vez? tela de erro com "tentar de novo";
+ *  5. o PLANO inclui o app? o bloqueio é entitlement, não erro de senha;
+ *  6. as capacidades chegaram? sem elas a tab bar mostraria o plano mais pobre
+ *     por uma fração de segundo — esperar UMA vez aqui é o que permite à barra
+ *     nunca mais ter estado de carregamento.
  */
-export function resolveEntryRoute(state: GateState): Route | null {
-  if (!state.hydrated) return null;
-  if (!state.isAuthenticated) return ROUTES.login;
-  if (state.hasAppAccess === null) return null;
-  if (!state.hasAppAccess) return ROUTES.blocked;
-  return ROUTES.home;
+export function resolveAppGate(state: AppGateState): AppGate {
+  if (!state.hydrated) return 'hold';
+  if (!state.isAuthenticated) return 'login';
+  if (state.released) return 'allow';
+  if (state.accessFailed) return 'error';
+  if (state.hasAppAccess === null) return 'hold';
+  if (!state.hasAppAccess) return 'blocked';
+  if (!state.capabilitiesSettled) return 'hold';
+  return 'allow';
 }
 
 /**

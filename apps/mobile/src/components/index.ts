@@ -22,6 +22,7 @@ export { Icon, type IconName } from './ui/Icon';
 export { Switch } from './ui/Switch';
 export { Pill } from './ui/Pill';
 export { Select, type SelectOption } from './ui/Select';
+export { Skeleton } from './ui/Skeleton';
 export { Text, type TextProps } from './ui/Text';
 export { Touchable, type TouchableProps } from './ui/Touchable';
 

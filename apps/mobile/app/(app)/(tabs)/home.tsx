@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 
-import { Box, Card, Divider, Icon, Pill, Screen, Text, Touchable } from '@components';
+import { Box, Card, Divider, Icon, Pill, Screen, Skeleton, Text, Touchable } from '@components';
 import { lowStockProducts, useCatalog } from '@domain/catalog';
 import { useOpenShift } from '@domain/cash';
 import { ROUTES } from '@domain/navigation/routes';
 import { useDailySummary, useRecentSales } from '@domain/sales';
 import { useCapabilities, useCurrentTenant } from '@domain/tenant';
+import { goTo } from '@hooks/navigation';
 import { useSessionStore } from '@store/sessionStore';
 import type { Messages } from '@i18n';
 import { useTranslation } from '@i18n';
@@ -18,12 +19,17 @@ import { formatBRL } from '@utils/money';
  * módulo `cash`, o alerta de estoque só com `stock`. É a mesma capacidade que
  * governa a tab bar e a grade de "Mais" — nada aqui pergunta pela chave do
  * módulo diretamente.
+ *
+ * O carregamento dos DADOS acontece dentro do corpo, com header e tab bar já
+ * desenhados: `summaryPending` troca só os números por esqueletos. A tela
+ * inteira nunca some — isso é reservado ao guardião, que roda uma vez na
+ * entrada do app.
  */
 export default function HomeScreen() {
   const user = useSessionStore((s) => s.user);
   const { data: tenant } = useCurrentTenant();
   const { capabilities } = useCapabilities();
-  const { data: summary } = useDailySummary();
+  const { data: summary, isPending: summaryPending } = useDailySummary();
   const { data: sales = [] } = useRecentSales();
   const { data: shift } = useOpenShift();
   const { data: products = [] } = useCatalog();
@@ -42,35 +48,55 @@ export default function HomeScreen() {
         <Text variant="chipLabel" color="onPetrol" opacity={0.65}>
           Vendas de hoje
         </Text>
-        <Text variant="heroValue" color="onPetrol" marginTop="s6" marginBottom="s12">
-          {formatBRL(summary?.totalCents ?? 0)}
-        </Text>
-        <Box flexDirection="row" flexWrap="wrap" gap="s8">
-          <Pill
-            text={t.home.counters.sales(summary?.saleCount ?? 0)}
-            backgroundColor="pillOnPetrol"
-            textColor="onPetrol"
-            variant="tinyBold"
-            paddingX={11}
-            paddingY={6}
-          />
-          <Pill
-            text={t.home.counters.items(summary?.soldItems ?? 0)}
-            backgroundColor="pillOnPetrol"
-            textColor="onPetrol"
-            variant="tinyBold"
-            paddingX={11}
-            paddingY={6}
-          />
-          <Pill
-            text={`ticket ${formatBRL(summary?.averageTicketCents ?? 0)}`}
-            backgroundColor="pillOnPetrol"
-            textColor="onPetrol"
-            variant="tinyBold"
-            paddingX={11}
-            paddingY={6}
-          />
-        </Box>
+        {/* Sem esqueleto, este número aparecia como R$ 0,00 e depois pulava
+            para o valor real — pior que esperar: por um instante o app AFIRMA
+            que não se vendeu nada hoje. O card em volta não muda de tamanho, e
+            a tab bar segue lá: o carregamento cabe dentro do conteúdo. */}
+        {summaryPending ? (
+          <>
+            <Skeleton
+              height={38}
+              width="62%"
+              borderRadius="r12"
+              marginTop="s6"
+              marginBottom="s12"
+              backgroundColor="pillOnPetrol"
+            />
+            <Skeleton height={24} width="80%" borderRadius="full" backgroundColor="pillOnPetrol" />
+          </>
+        ) : (
+          <>
+            <Text variant="heroValue" color="onPetrol" marginTop="s6" marginBottom="s12">
+              {formatBRL(summary?.totalCents ?? 0)}
+            </Text>
+            <Box flexDirection="row" flexWrap="wrap" gap="s8">
+              <Pill
+                text={t.home.counters.sales(summary?.saleCount ?? 0)}
+                backgroundColor="pillOnPetrol"
+                textColor="onPetrol"
+                variant="tinyBold"
+                paddingX={11}
+                paddingY={6}
+              />
+              <Pill
+                text={t.home.counters.items(summary?.soldItems ?? 0)}
+                backgroundColor="pillOnPetrol"
+                textColor="onPetrol"
+                variant="tinyBold"
+                paddingX={11}
+                paddingY={6}
+              />
+              <Pill
+                text={`ticket ${formatBRL(summary?.averageTicketCents ?? 0)}`}
+                backgroundColor="pillOnPetrol"
+                textColor="onPetrol"
+                variant="tinyBold"
+                paddingX={11}
+                paddingY={6}
+              />
+            </Box>
+          </>
+        )}
       </Box>
 
       <Box flexDirection="row" gap="s12">
@@ -78,9 +104,13 @@ export default function HomeScreen() {
           <Text variant="label" color="textMuted">
             Sobrou hoje
           </Text>
-          <Text variant="cardValue" color="success" marginTop="s6">
-            {formatBRL(summary?.profitCents ?? 0)}
-          </Text>
+          {summaryPending ? (
+            <Skeleton height={22} width="70%" marginTop="s6" />
+          ) : (
+            <Text variant="cardValue" color="success" marginTop="s6">
+              {formatBRL(summary?.profitCents ?? 0)}
+            </Text>
+          )}
           <Text variant="hint" color="textMuted" marginTop="s4">
             depois dos custos
           </Text>
@@ -90,9 +120,13 @@ export default function HomeScreen() {
           <Text variant="label" color="textMuted">
             Mais vendido
           </Text>
-          <Text variant="titleSm" marginTop="s6">
-            {summary?.maisVendido?.name ?? '—'}
-          </Text>
+          {summaryPending ? (
+            <Skeleton height={19} width="85%" marginTop="s6" />
+          ) : (
+            <Text variant="titleSm" marginTop="s6">
+              {summary?.maisVendido?.name ?? '—'}
+            </Text>
+          )}
           <Text variant="hint" color="textMuted" marginTop="s4">
             {summary?.maisVendido
               ? t.units.soldToday(summary.maisVendido.quantity)
@@ -104,7 +138,9 @@ export default function HomeScreen() {
       {capabilities.hasCash ? (
         <Touchable
           accessibilityLabel={shift ? 'Ver caixa aberto' : 'Abrir o caixa'}
-          onPress={() => router.push(ROUTES.cash as never)}
+          // Caixa é uma ABA: `goTo` faz o jumpTo, `push` não teria pilha onde
+          // empilhar. Estoque, logo abaixo, continua sendo `push`.
+          onPress={() => goTo(ROUTES.cash)}
           backgroundColor="surface"
           borderColor="line"
           borderWidth={1}
