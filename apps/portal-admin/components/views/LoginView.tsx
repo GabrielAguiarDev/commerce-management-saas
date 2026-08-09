@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAdmin } from "@/components/AdminProvider";
 import { Button, css } from "@aguiar/ui";
-import { MarcaIcone } from "@/lib/icons";
+import { Logo } from "@/components/Logo";
+import { Wordmark } from "@/components/Wordmark";
 import { ROUTES } from "@/lib/rotas";
 import { createClient } from "@/lib/supabase/client";
 
@@ -197,22 +198,9 @@ export function LoginView() {
         )}
       >
         <div style={css("display:flex;align-items:center;gap:12px")}>
-          <div
-            style={css(
-              "width:42px;height:42px;flex:none;border-radius:12px;background:var(--accent);" +
-                "color:var(--accent-ink);display:flex;align-items:center;justify-content:center",
-            )}
-          >
-            <MarcaIcone size={22} />
-          </div>
+          <Logo size={42} radius={12} priority />
           <div style={css("display:flex;flex-direction:column;gap:2px")}>
-            <span
-              style={css(
-                "font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--text)",
-              )}
-            >
-              Aguiar One
-            </span>
+            <Wordmark size={20} on="surface" />
             <span
               style={css(
                 "font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)",

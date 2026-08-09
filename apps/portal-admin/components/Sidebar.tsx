@@ -3,12 +3,13 @@
 import { usePathname } from "next/navigation";
 import { useAdmin } from "@/components/AdminProvider";
 import { Button, css, MONO } from "@aguiar/ui";
+import { Logo } from "@/components/Logo";
+import { Wordmark } from "@/components/Wordmark";
 import {
   ClientesIcone,
   ColapsarIcone,
   ConfigIcone,
   FinanceiroIcone,
-  MarcaIcone,
   ModulosIcone,
   PlanosIcone,
   SairIcone,
@@ -91,14 +92,7 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
             (col ? "padding:0 34px 0 12px;" : "padding:0 42px 0 16px;"),
         )}
       >
-        <div
-          style={css(
-            "width:36px;height:36px;flex:none;border-radius:10px;background:var(--accent);" +
-              "color:var(--accent-ink);display:flex;align-items:center;justify-content:center;position:relative",
-          )}
-        >
-          <MarcaIcone />
-        </div>
+        <Logo size={36} radius={10} priority />
         <div
           style={css(
             col
@@ -106,13 +100,7 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
               : "display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;overflow:hidden;padding-right:6px",
           )}
         >
-          <span
-            style={css(
-              "font-size:15.5px;font-weight:600;color:#fff;letter-spacing:-.015em;white-space:nowrap",
-            )}
-          >
-            Aguiar One
-          </span>
+          <Wordmark size={15.5} />
           <span
             style={css(
               "font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--side-text2);" +

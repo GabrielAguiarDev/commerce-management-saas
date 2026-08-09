@@ -7,15 +7,6 @@ interface IconProps {
   size?: number;
 }
 
-export function MarcaIcone({ size = 19 }: IconProps) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none">
-      <path d="M10 3 3.5 17h3l3.5-8 3.5 8h3L10 3Z" fill="currentColor" />
-      <rect x="7.4" y="12" width="5.2" height="1.9" rx=".9" fill="currentColor" />
-    </svg>
-  );
-}
-
 export function ColapsarIcone({ size = 16 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" fill="none">

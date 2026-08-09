@@ -62,7 +62,7 @@ export function navStyle(active: boolean, collapsed: boolean): string {
     "font-family:inherit;transition:background .12s,color .12s;" +
     (collapsed ? "justify-content:center;" : "") +
     (active
-      ? "background:var(--side-card);color:#fff;box-shadow:inset 2px 0 0 var(--accent-hi);"
+      ? "background:var(--side-card);color:#fff;box-shadow:inset 2px 0 0 var(--side-accent);"
       : "background:none;color:var(--side-text);")
   );
 }

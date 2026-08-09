@@ -33,51 +33,75 @@ body {
 
   /* Background and surfaces. `surface` is the card; `surface2` the field and
      the table header; `surface3` the neutral badge and the highlighted row. */
-  --bg: #eaeef2;
+  --bg: #eef2f4;
   --surface: #ffffff;
-  --surface2: #f5f8fa;
-  --surface3: #eef2f6;
-  --surface-hover: #f6fafb;
+  --surface2: #f4f8f9;
+  --surface3: #e9f0f2;
+  --surface-hover: #f2f8f9;
 
-  /* Borders, from the faintest to the strongest. */
-  --border-soft: #eef2f4;
-  --border: #dbe3ea;
-  --border2: #c9d5df;
+  /* Borders, from the faintest to the strongest. All three are the brand ink
+     (`--text`) washed over white, so a border never drifts into a grey that
+     belongs to no one. */
+  --border-soft: #e7eef0;
+  --border: #d6e1e5;
+  --border2: #bfd0d6;
 
   /* Text, from the strongest to the most muted. */
-  --text: #16222c;
-  --text2: #3a4c5a;
-  --muted: #61748a;
+  --text: #0f2a34;
+  --text2: #33505c;
+  --muted: #5f7783;
 
   /* Accent. `ink` is what gets written on top of the accent, `soft` its washed
      background, `line` the border matching that background, and `hi` the vivid
-     version used on hover and for details on dark backgrounds. */
-  --accent: #0d6e78;
+     version used on hover and for details on dark backgrounds.
+
+     This is the BRAND primary — the same `#1b9abd` the mobile app carries in
+     `palette.brandPrimary`, and the blue of the "A" in `public/images`. `hi` is
+     the light end of the brand's CTA gradient. */
+  --accent: #1b9abd;
   --accent-ink: #ffffff;
-  --accent-soft: #e2f1f2;
-  --accent-line: #c8dee2;
-  --accent-hi: #14a2b8;
-  --petrol: #14506b;
+  --accent-soft: #e0f1f2;
+  --accent-line: #bfe0e8;
+  --accent-hi: #38b7de;
+  --petrol: #123c4a;
 
   /* States. Each with a background and border of its own, for the badges. */
-  --pos: #12784e;
-  --pos-soft: #e2f3ea;
-  --pos-line: #c7e3d3;
-  --warn: #8a5a12;
-  --warn-soft: #faf0dd;
-  --warn-line: #ecdcbd;
-  --danger: #b4442f;
-  --danger-soft: #f8ece9;
-  --danger-line: #eed6d1;
+  --pos: #17795e;
+  --pos-soft: #e2f2ec;
+  --pos-line: #c4e2d5;
+  --warn: #a9700f;
+  --warn-soft: #fbf0dc;
+  --warn-line: #ecdcba;
+  --danger: #c4453c;
+  --danger-soft: #fbe9e7;
+  --danger-line: #f2d2ce;
 
-  /* The dark sidebar — identical in light and dark theme, which is why these
-     values are not repeated in the block below. */
-  --side: #0f1c22;
-  --side-card: #17282f;
-  --side-text: #a8bcc5;
-  --side-text2: #5d7885;
-  --side-border: rgba(255, 255, 255, 0.07);
-  --side-hover: #1e343d;
+  /* The console rail — the only dark chrome in the portals, and the one place
+     the brand's entrance reaches the web. Identical in light and dark theme,
+     which is why none of it is repeated in the block below: the identity of
+     the console is not a matter of preference. Only the admin uses these.
+
+     `--side` is `#020e18` — the brand secondary, which is the base of the
+     mobile app's entrance gradient AND the ground its icon file is painted
+     on. That second fact is what makes the mark sit on the rail without a
+     seam: the tile brings its own background, and it is this exact one.
+
+     Everything sitting ON the rail is a wash of white, not a second dark tone
+     — the same thing the app does with the fields over its own dark blue. The
+     alphas are the app's `onPetrol` family, value for value. At this depth a
+     wash is also the only thing that still reads: a card mixed by hand would
+     have to be so close to the base that it would show as a smudge. */
+  --side: #020e18;
+  --side-card: rgba(255, 255, 255, 0.07);
+  --side-text: rgba(234, 244, 245, 0.7);
+  --side-text2: rgba(234, 244, 245, 0.6);
+  --side-border: rgba(255, 255, 255, 0.1);
+  --side-hover: rgba(255, 255, 255, 0.12);
+
+  /* The blue of "One" in the wordmark, and of any link standing on the rail.
+     It is NOT `--accent-hi`: that one flips with the theme, and the rail does
+     not. Same value the app uses for the links on its entrance. */
+  --side-accent: #35abd6;
 
   --shadow:
     0 1px 2px rgba(19, 38, 52, 0.06), 0 6px 18px rgba(19, 38, 52, 0.06);
@@ -89,43 +113,39 @@ body {
 }
 
 body[data-theme="dark"] {
-  --bg: #0c141b;
-  --surface: #121d26;
-  --surface2: #17232d;
-  --surface3: #1d2b36;
-  --surface-hover: #182a33;
+  --bg: #0b1a21;
+  --surface: #132a34;
+  --surface2: #193540;
+  --surface3: #1f3d49;
+  --surface-hover: #1a3b47;
 
-  --border-soft: #1c2c35;
-  --border: #25333e;
-  --border2: #31424f;
+  --border-soft: #16303b;
+  --border: #23414d;
+  --border2: #305260;
 
-  --text: #e7eef4;
-  --text2: #c2d0da;
-  --muted: #8798a7;
+  --text: #e9f2f4;
+  --text2: #c3d5da;
+  --muted: #94aeb8;
 
-  --accent: #2ea3ac;
-  --accent-ink: #06222a;
-  --accent-soft: #12333a;
-  --accent-line: #255d6a;
-  --accent-hi: #2fb6cd;
+  /* The dark accent is the brand's teal, not the primary washed out: on a
+     petrol surface `#1b9abd` reads as a hole, and this is the tone the mobile
+     app switches to for the same reason. */
+  --accent: #2fb3ba;
+  --accent-ink: #04222a;
+  --accent-soft: #184049;
+  --accent-line: #266a72;
+  --accent-hi: #4cc4e6;
   --petrol: #7fb4cc;
 
-  --pos: #3cbc83;
-  --pos-soft: #12332a;
-  --pos-line: #28553d;
-  --warn: #d8a75a;
-  --warn-soft: #332a18;
-  --warn-line: #54452a;
-  --danger: #d9705c;
-  --danger-soft: #2d1a18;
-  --danger-line: #57302b;
-
-  --side: #081015;
-  --side-card: #14262e;
-  --side-text: #9db4bf;
-  --side-text2: #5c7683;
-  --side-border: rgba(255, 255, 255, 0.06);
-  --side-hover: #1b2f38;
+  --pos: #43c193;
+  --pos-soft: #10332a;
+  --pos-line: #285541;
+  --warn: #e0a950;
+  --warn-soft: #33291a;
+  --warn-line: #544529;
+  --danger: #e3736a;
+  --danger-soft: #2f1b19;
+  --danger-line: #57302c;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 22px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
