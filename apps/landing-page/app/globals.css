@@ -1,26 +1,226 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Design tokens — Aguiar One, site de entrada.
+
+   POR QUE ESTE ARQUIVO NÃO É `@aguiar/ui/tokens.css`: os portais são
+   ferramentas de trabalho — fundo frio, azul da marca, tema claro e escuro que
+   o usuário escolhe. Esta página é uma vitrine: ela é lida uma vez, por quem
+   ainda não é cliente, e por isso tem contraste maior, um petrol quente nas
+   dobras escuras e um teal de chamada que só existe aqui. Importar os tokens
+   dos portais deixaria a página parecida com o console — que é justamente o
+   que ela não deve parecer.
+
+   O que é COMPARTILHADO com os portais é o método, não a paleta: cor vira
+   variável, superfície clicável carrega o estilo base inline e o hover vem de
+   uma classe (ver o bloco no fim do arquivo). O helper `css()` é o mesmo, vindo
+   de `@aguiar/ui`.
+
+   Não há tema escuro. A página tem uma composição fixa de dobras claras e
+   escuras alternadas; deixá-la seguir o sistema desmontaria esse ritmo.
+--------------------------------------------------------------------------- */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Tipografia. Manrope nos títulos — é ela que dá o aperto das manchetes —,
+     IBM Plex Sans no texto corrido. Ambas carregadas em `layout.tsx`. */
+  --display-stack: var(--font-display), "Manrope", system-ui, sans-serif;
+  --sans-stack: var(--font-sans), "IBM Plex Sans", system-ui, sans-serif;
+
+  /* Fundos e superfícies claras. `bg` é a dobra clara, `surface` o card,
+     `surface2` o card de dentro de uma grade e `surface3` a moldura do painel
+     que aparece na primeira dobra. */
+  --bg: #f7f9fa;
+  --surface: #ffffff;
+  --surface2: #fbfcfd;
+  --surface3: #f4f7f8;
+
+  /* Bordas. `border` é a do card, `rule` a linha que separa duas dobras e
+     `dashed` a do card que ainda não existe (o "+ Estoque", o "só o que você
+     precisa"). */
+  --border: #e4eaec;
+  --rule: #e9eef0;
+  --dashed: #c3d0d5;
+
+  /* Texto sobre claro, do mais forte ao mais apagado. `petrol` é o título;
+     `ink` é o corpo. */
+  --petrol: #12323c;
+  --ink: #16232b;
+  --text2: #5b7280;
+  --text3: #4c6470;
+  --muted: #7c8f98;
+  --muted2: #8497a0;
+
+  /* As duas dobras escuras: a primeira é um degradê de `petrol` para
+     `petrol2`, o rodapé é `petrol-deep`. */
+  --petrol2: #163a45;
+  --petrol-deep: #0e282f;
+
+  /* Texto sobre petrol, do mais forte ao mais apagado. São lavagens de branco
+     escolhidas para o fundo escuro — nenhuma delas é um cinza neutro. */
+  --on-petrol: #dde9ec;
+  --on-petrol2: #c3d5da;
+  --on-petrol3: #bfd4d9;
+  --on-petrol-muted: #8faab2;
+  --on-petrol-faint: #6e8b94;
+  --on-petrol-accent: #8fd3d6;
+
+  /* Teal de apoio: o olho-mágico das seções, os links e o botão do topo.
+     `press` é o hover do botão, `hi` o dos links. */
+  --teal: #0e7c80;
+  --teal-hi: #0a5f63;
+  --teal-press: #0a6165;
+  --teal-soft: #eaf3f4;
+
+  /* Teal de chamada: só as chamadas para ação e o que precisa ser visto
+     primeiro. É o tom mais vivo da página, e por isso o mais raro. */
+  --accent: #14a0a5;
+  --accent-hi: #0e8489;
+  --accent-glow: rgba(20, 160, 165, 0.28);
+
+  /* Positivo: lucro, item incluído no plano, variação para cima.
+     `pos-on-petrol` é a versão que sobrevive sobre o card escuro. */
+  --pos: #15803d;
+  --pos-soft: #eaf6ee;
+  --pos-on-petrol: #5fcfa0;
+
+  /* Neutro lavado: o selo do módulo que NÃO está no plano grátis. Ele é o
+     contraponto de `pos-soft`, e a única razão de não ser `surface3` é que os
+     dois selos aparecem lado a lado e precisam ter o mesmo peso. */
+  --neutral-soft: #eef2f4;
+
+  /* Cromo do painel decorativo da primeira dobra. */
+  --chrome: #d3dbde;
+  --bar: #cbd9dd;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  /* As chamadas levam a âncoras na mesma página. Sem isto o salto é seco e
+     quem clicou não sabe se a página mudou ou se rolou. */
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans-stack);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--display-stack);
+  /* Manchete não pode terminar com uma palavra órfã na última linha. */
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--teal);
+  text-decoration: none;
+}
+
+/* O cabeçalho é fixo: sem isto, toda âncora pousa embaixo dele. A medida é a
+   altura da barra mais uma folga. */
+:target,
+section[id] {
+  scroll-margin-top: 76px;
+}
+
+/* Nada da página é opaco ao teclado, e o foco precisa aparecer tanto sobre o
+   claro quanto sobre o petrol — daí o anel duplo, com um halo branco por fora
+   que garante o contraste na dobra escura. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Hover.
+
+   Mesma convenção dos portais: a superfície clicável carrega a aparência de
+   repouso num `style` inline, então estas regras precisam de `!important` para
+   ganhar a cascata. Cada classe é um dos `style-hover` do arquivo de design.
+--------------------------------------------------------------------------- */
+
+.lp-nav {
+  transition: color 0.12s;
+}
+
+.lp-nav:hover {
+  color: var(--petrol) !important;
+}
+
+/* Botão de chamada — o teal vivo escurece ao ser apontado. */
+.lp-cta {
+  transition: background 0.12s;
+}
+
+.lp-cta:hover {
+  background: var(--accent-hi) !important;
+}
+
+/* Botão do cabeçalho, no teal de apoio. */
+.lp-cta-soft {
+  transition: background 0.12s;
+}
+
+.lp-cta-soft:hover {
+  background: var(--teal-press) !important;
+}
+
+/* Link em teal no meio do texto claro. */
+.lp-link {
+  transition: color 0.12s;
+}
+
+.lp-link:hover {
+  color: var(--teal-hi) !important;
+}
+
+/* Link sobre petrol: abre para o branco. */
+.lp-on-petrol {
+  transition: color 0.12s;
+}
+
+.lp-on-petrol:hover {
+  color: #fff !important;
+}
+
+/* Card de módulo: a borda acende no teal de chamada. */
+.lp-card {
+  transition: border-color 0.12s;
+}
+
+.lp-card:hover {
+  border-color: var(--accent) !important;
+}
+
+/* Botão vazado do plano gratuito: preenche com o petrol que já contornava. */
+.lp-outline {
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.lp-outline:hover {
+  background: var(--petrol) !important;
+  color: #fff !important;
 }
