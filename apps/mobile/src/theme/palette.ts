@@ -96,10 +96,17 @@ export const palette = {
   logoTop: '#4cc4e6',
   logoBottom: '#1b9abd',
 
-  /** O fundo, do azul do topo ao quase-preto da base. */
+  /**
+   * O fundo, do azul do topo ao quase-preto da base.
+   *
+   * O `authBase` tem DOIS papéis: é a última parada do degradê do login e é o
+   * fundo chapado das três telas de recuperação de senha. É de propósito que
+   * seja a mesma cor — quem sai do login para "Esqueci minha senha" continua no
+   * mesmo chão, e só o clarão do topo fica para trás.
+   */
   authTop: '#0e5375',
   authMid: '#072634',
-  authBottom: '#020e18',
+  authBase: '#020e18',
 
   /** O halo atrás da marca. A opacidade é dada nas paradas do gradiente. */
   authGlow: '#2fb6e6',

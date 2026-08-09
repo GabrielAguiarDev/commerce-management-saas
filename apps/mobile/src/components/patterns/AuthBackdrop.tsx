@@ -32,7 +32,7 @@ export function AuthBackdrop() {
   return (
     <Box style={StyleSheet.absoluteFill} pointerEvents="none">
       <LinearGradient
-        colors={[theme.colors.authTop, theme.colors.authMid, theme.colors.authBottom]}
+        colors={[theme.colors.authTop, theme.colors.authMid, theme.colors.authBase]}
         // O azul se entrega CEDO, e o escuro chega antes dos campos: é dele que
         // vem o contraste do texto branco e da borda de 16% dos campos. Esticar
         // a virada até a base deixava o formulário inteiro sobre azul médio —

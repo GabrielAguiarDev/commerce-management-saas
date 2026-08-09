@@ -62,18 +62,6 @@ export default function LoginScreen() {
       title={t.auth.signIn.title}
       subtitle={t.auth.signIn.subtitle}
       showBack={false}
-      // O selo fica ANCORADO na base, fora da rolagem, e não no fim do
-      // conteúdo: ele fala do aparelho, não do formulário. Rolando junto com os
-      // campos, apareceria e sumiria conforme o teclado — que é exatamente o
-      // momento em que ele tem algo a dizer.
-      footer={
-        <Box flexDirection="row" justifyContent="center" alignItems="center" gap="s8">
-          <Icon name="shield" size={15} color="onPetrolGhost" />
-          <Text variant="captionSm" color="onPetrolGhost">
-            {t.auth.signIn.dataProtected}
-          </Text>
-        </Box>
-      }
     >
       <Box gap="s16">
         <Field
@@ -191,6 +179,24 @@ export default function LoginScreen() {
 
         <Icon name="chevronRight" size={17} color="onPetrolGhost" />
       </Touchable>
+
+      {/* DENTRO da rolagem, fechando o conteúdo — não ancorado na base da tela.
+          Ancorado, ele ficava preso acima do teclado, brigando por atenção com
+          o campo que estava sendo digitado; e em aparelho alto sobrava um vão
+          entre o cartão de suporte e ele, como se faltasse alguma coisa ali no
+          meio. É o rodapé do que se lê, e rola junto com o resto. */}
+      <Box
+        flexDirection="row"
+        justifyContent="center"
+        alignItems="center"
+        gap="s8"
+        marginTop="s24"
+      >
+        <Icon name="shield" size={15} color="onPetrolGhost" />
+        <Text variant="captionSm" color="onPetrolGhost">
+          {t.auth.signIn.dataProtected}
+        </Text>
+      </Box>
     </AuthScreen>
   );
 }

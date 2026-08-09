@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -82,9 +83,24 @@ export function AuthScreen({
   const canGoBack = showBack ?? router.canGoBack();
 
   return (
-    <Box flex={1} backgroundColor="petrol" style={{ paddingTop: insets.top }}>
-      {/* Antes de tudo, e fora do fluxo: as três camadas do fundo. O petrol
-          chapado acima continua sendo a cor da tela nos outros passos. */}
+    <Box flex={1} backgroundColor="authBase" style={{ paddingTop: insets.top }}>
+      {/* Hora, bateria e sinal em BRANCO, fixo — não `auto` nem o tema.
+          O `_layout` raiz decide o estilo pela preferência do usuário
+          (`isDark ? 'light' : 'dark'`), e é a regra certa para o app inteiro,
+          onde o fundo acompanha o tema. Aqui não acompanha: estas quatro telas
+          são escuras SEMPRE, então com a preferência no claro o relógio saía
+          preto sobre o `authBase` e sumia.
+          O `StatusBar` do React Native empilha por componente montado e
+          desempilha ao desmontar, então isto vale só enquanto uma tela de
+          entrada estiver em cena — ao entrar no app, o estilo do raiz volta
+          sozinho. Não é preciso restaurar nada na saída. */}
+      <StatusBar style="light" />
+
+      {/* Antes de tudo, e fora do fluxo: as três camadas do fundo. Só o LOGIN
+          as recebe — nos três passos da recuperação de senha fica o `authBase`
+          chapado acima, que é exatamente a cor em que o degradê do login
+          termina. Era `petrol` (#123c4a) e destoava: sair do login dava a
+          impressão de trocar de app no meio do caminho. */}
       {entrada ? <AuthBackdrop /> : null}
 
       {/* FORA da rolagem, e antes dela: o voltar é do aparelho, não do

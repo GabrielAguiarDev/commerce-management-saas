@@ -220,7 +220,7 @@ const tokensClaros = {
   logoBottom: palette.logoBottom,
   authTop: palette.authTop,
   authMid: palette.authMid,
-  authBottom: palette.authBottom,
+  authBase: palette.authBase,
   authGlow: palette.authGlow,
   authWatermark: palette.authWatermark,
   authLink: palette.authLink,
