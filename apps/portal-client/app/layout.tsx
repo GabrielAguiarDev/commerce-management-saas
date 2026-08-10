@@ -56,16 +56,18 @@ export const metadata: Metadata = {
 
 /**
  * A cor que o sistema pinta em volta do app instalado — barra de status no
- * celular, barra de título na janela do desktop. Uma para cada tema, para que a
- * moldura acompanhe o portal em vez de destoar dele.
+ * celular, barra de título na janela do desktop.
+ *
+ * É o SECUNDÁRIO DA MARCA nos dois temas, e de propósito: esta é a moldura que
+ * encosta no ícone do portal na tela de início, e o ícone tem esse mesmo petrol
+ * de fundo. Uma moldura que mudasse com o tema descolaria do ícone, que não
+ * muda. O valor é o mesmo do `theme_color` do manifesto — quem lê cada um deles
+ * é um sistema diferente, e os dois precisam dizer a mesma coisa.
  */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#0f1c22" },
-    { media: "(prefers-color-scheme: dark)", color: "#081015" },
-  ],
+  themeColor: "#020e18",
 };
 
 /**

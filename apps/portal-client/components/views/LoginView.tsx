@@ -1,20 +1,32 @@
 "use client";
 
-import { Button, css, MONO, SANS } from "@aguiar/ui";
+import { Button, css, SANS } from "@aguiar/ui";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Logo } from "@/components/Logo";
 import { usePortal } from "@/components/PortalProvider";
 import { createClient } from "@/lib/supabase/client";
 
-const CARD =
-  "background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;" +
-  "display:flex;flex-direction:column;gap:16px;box-shadow:var(--shadow-lg)";
-
-const FIELD =
-  "width:100%;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);" +
-  `border-radius:11px;padding:13px 14px;font:500 14px ${SANS};outline:none`;
+/**
+ * O campo. A moldura, o hover e o anel de foco vêm da classe `.field` dos
+ * tokens — por isso a borda NÃO é redeclarada aqui: em `style` ela venceria a
+ * regra de `:focus-visible` e o campo perderia o foco visível. O que fica no
+ * inline é só o que esta tela tem de próprio: um campo mais alto e mais macio
+ * que o do resto do portal, porque aqui ele é o assunto da página.
+ */
+const FIELD = "padding:13px 14px;border-radius:11px;font-size:14px";
 
 const LABEL = `display:block;margin-bottom:6px;font:600 11px ${SANS};color:var(--text2)`;
+
+/**
+ * O fundo do painel do banner.
+ *
+ * É o mesmo petrol quase preto do canto superior esquerdo da imagem, e existe
+ * para o instante ANTES dela carregar — sem isso o primeiro quadro da tela é
+ * metade branca, e a página pisca ao ser preenchida.
+ */
+const BANNER_INK = "#020e18";
 
 /** O motivo pelo qual o middleware devolveu a pessoa para cá. */
 const REASONS: Record<string, string> = {
@@ -27,7 +39,7 @@ const REASONS: Record<string, string> = {
 export function LoginView() {
   const router = useRouter();
   const params = useSearchParams();
-  const { a } = usePortal();
+  const { a, isMobile } = usePortal();
 
   // O nome do parâmetro é o que o middleware escreve (`?erro=…`).
   const reason = REASONS[params.get("erro") ?? ""] ?? null;
@@ -102,40 +114,90 @@ export function LoginView() {
   };
 
   return (
-    <div
-      style={css(
-        "min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)",
-      )}
-    >
-      <div style={css("width:100%;max-width:400px")}>
-        <div style={css("display:flex;align-items:center;gap:11px;margin-bottom:18px")}>
-          <span
+    <div style={css("min-height:100vh;display:flex;background:var(--surface)")}>
+      {/*
+        A metade da marca. Só no desktop: abaixo de 900px ela viraria uma tarja
+        de imagem espremida por cima do formulário, e o que a pessoa veio fazer
+        aqui é entrar. No lugar dela, o formulário ganha o ladrilho do "A".
+
+        Toda a mensagem — logo, título, subtítulo e os três módulos — está
+        DENTRO do arquivo: é a arte da marca, não um texto que esta tela
+        remonta com `<h1>` e `<p>` por cima de um fundo. Por isso o `alt` é
+        vazio e o painel é `aria-hidden`: para quem usa leitor de tela isto é
+        decoração, e o nome do produto já vem no `<title>` da página.
+      */}
+      {!isMobile && (
+        <div
+          aria-hidden
+          style={css(
+            `position:relative;flex:1 1 50%;min-width:0;overflow:hidden;background:${BANNER_INK}`,
+          )}
+        >
+          <Image
+            src="/images/banner-login.png"
+            alt=""
+            fill
+            priority
+            sizes="50vw"
+            /**
+             * A imagem é quadrada e o painel é uma coluna alta: com `cover` o
+             * que sobra é cortado nas LATERAIS. `object-position` puxa o corte
+             * para a direita — o texto da arte mora na metade esquerda, e é
+             * ele que não pode encostar na borda; o que cede é o gráfico.
+             */
+            style={{ objectFit: "cover", objectPosition: "12% center" }}
+          />
+
+          {/* A base da arte é escura, mas não uniformemente: esta sombra é o
+              que garante o contraste da linha de copyright em cima dela. */}
+          <div
             style={css(
-              "flex:none;width:40px;height:40px;border-radius:11px;background:var(--petrol);color:#fff;" +
-                `display:flex;align-items:center;justify-content:center;font:700 14px ${MONO};letter-spacing:-.5px`,
+              "position:absolute;left:0;right:0;bottom:0;height:200px;pointer-events:none;" +
+                `background:linear-gradient(to top, ${BANNER_INK}, transparent)`,
+            )}
+          />
+
+          <p
+            style={css(
+              "position:absolute;left:44px;right:44px;bottom:34px;margin:0;" +
+                `font:400 12px/1.5 ${SANS};color:rgba(234,244,245,.6)`,
             )}
           >
-            A1
-          </span>
-          <div>
-            <div style={css(`font:700 16px/1.2 ${SANS};color:var(--text)`)}>Aguiar One</div>
-            <div style={css(`margin-top:2px;font:500 12px ${SANS};color:var(--muted)`)}>
-              Portal do seu negócio
-            </div>
-          </div>
+            Copyright © {new Date().getFullYear()} Aguiar One. Todos os direitos reservados.
+          </p>
         </div>
+      )}
 
+      {/* A metade do formulário. */}
+      <div
+        style={css(
+          "flex:1 1 50%;min-width:0;display:flex;align-items:center;justify-content:center;" +
+            `padding:${isMobile ? "32px 22px" : "40px 48px"};background:var(--surface)`,
+        )}
+      >
         <form
-          style={css(CARD)}
+          style={css("width:100%;max-width:360px;display:flex;flex-direction:column;gap:18px")}
           onSubmit={(ev) => {
             ev.preventDefault();
             if (!loading) void signIn();
           }}
         >
-          <div>
-            <h1 style={css(`margin:0;font:700 19px/1.25 ${SANS}`)}>Entrar no portal</h1>
-            <p style={css(`margin:5px 0 0;font:400 13px/1.5 ${SANS};color:var(--muted)`)}>
-              Use o e-mail que você cadastrou com a nossa equipe.
+          {/* No celular o banner não entra, e sem ele o formulário chegaria sem
+              nenhuma marca. O ladrilho é o MESMO arquivo que o portal instala
+              como ícone do app — o "A" azul da marca sobre o petrol —, então
+              ele já traz o próprio fundo e não recebe cor daqui. */}
+          {isMobile && (
+            <div style={css("align-self:center")}>
+              <Logo size={52} radius={14} priority />
+            </div>
+          )}
+
+          <div style={css("text-align:center")}>
+            <h1 style={css(`margin:0;font:700 26px/1.2 ${SANS};color:var(--text)`)}>
+              Bem-vindo de volta!
+            </h1>
+            <p style={css(`margin:8px 0 0;font:400 13.5px/1.5 ${SANS};color:var(--muted)`)}>
+              Entre na sua conta para continuar
             </p>
           </div>
 
@@ -150,6 +212,7 @@ export function LoginView() {
               value={email}
               onChange={(ev) => setEmail(ev.target.value)}
               placeholder="voce@seunegocio.com.br"
+              className="field"
               style={css(FIELD)}
             />
           </div>
@@ -165,6 +228,7 @@ export function LoginView() {
               value={password}
               onChange={(ev) => setSenha(ev.target.value)}
               placeholder="••••••••"
+              className="field"
               style={css(FIELD)}
             />
           </div>
@@ -172,8 +236,8 @@ export function LoginView() {
           {error && (
             <div
               style={css(
-                "padding:11px 13px;border-radius:10px;background:var(--warn-soft);" +
-                  `font:600 12.5px/1.45 ${SANS};color:var(--danger)`,
+                "padding:11px 13px;border-radius:10px;background:var(--danger-soft);" +
+                  `border:1px solid var(--danger-line);font:600 12.5px/1.45 ${SANS};color:var(--danger)`,
               )}
               role="alert"
             >
@@ -182,23 +246,38 @@ export function LoginView() {
           )}
 
           {/* Quem espera aqui é o `onSubmit` do formulário — o Enter no field
-              de senha também entra —, então o carregamento vem de fora. */}
+              de senha também entra —, então o carregamento vem de fora.
+
+              O degradê é o da entrada do app mobile, e vai do `--accent` ao
+              `--accent-hi`: os dois viram com o tema, então o botão continua
+              sendo o mesmo botão no claro e no escuro. */}
           <Button
             type="submit"
             loading={loading}
             loadingLabel="Entrando…"
-            className="hv-brilho"
+            className="hv-glow"
             style={css(
-              `padding:14px;border-radius:11px;font:700 14px ${SANS};` +
-                "background:var(--accent);color:var(--accent-ink)",
+              `padding:14px;border-radius:11px;font:700 14px ${SANS};color:var(--accent-ink);` +
+                "background:linear-gradient(90deg, var(--accent), var(--accent-hi))",
             )}
           >
             Entrar
           </Button>
 
-          <p style={css(`margin:0;text-align:center;font:400 11.5px/1.5 ${SANS};color:var(--muted)`)}>
+          <p style={css(`margin:0;text-align:center;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
             Esqueceu a senha ou não consegue entrar? Fale com a nossa equipe.
           </p>
+
+          {/* No desktop o copyright fica sobre o banner; sem ele, é aqui. */}
+          {isMobile && (
+            <p
+              style={css(
+                `margin:6px 0 0;text-align:center;font:400 11px/1.5 ${SANS};color:var(--muted)`,
+              )}
+            >
+              Copyright © {new Date().getFullYear()} Aguiar One. Todos os direitos reservados.
+            </p>
+          )}
         </form>
       </div>
     </div>

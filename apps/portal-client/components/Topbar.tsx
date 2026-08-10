@@ -162,7 +162,7 @@ export function Topbar() {
                 <span style={css(`display:block;font:400 11.5px/1.4 ${SANS};color:var(--muted)`)}>
                   {p.stock === 0
                     ? "Acabou"
-                    : `Restam ${p.stock} ${p.stock === 1 ? "unit" : "unidades"}`}
+                    : `Restam ${p.stock} ${p.stock === 1 ? "unidade" : "unidades"}`}
                 </span>
               </span>
             </div>

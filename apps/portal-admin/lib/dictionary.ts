@@ -134,6 +134,9 @@ const pt = {
   signIn: "Entrar",
   forgot: "Esqueci minha senha",
   acessoRestrito: "Acesso restrito à equipe Aguiar One",
+  /* "Copyright ©", o ano e o nome da marca são montados na tela: os três são os
+     mesmos nos dois idiomas, e só esta frase muda. */
+  direitosReservados: "Todos os direitos reservados.",
   todosPlanosCurto: "Todos os planos",
   somentePago: "Somente Pago",
   customer: "Cliente",
@@ -421,6 +424,7 @@ const en: Dic = {
   signIn: "Sign in",
   forgot: "Forgot my password",
   acessoRestrito: "Restricted to the Aguiar One team",
+  direitosReservados: "All rights reserved.",
   todosPlanosCurto: "All plans",
   somentePago: "Paid only",
   customer: "Customer",

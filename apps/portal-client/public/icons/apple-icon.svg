@@ -1,9 +1,11 @@
+<!--
+  A versão do iOS: o mesmo ladrilho da marca, mas de canto reto — o próprio
+  sistema arredonda, e um raio desenhado aqui apareceria por dentro do dele.
+-->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" fill="#14506b"/>
-  <g transform="translate(256 256) scale(0.78) translate(-256 -256)">
-    <path fill="#ffffff" fill-rule="evenodd" d="
-      M256 120 L400 392 L112 392 Z
-      M256 214 L299.4 296 L212.6 296 Z
-      M187.2 344 L324.8 344 L350.2 392 L161.8 392 Z"/>
+  <rect width="512" height="512" fill="#020e18"/>
+  <g transform="translate(147.25 126.23) scale(1.02535)" fill="#1b9abd">
+    <path d="M109 0 L217 219 L160 219 L81 58 Z"/>
+    <path d="M48 119 L82 119 L112 183 L74.7 183 L58 219 L0 219 Z"/>
   </g>
 </svg>

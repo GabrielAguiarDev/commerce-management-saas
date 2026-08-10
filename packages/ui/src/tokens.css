@@ -31,6 +31,23 @@ body {
   --sans-stack: var(--font-sans), "Public Sans", system-ui, -apple-system, sans-serif;
   --mono-stack: var(--font-mono), "IBM Plex Mono", ui-monospace, monospace;
 
+  /* ---------------------------------------------------------------------
+     THE BRAND. These two are the logo's own colors, read off the icon file:
+     the blue of the "A" and the near-black petrol it sits on. They are the
+     same numbers the mobile app carries as `palette.brandPrimary` and
+     `palette.brandSecondary`, and the same ones painted into every icon,
+     splash and system chrome across the products.
+
+     They are INVARIANT — no theme, no surface, no hover changes them. That is
+     what separates them from `--accent` below, which starts here in the light
+     theme but shifts to the brand's teal in the dark one so it survives on a
+     petrol surface. When something must be the brand and not "the accent of
+     the moment" — a mark, a splash, the color the OS paints around an
+     installed window — it reaches for these.
+     --------------------------------------------------------------------- */
+  --brand: #1b9abd;
+  --brand-ink: #020e18;
+
   /* Background and surfaces. `surface` is the card; `surface2` the field and
      the table header; `surface3` the neutral badge and the highlighted row. */
   --bg: #eef2f4;
@@ -55,9 +72,11 @@ body {
      background, `line` the border matching that background, and `hi` the vivid
      version used on hover and for details on dark backgrounds.
 
-     This is the BRAND primary — the same `#1b9abd` the mobile app carries in
-     `palette.brandPrimary`, and the blue of the "A" in `public/images`. `hi` is
-     the light end of the brand's CTA gradient. */
+     In the light theme this IS `--brand` — see the block at the top. It is
+     written out rather than aliased because the dark theme replaces it, and a
+     token that sometimes points at the brand and sometimes does not would read
+     as if the brand itself changed. `hi` is the light end of the brand's CTA
+     gradient. */
   --accent: #1b9abd;
   --accent-ink: #ffffff;
   --accent-soft: #e0f1f2;
@@ -81,7 +100,7 @@ body {
      which is why none of it is repeated in the block below: the identity of
      the console is not a matter of preference. Only the admin uses these.
 
-     `--side` is `#020e18` — the brand secondary, which is the base of the
+     `--side` is `--brand-ink` — the brand secondary, which is the base of the
      mobile app's entrance gradient AND the ground its icon file is painted
      on. That second fact is what makes the mark sit on the rail without a
      seam: the tile brings its own background, and it is this exact one.
@@ -91,7 +110,7 @@ body {
      alphas are the app's `onPetrol` family, value for value. At this depth a
      wash is also the only thing that still reads: a card mixed by hand would
      have to be so close to the base that it would show as a smudge. */
-  --side: #020e18;
+  --side: var(--brand-ink);
   --side-card: rgba(255, 255, 255, 0.07);
   --side-text: rgba(234, 244, 245, 0.7);
   --side-text2: rgba(234, 244, 245, 0.6);

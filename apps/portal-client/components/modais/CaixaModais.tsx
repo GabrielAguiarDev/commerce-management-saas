@@ -196,7 +196,7 @@ export function CaixaFecharModal() {
         )}
       >
         <div style={css("display:flex;align-items:baseline;justify-content:space-between;gap:10px")}>
-          <span style={css(`font:700 14px ${SANS}`)}>cash na gaveta</span>
+          <span style={css(`font:700 14px ${SANS}`)}>Dinheiro na gaveta</span>
           <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>
             troco + vendas em espécie ± movimentações
           </span>

@@ -74,7 +74,7 @@ export function CaixaView() {
           >
             CX
           </span>
-          <div style={css(`margin-top:2px;font:700 18px ${SANS}`)}>Nenhum caixa open agora</div>
+          <div style={css(`margin-top:2px;font:700 18px ${SANS}`)}>Nenhum caixa aberto agora</div>
           <p style={css(`margin:0;max-width:400px;font:400 13.5px/1.55 ${SANS};color:var(--muted)`)}>
             Para começar o dia, abra o caixa informando o troco que está na gaveta. Depois disso, as
             vendas em dinheiro entram aqui automaticamente.

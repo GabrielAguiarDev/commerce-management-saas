@@ -46,13 +46,17 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
 
     // A cor da tela enquanto o app abre, antes de a primeira pintura chegar.
-    // É o `--bg` do tema claro: a espera tem a cor do portal, não branco puro.
-    background_color: "#eaeef2",
+    // É o `--bg` do tema claro dos tokens: a espera tem a cor do portal, não
+    // branco puro.
+    background_color: "#eef2f4",
 
     // A cor que o sistema pinta em volta da janela (barra de status no Android,
-    // barra de título no desktop). O petróleo escuro do menu lateral, que é a
-    // borda mais escura do portal em qualquer tema.
-    theme_color: "#0f1c22",
+    // barra de título no desktop). É o SECUNDÁRIO DA MARCA — o mesmo petrol
+    // quase preto do fundo do ícone que está logo acima dela na tela de início,
+    // do splash do app mobile e da barra lateral do console. Emendar a moldura
+    // do sistema com o fundo do ícone é o que faz o portal instalado parecer um
+    // programa e não uma página.
+    theme_color: "#020e18",
 
     orientation: "any",
     categories: ["business", "finance", "productivity"],

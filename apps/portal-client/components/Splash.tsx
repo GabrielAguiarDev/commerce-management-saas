@@ -1,7 +1,8 @@
 "use client";
 
-import { css, MONO, SANS } from "@aguiar/ui";
+import { css, SANS } from "@aguiar/ui";
 import { useEffect, useState } from "react";
+import { Logo } from "@/components/Logo";
 import { usePortal } from "@/components/PortalProvider";
 
 /**
@@ -97,15 +98,16 @@ export function Splash({ ready }: { ready: boolean }) {
       )}
     >
       <div style={css("display:flex;align-items:center;gap:11px")}>
+        {/* O ladrilho respira enquanto a espera dura — daí o `span` em volta:
+            a animação e o halo de `.splash-mark` precisam de um elemento com o
+            mesmo raio da imagem para pousar. A marca em si não recebe cor
+            nenhuma daqui; ela traz o próprio fundo. */}
         <span
           className="splash-mark"
           aria-hidden
-          style={css(
-            "flex:none;width:44px;height:44px;border-radius:12px;background:var(--petrol);color:#fff;" +
-              `display:flex;align-items:center;justify-content:center;font:700 15px ${MONO};letter-spacing:-.5px`,
-          )}
+          style={css("flex:none;display:flex;border-radius:12px")}
         >
-          A1
+          <Logo size={44} radius={12} priority />
         </span>
         <span>
           <span style={css(`display:block;font:700 17px/1.2 ${SANS};color:var(--text)`)}>

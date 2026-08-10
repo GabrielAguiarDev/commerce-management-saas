@@ -287,7 +287,7 @@ function PreferencesTab() {
                     {c}
                   </span>
                   <span style={css(`flex:none;font:500 11.5px ${MONO};color:var(--muted)`)}>
-                    {usage} {usage === 1 ? "product" : "products"}
+                    {usage} {usage === 1 ? "produto" : "produtos"}
                   </span>
                 </div>
               );

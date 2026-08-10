@@ -230,7 +230,7 @@ export function BottomBar() {
           )}
         >
           <span>
-            Ver {items} {items === 1 ? "item" : "items"}
+            Ver {items} {items === 1 ? "item" : "itens"}
           </span>
           <span style={css(NUM)}>{brl(total)}</span>
         </Button>

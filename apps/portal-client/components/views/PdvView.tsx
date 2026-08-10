@@ -217,10 +217,10 @@ export function PdvView() {
                 "flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;border-bottom:1px solid var(--border)",
               )}
             >
-              <h2 style={css(`margin:0;font:600 15px/1.2 ${SANS}`)}>Itens desta sale</h2>
+              <h2 style={css(`margin:0;font:600 15px/1.2 ${SANS}`)}>Itens desta venda</h2>
               <span style={css("display:flex;align-items:center;gap:10px")}>
                 <span style={css(`font:600 11.5px ${SANS};color:var(--muted)`)}>
-                  {items} {items === 1 ? "item" : "items"}
+                  {items} {items === 1 ? "item" : "itens"}
                 </span>
                 {cartStacked && (
                   <Button
@@ -358,7 +358,7 @@ export function PdvView() {
                         text: editing
                           ? "A venda volta a ser o que era antes de você começar a editar."
                           : "Os itens escolhidos até agora são removidos.",
-                        summary: `${items} ${items === 1 ? "item" : "items"} · ${brl(total)}`,
+                        summary: `${items} ${items === 1 ? "item" : "itens"} · ${brl(total)}`,
                         detail: "Nada é registrado no histórico.",
                         reversal: "Você pode montar a venda de novo do zero.",
                         button: editing ? "Descartar" : "Limpar carrinho",

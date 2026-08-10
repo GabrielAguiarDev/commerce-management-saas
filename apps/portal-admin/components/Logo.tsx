@@ -9,11 +9,14 @@ import Image from "next/image";
  * junto com o tema — ou seja, não era a marca.
  *
  * O que este componente mostra é `public/images/icon.png`, o MESMO ladrilho que
- * o app mobile instala como ícone do aplicativo: o "A" azul da marca sobre o
- * petrol quase preto (`#030f19`, o secundário da marca). É por isso que ele NÃO
- * recebe cor nem fundo — os dois já vêm dentro da imagem, e é justamente isso
- * que faz o console, o celular e o ícone na barra do navegador mostrarem a
- * mesma coisa.
+ * o app mobile instala como ícone do aplicativo: o "A" azul da marca
+ * (`#1b9abd`) sobre o petrol quase preto (`#020e18`, o secundário da marca). É
+ * por isso que ele NÃO recebe cor nem fundo — os dois já vêm dentro da imagem,
+ * e é justamente isso que faz o console, o portal do cliente, o site, o celular
+ * e o ícone na barra do navegador mostrarem a mesma coisa.
+ *
+ * O petrol do ladrilho é exatamente o `--side` da barra lateral: é isso que faz
+ * a marca pousar no topo do menu sem emenda visível.
  *
  * O arquivo é quadrado e tem folga própria nas bordas, como todo ícone de app;
  * por isso o desenho ocupa cerca de 44% do lado, e não o lado inteiro.

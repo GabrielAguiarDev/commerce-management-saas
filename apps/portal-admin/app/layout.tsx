@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { AdminProvider } from "@/components/AdminProvider";
 import { AdminShell } from "@/components/AdminShell";
@@ -39,6 +39,17 @@ export const metadata: Metadata = {
   title: "Aguiar One · Console admin",
   description:
     "Console de administração do Aguiar One: clientes, módulos, planos, financeiro e suporte.",
+};
+
+/**
+ * A cor que o navegador pinta na própria barra, no celular.
+ *
+ * É o SECUNDÁRIO DA MARCA — o mesmo valor que o portal do cliente e o site
+ * declaram, o mesmo do fundo do ícone e da barra lateral aqui do console. Ela
+ * não muda com o tema: o tema é preferência de quem trabalha, a marca não.
+ */
+export const viewport: Viewport = {
+  themeColor: "#020e18",
 };
 
 export default async function RootLayout({

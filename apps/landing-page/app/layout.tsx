@@ -43,11 +43,16 @@ export const metadata: Metadata = {
 };
 
 /**
- * A cor da barra do navegador no celular acompanha a primeira dobra, que é
- * escura — sem isto ela fica branca e aparece um corte no alto da tela.
+ * A cor da barra do navegador no celular.
+ *
+ * É o SECUNDÁRIO DA MARCA — o mesmo valor que o portal declara no manifesto e
+ * que o app pinta no splash e no fundo do ícone. Ela não tenta casar com o
+ * topo da página (o cabeçalho é claro): a barra do sistema é a primeira cor do
+ * produto que a pessoa vê, antes de qualquer pixel, e ela é a mesma no site, no
+ * portal e no celular.
  */
 export const viewport: Viewport = {
-  themeColor: "#12323c",
+  themeColor: "#020e18",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

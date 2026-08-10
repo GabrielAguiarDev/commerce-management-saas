@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sem conexão · Aguiar One</title>
-    <meta name="theme-color" content="#0f1c22" />
+    <meta name="theme-color" content="#020e18" />
     <link rel="icon" href="/icons/icon-192.png" />
 
     <!--
@@ -16,42 +16,46 @@
       aparelho: é o único momento em que não existe nada em cache para mostrar.
       Qualquer dependência aqui seria uma dependência que também pode faltar.
 
-      Os valores das cores estão escritos à mão, e não em `var(--...)`, porque
-      o `tokens.css` vive dentro do bundle do Next, que esta página não carrega.
+      Os valores das cores estão COPIADOS à mão de `@aguiar/ui/tokens.css`, e
+      não escritos em `var(--...)`, porque aquele arquivo vive dentro do bundle
+      do Next, que esta página não carrega. São os mesmos valores, token por
+      token: esta é a única tela do portal onde a paleta é duplicada, e a única
+      regra é que ela não invente cor nenhuma. Se um token mudar lá, muda aqui.
+
       Como o tema escolhido no portal não é gravado em lugar nenhum, aqui a
       escolha segue a preferência do sistema.
     -->
     <style>
       :root {
-        --bg: #eaeef2;
+        --bg: #eef2f4;
         --surface: #ffffff;
-        --surface2: #f5f8fa;
-        --border: #dbe3ea;
-        --text: #16222c;
-        --text2: #3a4c5a;
-        --muted: #61748a;
-        --accent: #0d6e78;
-        --petrol: #14506b;
-        --warn: #8a5a12;
-        --warn-soft: #faf0dd;
-        --warn-line: #ecdcbd;
+        --surface2: #f4f8f9;
+        --border: #d6e1e5;
+        --text: #0f2a34;
+        --text2: #33505c;
+        --muted: #5f7783;
+        --accent: #1b9abd;
+        --petrol: #123c4a;
+        --warn: #a9700f;
+        --warn-soft: #fbf0dc;
+        --warn-line: #ecdcba;
         --shadow: 0 1px 2px rgba(19, 38, 52, 0.06), 0 6px 18px rgba(19, 38, 52, 0.06);
       }
 
       @media (prefers-color-scheme: dark) {
         :root {
-          --bg: #0c141b;
-          --surface: #121d26;
-          --surface2: #17232d;
-          --border: #25333e;
-          --text: #e7eef4;
-          --text2: #c2d0da;
-          --muted: #8798a7;
-          --accent: #2ea3ac;
+          --bg: #0b1a21;
+          --surface: #132a34;
+          --surface2: #193540;
+          --border: #23414d;
+          --text: #e9f2f4;
+          --text2: #c3d5da;
+          --muted: #94aeb8;
+          --accent: #2fb3ba;
           --petrol: #7fb4cc;
-          --warn: #d8a75a;
-          --warn-soft: #332a18;
-          --warn-line: #54452a;
+          --warn: #e0a950;
+          --warn-soft: #33291a;
+          --warn-line: #544529;
           --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 22px rgba(0, 0, 0, 0.35);
         }
       }
@@ -158,13 +162,15 @@
   <body>
     <main class="card">
       <div class="mark">
+        <!-- A marca é DESENHADA aqui, e não carregada de `/icons/`: esta tela
+             existe justamente para o momento em que um arquivo pode faltar. Os
+             vértices e as duas cores são os mesmos de `/icons/icon.svg`. -->
         <svg viewBox="0 0 512 512" aria-hidden="true">
-          <rect width="512" height="512" rx="114" fill="#14506b" />
-          <path
-            fill="#ffffff"
-            fill-rule="evenodd"
-            d="M256 120 L400 392 L112 392 Z M256 214 L299.4 296 L212.6 296 Z M187.2 344 L324.8 344 L350.2 392 L161.8 392 Z"
-          />
+          <rect width="512" height="512" rx="114" fill="#020e18" />
+          <g transform="translate(147.25 126.23) scale(1.02535)" fill="#1b9abd">
+            <path d="M109 0 L217 219 L160 219 L81 58 Z" />
+            <path d="M48 119 L82 119 L112 183 L74.7 183 L58 219 L0 219 Z" />
+          </g>
         </svg>
         <span>
           <b>Aguiar One</b>

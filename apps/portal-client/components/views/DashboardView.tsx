@@ -105,7 +105,7 @@ export function DashboardView() {
   if (has("stock")) {
     kpis.push({
       label: "Estoque baixo",
-      value: outOfStock.length ? `${outOfStock.length} ${outOfStock.length === 1 ? "item" : "items"}` : "Em dia",
+      value: outOfStock.length ? `${outOfStock.length} ${outOfStock.length === 1 ? "item" : "itens"}` : "Em dia",
       note: outOfStock.length
         ? outOfStock
             .slice(0, 2)

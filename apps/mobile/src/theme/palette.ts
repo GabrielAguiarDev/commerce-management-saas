@@ -8,10 +8,25 @@
  * CSS das linhas 29 e 848). Não "arredonde" nenhum deles.
  */
 
+/**
+ * As duas cores da MARCA, lidas do arquivo do logo: o azul do "A" e o petrol
+ * quase preto em que ele se assenta.
+ *
+ * Estão fora do objeto, e não escritas quatro vezes dentro dele, porque
+ * aparecem em mais de um papel — a primária é também a base do degradê do
+ * próprio "A"; o secundário é também o fim do degradê da entrada e o fundo do
+ * ícone do app. Escritas uma vez, esses papéis não têm como divergir.
+ *
+ * São os mesmos valores de `--brand` e `--brand-ink` em `@aguiar/ui`, e os
+ * mesmos que `app.json` pinta no splash e no ícone adaptativo.
+ */
+const BRAND_PRIMARY = '#1B9ABD';
+const BRAND_SECONDARY = '#020E18';
+
 export const palette = {
   // ── Claro ────────────────────────────────────────────────────────────────
-  brandPrimary: '#1B9ABD',
-  brandSecondary: '#020E18',
+  brandPrimary: BRAND_PRIMARY,
+  brandSecondary: BRAND_SECONDARY,
   bgLight: '#eef2f4',
   surfaceLight: '#ffffff',
   surface2Light: '#f4f8f9',
@@ -94,7 +109,7 @@ export const palette = {
 
   /** O "A" da marca, do topo claro à base na cor primária. */
   logoTop: '#4cc4e6',
-  logoBottom: '#1b9abd',
+  logoBottom: BRAND_PRIMARY,
 
   /**
    * O fundo, do azul do topo ao quase-preto da base.
@@ -106,7 +121,7 @@ export const palette = {
    */
   authTop: '#0e5375',
   authMid: '#072634',
-  authBase: '#020e18',
+  authBase: BRAND_SECONDARY,
 
   /** O halo atrás da marca. A opacidade é dada nas paradas do gradiente. */
   authGlow: '#2fb6e6',

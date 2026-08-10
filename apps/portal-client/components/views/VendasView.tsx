@@ -310,7 +310,7 @@ function SaleRow({
             <div style={css("margin-top:7px;display:flex;align-items:center;gap:8px")}>
               <span style={css(BADGE_NEUTRAL)}>{v.payment}</span>
               <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>
-                {qtdV(v)} {qtdV(v) === 1 ? "item" : "items"}
+                {qtdV(v)} {qtdV(v) === 1 ? "item" : "itens"}
               </span>
             </div>
           </div>
