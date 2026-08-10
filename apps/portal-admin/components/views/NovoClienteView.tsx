@@ -25,7 +25,7 @@ type RequiredField = "name" | "owner" | "email";
  * A validação daqui é conveniência para quem digita; a que vale é a do servidor.
  */
 export function NovoClienteView() {
-  const { s, a, options } = useAdmin();
+  const { s, a, options, isMobile } = useAdmin();
   // `set` e `toast` são memoizados no provider; o objeto `a` NÃO é (ele é
   // recriado a cada render). Efeitos abaixo dependem só destes dois.
   const { L, set, toast } = a;
@@ -200,13 +200,15 @@ export function NovoClienteView() {
       >
         <div
           style={css(
-            "padding:20px 24px;border-bottom:1px solid var(--border-soft);background:var(--surface2);" +
-              "display:flex;flex-direction:column;gap:4px",
+            "border-bottom:1px solid var(--border-soft);background:var(--surface2);" +
+              "display:flex;flex-direction:column;gap:4px;padding:" +
+              (isMobile ? "16px 14px" : "20px 24px"),
           )}
         >
           <h2
             style={css(
-              "margin:0;font-size:20px;font-weight:600;letter-spacing:-.02em;color:var(--text)",
+              "margin:0;font-weight:600;letter-spacing:-.02em;color:var(--text);" +
+                (isMobile ? "font-size:18px" : "font-size:20px"),
             )}
           >
             {id === "pt" ? "Novo cliente" : "New customer"}
@@ -218,10 +220,17 @@ export function NovoClienteView() {
           </p>
         </div>
 
-        <div style={css("padding:22px 24px;display:flex;flex-direction:column;gap:18px")}>
+        <div
+          style={css(
+            "display:flex;flex-direction:column;gap:18px;padding:" +
+              (isMobile ? "16px 14px" : "22px 24px"),
+          )}
+        >
+          {/* `min()` no mínimo da coluna: sem ele, um campo de 220px numa tela
+              mais estreita que isso empurraria o formulário para fora. */}
           <div
             style={css(
-              "display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 20px",
+              "display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:16px 20px",
             )}
           >
             {field(
@@ -250,7 +259,7 @@ export function NovoClienteView() {
 
           <div
             style={css("border-top:1px solid var(--border-soft);padding-top:18px;" + "display:grid;" +
-              "grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 20px;align-items:start")}
+              "grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:16px 20px;align-items:start")}
           >
             <div style={css("display:flex;flex-direction:column;gap:6px;min-width:0")}>
               {field(
@@ -319,7 +328,9 @@ export function NovoClienteView() {
         <div
           style={css(
             "display:flex;align-items:flex-start;justify-content:space-between;gap:20px;" +
-              "flex-wrap:wrap;padding:20px 24px;border-bottom:1px solid var(--border-soft);background:var(--surface2)",
+              "flex-wrap:wrap;border-bottom:1px solid var(--border-soft);background:var(--surface2);" +
+              "padding:" +
+              (isMobile ? "16px 14px" : "20px 24px"),
           )}
         >
           <div style={css("display:flex;flex-direction:column;gap:4px")}>
@@ -413,8 +424,9 @@ export function NovoClienteView() {
         {missingModules && (
           <div
             style={css(
-              "padding:13px 24px;border-top:1px solid var(--border-soft);background:var(--danger-soft);" +
-                "display:flex;align-items:center;gap:9px",
+              "border-top:1px solid var(--border-soft);background:var(--danger-soft);" +
+                "display:flex;align-items:center;gap:9px;padding:" +
+                (isMobile ? "12px 14px" : "13px 24px"),
             )}
           >
             <div style={css("width:6px;height:6px;border-radius:99px;background:var(--danger)")} />

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, css } from "@aguiar/ui";
+import { useAdmin } from "@/components/AdminProvider";
 
 export type BarTone = "warning" | "neutral";
 
@@ -26,13 +27,19 @@ interface ActionBarProps {
  * da ficha do cliente, para as duas telas terminarem igual.
  */
 export function ActionBar({ estado, tone, secondary, primary }: ActionBarProps) {
+  const { isMobile } = useAdmin();
   const alert = tone === "warning";
 
   return (
     <div
+      // No celular a barra empilha: o texto de estado em cima, os dois botões
+      // dividindo a linha de baixo. Lado a lado, "Descartar alterações" e
+      // "Salvar" não cabem depois da frase de estado.
       style={css(
-        "position:sticky;bottom:0;z-index:7;display:flex;align-items:center;" +
-          "justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 20px;" +
+        "position:sticky;bottom:0;z-index:7;display:flex;" +
+          (isMobile
+            ? "gap:10px;flex-direction:column;align-items:stretch;padding:12px 14px;"
+            : "gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 20px;") +
           "border-radius:12px;border:1px solid " +
           (alert ? "var(--warn-line)" : "var(--border)") +
           ";background:var(--surface);box-shadow:0 -2px 16px rgba(6,20,26,.1)",
@@ -60,6 +67,8 @@ export function ActionBar({ estado, tone, secondary, primary }: ActionBarProps) 
           disabled={secondary.disabled}
           style={css(
             "font-size:13px;font-weight:500;padding:10px 16px;border-radius:9px;" +
+              "display:flex;align-items:center;justify-content:center;" +
+              (isMobile ? "flex:1;" : "") +
               "border:1px solid var(--border);background:var(--surface);color:" +
               (secondary.disabled ? "var(--muted)" : "var(--text2)") +
               ";cursor:" +
@@ -76,6 +85,8 @@ export function ActionBar({ estado, tone, secondary, primary }: ActionBarProps) 
           className="hv-brilho"
           style={css(
             "font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px;" +
+              "display:flex;align-items:center;justify-content:center;" +
+              (isMobile ? "flex:1;" : "") +
               (primary.disabled
                 ? "border:1px solid var(--border);background:var(--surface3);color:var(--muted);cursor:not-allowed;"
                 : "border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;"),

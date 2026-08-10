@@ -21,6 +21,9 @@ const pt = {
   settings: "Configurações",
   colapsar: "Recolher menu",
   expandir: "Expandir menu",
+  // Só aparecem no celular, onde a barra lateral é uma gaveta.
+  abrirMenu: "Abrir menu",
+  fecharMenu: "Fechar menu",
   admin: "Administrador",
   signOut: "Sair",
   mrr: "Receita mensal",
@@ -313,6 +316,8 @@ const en: Dic = {
   settings: "Settings",
   colapsar: "Collapse menu",
   expandir: "Expand menu",
+  abrirMenu: "Open menu",
+  fecharMenu: "Close menu",
   admin: "Administrator",
   signOut: "Sign out",
   mrr: "Monthly revenue",

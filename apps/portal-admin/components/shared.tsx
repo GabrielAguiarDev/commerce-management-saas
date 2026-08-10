@@ -1,6 +1,7 @@
 "use client";
 
 import { css, initials, MONO } from "@aguiar/ui";
+import { useAdmin } from "@/components/AdminProvider";
 import { AcessoIcone } from "@/lib/icons";
 import { avatar, METRIC_CARD } from "@/lib/styleKit";
 import type { Customer, Language, Plan } from "@/types/types";
@@ -18,26 +19,44 @@ export interface Metric {
 
 /** The KPI row that opens both the overview and the finance view. */
 export function MetricsGrid({ metrics }: { metrics: Metric[] }) {
+  const { isMobile } = useAdmin();
+
   return (
     <div
+      /**
+       * No celular são duas colunas fixas, e não `auto-fit`: com 232px de
+       * mínimo cada cartão viraria uma faixa da largura inteira, e os quatro
+       * números — que existem para serem lidos de relance, juntos — passariam
+       * a exigir uma rolagem de tela cada um.
+       */
       style={css(
-        "display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:16px;align-items:stretch",
+        "display:grid;align-items:stretch;" +
+          (isMobile
+            ? "grid-template-columns:repeat(2,minmax(0,1fr));gap:10px"
+            : "grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:16px"),
       )}
     >
       {metrics.map((m) => (
         <div
           key={m.label}
           onClick={m.action}
-          style={css(METRIC_CARD + (m.action ? "cursor:pointer;" : ""))}
+          style={css(
+            METRIC_CARD +
+              (m.action ? "cursor:pointer;" : "") +
+              (isMobile ? "padding:13px 14px;gap:9px;min-height:112px;" : ""),
+          )}
         >
           <div
             style={css(
-              "display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:20px",
+              "display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:20px;" +
+                // Apertado, rótulo e selo não cabem lado a lado; o selo desce.
+                (isMobile ? "flex-wrap:wrap" : ""),
             )}
           >
             <span
               style={css(
-                "font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600",
+                "letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600;" +
+                  (isMobile ? "font-size:10.5px" : "font-size:11.5px"),
               )}
             >
               {m.label}
@@ -46,8 +65,9 @@ export function MetricsGrid({ metrics }: { metrics: Metric[] }) {
           </div>
           <span
             style={css(
-              `font-family:${MONO};font-size:30px;font-weight:600;line-height:1;` +
-                "letter-spacing:-.03em;color:var(--text)",
+              `font-family:${MONO};font-weight:600;line-height:1;` +
+                "letter-spacing:-.03em;color:var(--text);" +
+                (isMobile ? "font-size:23px" : "font-size:30px"),
             )}
           >
             {m.value}

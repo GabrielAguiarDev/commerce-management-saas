@@ -198,6 +198,11 @@ export interface AdminState {
   theme: Theme;
   language: Language;
   collapsed: boolean;
+  /**
+   * A gaveta do menu, que só existe no celular. No desktop a barra lateral está
+   * sempre em tela e quem manda na largura dela é `collapsed`.
+   */
+  navOpen: boolean;
   modal: ModalEstado | null;
   confirmation: string;
   hint: HintState | null;

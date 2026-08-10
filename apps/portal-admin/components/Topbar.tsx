@@ -2,6 +2,7 @@
 
 import { useAdmin } from "@/components/AdminProvider";
 import { Button, css, MONO } from "@aguiar/ui";
+import { NAV_ID } from "@/components/Sidebar";
 import { todayLabel } from "@/lib/datas";
 import { IdiomaIcone, LuaIcone, SinoIcone, SolIcone } from "@/lib/icons";
 import { ROUTES } from "@/lib/rotas";
@@ -29,7 +30,7 @@ const COLORS: Record<NotificationType, string> = {
 };
 
 export function Topbar({ title, subtitle }: TopbarProps) {
-  const { s, a, cs } = useAdmin();
+  const { s, a, cs, isMobile } = useAdmin();
   const { L } = a;
   const id = s.language;
   const dark = s.theme === "dark";
@@ -74,26 +75,66 @@ export function Topbar({ title, subtitle }: TopbarProps) {
   return (
     <header
       style={css(
-        "display:flex;align-items:center;justify-content:space-between;gap:24px;padding:16px 30px;" +
-          "background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:6",
+        "display:flex;align-items:center;justify-content:space-between;background:var(--surface);" +
+          "border-bottom:1px solid var(--border);position:sticky;top:0;z-index:6;" +
+          (isMobile ? "gap:10px;padding:11px 14px" : "gap:24px;padding:16px 30px"),
       )}
     >
+      {/* O botão da gaveta. Só existe no celular — no desktop a barra lateral
+          está sempre em tela e não há o que abrir. */}
+      {isMobile && (
+        <Button
+          onClick={() => a.set({ navOpen: true })}
+          aria-label={L.abrirMenu}
+          title={L.abrirMenu}
+          aria-expanded={s.navOpen}
+          aria-controls={NAV_ID}
+          className="hv-borda"
+          style={css(
+            "flex:none;display:flex;align-items:center;justify-content:center;width:38px;height:38px;" +
+              "border:1px solid var(--border);background:var(--surface2);color:var(--text2);" +
+              `border-radius:9px;padding:0;font-family:${MONO};font-size:15px;line-height:1`,
+          )}
+        >
+          ≡
+        </Button>
+      )}
+
       <div style={css("display:flex;flex-direction:column;gap:3px;min-width:0")}>
         <h1
           style={css(
-            "margin:0;font-size:19px;font-weight:600;letter-spacing:-.015em;color:var(--text)",
+            "margin:0;font-weight:600;letter-spacing:-.015em;color:var(--text);" +
+              // O título é o nome da tela e não pode quebrar em duas linhas na
+              // barra: no estreito ele encolhe e, se ainda assim não couber,
+              // termina em reticências.
+              (isMobile
+                ? "font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+                : "font-size:19px"),
           )}
         >
           {title}
         </h1>
-        <p style={css("margin:0;font-size:12.5px;color:var(--text2)")}>{subtitle}</p>
+        {/* A linha de apoio sai no celular: ela explica a tela, e ali a barra
+            precisa do espaço para o título e os controles. */}
+        {!isMobile && (
+          <p style={css("margin:0;font-size:12.5px;color:var(--text2)")}>{subtitle}</p>
+        )}
       </div>
 
-      <div style={css("display:flex;align-items:center;gap:10px;flex:none")}>
-        <span style={css(`font-family:${MONO};font-size:11px;color:var(--muted)`)}>
-          {todayLabel(id)}
-        </span>
-        <div style={css("width:1px;height:22px;background:var(--border)")} />
+      <div
+        style={css(
+          "display:flex;align-items:center;flex:none;" + (isMobile ? "gap:7px" : "gap:10px"),
+        )}
+      >
+        {/* A data e o filete que a separa dos botões são folga de desktop. */}
+        {!isMobile && (
+          <>
+            <span style={css(`font-family:${MONO};font-size:11px;color:var(--muted)`)}>
+              {todayLabel(id)}
+            </span>
+            <div style={css("width:1px;height:22px;background:var(--border)")} />
+          </>
+        )}
 
         <div style={css("position:relative;display:flex")}>
           <Button
@@ -126,9 +167,13 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                 onClick={() => a.set({ notificationsOpen: false })}
                 style={css("position:fixed;inset:0;z-index:20")}
               />
+              {/* `max-width` medido na janela, não no pai: o painel é mais
+                  largo que o sino que o ancora, e num celular ele passaria da
+                  borda esquerda da tela. */}
               <div
                 style={css(
-                  "position:absolute;top:44px;right:0;z-index:30;width:340px;background:var(--surface);" +
+                  "position:absolute;top:44px;right:0;z-index:30;width:340px;" +
+                    "max-width:calc(100vw - 28px);background:var(--surface);" +
                     "border:1px solid var(--border);border-radius:12px;" +
                     "box-shadow:0 16px 40px rgba(6,20,26,.22);overflow:hidden",
                 )}

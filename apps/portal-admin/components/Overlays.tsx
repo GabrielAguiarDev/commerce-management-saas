@@ -1,15 +1,43 @@
 "use client";
 
 import { css } from "@aguiar/ui";
+import { useAdmin } from "@/components/AdminProvider";
 import type { HintState, ToastState } from "@/types/types";
+
+/**
+ * O véu atrás da gaveta do menu, no celular.
+ *
+ * Faz dois trabalhos: escurece a tela para separar o menu do conteúdo, e dá o
+ * alvo de "toquei fora, fecha" — que é como se fecha uma gaveta em qualquer
+ * aplicativo. Fica um degrau abaixo dela no `z-index` e um acima do resto.
+ */
+export function NavScrim() {
+  const { s, a, isMobile } = useAdmin();
+  if (!isMobile || !s.navOpen) return null;
+
+  return (
+    <div
+      onClick={() => a.set({ navOpen: false })}
+      aria-hidden
+      style={css(
+        "position:fixed;inset:0;z-index:65;background:rgba(4,15,20,.5);animation:fadein .18s ease",
+      )}
+    />
+  );
+}
 
 /** Transient confirmations, stacked bottom-right. */
 export function Toasts({ toasts }: { toasts: ToastState[] }) {
+  const { isMobile } = useAdmin();
+
   return (
     <div
+      // No celular o aviso encosta nas duas margens: preso à direita, um texto
+      // um pouco mais longo já sairia da tela.
       style={css(
-        "position:fixed;bottom:22px;right:22px;z-index:120;display:flex;flex-direction:column;" +
-          "gap:9px;pointer-events:none;align-items:flex-end",
+        "position:fixed;z-index:120;display:flex;flex-direction:column;gap:9px;" +
+          "pointer-events:none;align-items:" +
+          (isMobile ? "stretch;bottom:14px;left:14px;right:14px" : "flex-end;bottom:22px;right:22px"),
       )}
     >
       {toasts.map((t) => (

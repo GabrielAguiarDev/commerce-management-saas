@@ -1,6 +1,7 @@
 "use client";
 
 import { css } from "@aguiar/ui";
+import { useAdmin } from "@/components/AdminProvider";
 import { moduleIcon } from "@/lib/styleKit";
 import { AccessTag } from "@/components/shared";
 
@@ -12,13 +13,17 @@ export function ModuleGrid({
   columns?: number;
   children: React.ReactNode;
 }) {
+  const { isMobile } = useAdmin();
+
   return (
     <div
+      // No celular é uma coluna só, e a margem do cartão encolhe: dois módulos
+      // lado a lado numa tela estreita deixariam a descrição em fiapos.
       style={css(
-        "display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:14px;" +
-          "padding:20px 24px;max-width:" +
-          Math.min(4, Math.max(2, columns)) * 400 +
-          "px",
+        "display:grid;grid-template-columns:repeat(auto-fit,minmax(min(232px,100%),1fr));gap:14px;" +
+          (isMobile
+            ? "padding:14px"
+            : "padding:20px 24px;max-width:" + Math.min(4, Math.max(2, columns)) * 400 + "px"),
       )}
     >
       {children}

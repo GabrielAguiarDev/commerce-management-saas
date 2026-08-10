@@ -19,6 +19,12 @@ import {
 import { ROUTES, isActiveRoute } from "@/lib/rotas";
 import { navStyle } from "@/lib/styleKit";
 
+/**
+ * O id da barra lateral. O botão da gaveta, lá na barra de topo, aponta para
+ * ele com `aria-controls` — é o que liga o "abrir menu" ao que de fato abre.
+ */
+export const NAV_ID = "admin-nav";
+
 interface SidebarProps {
   customerCount: number;
   chamadosAbertos: number;
@@ -27,10 +33,12 @@ interface SidebarProps {
 }
 
 export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: SidebarProps) {
-  const { s, a } = useAdmin();
+  const { s, a, isMobile } = useAdmin();
   const { L } = a;
   const pathname = usePathname();
-  const col = s.collapsed;
+  // No celular a barra é uma gaveta: quando ela aparece, aparece inteira.
+  // Recolher só faz sentido no desktop, onde ela divide a largura com a tela.
+  const col = s.collapsed && !isMobile;
 
   const label = col ? "display:none" : "white-space:nowrap";
   const group = col
@@ -78,12 +86,35 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
 
   return (
     <aside
+      id={NAV_ID}
+      /**
+       * Duas barras na mesma marcação.
+       *
+       * No desktop ela é `sticky`: ocupa uma coluna própria, acompanha a
+       * rolagem e o conteúdo fica ao lado. No celular ela sai do fluxo e vira
+       * uma gaveta — `fixed`, deslocada para fora da tela, e volta deslizando
+       * quando `navOpen` liga. Fora do fluxo, a tela abaixo ganha a largura
+       * inteira sem precisar de um segundo desenho.
+       *
+       * `overflow-y:auto` só importa aqui: aberta num celular deitado, a barra
+       * é mais alta que a tela, e sem isso o rodapé com o botão de sair ficaria
+       * inalcançável.
+       */
       style={css(
         "width:" +
           (col ? "84px" : "250px") +
           ";flex:none;background:var(--side);display:flex;flex-direction:column;" +
-          "position:sticky;top:0;align-self:flex-start;height:100vh;transition:width .18s ease",
+          "height:100vh;overflow-y:auto;overscroll-behavior:contain;" +
+          (isMobile
+            ? "position:fixed;top:0;left:0;z-index:70;box-shadow:var(--shadow-lg);" +
+              `transform:translateX(${s.navOpen ? "0" : "-100%"});` +
+              "transition:transform .22s ease"
+            : "position:sticky;top:0;align-self:flex-start;transition:width .18s ease"),
       )}
+      // Fechada, a gaveta continua no DOM (é o que permite animar a entrada),
+      // mas não deve receber Tab nem ser lida: `inert` tira as duas coisas de
+      // uma vez, o que `display:none` faria ao custo da animação.
+      inert={isMobile && !s.navOpen}
     >
       <div
         style={css(
@@ -110,19 +141,26 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
             {L.console}
           </span>
         </div>
+        {/* Mesmo canto, dois papéis: no desktop recolhe a barra, no celular
+            fecha a gaveta — que é o gesto que a pessoa procura ali. */}
         <Button
-          onClick={() => a.set((st) => ({ collapsed: !st.collapsed, hint: null }))}
+          onClick={() =>
+            a.set((st) =>
+              isMobile ? { navOpen: false } : { collapsed: !st.collapsed, hint: null },
+            )
+          }
           className="hv-side"
           style={css(
             "position:absolute;top:18px;right:0;width:26px;height:30px;border-radius:8px 0 0 8px;" +
               "display:flex;align-items:center;justify-content:center;border:1px solid var(--side-border);" +
               "border-right:none;background:var(--side-card);color:var(--side-text2);cursor:pointer;" +
-              "padding:0;transition:color .12s,background .12s",
+              "padding:0;transition:color .12s,background .12s" +
+              (isMobile ? ";font-size:17px;line-height:1" : ""),
           )}
-          aria-label={col ? L.expandir : L.colapsar}
+          aria-label={isMobile ? L.fecharMenu : col ? L.expandir : L.colapsar}
           {...hint}
         >
-          <ColapsarIcone />
+          {isMobile ? "×" : <ColapsarIcone />}
         </Button>
       </div>
 

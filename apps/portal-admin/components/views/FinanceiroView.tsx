@@ -22,12 +22,9 @@ const PAYMENT_GRID =
   "minmax(190px,1.7fr) 110px 110px 110px 120px 120px 74px";
 
 export function FinanceiroView() {
-  const { s, a, cs, empty } = useAdmin();
+  const { s, a, cs, empty, compact, isMobile } = useAdmin();
   const { L } = a;
   const id = s.language;
-
-  // Below this width the table becomes a stack of cards.
-  const compact = s.screenWidth < 1000;
 
   const mrr = computeMrr(cs);
   const billableCustomers = billable(cs);
@@ -155,7 +152,8 @@ export function FinanceiroView() {
       <section
         style={css(
           "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
-            "padding:20px 22px 18px;display:flex;flex-direction:column;gap:18px",
+            "display:flex;flex-direction:column;gap:18px;padding:" +
+            (isMobile ? "16px 14px 14px" : "20px 22px 18px"),
         )}
       >
         <div style={css("display:flex;flex-direction:column;gap:3px")}>
@@ -164,31 +162,48 @@ export function FinanceiroView() {
           </h2>
           <span style={css("font-size:11.5px;color:var(--muted)")}>{L.receitaSub}</span>
         </div>
-        <div style={css("display:flex;align-items:flex-end;gap:14px;height:172px;padding-top:6px")}>
+        {/* Uma coluna por mês, dividindo a largura disponível. No celular o
+            respiro entre elas e o valor escrito em cima encolhem: o gráfico é
+            a comparação entre as alturas, e é ela que precisa caber. */}
+        <div
+          style={css(
+            "display:flex;align-items:flex-end;padding-top:6px;" +
+              (isMobile ? "gap:5px;height:150px" : "gap:14px;height:172px"),
+          )}
+        >
           {(empty ? [] : s.revenue).map((g, i) => (
             <div
               key={g.month.pt}
               style={css(
-                "flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;" +
-                  "height:100%;justify-content:flex-end",
+                "flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;" +
+                  "height:100%;justify-content:flex-end;gap:" +
+                  (isMobile ? "5px" : "8px"),
               )}
             >
-              <span style={css(`font-family:${MONO};font-size:11px;color:var(--text2)`)}>
+              <span
+                style={css(
+                  `font-family:${MONO};color:var(--text2);white-space:nowrap;font-size:` +
+                    (isMobile ? "9.5px" : "11px"),
+                )}
+              >
                 {formatCash(g.amount)}
               </span>
               <div
                 style={css(
-                  "width:100%;max-width:54px;border-radius:7px 7px 3px 3px;background:" +
+                  "width:100%;border-radius:7px 7px 3px 3px;background:" +
                     // The most recent month is the filled bar.
                     (i === s.revenue.length - 1 ? "var(--accent)" : "var(--accent-soft)") +
-                    ";border:1px solid var(--accent-line);height:" +
-                    Math.round((g.amount / maxRevenue) * 118) +
+                    ";border:1px solid var(--accent-line);" +
+                    (isMobile ? "" : "max-width:54px;") +
+                    "height:" +
+                    Math.round((g.amount / maxRevenue) * (isMobile ? 100 : 118)) +
                     "px",
                 )}
               />
               <span
                 style={css(
-                  "font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em",
+                  "color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:" +
+                    (isMobile ? "9.5px" : "11px"),
                 )}
               >
                 {g.month[id]}
@@ -205,8 +220,10 @@ export function FinanceiroView() {
       >
         <div
           style={css(
-            "display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:15px 20px;" +
-              "border-bottom:1px solid var(--border-soft)",
+            "display:flex;gap:12px;border-bottom:1px solid var(--border-soft);" +
+              (isMobile
+                ? "flex-direction:column;align-items:stretch;padding:14px"
+                : "align-items:center;flex-wrap:wrap;padding:15px 20px"),
           )}
         >
           <div style={css("display:flex;flex-direction:column;gap:3px;margin-right:6px")}>
@@ -229,7 +246,7 @@ export function FinanceiroView() {
             value={s.buscaPag}
             onChange={(v) => a.set({ buscaPag: v })}
             placeholder={L.buscarPagamento}
-            boxCssText="flex:1;min-width:180px;max-width:260px;"
+            boxCssText={isMobile ? "width:100%;" : "flex:1;min-width:180px;max-width:260px;"}
             compact
           />
 
@@ -252,14 +269,15 @@ export function FinanceiroView() {
             ))}
           </div>
 
-          <div style={css("margin-left:auto")}>
+          <div style={css(isMobile ? "display:flex" : "margin-left:auto")}>
             <Button
               onClick={exportar}
               className="hv-acc-borda"
               style={css(
-                "display:flex;align-items:center;gap:7px;background:var(--surface);" +
+                "display:flex;align-items:center;justify-content:center;gap:7px;background:var(--surface);" +
                   "border:1px solid var(--border);color:var(--text2);font-size:12.5px;font-weight:500;" +
-                  "padding:9px 13px;border-radius:9px;cursor:pointer;white-space:nowrap",
+                  "padding:9px 13px;border-radius:9px;cursor:pointer;white-space:nowrap" +
+                  (isMobile ? ";flex:1" : ""),
               )}
             >
               <BaixarIcone />

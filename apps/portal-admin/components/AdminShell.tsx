@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useAdmin } from "@/components/AdminProvider";
 import { Modal } from "@/components/Modal";
-import { Hint, Toasts } from "@/components/Overlays";
+import { Hint, NavScrim, Toasts } from "@/components/Overlays";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { css } from "@aguiar/ui";
@@ -18,7 +18,7 @@ import { customerById } from "@/lib/state";
  * appear from anywhere. The page rendered by the router goes in as `children`.
  */
 export function AdminShell({ children }: { children: ReactNode }) {
-  const { s, a, cs, empty } = useAdmin();
+  const { s, a, cs, empty, isMobile } = useAdmin();
   const { L } = a;
   const pathname = usePathname();
 
@@ -89,6 +89,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div
       style={css(
+        // Sem `overflow-x:hidden` aqui, de propósito. A gaveta fechada é um
+        // elemento `fixed` empurrado para a ESQUERDA da origem, e o que sai por
+        // esse lado não gera barra de rolagem nenhuma. Recortar mesmo assim
+        // sairia caro: um `overflow` não-visível faz deste `div` o container de
+        // rolagem dos `position:sticky` de dentro, e como ele cresce com o
+        // conteúdo em vez de rolar, a barra de topo deixaria de grudar.
         "display:flex;align-items:stretch;background:var(--bg);color:var(--text);" +
           // `overflow:hidden` impede que um painel alto empurre a barra de
           // rolagem da janela de volta.
@@ -121,17 +127,22 @@ export function AdminShell({ children }: { children: ReactNode }) {
       >
         <Topbar title={title} subtitle={subtitle} />
         <div
+          // A margem do conteúdo encolhe no celular: 30px de cada lado numa
+          // tela de 360 são um sexto da largura útil gasto em nada.
           style={css(
-            "display:flex;flex-direction:column;gap:20px;" +
+            "display:flex;flex-direction:column;gap:" +
+              (isMobile ? "14px;" : "20px;") +
               (fixedHeight
-                ? "flex:1;min-height:0;overflow:hidden;padding:24px 30px"
-                : "padding:24px 30px 44px"),
+                ? "flex:1;min-height:0;overflow:hidden;padding:" +
+                  (isMobile ? "14px" : "24px 30px")
+                : "padding:" + (isMobile ? "14px 14px 32px" : "24px 30px 44px")),
           )}
         >
           {children}
         </div>
       </main>
 
+      <NavScrim />
       {overrides}
     </div>
   );

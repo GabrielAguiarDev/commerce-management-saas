@@ -11,7 +11,7 @@ import { chip } from "@aguiar/ui";
 import type { TicketStatus } from "@/types/types";
 
 export function SuporteView() {
-  const { s, a, cs, empty } = useAdmin();
+  const { s, a, cs, empty, isMobile } = useAdmin();
   const { L } = a;
   const id = s.language;
   const router = useRouter();
@@ -24,8 +24,8 @@ export function SuporteView() {
   const ocupado = gravando || recarregando;
 
   // Abaixo desta largura os dois painéis não cabem lado a lado, e a tela
-  // empilha. O sinal é o mesmo que o Financeiro já usa (ver AdminProvider).
-  const compact = s.screenWidth < 900;
+  // empilha. É o mesmo corte do resto do painel (ver `lib/telas.ts`).
+  const compact = isMobile;
 
   const t = currentTicket(s);
   const ticketCustomer =
@@ -249,9 +249,10 @@ export function SuporteView() {
         {/* Cabeçalho do chamado — fixo no topo do painel. */}
         <div
           style={css(
-            "flex:none;padding:16px 20px;border-bottom:1px solid var(--border-soft);display:flex;" +
+            "flex:none;border-bottom:1px solid var(--border-soft);display:flex;" +
               "align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;" +
-              "background:var(--surface2)",
+              "background:var(--surface2);padding:" +
+              (compact ? "13px 14px" : "16px 20px"),
           )}
         >
           <div style={css("display:flex;flex-direction:column;gap:5px;min-width:0")}>
@@ -306,8 +307,9 @@ export function SuporteView() {
         <div
           ref={messagesPanel}
           style={css(
-            "flex:1;min-height:0;overflow-y:auto;padding:20px;display:flex;" +
-              "flex-direction:column;gap:14px;background:var(--bg)",
+            "flex:1;min-height:0;overflow-y:auto;display:flex;" +
+              "flex-direction:column;gap:14px;background:var(--bg);padding:" +
+              (compact ? "14px" : "20px"),
           )}
         >
           {(t ? t.messages : []).map((m, i) => {
@@ -321,7 +323,10 @@ export function SuporteView() {
               >
                 <div
                   style={css(
-                    "max-width:70%;display:flex;flex-direction:column;gap:5px;padding:12px 14px;" +
+                    // Mais folga no celular: 70% de uma tela estreita quebra
+                    // frases curtas em três linhas.
+                    `max-width:${compact ? "85%" : "70%"};` +
+                      "display:flex;flex-direction:column;gap:5px;padding:12px 14px;" +
                       "border-radius:12px;" +
                       (adm
                         ? "background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:4px;"
@@ -355,10 +360,15 @@ export function SuporteView() {
         </div>
 
         {/* Caixa de resposta — presa ao rodapé, nunca rola com as mensagens. */}
+        {/* No celular o campo e o botão empilham: lado a lado, o campo ficaria
+            com metade da largura para escrever um parágrafo. */}
         <div
           style={css(
-            "flex:none;padding:14px 20px;border-top:1px solid var(--border-soft);display:flex;" +
-              "gap:10px;align-items:flex-end;background:var(--surface)",
+            "flex:none;border-top:1px solid var(--border-soft);display:flex;gap:10px;" +
+              "background:var(--surface);" +
+              (compact
+                ? "padding:12px 14px;flex-direction:column;align-items:stretch"
+                : "padding:14px 20px;align-items:flex-end"),
           )}
         >
           <TextArea
@@ -367,7 +377,10 @@ export function SuporteView() {
             placeholder={L.escrevaResposta}
             aria-label={L.escrevaResposta}
             disabled={!t || ocupado}
-            cssText="flex:1;resize:none;min-height:64px;line-height:1.5"
+            cssText={
+              "resize:none;line-height:1.5;" +
+              (compact ? "min-height:52px" : "flex:1;min-height:64px")
+            }
           />
           <Button
             onClick={sendReply}
@@ -379,7 +392,8 @@ export function SuporteView() {
             className="hv-brilho"
             style={css(
               "background:var(--accent);border:1px solid var(--accent);color:var(--accent-ink);font-size:13px;" +
-                "font-weight:500;padding:11px 18px;border-radius:9px",
+                "font-weight:500;padding:11px 18px;border-radius:9px" +
+                (compact ? ";display:flex;align-items:center;justify-content:center" : ""),
             )}
           >
             {L.reply}

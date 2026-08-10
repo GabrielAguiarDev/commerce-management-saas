@@ -11,7 +11,7 @@ import { chip } from "@aguiar/ui";
 import type { SettingItem } from "@/types/types";
 
 export function ConfigView() {
-  const { s, a } = useAdmin();
+  const { s, a, isMobile } = useAdmin();
   const { L } = a;
   const id = s.language;
   const router = useRouter();
@@ -67,8 +67,9 @@ export function ConfigView() {
   return (
     <section
       style={css(
-        "background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;" +
-          "display:flex;flex-direction:column;gap:16px;max-width:660px",
+        "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
+          "display:flex;flex-direction:column;gap:16px;max-width:660px;padding:" +
+          (isMobile ? "16px 14px" : "24px"),
       )}
     >
       <h3 style={css("margin:0;font-size:15px;font-weight:600;color:var(--text)")}>
@@ -118,8 +119,12 @@ export function ConfigView() {
                 </Button>
               ) : (
                 <div
+                  // Em edição, o bloco toma a linha inteira no celular: campo,
+                  // "Salvar" e "Cancelar" espremidos à direita de um rótulo
+                  // sobrariam para fora do cartão.
                   style={css(
-                    "display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end",
+                    "display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end" +
+                      (isMobile ? ";width:100%" : ""),
                   )}
                 >
                   {cfg.type === "select" && (

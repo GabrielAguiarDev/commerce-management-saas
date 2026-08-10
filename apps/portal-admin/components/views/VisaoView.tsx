@@ -11,7 +11,7 @@ import { planName, planBadge, panelBadge, ts } from "@/lib/styleKit";
 import { dot } from "@aguiar/ui";
 
 export function VisaoView() {
-  const { s, a, cs, empty, options } = useAdmin();
+  const { s, a, cs, empty, options, isMobile } = useAdmin();
   const { L } = a;
   const id = s.language;
 
@@ -102,6 +102,8 @@ export function VisaoView() {
     .sort((x, y) => ts(y.data) - ts(x.data))
     .slice(0, 6);
 
+  // Quatro colunas com 560px de mínimo; no celular a lista vira duas linhas
+  // por cliente, sem cabeçalho de coluna.
   const grid =
     "display:grid;grid-template-columns:minmax(180px,1.9fr) minmax(110px,1fr) 92px 100px;" +
     "gap:12px;min-width:560px;";
@@ -151,7 +153,9 @@ export function VisaoView() {
         <div
           style={css(
             "display:flex;align-items:center;gap:14px;padding:16px 20px;" +
-              "border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:12px",
+              "border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:12px;" +
+              // Apertado, o botão desce para baixo do texto em vez de espremê-lo.
+              (isMobile ? "flex-wrap:wrap;padding:14px 16px" : ""),
           )}
         >
           <div
@@ -187,21 +191,28 @@ export function VisaoView() {
 
       <MetricsGrid metrics={metrics} />
 
+      {/* `min()` no mínimo da coluna: com `minmax(420px,1fr)` cru, uma janela
+          mais estreita que 420px continuaria pedindo 420 e a página inteira
+          rolaria de lado. */}
       <div
         style={css(
-          "display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px;align-items:stretch",
+          "display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));" +
+            "align-items:stretch;gap:" +
+            (isMobile ? "14px" : "16px"),
         )}
       >
         <section
           style={css(
             "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
-              "overflow-x:auto;min-width:0;display:flex;flex-direction:column",
+              "min-width:0;display:flex;flex-direction:column;" +
+              (isMobile ? "overflow:visible" : "overflow-x:auto"),
           )}
         >
           <div
             style={css(
               "display:flex;align-items:center;justify-content:space-between;padding:15px 20px;" +
-                "border-bottom:1px solid var(--border-soft);min-width:560px",
+                "border-bottom:1px solid var(--border-soft);" +
+                (isMobile ? "padding:14px" : "min-width:560px"),
             )}
           >
             <h2 style={css("margin:0;font-size:14px;font-weight:600;color:var(--text)")}>
@@ -218,48 +229,84 @@ export function VisaoView() {
             </Button>
           </div>
 
-          <div
-            style={css(
-              grid +
-                "padding:9px 20px;background:var(--surface2);border-bottom:1px solid var(--border-soft);" +
-                "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600",
-            )}
-          >
-            <span>{L.business}</span>
-            <span>{L.segment}</span>
-            <span>{L.plan}</span>
-            <span>{L.cadastro}</span>
-          </div>
-
-          {recent.map((c) => (
+          {!isMobile && (
             <div
-              key={c.id}
-              onClick={() => a.openCustomer(c.id)}
-              className="hv-linha"
               style={css(
                 grid +
-                  "align-items:center;padding:12px 20px;border-bottom:1px solid var(--border-soft);cursor:pointer",
+                  "padding:9px 20px;background:var(--surface2);border-bottom:1px solid var(--border-soft);" +
+                  "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600",
               )}
             >
-              <BusinessCell
-                customer={c}
-                plan={planByKey(s.plans, c.plan)}
-                totalMods={s.modules.length}
-                id={id}
-              />
-              <span style={css("font-size:12.5px;color:var(--text2)")}>{c.segment[id]}</span>
-              <span style={css(planBadge(planByKey(s.plans, c.plan)))}>{planName(s.plans, c.plan, id)}</span>
-              <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
-                {c.data}
-              </span>
+              <span>{L.business}</span>
+              <span>{L.segment}</span>
+              <span>{L.plan}</span>
+              <span>{L.cadastro}</span>
             </div>
-          ))}
+          )}
+
+          {recent.map((c) =>
+            isMobile ? (
+              // Duas linhas: quem é o cliente, e o que é preciso saber sobre
+              // ele. O toque no cartão inteiro abre a ficha, como na tabela.
+              <div
+                key={c.id}
+                onClick={() => a.openCustomer(c.id)}
+                style={css(
+                  "display:flex;flex-direction:column;gap:9px;padding:13px 14px;" +
+                    "border-bottom:1px solid var(--border-soft);cursor:pointer",
+                )}
+              >
+                <BusinessCell
+                  customer={c}
+                  plan={planByKey(s.plans, c.plan)}
+                  totalMods={s.modules.length}
+                  id={id}
+                />
+                <div style={css("display:flex;align-items:center;gap:9px;flex-wrap:wrap")}>
+                  <span style={css(planBadge(planByKey(s.plans, c.plan)))}>
+                    {planName(s.plans, c.plan, id)}
+                  </span>
+                  <span style={css("font-size:12px;color:var(--text2)")}>{c.segment[id]}</span>
+                  <span
+                    style={css(
+                      `font-family:${MONO};font-size:11px;color:var(--muted);margin-left:auto`,
+                    )}
+                  >
+                    {c.data}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div
+                key={c.id}
+                onClick={() => a.openCustomer(c.id)}
+                className="hv-linha"
+                style={css(
+                  grid +
+                    "align-items:center;padding:12px 20px;border-bottom:1px solid var(--border-soft);cursor:pointer",
+                )}
+              >
+                <BusinessCell
+                  customer={c}
+                  plan={planByKey(s.plans, c.plan)}
+                  totalMods={s.modules.length}
+                  id={id}
+                />
+                <span style={css("font-size:12.5px;color:var(--text2)")}>{c.segment[id]}</span>
+                <span style={css(planBadge(planByKey(s.plans, c.plan)))}>{planName(s.plans, c.plan, id)}</span>
+                <span style={css(`font-family:${MONO};font-size:11.5px;color:var(--muted)`)}>
+                  {c.data}
+                </span>
+              </div>
+            ),
+          )}
         </section>
 
         <section
           style={css(
             "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
-              "padding:18px 20px 20px;display:flex;flex-direction:column;min-width:0",
+              "display:flex;flex-direction:column;min-width:0;padding:" +
+              (isMobile ? "16px 14px" : "18px 20px 20px"),
           )}
         >
           <h2 style={css("margin:0 0 3px;font-size:14px;font-weight:600;color:var(--text)")}>

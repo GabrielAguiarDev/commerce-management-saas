@@ -17,7 +17,7 @@ import { initials } from "@aguiar/ui";
 
 
 export function DetalheView({ customerId }: { customerId: string }) {
-  const { s, a, options } = useAdmin();
+  const { s, a, options, isMobile } = useAdmin();
   const { L } = a;
   const router = useRouter();
   const id = s.language;
@@ -100,24 +100,34 @@ export function DetalheView({ customerId }: { customerId: string }) {
 
       <section
         style={css(
-          "background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px;" +
-            "display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap",
+          "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
+            "display:flex;align-items:flex-start;flex-wrap:wrap;" +
+            (isMobile ? "padding:16px 14px;gap:14px" : "padding:22px 24px;gap:22px"),
         )}
       >
         <div
           style={css(
-            "width:58px;height:58px;flex:none;border-radius:14px;display:flex;align-items:center;" +
-              "justify-content:center;font-size:18px;font-weight:600;background:var(--accent-soft);color:var(--accent)",
+            "flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;" +
+              "font-weight:600;background:var(--accent-soft);color:var(--accent);" +
+              (isMobile ? "width:46px;height:46px;font-size:15px" : "width:58px;height:58px;font-size:18px"),
           )}
         >
           {initials(c.name)}
         </div>
 
-        <div style={css("flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px")}>
+        <div
+          style={css(
+            "flex:1;display:flex;flex-direction:column;gap:10px;" +
+              // 240px de mínimo empurrariam o bloco para fora numa tela de 360
+              // já descontadas as margens e o avatar.
+              (isMobile ? "min-width:0" : "min-width:240px"),
+          )}
+        >
           <div style={css("display:flex;align-items:center;gap:10px;flex-wrap:wrap")}>
             <h2
               style={css(
-                "margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--text)",
+                "margin:0;font-weight:600;letter-spacing:-.02em;color:var(--text);" +
+                  (isMobile ? "font-size:18px" : "font-size:22px"),
               )}
             >
               {c.name}
@@ -134,7 +144,16 @@ export function DetalheView({ customerId }: { customerId: string }) {
             </span>
           </div>
 
-          <div style={css("display:flex;gap:26px;flex-wrap:wrap")}>
+          {/* Os dados do cadastro: em linha no desktop, em duas colunas no
+              celular — enfileirados, "Cidade" e "Telefone" ficariam um por
+              linha e a ficha viraria uma coluna de rótulos. */}
+          <div
+            style={css(
+              isMobile
+                ? "display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px"
+                : "display:flex;gap:26px;flex-wrap:wrap",
+            )}
+          >
             <div style={css("display:flex;flex-direction:column;gap:3px")}>
               <span style={css(rotuloCampo)}>{L.segment}</span>
               <span style={css("font-size:13px;color:var(--text)")}>{c.segment[id]}</span>
@@ -188,13 +207,21 @@ export function DetalheView({ customerId }: { customerId: string }) {
           </div>
         </div>
 
-        <div style={css("display:flex;gap:8px;align-items:center;flex-wrap:wrap")}>
+        {/* No celular as duas ações dividem uma linha inteira, abaixo da ficha. */}
+        <div
+          style={css(
+            "display:flex;gap:8px;align-items:center;flex-wrap:wrap" +
+              (isMobile ? ";width:100%" : ""),
+          )}
+        >
           <Button
             onClick={switchPlan}
             className="hv-acc-borda"
             style={css(
-              "border:1px solid var(--border);background:var(--surface);color:var(--text2);" +
-                "font-size:12.5px;font-weight:500;padding:9px 14px;border-radius:9px;cursor:pointer",
+              "display:flex;align-items:center;justify-content:center;" +
+                "border:1px solid var(--border);background:var(--surface);color:var(--text2);" +
+                "font-size:12.5px;font-weight:500;padding:10px 14px;border-radius:9px;cursor:pointer" +
+                (isMobile ? ";flex:1" : ""),
             )}
           >
             {L.mudarPlano}
@@ -202,7 +229,9 @@ export function DetalheView({ customerId }: { customerId: string }) {
           <Button
             onClick={() => a.openModal(c.status === "active" ? "deactivate" : "reactivate", c.id)}
             style={css(
-              "font-size:12.5px;font-weight:500;padding:9px 14px;border-radius:9px;cursor:pointer;" +
+              "display:flex;align-items:center;justify-content:center;" +
+                "font-size:12.5px;font-weight:500;padding:10px 14px;border-radius:9px;cursor:pointer;" +
+                (isMobile ? "flex:1;" : "") +
                 (c.status === "active"
                   ? "border:1px solid var(--danger-line);background:var(--danger-soft);color:var(--danger);"
                   : "border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);"),
@@ -221,7 +250,9 @@ export function DetalheView({ customerId }: { customerId: string }) {
         <div
           style={css(
             "display:flex;align-items:flex-start;justify-content:space-between;gap:20px;" +
-              "flex-wrap:wrap;padding:20px 24px;border-bottom:1px solid var(--border-soft);background:var(--surface2)",
+              "flex-wrap:wrap;border-bottom:1px solid var(--border-soft);background:var(--surface2);" +
+              "padding:" +
+              (isMobile ? "16px 14px" : "20px 24px"),
           )}
         >
           <div style={css("display:flex;flex-direction:column;gap:4px")}>
@@ -296,8 +327,9 @@ export function DetalheView({ customerId }: { customerId: string }) {
 
         <div
           style={css(
-            "padding:13px 24px;border-top:1px solid var(--border-soft);background:var(--surface2);" +
-              "display:flex;align-items:center;gap:9px",
+            "border-top:1px solid var(--border-soft);background:var(--surface2);" +
+              "display:flex;align-items:center;gap:9px;padding:" +
+              (isMobile ? "12px 14px" : "13px 24px"),
           )}
         >
           <div style={css("width:6px;height:6px;border-radius:99px;background:var(--pos)")} />

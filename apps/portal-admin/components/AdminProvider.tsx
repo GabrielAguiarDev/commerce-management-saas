@@ -18,6 +18,8 @@ import {
 } from "@/app/clientes/actions";
 import { markPaid, undoPaid } from "@/app/financeiro/actions";
 import { createPlan, deletePlan, saveModule, savePlan } from "@/app/planos/actions";
+import { MOBILE_BREAKPOINT } from "@aguiar/ui";
+import { COMPACT_BREAKPOINT, LARGURAS } from "@/lib/telas";
 import { DIC } from "@/lib/dictionary";
 import { plansWithCatalog } from "@/lib/planos";
 import { ROUTES } from "@/lib/rotas";
@@ -309,6 +311,8 @@ export function AdminProvider({
       openModal("discard", null, href);
       return;
     }
+    // `navOpen: false` porque no celular a navegação nasce dentro da gaveta:
+    // deixá-la aberta cobriria a tela para onde acabamos de ir.
     set({
       rowMenu: null,
       paymentMenu: null,
@@ -316,12 +320,19 @@ export function AdminProvider({
       draft: null,
       newCustomerDirty: false,
       notificationsOpen: false,
+      navOpen: false,
     });
     router.push(href);
   };
 
   const openCustomer = (id: string) => {
-    set({ rowMenu: null, hint: null, notificationsOpen: false, draft: newDraft(id) });
+    set({
+      rowMenu: null,
+      hint: null,
+      notificationsOpen: false,
+      navOpen: false,
+      draft: newDraft(id),
+    });
     router.push(`${ROUTES.customers}/${id}`);
   };
 
@@ -617,8 +628,10 @@ export function AdminProvider({
   };
 
   const showHint = (e: SyntheticEvent<HTMLElement>) => {
-    // Tooltips exist to name the icons once the sidebar has collapsed.
-    if (!state.collapsed) return;
+    // Tooltips exist to name the icons once the sidebar has collapsed. Na
+    // gaveta do celular não há ícone sem rótulo — e não há ponteiro para
+    // pairar sobre ele.
+    if (!state.collapsed || state.screenWidth < MOBILE_BREAKPOINT) return;
     const r = e.currentTarget.getBoundingClientRect();
     set({
       hint: {
@@ -638,20 +651,54 @@ export function AdminProvider({
     document.body.dataset.theme = state.theme === "dark" ? "dark" : "light";
   }, [state.theme]);
 
-  // The payments table swaps to a stacked card layout below 1000px.
+  /**
+   * A largura da janela, que é como o painel decide entre celular, faixa
+   * intermediária e desktop (ver `LARGURAS`).
+   *
+   * Só é conhecida no navegador: até a primeira medição o estado diz 1440, e é
+   * essa a versão que o servidor renderiza — sem isso o primeiro quadro viria
+   * na forma de celular e saltaria.
+   *
+   * A gravação é contida de propósito. Redimensionar dispara o evento a cada
+   * pixel, e re-renderizar o painel inteiro nessa cadência não paga: o estado
+   * só muda quando a janela CRUZA uma das larguras que mudam o desenho, ou
+   * quando ela anda o suficiente (40px) para um `minmax` reflowar.
+   */
   useEffect(() => {
     const onResize = () => {
       const w = window.innerWidth;
-      set((s) =>
-        (w < 1000) !== (s.screenWidth < 1000) || Math.abs(w - s.screenWidth) > 40
-          ? { screenWidth: w }
-          : null,
-      );
+      set((s) => {
+        const mudou =
+          LARGURAS.some((limite) => w < limite !== s.screenWidth < limite) ||
+          Math.abs(w - s.screenWidth) > 40;
+        if (!mudou) return null;
+        // A gaveta é um estado de celular. Alargar a janela devolve a barra
+        // fixa, e uma gaveta esquecida aberta reapareceria como um painel
+        // sobreposto sem nada que o feche — então ela se fecha na travessia.
+        return w >= MOBILE_BREAKPOINT && s.navOpen
+          ? { screenWidth: w, navOpen: false }
+          : { screenWidth: w };
+      });
     };
     window.addEventListener("resize", onResize);
     onResize();
     return () => window.removeEventListener("resize", onResize);
   }, [set]);
+
+  const isMobile = state.screenWidth < MOBILE_BREAKPOINT;
+  const isDesktop = !isMobile;
+  const compact = state.screenWidth < COMPACT_BREAKPOINT;
+
+  // A gaveta cobre a página inteira; deixar o que está atrás rolar junto faria
+  // o menu deslizar sobre um conteúdo em movimento.
+  useEffect(() => {
+    if (!isMobile || !state.navOpen) return;
+    const anterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = anterior;
+    };
+  }, [isMobile, state.navOpen]);
 
   // Reloading or closing the tab is outside the router's reach; the browser's
   // own prompt is the only thing that can guard unsaved edits there.
@@ -670,6 +717,9 @@ export function AdminProvider({
     cs: empty ? [] : state.customers,
     empty,
     options,
+    isMobile,
+    isDesktop,
+    compact,
     a: {
       set,
       L,

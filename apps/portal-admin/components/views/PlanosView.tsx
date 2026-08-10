@@ -6,7 +6,7 @@ import { EditarIcone, LixeiraIcone } from "@/lib/icons";
 import { panelBadge } from "@/lib/styleKit";
 
 export function PlanosView() {
-  const { s, a, cs } = useAdmin();
+  const { s, a, cs, isMobile } = useAdmin();
   const { L } = a;
   const id = s.language;
 
@@ -17,8 +17,11 @@ export function PlanosView() {
           onClick={() => a.openPlanForm(null)}
           className="hv-brilho"
           style={css(
-            "display:flex;align-items:center;gap:7px;background:var(--accent);border:1px solid var(--accent);" +
-              "color:var(--accent-ink);font-size:13px;font-weight:500;padding:10px 15px;border-radius:9px;cursor:pointer",
+            "display:flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);" +
+              "border:1px solid var(--accent);color:var(--accent-ink);font-size:13px;font-weight:500;" +
+              "padding:10px 15px;border-radius:9px;cursor:pointer" +
+              // Sozinho numa linha, o botão ocupa a largura toda no celular.
+              (isMobile ? ";width:100%" : ""),
           )}
         >
           <span style={css("font-size:14px;line-height:1")}>+</span>
@@ -26,9 +29,12 @@ export function PlanosView() {
         </Button>
       </div>
 
+      {/* `min(...)` para o cartão nunca exigir mais largura do que a tela tem. */}
       <div
         style={css(
-          "display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:stretch",
+          "display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));" +
+            "align-items:stretch;gap:" +
+            (isMobile ? "14px" : "16px"),
         )}
       >
         {s.plans.map((p) => {
@@ -54,7 +60,8 @@ export function PlanosView() {
               style={css(
                 "background:var(--surface);border:1px solid " +
                   color +
-                  ";border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px",
+                  ";border-radius:12px;display:flex;flex-direction:column;gap:14px;padding:" +
+                  (isMobile ? "17px 16px" : "22px"),
               )}
             >
               <div style={css("display:flex;align-items:center;justify-content:space-between;gap:10px")}>

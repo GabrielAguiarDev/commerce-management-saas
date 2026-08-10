@@ -9,6 +9,7 @@ export const INITIAL_STATE: AdminState = {
   theme: "light",
   language: "pt",
   collapsed: false,
+  navOpen: false,
   modal: null,
   confirmation: "",
   hint: null,
