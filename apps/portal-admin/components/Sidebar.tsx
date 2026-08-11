@@ -123,7 +123,7 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
             (col ? "padding:0 34px 0 12px;" : "padding:0 42px 0 16px;"),
         )}
       >
-        <Logo size={36} radius={10} priority />
+        <Logo size={36} priority />
         <div
           style={css(
             col

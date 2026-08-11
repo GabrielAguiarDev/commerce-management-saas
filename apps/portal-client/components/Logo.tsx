@@ -8,33 +8,30 @@ import Image from "next/image";
  * junto com o tema e não se parecia com o ícone que a mesma pessoa tinha na
  * tela de início do celular.
  *
- * O que este componente mostra é `public/images/icon.png` — o MESMO ladrilho
- * que o app mobile instala como ícone, que o console usa na barra lateral e que
- * o site de entrada usa no cabeçalho: o "A" azul da marca (`#1b9abd`) sobre o
- * petrol quase preto (`#020e18`, o secundário da marca). É por isso que ele NÃO
- * recebe cor nem fundo — os dois já vêm dentro da imagem, e é justamente isso
- * que faz o portal, o console, o site e o celular mostrarem a mesma coisa.
+ * O que este componente mostra é `public/images/icon.png`: o "A" azul da marca
+ * (`#1b9abd`) SOBRE FUNDO TRANSPARENTE — o mesmo arquivo que o console usa no
+ * topo da barra lateral. A versão com o ladrilho petrol (`#020e18`, o
+ * secundário da marca) continua ao lado, em `public/images/icon-bg.png`, para
+ * onde um quadrado opaco for mesmo o certo; os ícones do PWA em
+ * `public/icons/` são desse segundo tipo e seguem como estavam.
  *
- * O arquivo é quadrado e tem folga própria nas bordas, como todo ícone de app;
- * por isso o desenho ocupa cerca de 44% do lado, e não o lado inteiro.
+ * Por ser transparente, a marca pousa direto no fundo de quem a hospeda, claro
+ * ou escuro. Daí ela NÃO receber cor, fundo nem canto arredondado aqui —
+ * arredondar um PNG sem fundo não recorta nada, só finge uma borda que não
+ * existe.
+ *
+ * O arquivo é quadrado e tem a folga própria de ícone de app nas bordas; por
+ * isso o desenho ocupa cerca de 44% do lado, e não o lado inteiro.
  */
 
 interface LogoProps {
-  /** O LADO do ladrilho, em pixels. A imagem é quadrada. */
+  /** O LADO da caixa da marca, em pixels. A imagem é quadrada. */
   size?: number;
-  /**
-   * O arredondamento do canto, em pixels.
-   *
-   * Acompanha o tamanho, e por isso é dado de fora: na tela de entrada do
-   * portal o ladrilho tem 44px e raio 12, no login do celular tem 52px e
-   * raio 14.
-   */
-  radius?: number;
   /** Só na primeira dobra: evita o quadro vazio no primeiro frame do portal. */
   priority?: boolean;
 }
 
-export function Logo({ size = 44, radius = 12, priority = false }: LogoProps) {
+export function Logo({ size = 44, priority = false }: LogoProps) {
   return (
     <Image
       src="/images/icon.png"
@@ -42,7 +39,7 @@ export function Logo({ size = 44, radius = 12, priority = false }: LogoProps) {
       width={size}
       height={size}
       priority={priority}
-      style={{ flex: "none", borderRadius: radius + "px", display: "block" }}
+      style={{ flex: "none", display: "block" }}
     />
   );
 }

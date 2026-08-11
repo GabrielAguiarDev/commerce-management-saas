@@ -98,16 +98,12 @@ export function Splash({ ready }: { ready: boolean }) {
       )}
     >
       <div style={css("display:flex;align-items:center;gap:11px")}>
-        {/* O ladrilho respira enquanto a espera dura — daí o `span` em volta:
-            a animação e o halo de `.splash-mark` precisam de um elemento com o
-            mesmo raio da imagem para pousar. A marca em si não recebe cor
-            nenhuma daqui; ela traz o próprio fundo. */}
-        <span
-          className="splash-mark"
-          aria-hidden
-          style={css("flex:none;display:flex;border-radius:12px")}
-        >
-          <Logo size={44} radius={12} priority />
+        {/* O `span` em volta existe para a marca não ser anunciada pelo leitor
+            de tela (o texto ao lado já diz o nome) e para ela não esticar
+            dentro da linha. A marca não recebe cor nem fundo daqui: o PNG é
+            transparente e pousa direto sobre o `--bg` da espera. */}
+        <span aria-hidden style={css("flex:none;display:flex")}>
+          <Logo size={44} priority />
         </span>
         <span>
           <span style={css(`display:block;font:700 17px/1.2 ${SANS};color:var(--text)`)}>

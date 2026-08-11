@@ -294,12 +294,12 @@ export function LoginView() {
       >
         <div style={css("width:100%;max-width:380px;display:flex;flex-direction:column;gap:26px")}>
           {/* No celular o banner não entra, e sem ele a tela chegaria sem
-              nenhuma marca. O ladrilho é o MESMO arquivo que o app instala como
-              ícone — o "A" azul sobre o petrol —, então ele já traz o próprio
-              fundo e não recebe cor daqui. */}
+              nenhuma marca. É o "A" azul em PNG transparente, o mesmo do topo
+              do console: pousa direto na superfície clara e não recebe cor nem
+              fundo daqui. */}
           {isMobile && (
             <div style={css("display:flex;align-items:center;justify-content:center;gap:12px")}>
-              <Logo size={42} radius={12} priority />
+              <Logo size={42} priority />
               <div style={css("display:flex;flex-direction:column;gap:2px")}>
                 <Wordmark size={20} on="surface" />
                 <span

@@ -183,12 +183,12 @@ export function LoginView() {
           }}
         >
           {/* No celular o banner não entra, e sem ele o formulário chegaria sem
-              nenhuma marca. O ladrilho é o MESMO arquivo que o portal instala
-              como ícone do app — o "A" azul da marca sobre o petrol —, então
-              ele já traz o próprio fundo e não recebe cor daqui. */}
+              nenhuma marca. É o "A" azul em PNG transparente, o mesmo da
+              espera de entrada: pousa direto na superfície do formulário e não
+              recebe cor nem fundo daqui. */}
           {isMobile && (
             <div style={css("align-self:center")}>
-              <Logo size={52} radius={14} priority />
+              <Logo size={52} priority />
             </div>
           )}
 
