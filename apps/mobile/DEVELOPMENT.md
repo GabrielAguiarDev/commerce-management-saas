@@ -755,8 +755,10 @@ regenerá-las é seguro. Se `pod update` não bastar, o próximo passo é
       para a aba de origem. As rotas já estavam nos grupos certos — o que mudou
       foi o nível em que a chrome é montada. Ver §4.
       *Portão: typecheck ✅ lint ✅ test ✅ (231)*
-- [ ] **Fase 6 — Offline com sincronização.** Não iniciada, e deliberadamente
-      fora da fase 5. Ver §13.
+- [x] **Fase 6 — Vendas offline com fila e sincronização manual.** A venda
+      fechada sem internet vai para uma fila em SQLite local e sobe depois, no
+      botão, pelo mesmo `recordSale` de sempre. Ver §13.
+      *Portão: typecheck ✅ lint ✅ test ✅ (293) export ios ✅*
 
 ---
 
@@ -920,20 +922,90 @@ hoje sai com o custo novo. Um `unit_cost` em `sale_items` resolveria.
 
 ---
 
-## 13. Offline com sincronização — NÃO IMPLEMENTADO
+## 13. Vendas offline com fila e sincronização manual
 
-Fase separada e posterior, deliberadamente fora do escopo da integração. O que
-já está no lugar para quando ela chegar, e o que vai doer:
+**A promessa:** o app não para de vender sem internet. A venda fechada offline
+é guardada no aparelho e entra no sistema depois, quando o vendedor apertar o
+botão — como uma venda NORMAL, pelos gatilhos de sempre. Ela só chega atrasada.
 
-- `conexaoStore` e `useConnectionMonitor` já existem e já mostram o banner.
-- `SaleAPI.is_synced` já existe no contrato, hoje sempre `true`. É o campo que
-  passa a significar algo.
-- **O ponto mais difícil não é a leitura, é a escrita.** Venda, sangria e
-  fechamento de caixa geram id no servidor; uma fila offline precisa de id local
-  e de reconciliação. E `close_cash_register` calcula a diferença no banco — não
-  dá para fechar caixa offline sem duplicar essa conta no cliente.
-- A baixa de estoque é feita por **trigger** no banco. Uma venda enfileirada
-  offline não desconta nada até subir, então o saldo mostrado fica otimista.
+### A regra que sustenta tudo
+
+**Não existe segundo caminho de escrita de venda.** A venda da fila sobe pelo
+mesmo `salesApi.recordSale` do balcão, com o mesmo INSERT. É isso que garante
+que a baixa de estoque (que é um trigger em `sale_items`) valha igual para as
+duas. Um caminho privilegiado para a venda offline seria a maneira mais rápida
+de as duas divergirem.
+
+### As peças
+
+| arquivo | papel |
+|---|---|
+| `services/database.ts` | abre o SQLite e aplica o schema. **Único** a falar com `expo-sqlite` |
+| `sales/offlineQueueApi.ts` | a fronteira local: grava, lê, marca, apaga. Irmão do `salesApi` |
+| `sales/offlineQueueAdapter.ts` | linhas do SQLite ⇄ `PendingSale`, e fila → payload de venda |
+| `sales/syncErrors.ts` | por que a venda não subiu, em código de domínio |
+| `sales/salesService.ts` | a bifurcação (online × fila) e o laço da sincronização |
+| `useCases/usePendingSales.ts` | fila, contagem, sincronizar e descartar |
+| `app/(app)/pending-sales.tsx` | a tela |
+
+### Por que SQLite e não AsyncStorage
+
+O requisito é "uma venda registrada não pode se perder", e é justamente aí que o
+AsyncStorage falha: guardar a fila como um JSON obriga, a cada venda, a ler o
+array inteiro, dar push e **regravar tudo**. Duas escritas simultâneas
+(fechar uma venda enquanto a sincronização marca outra) e uma sobrescreve a
+outra; o app morrendo no meio da regravação trunca o blob e leva a **fila
+inteira**, não uma venda. No SQLite cada venda é uma linha e cada gravação é uma
+transação.
+
+### Não duplicar: o id nasce no aparelho
+
+Cada venda offline recebe um **uuid v4 gerado no celular** (`utils/uuid.ts`), e
+esse uuid é enviado como o `sales.id` do INSERT. Um segundo envio da mesma venda
+bate na chave primária e o Postgres recusa — a garantia fica no **banco**, que é
+o único lugar onde ela vale mesmo com o aparelho desligando no meio.
+
+Daí a duplicata (`23505`) **não** ser tratada como "pronto, subiu" sem olhar:
+existem dois passados possíveis, e `salesApi.saleHasItems` os separa. Se a venda
+subiu inteira, é só tirar da fila; se ficou só o cabeçalho (o `sales` entrou, o
+`sale_items` não, o app morreu antes de apagar a órfã), os itens são
+completados. Sem isso ficaria no sistema uma venda de valor cheio, sem item
+nenhum e sem ter tirado nada do estoque.
+
+⚠️ **A venda ONLINE continua sem mandar id.** Se o `sales.id` do banco não
+aceitasse um uuid vindo de fora, preencher nos dois caminhos derrubaria também a
+venda comum — o app inteiro pararia de vender para proteger a fila. Do jeito que
+está, a pior hipótese é a venda offline não subir, ficar na fila com o motivo à
+vista e ninguém perder nada.
+
+### O que a sincronização faz
+
+Uma venda de cada vez, na ordem em que foram vendidas. A que sobe **sai** da
+fila; a que falha **fica**, marcada com o motivo, e é reenviada na próxima. Nada
+é apagado por ter dado errado — descartar é decisão do usuário, na tela, com
+confirmação. O resumo do fim sempre começa pelo que deu certo.
+
+Manual por decisão de produto: sincronizar sozinho ao voltar a conexão colocaria
+vendas no sistema sem ninguém sabendo, e o erro de uma recusa por estoque
+apareceria longe do momento em que dava para lembrar do que houve no balcão.
+
+### O que continua verdade (e ainda dói)
+
+- **O estoque mostrado offline é otimista.** O saldo conhecido é o do último
+  momento com internet, e a venda enfileirada não desconta nada até subir. Por
+  isso o app **não valida estoque no fechamento offline**: barrar uma venda por
+  um número velho é impedir dinheiro de entrar por causa de um palpite. Quem
+  decide é o gatilho, na sincronização.
+- **Só VENDA tem fila.** Sangria e fechamento de caixa continuam exigindo
+  internet — `close_cash_register` calcula a diferença no banco, e duplicar essa
+  conta no cliente é outra fase.
+- **Editar uma venda da fila não existe.** Para a venda recusada há descartar, e
+  só. Corrigir os itens offline é o próximo passo natural desta tela.
+- `SaleAPI.is_synced` segue sempre `true` e agora é **legado**: a venda que a
+  fila entrega ao servidor é uma venda comum, e quem sabe o que está pendente é
+  o SQLite, não uma coluna do Supabase.
+- **Depende de rebuild.** `expo-sqlite` é módulo nativo: num binário compilado
+  antes desta fase, a fila não existe. `pnpm ios` / `pnpm android`.
 
 ---
 
@@ -993,5 +1065,10 @@ notícia (despesa subindo é âmbar, não verde).
   carrinho e reabre o sheet.
 - Offline: banner âmbar. Ao voltar: banner teal por 2,4s e depois o toast
   "Tudo sincronizado. Nada se perdeu."
+  **Divergimos aqui, na fase 6.** No protótipo o banner teal era um `setTimeout`
+  de 2,4s disparado por ficar online — anunciava uma sincronia que não existia.
+  Agora o teal só aparece enquanto a fila está REALMENTE subindo, e quem o liga
+  é o caso de uso. Um banner que diz "sincronizando" sem sincronizar ensina o
+  vendedor a não acreditar nele justamente no dia em que ele importa.
 - Finalizar venda leva de volta para Vender.
 - Abrir um chamado não lido apaga o badge da tela "Mais".

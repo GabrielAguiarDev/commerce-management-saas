@@ -70,11 +70,18 @@ export function toDailySummary(raw: DailySummaryAPI): DailySummary {
   };
 }
 
+/**
+ * O carrinho vira o payload da venda ONLINE.
+ *
+ * Sem `id` e sem `sold_at`: os dois são do servidor neste caminho. Quem os
+ * preenche é a fila offline, em `offlineQueueAdapter.toQueuedSalePayload` — e
+ * o porquê de o caminho online não os enviar está documentado em
+ * `SaleCreateAPI.id`.
+ */
 export function toSaleCreatePayload(
   tenantId: string,
   items: readonly CartItem[],
   paymentMethod: string,
-  online: boolean,
 ): SaleCreateAPI {
   return {
     tenant_id: tenantId,
@@ -86,6 +93,5 @@ export function toSaleCreatePayload(
       qty: i.quantity,
       unit_price_cents: i.unitPriceCents,
     })),
-    is_synced: online,
   };
 }

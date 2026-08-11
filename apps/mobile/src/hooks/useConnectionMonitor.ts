@@ -1,45 +1,46 @@
 import NetInfo from '@react-native-community/netinfo';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 
-import { useTranslation } from '@i18n';
-import { SYNC_DURATION_MS, useConnectionStore } from '@store/connectionStore';
-import { useUIStore } from '@store/uiStore';
+import { useConnectionStore } from '@store/connectionStore';
 
 /**
- * Liga o NetInfo ao `conexaoStore` e reproduz o ciclo do protótipo:
- * offline → banner âmbar; volta a conexão → banner teal "sincronizando…" por
- * ~2,4s → toast "Tudo sincronizado".
+ * A ÚNICA fonte do estado de conexão do app.
  *
- * O protótipo alternava a conexão por um chip flutuante. Aqui a fonte é o
- * NetInfo de verdade — o chip estava fora de escopo, o comportamento não.
+ * Montado uma vez, no `app/_layout`. Escreve no `connectionStore`, e é dali
+ * que todo o resto lê — nenhuma tela fala com o NetInfo direto.
  *
  * `isInternetReachable` é preferido a `isConnected`: estar num Wi-Fi de
  * cafeteria com portal cativo é "conectado" e mesmo assim nada sobe. Quando
  * ele vem `null` (o NetInfo ainda não sondou), caímos em `isConnected` para
- * não declarar o app offline na primeira fração de segundo.
+ * não declarar o app offline na primeira fração de segundo — e, na dúvida,
+ * assumimos ONLINE: errar para offline mandaria uma venda para a fila sem
+ * necessidade, e uma venda enfileirada só entra no sistema quando alguém
+ * apertar um botão.
+ *
+ * O `AppState` existe aqui por um motivo prático: o aparelho fica horas no
+ * bolso com o app suspenso, e ao voltar o estado que o NetInfo tem em memória
+ * pode ser o de antes de dormir. `refresh()` força uma sondagem nova na
+ * volta ao primeiro plano — que é exatamente o instante em que o vendedor
+ * abre o app para vender.
  */
 export function useConnectionMonitor(): void {
-  const t = useTranslation();
   const setOnline = useConnectionStore((s) => s.setOnline);
-  const finishSync = useConnectionStore((s) => s.finishSync);
-  const syncing = useConnectionStore((s) => s.syncing);
-  const showToast = useUIStore((s) => s.showToast);
 
   useEffect(() => {
-    const cancel = NetInfo.addEventListener((state) => {
+    // `addEventListener` já dispara com o estado atual na inscrição — não
+    // existe janela em que o app não saiba onde está.
+    const unsubscribe = NetInfo.addEventListener((state) => {
       setOnline(state.isInternetReachable ?? state.isConnected ?? true);
     });
-    return cancel;
+
+    const appStateSubscription = AppState.addEventListener('change', (status) => {
+      if (status === 'active') void NetInfo.refresh();
+    });
+
+    return () => {
+      unsubscribe();
+      appStateSubscription.remove();
+    };
   }, [setOnline]);
-
-  useEffect(() => {
-    if (!syncing) return;
-
-    const timer = setTimeout(() => {
-      finishSync();
-      showToast(t.toasts.synced);
-    }, SYNC_DURATION_MS);
-
-    return () => clearTimeout(timer);
-  }, [syncing, finishSync, showToast, t]);
 }

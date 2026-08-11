@@ -34,5 +34,39 @@ export interface SaleCreateAPI {
   payment_method: string;
   total_cents: number;
   items: SaleItemAPI[];
-  is_synced: boolean;
+  /**
+   * O id da venda, gerado NO APARELHO. Só a fila offline preenche.
+   *
+   * Quando vem preenchido, ele é enviado como o `sales.id` do INSERT, e é o que
+   * torna a subida REPETÍVEL SEM DUPLICAR: um segundo envio da mesma venda bate
+   * na chave primária e o Postgres recusa, em vez de criar uma venda gêmea.
+   *
+   * A venda ONLINE deixa vazio de propósito, e vale registrar por quê: o
+   * caminho online funciona hoje e não depende disto. Se o `sales.id` do banco
+   * não aceitasse um uuid vindo de fora, preencher aqui quebraria também a
+   * venda comum — o app inteiro pararia de vender para proteger a fila. Uma
+   * venda offline que não sobe fica na fila com o motivo à vista e ninguém
+   * perde nada; uma venda online que não sobe é o balcão parado.
+   */
+  id?: string;
+  /**
+   * Quando a venda ACONTECEU. Só a fila offline preenche — a venda online é
+   * carimbada no servidor, no instante do INSERT.
+   *
+   * É o que faz uma venda das 14h sincronizada às 19h entrar no sistema como
+   * 14h. Sem isto, um dia inteiro de vendas offline desabaria todo no minuto da
+   * sincronização, e o relatório por hora viraria ficção.
+   */
+  sold_at?: string;
+}
+
+/**
+ * Uma venda a caminho da FILA: os dois campos acima deixam de ser opcionais.
+ *
+ * Existe para que a fila não precise checar em runtime o que o tipo já pode
+ * garantir — uma venda offline sem id não teria como ser identificada depois.
+ */
+export interface QueuedSaleCreate extends SaleCreateAPI {
+  id: string;
+  sold_at: string;
 }

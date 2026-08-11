@@ -36,6 +36,14 @@ export const ROUTES = {
   blocked: '/blocked',
   home: '/home',
   sell: '/sell',
+  /**
+   * A fila de vendas offline. Não está na grade do "Mais" nem na tab bar de
+   * propósito: ela só faz sentido quando existe algo nela, e chega-se a ela
+   * pelo card do Início, que aparece junto com a primeira venda pendente. Um
+   * item fixo de menu que abre "nada esperando" em 99% dos dias treina o
+   * vendedor a ignorá-lo justamente no dia em que ele importa.
+   */
+  pendingSales: '/pending-sales',
   products: '/products',
   more: '/more',
   cash: '/cash',

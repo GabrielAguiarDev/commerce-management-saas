@@ -5,7 +5,7 @@ import type { CatalogErrorCode } from '@domain/catalog/catalogTypes';
 import type { CostErrorCode } from '@domain/costs/costsTypes';
 import type { StockErrorCode } from '@domain/stock/stockTypes';
 import type { SupportErrorCode } from '@domain/support/supportTypes';
-import type { SaleErrorCode } from '@domain/sales/salesTypes';
+import type { SaleErrorCode, SyncErrorCode } from '@domain/sales/salesTypes';
 import type { TenantErrorCode } from '@domain/tenant/tenantTypes';
 
 /**
@@ -123,8 +123,10 @@ export const en = {
       `This would open editing for ${name}. Changing the price applies only to future sales.`,
     productCreated: (name: string) => `"${name}" created and ready to sell.`,
     saleRecorded: (total: string) => `Sale of ${total} recorded!`,
+    // Does NOT promise automatic syncing: the user is the one who sends the
+    // queue, from the pending sales screen.
     saleSavedOffline: (total: string) =>
-      `Sale of ${total} saved on the device. It will sync on its own.`,
+      `Sale of ${total} saved on the device. Send it once the internet is back.`,
     saleCancelled: 'Sale cancelled.',
     cashOpened: 'Register open. Have a good shift!',
     cashClosed: 'Register closed. Enjoy your rest!',
@@ -166,8 +168,13 @@ export const en = {
   },
 
   connection: {
-    offline: 'No connection — your sales are saved and will be synced.',
-    syncing: 'Connection is back — syncing your sales…',
+    /**
+     * The most important line in the app: it is read by someone who just lost
+     * connection mid-rush. It states where the sale is kept and who decides
+     * when it goes up, instead of merely announcing the failure.
+     */
+    offline: 'No connection — your sales are kept here and you sync them later.',
+    syncing: 'Sending your sales to the system…',
   },
 
   // The wait between signing in and the app opening, while the gate checks
@@ -303,6 +310,65 @@ export const en = {
   units: {
     /** "24 units today" — the top seller detail line. */
     soldToday: (count: number) => `${count} ${count === 1 ? 'unit' : 'units'} today`,
+  },
+
+  /**
+   * The offline queue.
+   *
+   * Every line here is read by someone whose money is sitting in a phone
+   * instead of in the system. The register the copy keeps: the sale EXISTS, it
+   * is SAFE, and it is waiting for a decision that belongs to the user. It
+   * never apologises and never calls a queued sale a failure.
+   */
+  pendingSales: {
+    title: 'Pending sales',
+    subtitle: 'Saved on this device, waiting to go into the system',
+    /** "3 sales waiting to sync" — the count, stated plainly. */
+    heading: (count: number) =>
+      `${count} ${count === 1 ? 'sale' : 'sales'} waiting to sync`,
+    /** The main action. Says what happens, not "sync". */
+    syncButton: (count: number) =>
+      `Send ${count} ${count === 1 ? 'sale' : 'sales'} to the system`,
+    syncingButton: 'Sending…',
+    /**
+     * Shown in place of the button while there is no connection. Names what
+     * the user is waiting for instead of disabling a button with no reason.
+     */
+    offlineHint: 'No connection yet. The moment the internet is back, you can send them.',
+    errorLabel: 'Did not go through',
+    /** Card on the home screen. */
+    homeCard: {
+      title: (count: number) =>
+        `${count} ${count === 1 ? 'sale' : 'sales'} to send`,
+      text: 'Saved on this device. Tap to review and send.',
+    },
+    empty: {
+      title: 'Nothing waiting',
+      text: 'Every sale on this device is already in the system.',
+    },
+    discard: {
+      label: 'Discard this sale',
+      title: 'Discard this sale?',
+      text: 'It will be removed from this device and will never go into the system. There is no undo.',
+      button: 'Discard',
+    },
+    /** Why a sale came back. One line per code — see `syncErrors`. */
+    errors: {
+      insufficient_stock: 'Not enough stock for the items in this sale.',
+      product_missing: 'A product in this sale no longer exists in the catalog.',
+      not_allowed: 'The system did not accept this sale. Contact support.',
+      offline: 'The connection dropped before it went through. Try again.',
+      unknown: 'This sale was refused by the system.',
+    } as Record<SyncErrorCode, string>,
+    /** The closing summary. Leads with what worked. */
+    summary: {
+      allSynced: (count: number) =>
+        `${count} ${count === 1 ? 'sale is' : 'sales are'} in the system. Nothing was lost.`,
+      partial: (synced: number, failed: number) =>
+        `${synced} went through, ${failed} did not. The ones still here show why.`,
+      allFailed: (count: number) =>
+        `${count} ${count === 1 ? 'sale' : 'sales'} did not go through. They are still saved here.`,
+    },
   },
 };
 

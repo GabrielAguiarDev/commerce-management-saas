@@ -18,10 +18,16 @@ import { AO_FADE, AO_PULSE } from './animations';
 /**
  * Banner de conexão.
  *
- * Dois estados, duas cores, como no protótipo:
- *  - offline → âmbar, "suas vendas estão salvas";
- *  - voltando → teal, "sincronizando…" (some sozinho depois de ~2,4s; quem
- *    controla esse relógio é `useMonitorDeConexao`, não este componente).
+ * Dois estados, duas cores:
+ *  - offline → âmbar, "suas vendas ficam salvas aqui";
+ *  - sincronizando → teal, e só enquanto a fila está REALMENTE subindo. Quem
+ *    liga e desliga essa flag é o caso de uso da sincronização; este
+ *    componente não tem relógio nenhum.
+ *
+ * O texto do estado offline é a peça mais importante desta tela inteira: ele é
+ * lido por quem acabou de ver a conexão cair no meio do movimento. Por isso
+ * ele afirma onde a venda fica e quem decide quando ela sobe, em vez de só
+ * anunciar a falha.
  *
  * O ponto pulsa em loop infinito — e para de pulsar quando o sistema pede
  * movimento reduzido. Animação infinita é justamente a que mais incomoda quem
@@ -35,7 +41,11 @@ export function ConnectionBanner() {
 
   const opacity = useSharedValue(1);
 
-  const visible = !online || syncing;
+  // A conexão caiu NO MEIO de uma sincronização é um estado possível. Aí o
+  // que importa dizer é que está offline — o "sincronizando" já não é
+  // verdade, mesmo que a flag ainda não tenha sido desligada.
+  const showingSync = syncing && online;
+  const visible = !online || showingSync;
 
   useEffect(() => {
     if (!visible || noMovement) {
@@ -64,15 +74,20 @@ export function ConnectionBanner() {
         flexDirection="row"
         alignItems="center"
         gap="s10"
-        backgroundColor={online ? 'primarySoft' : 'warningSoft'}
+        backgroundColor={showingSync ? 'primarySoft' : 'warningSoft'}
         accessibilityLiveRegion="polite"
       >
         <Animated.View style={estiloPonto}>
-          <Box width={9} height={9} borderRadius="full" backgroundColor={online ? 'primary' : 'warning'} />
+          <Box
+            width={9}
+            height={9}
+            borderRadius="full"
+            backgroundColor={showingSync ? 'primary' : 'warning'}
+          />
         </Animated.View>
         <Box flex={1}>
-          <Text variant="chipLabel" color={online ? 'primary' : 'warning'} lineHeight={18}>
-            {online ? t.connection.syncing : t.connection.offline}
+          <Text variant="chipLabel" color={showingSync ? 'primary' : 'warning'} lineHeight={18}>
+            {showingSync ? t.connection.syncing : t.connection.offline}
           </Text>
         </Box>
       </Box>

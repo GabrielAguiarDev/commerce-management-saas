@@ -188,31 +188,18 @@ export async function fetchDailySummary(tenantId: string): Promise<DailySummaryA
  * banco, que está na lista do que falta criar. Enquanto não existe, o
  * tratamento abaixo apaga a venda órfã — melhor um registro que não existe do
  * que um que mente sobre o que foi vendido.
+ *
+ * ESTA É A ÚNICA PORTA DE ENTRADA DE VENDA, e é de propósito: a venda offline
+ * que sobe da fila passa exatamente por aqui, com o mesmo INSERT e os mesmos
+ * gatilhos. Ela não tem caminho privilegiado — só chega atrasada. Um segundo
+ * caminho de escrita seria a maneira mais rápida de a baixa de estoque valer
+ * para a venda do balcão e não para a que ficou na fila.
  */
-export async function recordSale(payload: SaleCreateAPI): Promise<SaleAPI> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: sale, error } = await supabase
-    .from('sales')
-    .insert({
-      tenant_id: payload.tenant_id,
-      user_id: user?.id ?? null,
-      total: centsToReal(payload.total_cents),
-      payment_method: payload.payment_method,
-      status: SALE_STATUS.completed,
-      sold_at: new Date().toISOString(),
-    })
-    .select('id, sold_at')
-    .single();
-
-  if (error) throw error;
-
-  const { error: itemsError } = await supabase.from('sale_items').insert(
+async function insertSaleItems(saleId: string, payload: SaleCreateAPI): Promise<unknown | null> {
+  const { error } = await supabase.from('sale_items').insert(
     payload.items.map((i) => ({
       tenant_id: payload.tenant_id,
-      sale_id: sale.id,
+      sale_id: saleId,
       // String vazia viraria uma FK inválida; o produto avulso grava `null` e
       // sobrevive só pelo `product_name`.
       product_id: i.product_id || null,
@@ -222,6 +209,80 @@ export async function recordSale(payload: SaleCreateAPI): Promise<SaleAPI> {
       subtotal: centsToReal(i.unit_price_cents * i.qty),
     })),
   );
+
+  return error;
+}
+
+/**
+ * ESTA VENDA JÁ TEM ITENS LÁ DENTRO?
+ *
+ * Pergunta que só a fila offline faz, e só quando o INSERT da venda volta com
+ * "chave duplicada". Aí existem dois passados possíveis, e eles pedem coisas
+ * opostas:
+ *
+ *  - a venda subiu INTEIRA numa tentativa anterior (a resposta é que se
+ *    perdeu) → não há nada a fazer, e reenviar os itens duplicaria a baixa de
+ *    estoque;
+ *  - a venda subiu PELA METADE (o `sales` entrou, o `sale_items` não, e o app
+ *    morreu antes de apagar a órfã) → falta inserir os itens. Sem isso ficaria
+ *    para sempre uma venda de valor cheio, sem item nenhum e sem ter tirado
+ *    nada do estoque.
+ *
+ * A resposta separa os dois casos, e é por isso que a duplicata não pode ser
+ * tratada como "pronto, subiu" sem olhar.
+ */
+export async function saleHasItems(saleId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('sale_items')
+    .select('sale_id')
+    .eq('sale_id', saleId)
+    .limit(1);
+
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+/**
+ * Completa uma venda que ficou sem itens (o segundo caso acima).
+ *
+ * Não apaga a venda em caso de falha, ao contrário do `recordSale`: aqui a
+ * venda JÁ ESTÁ no sistema há um tempo e pode ter sido vista, contada ou
+ * conferida por alguém. Apagá-la por conta própria seria pior que deixá-la
+ * incompleta e devolver o erro para a fila — que é o que fazemos, mantendo a
+ * venda na fila para nova tentativa.
+ */
+export async function completeSaleItems(payload: SaleCreateAPI & { id: string }): Promise<void> {
+  const error = await insertSaleItems(payload.id, payload);
+  if (error) throw error;
+}
+
+export async function recordSale(payload: SaleCreateAPI): Promise<SaleAPI> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: sale, error } = await supabase
+    .from('sales')
+    .insert({
+      // O `id` só vai junto quando quem chama o gerou (a fila offline). No
+      // caminho comum a chave fica em branco e o banco a produz, como sempre.
+      ...(payload.id ? { id: payload.id } : {}),
+      tenant_id: payload.tenant_id,
+      user_id: user?.id ?? null,
+      total: centsToReal(payload.total_cents),
+      payment_method: payload.payment_method,
+      status: SALE_STATUS.completed,
+      // A venda da fila carrega a hora em que foi FEITA. Carimbar `now()` aqui
+      // jogaria um dia inteiro de vendas offline para o minuto em que o
+      // vendedor apertou "sincronizar".
+      sold_at: payload.sold_at ?? new Date().toISOString(),
+    })
+    .select('id, sold_at')
+    .single();
+
+  if (error) throw error;
+
+  const itemsError = await insertSaleItems(sale.id, payload);
 
   if (itemsError) {
     await supabase.from('sales').delete().eq('id', sale.id);

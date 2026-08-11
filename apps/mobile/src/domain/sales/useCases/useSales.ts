@@ -7,11 +7,9 @@ import { useSessionStore } from '@store/sessionStore';
 import * as service from '../salesService';
 import type { CartItem } from '../salesTypes';
 
-export const salesKeys = {
-  all: ['vendas'] as const,
-  doDia: (tenantId: string) => [...salesKeys.all, 'do-dia', tenantId] as const,
-  summary: (tenantId: string) => [...salesKeys.all, 'resumo', tenantId] as const,
-};
+import { pendingSalesKeys, salesKeys } from './queryKeys';
+
+export { salesKeys };
 
 export function useRecentSales() {
   const tenantId = useSessionStore((s) => s.tenantId);
@@ -39,7 +37,7 @@ export function useDailySummary() {
  * Finalizar venda.
  *
  * O estado da conexão é LIDO AQUI e passado ao service: quem conhece store é
- * o useCase, nunca o service — é o que mantém `finalizarVenda` testável no
+ * o useCase, nunca o service — é o que mantém `checkoutSale` testável no
  * jest node, sem mock de zustand.
  *
  * Invalida também o catálogo porque a venda baixa estoque: sem isso, o badge
@@ -54,7 +52,15 @@ export function useCheckoutSale() {
     mutationFn: (data: { items: readonly CartItem[]; paymentMethod: string }) =>
       service.checkoutSale(tenantId as string, data.items, data.paymentMethod, online),
 
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.queued) {
+        // A venda ficou no aparelho: o que mudou foi a FILA. O faturamento do
+        // dia e o estoque continuam exatamente como estavam — invalidá-los
+        // aqui provocaria uma ida à rede que, offline, só serve para falhar.
+        void client.invalidateQueries({ queryKey: pendingSalesKeys.all });
+        return;
+      }
+
       void client.invalidateQueries({ queryKey: salesKeys.all });
       void client.invalidateQueries({ queryKey: catalogoKeys.all });
     },

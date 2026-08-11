@@ -20,4 +20,4 @@ export {
   type Toast,
   type ToastTone,
 } from './uiStore';
-export { useConnectionStore, SYNC_DURATION_MS } from './connectionStore';
+export { useConnectionStore } from './connectionStore';

@@ -8,14 +8,23 @@ import { create } from 'zustand';
  * open showing the amber banner even with Wi-Fi on.
  */
 
-/** How long the "syncing…" banner stays on screen. Comes from the prototype. */
-export const SYNC_DURATION_MS = 2400;
-
 interface ConnectionState {
   online: boolean;
+  /**
+   * A sincronização da fila está EM CURSO NESTE MOMENTO.
+   *
+   * Até a fase offline, isto era teatro: voltar a conexão ligava a flag e um
+   * `setTimeout` de 2,4s a desligava, sem nada subir. Vinha do protótipo, que
+   * simulava a sincronia. Agora quem liga e desliga é o caso de uso que envia
+   * as vendas de verdade — o banner teal passa a ser uma AFIRMAÇÃO sobre o que
+   * está acontecendo, não uma animação. Um banner que diz "sincronizando" sem
+   * sincronizar é pior que banner nenhum: ensina o vendedor a não acreditar
+   * nele justamente quando ele importa.
+   */
   syncing: boolean;
 
   setOnline: (online: boolean) => void;
+  startSync: () => void;
   finishSync: () => void;
 }
 
@@ -24,15 +33,15 @@ export const useConnectionStore = create<ConnectionState>()((set, get) => ({
   syncing: false,
 
   /**
-   * Only the offline → online TRANSITION triggers a sync. Calling with the same
-   * value is a no-op: NetInfo emits repeated events when switching networks,
-   * and without this guard the banner would restart itself on every emission.
+   * Ignora o evento repetido. O NetInfo emite várias vezes o mesmo estado ao
+   * trocar de rede, e sem esta guarda cada emissão faria re-render de toda
+   * tela que observa `online`.
    */
   setOnline: (online) => {
-    const previous = get().online;
-    if (previous === online) return;
-    set({ online, syncing: online && !previous });
+    if (get().online === online) return;
+    set({ online });
   },
 
+  startSync: () => set({ syncing: true }),
   finishSync: () => set({ syncing: false }),
 }));

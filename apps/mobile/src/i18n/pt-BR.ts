@@ -100,8 +100,11 @@ export const ptBR: Messages = {
       `Aqui abriria a edição de ${name}. Mudar o preço vale só para as próximas vendas.`,
     productCreated: (name: string) => `"${name}" cadastrado e pronto pra vender.`,
     saleRecorded: (total: string) => `Venda de ${total} registrada!`,
+    // NÃO promete sincronia automática: quem lança as vendas é o vendedor, no
+    // botão da tela de pendentes. A versão anterior dizia "vai sincronizar
+    // sozinha" e mandava o balconista embora achando que estava resolvido.
     saleSavedOffline: (total: string) =>
-      `Venda de ${total} salva no aparelho. Vai sincronizar sozinha.`,
+      `Venda de ${total} salva no aparelho. Lance no sistema quando a internet voltar.`,
     saleCancelled: 'Venda cancelada.',
     cashOpened: 'Caixa aberto. Bom turno!',
     cashClosed: 'Caixa fechado. Bom descanso!',
@@ -142,8 +145,8 @@ export const ptBR: Messages = {
   },
 
   connection: {
-    offline: 'Sem conexão — suas vendas estão salvas e serão sincronizadas.',
-    syncing: 'Voltou a conexão — sincronizando suas vendas…',
+    offline: 'Sem conexão — suas vendas ficam salvas aqui e você sincroniza depois.',
+    syncing: 'Enviando suas vendas para o sistema…',
   },
 
   startup: {
@@ -250,6 +253,49 @@ export const ptBR: Messages = {
     low: (name: string) => `${name} está baixo`,
     heading: (count: number) =>
       `${count} ${count === 1 ? 'produto precisando' : 'produtos precisando'} de atenção`,
+  },
+
+  pendingSales: {
+    title: 'Vendas pendentes',
+    subtitle: 'Salvas neste aparelho, esperando entrar no sistema',
+    heading: (count: number) =>
+      `${count} ${count === 1 ? 'venda aguardando' : 'vendas aguardando'} sincronização`,
+    syncButton: (count: number) =>
+      `Lançar ${count} ${count === 1 ? 'venda' : 'vendas'} no sistema`,
+    syncingButton: 'Enviando…',
+    offlineHint:
+      'Ainda sem conexão. Assim que a internet voltar, você já pode lançar tudo de uma vez.',
+    errorLabel: 'Não entrou no sistema',
+    homeCard: {
+      title: (count: number) =>
+        `${count} ${count === 1 ? 'venda' : 'vendas'} para lançar`,
+      text: 'Salvas neste aparelho. Toque para conferir e enviar.',
+    },
+    empty: {
+      title: 'Nada esperando',
+      text: 'Todas as vendas deste aparelho já estão no sistema.',
+    },
+    discard: {
+      label: 'Descartar esta venda',
+      title: 'Descartar esta venda?',
+      text: 'Ela sai deste aparelho e não vai entrar no sistema. Não dá para desfazer.',
+      button: 'Descartar',
+    },
+    errors: {
+      insufficient_stock: 'Não há estoque suficiente para os itens desta venda.',
+      product_missing: 'Um produto desta venda não existe mais no catálogo.',
+      not_allowed: 'O sistema não aceitou esta venda. Fale com o suporte.',
+      offline: 'A conexão caiu antes de concluir. É só tentar de novo.',
+      unknown: 'Esta venda foi recusada pelo sistema.',
+    },
+    summary: {
+      allSynced: (count: number) =>
+        `${count} ${count === 1 ? 'venda está' : 'vendas estão'} no sistema. Nada se perdeu.`,
+      partial: (synced: number, failed: number) =>
+        `${synced} ${synced === 1 ? 'entrou' : 'entraram'}, ${failed} não. As que ficaram mostram o motivo.`,
+      allFailed: (count: number) =>
+        `${count} ${count === 1 ? 'venda não entrou' : 'vendas não entraram'}. Continuam salvas aqui.`,
+    },
   },
 
   units: {

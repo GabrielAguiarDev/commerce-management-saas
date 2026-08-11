@@ -211,6 +211,14 @@ describe('rotaPermitida', () => {
     expect(isRouteAllowed(ROUTES.settings, ESSENTIAL)).toBe(true);
     expect(isRouteAllowed(ROUTES.sell, ESSENTIAL)).toBe(true);
   });
+
+  it('a fila de vendas offline passa em QUALQUER plano', () => {
+    // Ela não é um módulo vendido à parte: é o caminho de volta das vendas que
+    // o aparelho guardou. Trancá-la por plano deixaria dinheiro real preso no
+    // celular de quem paga o plano mais barato.
+    expect(isRouteAllowed(ROUTES.pendingSales, ESSENTIAL)).toBe(true);
+    expect(isRouteAllowed(ROUTES.pendingSales, COMPLETO)).toBe(true);
+  });
 });
 
 /**

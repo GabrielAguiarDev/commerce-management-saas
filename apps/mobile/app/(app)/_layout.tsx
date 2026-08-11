@@ -149,6 +149,7 @@ function AppShell() {
               então empilha como as outras em vez de virar aba. */}
           <Stack.Screen name="sell" />
           <Stack.Screen name="stock" />
+          <Stack.Screen name="pending-sales" />
           <Stack.Screen name="reports" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="support" />

@@ -4,7 +4,7 @@ import { Box, Card, Divider, Icon, Pill, Screen, Skeleton, Text, Touchable } fro
 import { lowStockProducts, useCatalog } from '@domain/catalog';
 import { useOpenShift } from '@domain/cash';
 import { ROUTES } from '@domain/navigation/routes';
-import { useDailySummary, useRecentSales } from '@domain/sales';
+import { useDailySummary, usePendingSalesCount, useRecentSales } from '@domain/sales';
 import { useCapabilities, useCurrentTenant } from '@domain/tenant';
 import { goTo } from '@hooks/navigation';
 import { useSessionStore } from '@store/sessionStore';
@@ -33,6 +33,7 @@ export default function HomeScreen() {
   const { data: sales = [] } = useRecentSales();
   const { data: shift } = useOpenShift();
   const { data: products = [] } = useCatalog();
+  const pendingCount = usePendingSalesCount();
 
   const t = useTranslation();
 
@@ -171,6 +172,43 @@ export default function HomeScreen() {
           <Text variant="sectionLabel" color="primary">
             Ver
           </Text>
+        </Touchable>
+      ) : null}
+
+      {/* A fila offline. Fica ACIMA do alerta de estoque de propósito: um
+          produto acabando é um problema de amanhã; venda que ainda não entrou
+          no sistema é dinheiro de hoje fora do lugar. O card só existe quando
+          há algo na fila — é ele quem torna a tela de pendentes alcançável. */}
+      {pendingCount > 0 ? (
+        <Touchable
+          accessibilityLabel={t.pendingSales.homeCard.title(pendingCount)}
+          onPress={() => router.push(ROUTES.pendingSales as never)}
+          backgroundColor="surface"
+          borderColor="warningBorder"
+          borderWidth={1}
+          borderRadius="r20"
+          padding="s16"
+          flexDirection="row"
+          alignItems="center"
+          gap="s13"
+        >
+          <Box
+            width={42}
+            height={42}
+            borderRadius="r14"
+            backgroundColor="warningIconBg"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Icon name="cart" size={20} color="warning" />
+          </Box>
+          <Box flex={1}>
+            <Text variant="titleSm">{t.pendingSales.homeCard.title(pendingCount)}</Text>
+            <Text variant="caption" color="textMuted" marginTop="s3">
+              {t.pendingSales.homeCard.text}
+            </Text>
+          </Box>
+          <Icon name="chevronRight" size={18} color="textMuted" />
         </Touchable>
       ) : null}
 

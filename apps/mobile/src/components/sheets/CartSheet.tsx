@@ -14,7 +14,6 @@ import { SaleError } from '@domain/sales/salesTypes';
 import { goToRoot } from '@hooks/navigation';
 import { useTranslation } from '@i18n';
 import { useCartStore } from '@store/cartStore';
-import { useConnectionStore } from '@store/connectionStore';
 import { activePaymentMethods, usePreferencesStore } from '@store/preferencesStore';
 import { useUIStore } from '@store/uiStore';
 import { formatBRL } from '@utils/money';
@@ -43,7 +42,6 @@ export function CartSheet() {
   const undoCart = useCartStore((s) => s.undo);
 
   const acceptedMethods = usePreferencesStore((s) => s.acceptedMethods);
-  const online = useConnectionStore((s) => s.online);
 
   const openSheet = useUIStore((s) => s.openSheet);
   const closeSheet = useUIStore((s) => s.closeSheet);
@@ -74,17 +72,21 @@ export function CartSheet() {
     record(
       { items: snapshot, paymentMethod: selectedMethod },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
           checkoutCart();
           closeSheet();
           // Depois de fechar a venda o balconista quase sempre começa outra:
           // o protótipo leva de volta para Vender, e é o certo.
           if (path !== ROUTES.sell) goToRoot(ROUTES.sell);
 
+          // Qual confirmação aparece sai do RESULTADO, não do estado da
+          // conexão lido de novo aqui. Entre apertar Finalizar e o toast a
+          // conexão pode ter voltado, e o vendedor leria "está salva no
+          // aparelho" sobre uma venda que subiu — ou pior, o contrário.
           showToast(
-            online
-              ? t.toasts.saleRecorded(formatBRL(saleTotal))
-              : t.toasts.saleSavedOffline(formatBRL(saleTotal)),
+            result.queued
+              ? t.toasts.saleSavedOffline(formatBRL(saleTotal))
+              : t.toasts.saleRecorded(formatBRL(saleTotal)),
             {
               withUndo: true,
               onUndo: () => {
