@@ -12,6 +12,8 @@ export const ROUTES = {
   modules: "/modulos",
   settings: "/configuracoes",
   login: "/login",
+  /** Importação de catálogo, sempre dentro da ficha de um cliente. */
+  importarProdutos: (id: string) => `${ROUTES.customers}/${id}/importar`,
 } as const;
 
 export function customerHref(id: string): string {

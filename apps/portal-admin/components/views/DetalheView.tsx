@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAdmin } from "@/components/AdminProvider";
 import { Button, css, MONO } from "@aguiar/ui";
+import { exportProducts } from "@/app/clientes/[id]/actions";
 import { ActionBar } from "@/components/BarraAcoes";
 import { ModuleGrid, ModuleCard } from "@/components/ModuloCard";
+import { catalogCsvLines, catalogFileName } from "@/lib/produtosCsv";
 import { ROUTES } from "@/lib/rotas";
 import { num } from "@/lib/money";
 import { planByKey } from "@/lib/planos";
@@ -51,6 +53,27 @@ export function DetalheView({ customerId }: { customerId: string }) {
 
   const rotuloCampo =
     "font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600";
+
+  /**
+   * Baixa o catálogo deste cliente no formato da importação.
+   *
+   * O arquivo é montado aqui, e não no servidor: o download é um gesto do
+   * navegador, e `baixarCsv` é quem já sabe pôr o BOM que faz o Excel abrir os
+   * acentos certos. Do servidor vêm só as células, formatadas pelo mesmo módulo
+   * que a importação lê — é o que faz o arquivo exportado servir de modelo
+   * perfeito para reimportar.
+   *
+   * Catálogo vazio não gera arquivo: um CSV só com cabeçalho pareceria uma
+   * exportação que deu errado, e o aviso diz o que de fato aconteceu.
+   */
+  const exportCatalog = async () => {
+    const res = await exportProducts(c.id);
+    if (!res.ok) return a.toast(res.message, "error");
+    if (res.rows.length === 0) return a.toast(L.semProdutosParaExportar, "warning");
+
+    a.baixarCsv(catalogCsvLines(res.rows), catalogFileName(c.name));
+    a.toast(L.toastExportado);
+  };
 
   /**
    * "Mudar plano" cicla pelo catálogo real, na ordem de `plans.sort_order`.
@@ -225,6 +248,39 @@ export function DetalheView({ customerId }: { customerId: string }) {
             )}
           >
             {L.mudarPlano}
+          </Button>
+          {/* Migração de catálogo: leva para a tela de importação DESTE cliente,
+              por `irPara` — o guard de rascunho não salvo vale aqui como em
+              qualquer outra saída da ficha. */}
+          <Button
+            onClick={() => a.goTo(ROUTES.importarProdutos(c.id))}
+            className="hv-acc-borda"
+            title={L.importarAjuda}
+            style={css(
+              "display:flex;align-items:center;justify-content:center;" +
+                "border:1px solid var(--border);background:var(--surface);color:var(--text2);" +
+                "font-size:12.5px;font-weight:500;padding:10px 14px;border-radius:9px;cursor:pointer" +
+                (isMobile ? ";flex:1" : ""),
+            )}
+          >
+            {L.importar}
+          </Button>
+          {/* O caminho de volta da importação: o mesmo arquivo, com o catálogo
+              de hoje dentro. Não muda de rota — baixa e pronto —, então o
+              `Button` espera a promessa e gira enquanto o banco responde. */}
+          <Button
+            onClick={exportCatalog}
+            className="hv-acc-borda"
+            title={L.exportarProdutosAjuda}
+            loadingLabel={L.exportarProdutos}
+            style={css(
+              "display:flex;align-items:center;justify-content:center;" +
+                "border:1px solid var(--border);background:var(--surface);color:var(--text2);" +
+                "font-size:12.5px;font-weight:500;padding:10px 14px;border-radius:9px;cursor:pointer" +
+                (isMobile ? ";flex:1" : ""),
+            )}
+          >
+            {L.exportarProdutos}
           </Button>
           <Button
             onClick={() => a.openModal(c.status === "active" ? "deactivate" : "reactivate", c.id)}

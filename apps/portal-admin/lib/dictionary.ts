@@ -299,6 +299,103 @@ const pt = {
   reverterBotao: "Reverter",
   toastRevertido: "Pagamento revertido",
   acoesRotulo: "Ações",
+
+  // ── Importação de produtos por CSV ──────────────────────────────────
+  importar: "Importar produtos",
+  importarAjuda: "Traz o catálogo de outro sistema por planilha",
+  exportarProdutos: "Exportar produtos",
+  exportarProdutosAjuda:
+    "Baixa o catálogo deste cliente em CSV, no mesmo formato da importação",
+  semProdutosParaExportar: "Este cliente ainda não tem nenhum produto para exportar.",
+  toastExportado: "Catálogo exportado",
+  subtituloImportar: "Migra o catálogo de outro sistema para o cadastro de",
+  voltarAoCliente: "Voltar para o cliente",
+
+  passo1Titulo: "1 · Modelo da planilha",
+  passo1Nota:
+    "Baixe o modelo, preencha uma linha por produto e volte para subir o arquivo. Se o comerciante já tem uma exportação do sistema antigo, pule esta etapa e suba o arquivo dele — as colunas são acertadas na etapa 3.",
+  baixarModelo: "Baixar modelo CSV",
+  formatoTitulo: "Como preencher",
+  formatoNota:
+    "A primeira linha é o cabeçalho e cada linha seguinte é um produto. O preço vai em reais, com vírgula ou com ponto (“10,50” ou “10.50”). Nome e preço são obrigatórios; as outras colunas podem ficar vazias. O modelo sai separado por ponto e vírgula, que é como o Excel em português abre o arquivo já em colunas.",
+  colunasModelo: "Colunas do modelo",
+
+  colunaNome: "Nome",
+  colunaPreco: "Preço",
+  colunaCusto: "Custo",
+  colunaCategoria: "Categoria",
+  colunaCodigoBarras: "Código de barras",
+  colunaUnidade: "Unidade",
+  colunaEstoqueInicial: "Estoque inicial",
+  colunaEstoqueMinimo: "Estoque mínimo",
+  colunaObrigatoria: "obrigatório",
+
+  passo2Titulo: "2 · Arquivo",
+  passo2Nota:
+    "Aceita .csv separado por vírgula, ponto e vírgula ou tabulação, em UTF-8 ou Windows-1252. O separador é detectado sozinho.",
+  escolherArquivo: "Escolher arquivo",
+  trocarArquivo: "Trocar arquivo",
+  nenhumArquivo: "Nenhum arquivo escolhido",
+  temCabecalho: "A primeira linha é o cabeçalho",
+  temCabecalhoNota: "Desligue quando o arquivo já começa no primeiro produto.",
+  previaTitulo: "Prévia do arquivo",
+  previaNota: "As primeiras linhas, como foram lidas. Confira se as colunas saíram separadas.",
+  linhasLidas: "linhas lidas",
+  erroArquivoVazio: "O arquivo está vazio.",
+  erroSemLinhas: "O arquivo só tem o cabeçalho — não há nenhum produto para importar.",
+  erroUmaColuna:
+    "O arquivo foi lido com uma coluna só. Confira se ele foi salvo como CSV, e não como texto.",
+  erroLimiteLinhas:
+    "O arquivo tem {n} produtos e o limite por importação é {max}. Divida a planilha e importe em partes.",
+  erroLeitura: "Não foi possível ler este arquivo.",
+
+  passo3Titulo: "3 · Mapeamento das colunas",
+  passo3Nota:
+    "Confira de qual coluna do arquivo sai cada campo do sistema. O que bateu com o modelo já vem preenchido.",
+  colunaIgnorar: "— não usar —",
+  colunaNumero: "Coluna",
+  faltaObrigatorio: "Indique a coluna do nome e a do preço para continuar.",
+
+  passo4Titulo: "4 · Conferência",
+  passo4Nota:
+    "Cada linha foi validada com as mesmas regras do cadastro. Só as válidas são importadas.",
+  prontosLabel: "Prontos",
+  comErroLabel: "Com erro",
+  duplicadosLabel: "Duplicados",
+  pularDuplicados: "Pular duplicados",
+  pularDuplicadosNota:
+    "Produtos cujo nome ou código de barras o cliente já tem. Desligue para importar mesmo assim, criando um segundo registro.",
+  notaEstoque:
+    "O estoque inicial entra como SALDO, não como compra: não gera custo nem aparece como entrada de mercadoria nos relatórios. Só controla estoque quem tiver estoque inicial ou mínimo preenchido.",
+  linhasIgnoradas: "Linhas que ficam de fora",
+  colunaLinha: "Linha",
+  colunaProduto: "Produto",
+  colunaMotivo: "Motivo",
+  semNome: "(sem nome)",
+  maisLinhas: "outras linhas com problema",
+  importarAgora: "Importar produtos válidos",
+  nadaParaImportar: "Nenhuma linha válida para importar.",
+
+  resumoTitulo: "Importação concluída",
+  resumoImportados: "Importados",
+  resumoIgnoradosErro: "Ignorados por erro",
+  resumoIgnoradosDuplicados: "Ignorados por duplicidade",
+  baixarRejeitados: "Baixar linhas não importadas",
+  baixarRejeitadosNota:
+    "Um CSV com as linhas que ficaram de fora e o motivo de cada uma, para corrigir e importar de novo.",
+  novaImportacao: "Importar outro arquivo",
+  toastImportado: "Produtos importados",
+
+  issueNameMissing: "Nome não informado",
+  issuePriceMissing: "Preço não informado",
+  issuePriceInvalid: "Preço não é um número válido",
+  issuePriceNotPositive: "Preço precisa ser maior que zero",
+  issueCostInvalid: "Custo não é um número válido",
+  issueStockInvalid: "Estoque inicial precisa ser um número inteiro",
+  issueMinStockInvalid: "Estoque mínimo precisa ser um número inteiro",
+  issueDuplicateInFile: "Repetido no próprio arquivo",
+  issueDuplicateName: "O cliente já tem um produto com este nome",
+  issueDuplicateBarcode: "O cliente já tem um produto com este código de barras",
 };
 
 export type Dic = typeof pt;
@@ -584,6 +681,103 @@ const en: Dic = {
   reverterBotao: "Revert",
   toastRevertido: "Payment reverted",
   acoesRotulo: "Actions",
+
+  // ── CSV product import ──────────────────────────────────────────────
+  importar: "Import products",
+  importarAjuda: "Brings a catalogue over from another system by spreadsheet",
+  exportarProdutos: "Export products",
+  exportarProdutosAjuda:
+    "Downloads this customer's catalogue as CSV, in the same format as the import",
+  semProdutosParaExportar: "This customer has no products to export yet.",
+  toastExportado: "Catalogue exported",
+  subtituloImportar: "Migrate the catalogue from another system into the record of",
+  voltarAoCliente: "Back to the customer",
+
+  passo1Titulo: "1 · Spreadsheet template",
+  passo1Nota:
+    "Download the template, fill in one row per product and come back to upload the file. If the merchant already has an export from the old system, skip this step and upload that file — the columns are matched up in step 3.",
+  baixarModelo: "Download CSV template",
+  formatoTitulo: "How to fill it in",
+  formatoNota:
+    "The first line is the header and every line after it is a product. Price goes in reais, with either a comma or a dot (“10,50” or “10.50”). Name and price are required; the other columns may be left empty. The template is written with semicolons, which is how Excel in Portuguese opens the file already split into columns.",
+  colunasModelo: "Template columns",
+
+  colunaNome: "Name",
+  colunaPreco: "Price",
+  colunaCusto: "Cost",
+  colunaCategoria: "Category",
+  colunaCodigoBarras: "Barcode",
+  colunaUnidade: "Unit",
+  colunaEstoqueInicial: "Opening stock",
+  colunaEstoqueMinimo: "Minimum stock",
+  colunaObrigatoria: "required",
+
+  passo2Titulo: "2 · File",
+  passo2Nota:
+    "Accepts .csv separated by comma, semicolon or tab, in UTF-8 or Windows-1252. The separator is detected automatically.",
+  escolherArquivo: "Choose file",
+  trocarArquivo: "Change file",
+  nenhumArquivo: "No file chosen",
+  temCabecalho: "The first line is the header",
+  temCabecalhoNota: "Switch off when the file starts straight at the first product.",
+  previaTitulo: "File preview",
+  previaNota: "The first rows, as they were read. Check that the columns came out separated.",
+  linhasLidas: "rows read",
+  erroArquivoVazio: "The file is empty.",
+  erroSemLinhas: "The file has only the header — there is no product to import.",
+  erroUmaColuna:
+    "The file was read as a single column. Check that it was saved as CSV rather than as plain text.",
+  erroLimiteLinhas:
+    "The file has {n} products and the limit per import is {max}. Split the spreadsheet and import it in parts.",
+  erroLeitura: "This file could not be read.",
+
+  passo3Titulo: "3 · Column mapping",
+  passo3Nota:
+    "Check which column of the file feeds each system field. Whatever matched the template is already filled in.",
+  colunaIgnorar: "— do not use —",
+  colunaNumero: "Column",
+  faltaObrigatorio: "Point out the name and price columns to continue.",
+
+  passo4Titulo: "4 · Review",
+  passo4Nota:
+    "Every row was validated with the same rules as the product form. Only valid rows are imported.",
+  prontosLabel: "Ready",
+  comErroLabel: "With errors",
+  duplicadosLabel: "Duplicates",
+  pularDuplicados: "Skip duplicates",
+  pularDuplicadosNota:
+    "Products whose name or barcode the customer already has. Switch off to import them anyway, creating a second record.",
+  notaEstoque:
+    "Opening stock is recorded as a BALANCE, not as a purchase: it raises no cost and does not show up as incoming goods in the reports. Only products with an opening or minimum stock will track stock.",
+  linhasIgnoradas: "Rows left out",
+  colunaLinha: "Row",
+  colunaProduto: "Product",
+  colunaMotivo: "Reason",
+  semNome: "(no name)",
+  maisLinhas: "further rows with problems",
+  importarAgora: "Import valid products",
+  nadaParaImportar: "No valid row to import.",
+
+  resumoTitulo: "Import finished",
+  resumoImportados: "Imported",
+  resumoIgnoradosErro: "Skipped for errors",
+  resumoIgnoradosDuplicados: "Skipped as duplicates",
+  baixarRejeitados: "Download the rows left out",
+  baixarRejeitadosNota:
+    "A CSV with the rows that stayed out and the reason for each, to fix and import again.",
+  novaImportacao: "Import another file",
+  toastImportado: "Products imported",
+
+  issueNameMissing: "No name given",
+  issuePriceMissing: "No price given",
+  issuePriceInvalid: "Price is not a valid number",
+  issuePriceNotPositive: "Price must be greater than zero",
+  issueCostInvalid: "Cost is not a valid number",
+  issueStockInvalid: "Opening stock must be a whole number",
+  issueMinStockInvalid: "Minimum stock must be a whole number",
+  issueDuplicateInFile: "Repeated within the file itself",
+  issueDuplicateName: "The customer already has a product with this name",
+  issueDuplicateBarcode: "The customer already has a product with this barcode",
 };
 
 export const DIC: Record<Language, Dic> = { pt, en };
