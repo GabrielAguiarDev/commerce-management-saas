@@ -73,14 +73,37 @@ export function Toasts({ toasts }: { toasts: ToastState[] }) {
   );
 }
 
-/** Names a sidebar icon once the rail is collapsed. */
+/**
+ * Names a sidebar icon once the rail is collapsed.
+ *
+ * O fundo é `--tip`, uma cor SÓLIDA, e não `--side-card` como era antes. Esse
+ * era o defeito: `--side-card` é um lavado de 7% de branco, desenhado para
+ * empilhar sobre o azul quase-preto da barra, onde a própria barra entrega o
+ * fundo. Só que este balão é `fixed` e nasce FORA da barra, sobre o conteúdo
+ * claro da página — ali 7% de branco não cobre nada, e o texto branco por cima
+ * de uma tela clara parecia estar atrás dela. Sobre o conteúdo, o balão tem de
+ * trazer o próprio fundo.
+ *
+ * `pointer-events:none` para o balão não roubar o ponteiro de quem o levantou:
+ * sob o cursor, ele tiraria o hover do item, o que apagaria o balão, o que
+ * devolveria o hover — e ele piscaria sem parar.
+ *
+ * `z-index:95` passa por tudo que a tela empilha (a barra de topo está em 6, a
+ * gaveta em 70) e continua abaixo do modal (105) e dos avisos (120), que devem
+ * mesmo cobri-lo.
+ */
 export function Hint({ hint }: { hint: HintState }) {
   return (
     <div
       role="tooltip"
       style={css(
         "position:fixed;z-index:95;pointer-events:none;white-space:nowrap;padding:6px 11px;" +
-          "border-radius:8px;background:var(--side-card);color:#fff;font-size:12px;font-weight:500;" +
+          "border-radius:8px;background:var(--tip);border:1px solid var(--tip-border);" +
+          "color:#fff;font-size:12px;font-weight:500;" +
+          // Monta e desmonta com o hover, então a entrada é um keyframe: uma
+          // `transition` não tem de onde partir num elemento que acabou de
+          // nascer.
+          "animation:fadein .15s ease;" +
           "box-shadow:0 6px 18px rgba(4,15,20,.35);transform:translateY(-50%);top:" +
           hint.top +
           "px;left:" +

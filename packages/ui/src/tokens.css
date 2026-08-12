@@ -142,6 +142,19 @@ body {
      not. Same value the app uses for the links on its entrance. */
   --side-accent: #35abd6;
 
+  /* The collapsed rail's tooltip — the balloon that names an icon on hover.
+     It is NOT part of the `--side-*` family above, and that distinction is the
+     whole point: those are washes of white meant to sit ON the dark rail,
+     where the rail itself supplies the ground. The tooltip does not sit on the
+     rail — it is drawn OVER the page, on top of whatever content is there. A
+     7% wash has no ground under it out there, so it renders as a faint smear
+     with unreadable white text. Hence a SOLID color, opaque in both themes:
+     the balloon carries its own background wherever it lands. Lifted slightly
+     off `--brand-ink` so it reads as its own surface against the rail it
+     points away from. */
+  --tip: #0b1723;
+  --tip-border: rgba(255, 255, 255, 0.1);
+
   --shadow:
     0 1px 2px rgba(19, 38, 52, 0.06), 0 6px 18px rgba(19, 38, 52, 0.06);
   --shadow-lg: 0 18px 50px rgba(12, 26, 38, 0.22);

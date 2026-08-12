@@ -653,7 +653,7 @@ export function AdminProvider({
       hint: {
         text: e.currentTarget.getAttribute("aria-label") || "",
         top: r.top + r.height / 2,
-        left: r.right + 10,
+        left: r.right + 12,
       },
     });
   };

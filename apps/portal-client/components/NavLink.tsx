@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentProps } from "react";
 import { usePortal } from "@/components/PortalProvider";
 
 /**
@@ -23,8 +23,14 @@ import { usePortal } from "@/components/PortalProvider";
  * Continua sendo um `<a>` de verdade: ⌘+clique e o botão do meio abrem em nova
  * aba, o que um `<button>` nunca fez. Nesse caminho não saímos da tela atual, e
  * por isso os efeitos ficam de fora.
+ *
+ * As props incluem `ref` (por isso `ComponentProps`, e não
+ * `ComponentPropsWithoutRef`): recolhida, a barra lateral ancora no link o balão
+ * que nomeia o ícone, e quem o posiciona precisa medir o elemento. No React 19 o
+ * `ref` é uma prop comum, então basta ele passar pelo tipo para chegar ao
+ * `<Link>` junto com o resto.
  */
-export type NavLinkProps = Omit<ComponentPropsWithoutRef<"a">, "href"> & { href: string };
+export type NavLinkProps = Omit<ComponentProps<"a">, "href"> & { href: string };
 
 export function NavLink({ href, onClick, style, ...rest }: NavLinkProps) {
   const { a } = usePortal();

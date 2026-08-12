@@ -184,8 +184,12 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
               "color:var(--text2);cursor:pointer;padding:0;transition:color .12s,background .12s" +
               (isMobile ? ";font-size:17px;line-height:1" : ""),
           )}
+          // Sem `{...hint}`, de propósito. O balão existe para nomear um ícone
+          // que PERDEU o rótulo ao recolher — e este botão nunca teve um: ele é
+          // o mesmo alvo, no mesmo canto, nos dois estados. Ali o balão cobria a
+          // marca e o título da tela sem dizer nada que o desenho já não diga.
+          // O `aria-label` fica: quem lê a tela continua ouvindo o nome.
           aria-label={isMobile ? L.fecharMenu : col ? L.expandir : L.colapsar}
-          {...hint}
         >
           {isMobile ? "×" : <ColapsarIcone />}
         </Button>

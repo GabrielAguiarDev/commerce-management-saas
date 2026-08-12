@@ -1,6 +1,19 @@
 "use client";
 
+import {
+  autoUpdate,
+  FloatingPortal,
+  offset,
+  shift,
+  useDismiss,
+  useFloating,
+  useFocus,
+  useHover,
+  useInteractions,
+  useRole,
+} from "@floating-ui/react";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { usePortal } from "@/components/PortalProvider";
 import { Button, css, MONO, SANS } from "@aguiar/ui";
 import { NavLink } from "@/components/NavLink";
@@ -11,6 +24,11 @@ import type { ModuleKey } from "@/types/types";
 
 const LARGURA = 250;
 const LARGURA_COLAPSADA = 68;
+
+/** Distância entre o ícone e o balão que o nomeia, recolhida a barra. */
+const FOLGA_BALAO = 12;
+/** Respiro mínimo entre o balão e as bordas da janela. */
+const MARGEM_BALAO = 10;
 
 /**
  * O menu lateral, montado a partir dos módulos do plano.
@@ -223,51 +241,133 @@ function ItemMenu({
   badge: number;
 }) {
   const info = MODULES[module];
+  // Recolhida é exatamente quando o rótulo sai de vista — não há um segundo
+  // estado a inventar aqui. No celular a barra nunca recolhe (vira gaveta, e
+  // gaveta abre inteira), então isto já é `false` lá, e o balão não aparece
+  // numa tela onde não existe ponteiro para pairar.
+  const colapsada = !mostrarRotulo;
+  const [balaoAberto, setBalaoAberto] = useState(false);
+
+  /**
+   * Quem posiciona o balão é o Floating UI, e não um `absolute` dentro do item.
+   *
+   * O `<nav>` acima rola por dentro (`overflow-y:auto`), e um filho absoluto
+   * seria recortado justamente na borda da barra — que é para onde o balão
+   * precisa sair. `strategy:'fixed'` mais o portal no `<body>` o tiram do
+   * recorte; `autoUpdate` o mantém colado ao ícone se a lista rolar com o
+   * ponteiro parado; `shift` o segura dentro da janela numa tela baixa.
+   *
+   * É o mesmo mecanismo do menu de "⋯" das tabelas (`ActionsMenu`, em
+   * `@aguiar/ui`), pela mesma razão: lá o recorte vinha da rolagem horizontal.
+   */
+  const {
+    refs: { setReference, setFloating },
+    floatingStyles,
+    context,
+  } = useFloating({
+    open: balaoAberto,
+    onOpenChange: setBalaoAberto,
+    placement: "right",
+    strategy: "fixed",
+    whileElementsMounted: autoUpdate,
+    middleware: [offset(FOLGA_BALAO), shift({ padding: MARGEM_BALAO })],
+  });
+
+  // `enabled: colapsada` desliga as duas entradas com a barra aberta: ali o
+  // rótulo já está escrito ao lado do ícone, e um balão o repetiria.
+  const { getReferenceProps, getFloatingProps } = useInteractions([
+    // `mouseOnly` mantém o balão fora das telas de toque, onde "pairar" não
+    // existe: sem isso, o primeiro toque o levantaria por baixo do dedo.
+    useHover(context, { enabled: colapsada, move: false, mouseOnly: true }),
+    // O teclado chega pelo foco — é o que torna o trilho recolhido navegável
+    // sem ponteiro nenhum.
+    useFocus(context, { enabled: colapsada }),
+    useDismiss(context),
+    useRole(context, { role: "tooltip" }),
+  ]);
 
   return (
-    <NavLink
-      href={ROUTES[module]}
-      // Recolhida, o rótulo vira o `title` — é como o item continua legível
-      // sem ocupar largura.
-      title={info.name}
-      aria-current={active ? "page" : undefined}
-      className={active ? undefined : "hv-linha"}
-      style={css(
-        "position:relative;display:flex;align-items:center;gap:11px;width:100%;padding:9px;" +
-          "border-radius:9px;text-align:left;" +
-          (active
-            ? `background:var(--accent-soft);color:var(--accent-text);font:600 13.5px ${SANS};box-shadow:inset 0 0 0 1px var(--accent-soft)`
-            : `background:transparent;color:var(--text2);font:500 13.5px ${SANS}`),
-      )}
-    >
-      {active && (
-        <span
-          style={css(
-            "position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;" +
-              "border-radius:0 3px 3px 0;background:var(--accent)",
-          )}
-        />
-      )}
-      <span
+    <>
+      <NavLink
+        href={ROUTES[module]}
+        ref={setReference}
+        // Recolhida, quem nomeia o ícone é o balão; manter o `title` aqui faria
+        // o balão do sistema subir por cima do nosso, dizendo a mesma coisa.
+        title={colapsada ? undefined : info.name}
+        aria-current={active ? "page" : undefined}
+        className={active ? undefined : "hv-linha"}
+        {...getReferenceProps()}
         style={css(
-          `flex:none;width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:${active ? "var(--accent)" : "var(--muted)"}`,
+          "position:relative;display:flex;align-items:center;gap:11px;width:100%;padding:9px;" +
+            "border-radius:9px;text-align:left;" +
+            (active
+              ? `background:var(--accent-soft);color:var(--accent-text);font:600 13.5px ${SANS};box-shadow:inset 0 0 0 1px var(--accent-soft)`
+              : `background:transparent;color:var(--text2);font:500 13.5px ${SANS}`),
         )}
       >
-        <ModuleIcon module={module} />
-      </span>
-      {mostrarRotulo && (
-        <span style={css("white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>{info.name}</span>
-      )}
-      {badge > 0 && (
+        {active && (
+          <span
+            style={css(
+              "position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;" +
+                "border-radius:0 3px 3px 0;background:var(--accent)",
+            )}
+          />
+        )}
         <span
           style={css(
-            "margin-left:auto;flex:none;min-width:19px;height:19px;padding:0 6px;border-radius:10px;" +
-              `background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font:700 10.5px/1 ${MONO}`,
+            `flex:none;width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:${active ? "var(--accent)" : "var(--muted)"}`,
           )}
         >
-          {badge}
+          <ModuleIcon module={module} />
         </span>
+        {mostrarRotulo && (
+          <span style={css("white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>{info.name}</span>
+        )}
+        {badge > 0 && (
+          <span
+            style={css(
+              "margin-left:auto;flex:none;min-width:19px;height:19px;padding:0 6px;border-radius:10px;" +
+                `background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font:700 10.5px/1 ${MONO}`,
+            )}
+          >
+            {badge}
+          </span>
+        )}
+      </NavLink>
+
+      {/* O nome sai de `info.name` — a MESMA expressão que escreve o rótulo com
+          a barra aberta, logo acima. O balão não carrega lista própria de
+          nomes: quais itens existem aqui já foi decidido por `v_active_modules`
+          lá no `PortalProvider`, e um mapa paralelo só criaria uma segunda
+          verdade para o mesmo módulo divergir dela depois. */}
+      {colapsada && balaoAberto && (
+        <FloatingPortal>
+          <div
+            ref={setFloating}
+            style={{
+              ...floatingStyles,
+              ...css(
+                // `pointer-events:none` para o balão não roubar o ponteiro de
+                // quem o levantou: nascendo sob o cursor, ele tiraria o hover
+                // do item, o que o apagaria, o que devolveria o hover — e ele
+                // piscaria sem parar.
+                "z-index:95;pointer-events:none;white-space:nowrap;padding:6px 11px;" +
+                  // Fundo SÓLIDO, não um lavado com opacidade: aqui o balão está
+                  // sobre o conteúdo da página, e não sobre uma barra escura que
+                  // lhe empreste o fundo.
+                  "border-radius:8px;background:var(--tip);border:1px solid var(--tip-border);" +
+                  `color:#fff;font:500 12px ${SANS};box-shadow:0 6px 18px rgba(4,15,20,.35);` +
+                  // Monta e desmonta com o hover, então a entrada é um keyframe:
+                  // uma `transition` não teria de onde partir.
+                  "animation:fadein .15s ease",
+              ),
+            }}
+            {...getFloatingProps()}
+          >
+            {info.name}
+          </div>
+        </FloatingPortal>
       )}
-    </NavLink>
+    </>
   );
 }
