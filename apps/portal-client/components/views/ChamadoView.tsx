@@ -1,5 +1,6 @@
 "use client";
 
+import { NavLink } from "@/components/NavLink";
 import { usePortal } from "@/components/PortalProvider";
 import { primaryButton, Button, css, MONO, PANEL, SANS, Empty } from "@aguiar/ui";
 import { canReply, SP_STATUS } from "@/lib/dados/chamados";
@@ -37,8 +38,8 @@ export function ChamadoView({ id }: { id: string }) {
 
   return (
     <div>
-      <Button
-        onClick={() => a.goTo(ROUTES.support)}
+      <NavLink
+        href={ROUTES.support}
         className="hv-linha2"
         style={css(
           "display:inline-flex;align-items:center;gap:8px;margin-bottom:13px;padding:8px 13px;border-radius:10px;" +
@@ -46,7 +47,7 @@ export function ChamadoView({ id }: { id: string }) {
         )}
       >
         <span style={css(`font:600 13px/1 ${MONO}`)}>‹</span>Todos os chamados
-      </Button>
+      </NavLink>
 
       <div style={css(`padding:17px 19px;${PANEL}`)}>
         <div style={css("display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap")}>

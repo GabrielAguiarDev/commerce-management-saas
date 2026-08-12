@@ -7,6 +7,7 @@ import { Button, css, MONO } from "@aguiar/ui";
 import { exportProducts } from "@/app/clientes/[id]/actions";
 import { ActionBar } from "@/components/BarraAcoes";
 import { ModuleGrid, ModuleCard } from "@/components/ModuloCard";
+import { NavLink } from "@/components/NavLink";
 import { catalogCsvLines, catalogFileName } from "@/lib/produtosCsv";
 import { ROUTES } from "@/lib/rotas";
 import { num } from "@/lib/money";
@@ -110,8 +111,8 @@ export function DetalheView({ customerId }: { customerId: string }) {
 
   return (
     <div style={css("display:flex;flex-direction:column;gap:16px")}>
-      <Button
-        onClick={() => a.goTo(ROUTES.customers)}
+      <NavLink
+        href={ROUTES.customers}
         className="hv-acc"
         style={css(
           "align-self:flex-start;background:none;border:none;color:var(--text2);font-size:12.5px;" +
@@ -119,7 +120,7 @@ export function DetalheView({ customerId }: { customerId: string }) {
         )}
       >
         ← {L.back}
-      </Button>
+      </NavLink>
 
       <section
         style={css(
@@ -250,10 +251,10 @@ export function DetalheView({ customerId }: { customerId: string }) {
             {L.mudarPlano}
           </Button>
           {/* Migração de catálogo: leva para a tela de importação DESTE cliente,
-              por `irPara` — o guard de rascunho não salvo vale aqui como em
+              por `<NavLink>` — o guard de rascunho não salvo vale aqui como em
               qualquer outra saída da ficha. */}
-          <Button
-            onClick={() => a.goTo(ROUTES.importarProdutos(c.id))}
+          <NavLink
+            href={ROUTES.importarProdutos(c.id)}
             className="hv-acc-borda"
             title={L.importarAjuda}
             style={css(
@@ -264,7 +265,7 @@ export function DetalheView({ customerId }: { customerId: string }) {
             )}
           >
             {L.importar}
-          </Button>
+          </NavLink>
           {/* O caminho de volta da importação: o mesmo arquivo, com o catálogo
               de hoje dentro. Não muda de rota — baixa e pronto —, então o
               `Button` espera a promessa e gira enquanto o banco responde. */}

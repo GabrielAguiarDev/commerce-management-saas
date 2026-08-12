@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useAdmin } from "@/components/AdminProvider";
 import { Button, css, MONO } from "@aguiar/ui";
 import { Logo } from "@/components/Logo";
+import { NavLink } from "@/components/NavLink";
 import { Wordmark } from "@/components/Wordmark";
 import {
   ClientesIcone,
@@ -59,8 +60,10 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
    * the counted entries pass "Clientes · 10" and show only the part before the
    * separator inline.
    *
-   * These are buttons rather than links because navigation runs through `ir`,
-   * which may stop to ask about unsaved edits first.
+   * São links de verdade, e não botões: é o que dá ao Next a chance de
+   * pré-carregar as telas do menu antes do clique — todas as rotas do painel
+   * estão aqui, visíveis, então todas chegam prontas. A parada para perguntar
+   * sobre edição pendente não se perdeu: ela mora no `<NavLink>`.
    */
   const item = (
     href: string,
@@ -70,8 +73,8 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
   ) => {
     const active = isActiveRoute(pathname, href);
     return (
-      <Button
-        onClick={() => a.goTo(href)}
+      <NavLink
+        href={href}
         style={css(navStyle(active, col))}
         aria-label={etiqueta}
         aria-current={active ? "page" : undefined}
@@ -80,7 +83,7 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
         <span style={{ display: "flex", flex: "none" }}>{icon}</span>
         <span style={css(label)}>{etiqueta.split(" · ")[0]}</span>
         {contador}
-      </Button>
+      </NavLink>
     );
   };
 

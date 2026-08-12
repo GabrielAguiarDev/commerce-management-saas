@@ -55,31 +55,37 @@ export interface ModulesResult {
  * relação, não do módulo: quem guarda isso é `plans.module_keys`. Recebendo a
  * lista já lida, evitamos uma segunda consulta e garantimos que as duas telas
  * enxerguem exatamente o mesmo catálogo.
+ *
+ * Aceita a PROMESSA da lista, e não só a lista pronta, porque a dependência
+ * entre as duas leituras é menor do que parece: só o cruzamento no fim precisa
+ * dos planos — a consulta a `modules` não precisa de nada. Esperando os planos
+ * aqui dentro, e não antes da chamada, as duas viajam ao banco juntas em vez de
+ * uma atrás da outra. Ver o layout raiz.
  */
-export async function listModules(plans: Plan[]): Promise<ModulesResult> {
+export async function listModules(plans: Plan[] | Promise<Plan[]>): Promise<ModulesResult> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return { modules: [], error: "Supabase não configurado." };
   }
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("modules")
-    .select("key, name, description, is_access")
-    .order("key");
+  const [{ data, error }, planList] = await Promise.all([
+    supabase.from("modules").select("key, name, description, is_access").order("key"),
+    plans,
+  ]);
 
   if (error) {
     console.error("[listarModulos] falha ao ler modules:", error.message);
     return { modules: [], error: `Não foi possível carregar os módulos: ${error.message}` };
   }
 
-  const modules = (data as ModuleRow[]).map((l) => toModule(l, plans));
+  const modules = (data as ModuleRow[]).map((l) => toModule(l, planList));
 
   // Um plano que aponta para um módulo inexistente só apareceria no cadastro,
   // como erro da função `admin_create_tenant`. Melhor gritar aqui, no log do
   // servidor, na primeira vez que alguém abre o painel.
   const keys = new Set(modules.map((m) => m.k));
-  const orphans = plans.flatMap((p) => p.mods).filter((k) => !keys.has(k));
+  const orphans = planList.flatMap((p) => p.mods).filter((k) => !keys.has(k));
   if (orphans.length > 0) {
     console.error(
       `[listarModulos] \`plans.module_keys\` aponta para módulos que não existem em ` +

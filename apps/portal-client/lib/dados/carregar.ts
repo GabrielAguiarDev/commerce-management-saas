@@ -22,9 +22,13 @@ import type { PortalData } from "@/types/estado";
  * leituras diferentes. E o menu depende dos módulos, que vêm daqui.
  *
  * As consultas são independentes e vão em paralelo — encadeá-las com um `await`
- * atrás do outro somaria todos os tempos de ida e volta. As duas exceções são
- * `lerCaixa`, que precisa das vendas para dizer quanto entrou em cada turno, e
- * `lerVendas`, que ela consome.
+ * atrás do outro somaria todos os tempos de ida e volta.
+ *
+ * `lerCaixa` é a única que depende de outra: ela precisa das vendas para dizer
+ * quanto entrou em cada turno. Mas precisa delas só no fim, para o cruzamento —
+ * a consulta a `cash_registers` não precisa de nada. Por isso recebe a PROMESSA
+ * das vendas e entra no mesmo bloco: as oito leituras viajam juntas, em vez de
+ * a do caixa esperar todas as outras terminarem para só então começar.
  */
 export async function loadPortal(): Promise<PortalData> {
   const session = await requireCustomer();
@@ -36,18 +40,19 @@ export async function loadPortal(): Promise<PortalData> {
   const { supabase, tenantId, name } = session;
 
   try {
-    const [{ business, data }, products, sales, movements, costs, team, tickets] =
+    const salesPromise = readSales(supabase);
+
+    const [{ business, data }, products, sales, movements, costs, team, tickets, register] =
       await Promise.all([
         readBusiness(supabase, tenantId, name),
         readProducts(supabase),
-        readSales(supabase),
+        salesPromise,
         readStockMovements(supabase),
         readCosts(supabase),
         readTeam(supabase),
         readTickets(supabase),
+        readRegister(supabase, salesPromise),
       ]);
-
-    const register = await readRegister(supabase, sales);
 
     return {
       business,

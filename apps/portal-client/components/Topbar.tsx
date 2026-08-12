@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { NavLink } from "@/components/NavLink";
 import { usePortal } from "@/components/PortalProvider";
 import { primaryButton, Button, css, MONO, NUM, SANS } from "@aguiar/ui";
 import { brl, longDate } from "@/lib/formato";
@@ -64,8 +65,8 @@ export function Topbar() {
           )}
 
           {has("register") && (
-            <Button
-              onClick={() => a.goTo(ROUTES.register)}
+            <NavLink
+              href={ROUTES.register}
               title="Ver o caixa"
               style={css(
                 "display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;" +
@@ -79,7 +80,7 @@ export function Topbar() {
                 )}
               />
               {openRegister ? `Caixa aberto desde ${d.openRegister?.openedAt}` : "Caixa fechado"}
-            </Button>
+            </NavLink>
           )}
 
           {isDesktop && (
@@ -126,13 +127,13 @@ export function Topbar() {
           </Button>
 
           {isDesktop && has("sales") && !inPos && (
-            <Button
-              onClick={() => a.goTo(POS_ROUTE)}
+            <NavLink
+              href={POS_ROUTE}
               className="hv-brilho"
               style={css(`display:flex;align-items:center;gap:9px;${primaryButton("sm")}`)}
             >
               <span style={css(`font:600 15px/1 ${MONO}`)}>+</span>Nova sale
-            </Button>
+            </NavLink>
           )}
         </div>
       </div>

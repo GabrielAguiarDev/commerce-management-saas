@@ -299,17 +299,24 @@ export function AdminProvider({
   };
 
   /**
-   * In-app navigation. A customer record with pending edits asks before it is
-   * abandoned; the browser's own back button bypasses this prompt, but the
-   * draft lives here rather than in the route, so it survives and is still
-   * waiting when you come back.
+   * O que acontece ANTES de sair da tela atual, e se a saída pode acontecer.
+   *
+   * Devolve `false` quando a navegação foi recusada — uma ficha com edição
+   * pendente pergunta primeiro, e é o diálogo que guarda o destino e continua a
+   * viagem se a pessoa confirmar. O botão "voltar" do navegador passa por cima
+   * dessa pergunta, mas o rascunho vive aqui e não na rota: ele sobrevive e
+   * continua esperando na volta.
+   *
+   * Existe separado de `irPara` porque o `<Link>` do Next não navega por nós —
+   * ele navega sozinho, e o que temos é a chance de cancelar no `onClick`. As
+   * duas portas de saída passam por aqui, então as duas se comportam igual.
    */
-  const goTo = (href: string) => {
+  const beforeNavigate = (href: string): boolean => {
     // Vale para os dois formulários longos do painel: a ficha do cliente e o
     // cadastro de um novo.
     if (isDirty(state) || state.newCustomerDirty) {
       openModal("discard", null, href);
-      return;
+      return false;
     }
     // `navOpen: false` porque no celular a navegação nasce dentro da gaveta:
     // deixá-la aberta cobriria a tela para onde acabamos de ir.
@@ -322,7 +329,16 @@ export function AdminProvider({
       notificationsOpen: false,
       navOpen: false,
     });
-    router.push(href);
+    return true;
+  };
+
+  /**
+   * Navegação programática — a que acontece DEPOIS de uma ação, sem um link
+   * para clicar. A navegação por clique passa pelo `<NavLink>`, que prefetcha a
+   * rota antes do clique; ver `components/NavLink.tsx`.
+   */
+  const goTo = (href: string) => {
+    if (beforeNavigate(href)) router.push(href);
   };
 
   const openCustomer = (id: string) => {
@@ -727,6 +743,7 @@ export function AdminProvider({
       openModal,
       closeModal,
       confirmModal,
+      beforeNavigate,
       goTo,
       openCustomer,
       ensureDraft,

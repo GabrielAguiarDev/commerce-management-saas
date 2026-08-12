@@ -333,6 +333,40 @@ select.field:disabled {
 }
 
 /* ---------------------------------------------------------------------------
+   Skeleton — o lugar de um dado que ainda está vindo.
+
+   Serve às fronteiras `loading.tsx` dos dois portais: ao trocar de tela, a
+   estrutura aparece na hora, com estes blocos no lugar dos números e das
+   linhas, em vez de a tela anterior ficar congelada esperando o servidor.
+
+   O pulso é só `opacity`, para rodar no compositor — a tela por baixo está
+   sendo montada, e uma animação que toca layout brigaria com ela. `--surface3`
+   é o tom mais claro da superfície nos dois temas: aparece sem chamar mais
+   atenção do que o conteúdo que vai substituí-lo.
+
+   `prefers-reduced-motion`: o bloco continua lá, parado. Ele informa por
+   ocupar o lugar, não por piscar.
+--------------------------------------------------------------------------- */
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.42;
+  }
+}
+
+.sk {
+  background: var(--surface3);
+  border-radius: 7px;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Toast — the short notice in the corner.
 
    It gets a real entrance AND a real exit, which is the whole difference

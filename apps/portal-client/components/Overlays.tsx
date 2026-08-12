@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { NavLink } from "@/components/NavLink";
 import { usePortal } from "@/components/PortalProvider";
 import { Button, css, MONO, NUM, SANS } from "@aguiar/ui";
 import { brl } from "@/lib/formato";
@@ -245,15 +246,15 @@ export function BottomBar() {
           "background:linear-gradient(to top,var(--bg) 62%,rgba(0,0,0,0))",
       )}
     >
-      <Button
-        onClick={() => a.goTo(POS_ROUTE)}
+      <NavLink
+        href={POS_ROUTE}
         style={css(
           "display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:15px;" +
             `border-radius:13px;background:var(--accent);color:var(--accent-ink);font:700 15px ${SANS};box-shadow:var(--shadow-lg)`,
         )}
       >
         <span style={css(`font:600 17px/1 ${MONO}`)}>+</span>Nova sale
-      </Button>
+      </NavLink>
     </div>
   );
 }

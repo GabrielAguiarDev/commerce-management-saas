@@ -2,6 +2,7 @@
 
 import { useAdmin } from "@/components/AdminProvider";
 import { Button, css, MONO } from "@aguiar/ui";
+import { NavLink } from "@/components/NavLink";
 import { NAV_ID } from "@/components/Sidebar";
 import { todayLabel } from "@/lib/datas";
 import { IdiomaIcone, LuaIcone, SinoIcone, SolIcone } from "@/lib/icons";
@@ -249,15 +250,16 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                   ))}
                 </div>
 
-                <Button
-                  onClick={() => a.goTo(ROUTES.support)}
+                <NavLink
+                  href={ROUTES.support}
                   style={css(
-                    "width:100%;border:none;border-top:1px solid var(--border-soft);background:var(--surface2);" +
+                    "display:block;text-align:center;width:100%;border:none;" +
+                      "border-top:1px solid var(--border-soft);background:var(--surface2);" +
                       "color:var(--accent);font-size:12px;font-weight:500;padding:11px;cursor:pointer",
                   )}
                 >
                   {L.support}
-                </Button>
+                </NavLink>
               </div>
             </>
           )}

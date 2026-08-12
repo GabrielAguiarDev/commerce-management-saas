@@ -7,6 +7,7 @@ import { INITIAL_STATE } from "@/app/clientes/estadoFormulario";
 import { useAdmin } from "@/components/AdminProvider";
 import { ActionBar } from "@/components/BarraAcoes";
 import { ModuleGrid, ModuleCard } from "@/components/ModuloCard";
+import { NavLink } from "@/components/NavLink";
 import { Button, Field, css, MONO, Select } from "@aguiar/ui";
 import { isFixedPlan, planModules, planByKey } from "@/lib/planos";
 import { customerHref, ROUTES } from "@/lib/rotas";
@@ -178,9 +179,8 @@ export function NovoClienteView() {
       }}
       style={css("display:flex;flex-direction:column;gap:16px")}
     >
-      <Button
-        type="button"
-        onClick={() => a.goTo(ROUTES.customers)}
+      <NavLink
+        href={ROUTES.customers}
         className="hv-acc"
         style={css(
           "align-self:flex-start;background:none;border:none;color:var(--text2);font-size:12.5px;" +
@@ -188,7 +188,7 @@ export function NovoClienteView() {
         )}
       >
         ← {L.back}
-      </Button>
+      </NavLink>
 
       {/* ---------------------------------------------------------------
           CARD 1 — dados do negócio e acesso

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { usePortal } from "@/components/PortalProvider";
 import { Button, css, MONO, SANS } from "@aguiar/ui";
+import { NavLink } from "@/components/NavLink";
 import { GROUPS, MODULES } from "@/lib/dados/perfis";
 import { ModuleIcon } from "@/lib/icons";
 import { moduleFromRoute, ROUTES } from "@/lib/rotas";
@@ -202,6 +203,14 @@ export function Sidebar() {
   );
 }
 
+/**
+ * Um item do menu.
+ *
+ * É um link de verdade, e não um botão: é o que dá ao Next a chance de
+ * pré-carregar as telas do menu antes do clique — todas as rotas do plano estão
+ * aqui, visíveis, então todas chegam prontas. Fechar a gaveta do celular ao
+ * navegar não se perdeu: mora no `<NavLink>`.
+ */
 function ItemMenu({
   module,
   active,
@@ -213,15 +222,15 @@ function ItemMenu({
   mostrarRotulo: boolean;
   badge: number;
 }) {
-  const { a } = usePortal();
   const info = MODULES[module];
 
   return (
-    <Button
-      onClick={() => a.goTo(ROUTES[module])}
+    <NavLink
+      href={ROUTES[module]}
       // Recolhida, o rótulo vira o `title` — é como o item continua legível
       // sem ocupar largura.
       title={info.name}
+      aria-current={active ? "page" : undefined}
       className={active ? undefined : "hv-linha"}
       style={css(
         "position:relative;display:flex;align-items:center;gap:11px;width:100%;padding:9px;" +
@@ -259,6 +268,6 @@ function ItemMenu({
           {badge}
         </span>
       )}
-    </Button>
+    </NavLink>
   );
 }

@@ -66,10 +66,13 @@ export default async function RootLayout({
   // atrás do outro somaria todos os tempos de ida e volta à espera de todo
   // render.
   //
-  // `listarPlanos` fica de fora do bloco porque `listarModulos` DEPENDE dela:
-  // "disponível em" é derivado de `plans.module_keys`. As duas leituras juntas
-  // ainda são mais rápidas do que a cascata inteira em série.
-  const { plans, error: plansError } = await listPlans();
+  // `listarPlanos` entra no bloco como PROMESSA, e não esperada antes dele.
+  // `listarModulos` depende dela — "disponível em" é derivado de
+  // `plans.module_keys` —, mas só no cruzamento do fim: a consulta a `modules`
+  // não precisa de nada. Passando a promessa adiante, essa espera acontece lá
+  // dentro e as duas leituras viajam junto com as outras cinco, em vez de o
+  // render inteiro começar por uma ida e volta sozinha.
+  const plansPromise = listPlans();
 
   const [
     { customers, error },
@@ -78,13 +81,15 @@ export default async function RootLayout({
     { payments, revenue, error: billingError },
     { settings, error: settingsError },
     perfil,
+    { plans, error: plansError },
   ] = await Promise.all([
     listCustomers(),
     listTickets(),
-    listModules(plans),
+    listModules(plansPromise.then((r) => r.plans)),
     listBilling(),
     listSettings(),
     currentProfile(),
+    plansPromise,
   ]);
 
   return (

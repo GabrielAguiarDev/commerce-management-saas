@@ -252,20 +252,30 @@ interface RegisterState {
 
 export async function readRegister(
   supabase: Customer,
-  sales: Sale[],
+  /**
+   * As vendas do período. Aceita a PROMESSA, e não só a lista pronta, porque a
+   * dependência é menor do que parece: só o cálculo de quanto entrou em cada
+   * turno precisa delas — a consulta a `cash_registers` não precisa de nada.
+   * Esperando aqui dentro, as duas leituras viajam ao banco juntas em vez de
+   * uma atrás da outra. Ver `carregar.ts`.
+   */
+  sales: Sale[] | Promise<Sale[]>,
   days = 60,
 ): Promise<RegisterState> {
   const since = new Date(hoje0() - days * MS_DAY).toISOString();
 
   // O `select` precisa ser uma string literal: o tipo do PostgREST é inferido
   // do texto, e uma concatenação vira `string` — aí o resultado perde a forma.
-  const { data } = await supabase
-    .from("cash_registers")
-    .select(
-      "id, opening_amount, status, expected_cash, counted_cash, difference, closing_note, opened_at, closed_at, profiles!cash_registers_opened_by_fkey(full_name), cash_movements(id, type, amount, reason, created_at)",
-    )
-    .gte("opened_at", since)
-    .order("opened_at", { ascending: false });
+  const [{ data }, salesList] = await Promise.all([
+    supabase
+      .from("cash_registers")
+      .select(
+        "id, opening_amount, status, expected_cash, counted_cash, difference, closing_note, opened_at, closed_at, profiles!cash_registers_opened_by_fkey(full_name), cash_movements(id, type, amount, reason, created_at)",
+      )
+      .gte("opened_at", since)
+      .order("opened_at", { ascending: false }),
+    sales,
+  ]);
 
   const rows = data ?? [];
   const movementsOf = (l: (typeof rows)[number]): RegisterMovement[] =>
@@ -296,7 +306,7 @@ export async function readRegister(
     .filter((l) => l.status !== REGISTER_OPEN && l.closed_at)
     .map((l) => {
       const movements = movementsOf(l);
-      const inShift = salesBetween(sales, l.opened_at, l.closed_at!);
+      const inShift = salesBetween(salesList, l.opened_at, l.closed_at!);
       const expected =
         l.expected_cash != null
           ? num(l.expected_cash)

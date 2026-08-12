@@ -268,12 +268,33 @@ export function PortalProvider({
   const openModal = useCallback((m: Modal) => set({ modal: m, rowMenu: null }), [set]);
   const openMenu = useCallback((key: string | null) => set({ rowMenu: key }), [set]);
 
+  /**
+   * O que acontece ANTES de sair da tela atual.
+   *
+   * `navOpen: false` porque no celular a navegação nasce dentro da gaveta:
+   * deixá-la aberta cobriria a tela para onde acabamos de ir.
+   *
+   * Devolve se a saída pode acontecer — aqui sempre pode; o portal não tem
+   * formulário longo que peça confirmação, ao contrário do painel admin. O
+   * retorno existe para o `<NavLink>` ter a mesma porta que o `irPara`: ele
+   * navega sozinho, e o que temos é a chance de cancelar no `onClick`.
+   */
+  const beforeNavigate = useCallback((): boolean => {
+    setS((x) => ({ ...x, navOpen: false, rowMenu: null, notificationsOpen: false }));
+    return true;
+  }, []);
+
+  /**
+   * Navegação programática — a que acontece DEPOIS de uma ação, sem um link
+   * para clicar. A navegação por clique passa pelo `<NavLink>`, que prefetcha a
+   * rota antes do clique; ver `components/NavLink.tsx`.
+   */
   const goTo = useCallback(
     (rota: string) => {
+      beforeNavigate();
       router.push(rota);
-      setS((x) => ({ ...x, navOpen: false, rowMenu: null, notificationsOpen: false }));
     },
-    [router],
+    [beforeNavigate, router],
   );
 
   const toggleTheme = useCallback(
@@ -851,6 +872,7 @@ export function PortalProvider({
     () => ({
       set,
       toggleTheme,
+      beforeNavigate,
       goTo,
       notify,
       closeToast,
@@ -900,7 +922,7 @@ export function PortalProvider({
       markRead,
     }),
     [
-      set, toggleTheme, goTo, notify, closeToast, confirm, closeConfirm, closeModal, openModal,
+      set, toggleTheme, beforeNavigate, goTo, notify, closeToast, confirm, closeConfirm, closeModal, openModal,
       openMenu, signOut, addToCart, changeQty, removeItem, clearCart, recordSale,
       editSale, refundSale, undoRefund, openProduct, saveProduct, toggleFav,
       toggleActive, deleteProduct, openMovement, saveMovement, undoMovement, openCost, saveCost,

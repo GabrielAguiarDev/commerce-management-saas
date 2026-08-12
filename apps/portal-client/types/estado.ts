@@ -340,6 +340,12 @@ export type Patch = Partial<PortalState>;
 export interface PortalActions {
   set: (p: Patch) => void;
   toggleTheme: () => void;
+  /**
+   * Fecha o que é passageiro (gaveta, menu de linha, notificações) e diz se a
+   * saída da tela pode acontecer. Usado pelo `<NavLink>`, que navega por conta
+   * própria e só pode ser cancelado.
+   */
+  beforeNavigate: (rota: string) => boolean;
   goTo: (rota: string) => void;
   notify: (text: string, tone?: ToastTone) => void;
   /** Fecha o aviso na mão, com a mesma saída de quando o tempo se esgota. */

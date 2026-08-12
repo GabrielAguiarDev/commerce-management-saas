@@ -271,6 +271,13 @@ export interface AdminActions {
    * clique, sem que cada diálogo precise do seu próprio "salvando".
    */
   confirmModal: () => Promise<void>;
+  /**
+   * Closes the transient chrome (drawer, row menus, tooltips) and answers
+   * whether leaving the current screen is allowed. A customer record with
+   * unsaved edits prompts first and returns `false`. Used by `<NavLink>`, which
+   * navigates on its own and can only be cancelled.
+   */
+  beforeNavigate: (href: string) => boolean;
   /** Navigate, prompting first when a customer record has unsaved edits. */
   goTo: (href: string) => void;
   openCustomer: (id: string) => void;

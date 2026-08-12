@@ -3,6 +3,7 @@
 import { useAdmin } from "@/components/AdminProvider";
 import { Button, SearchField, css, MENU_ITEM, ActionsMenu, MONO, Select } from "@aguiar/ui";
 import { BaixarIcone, ClientesNovoIcone } from "@/lib/icons";
+import { NavLink } from "@/components/NavLink";
 import { BusinessCell } from "@/components/shared";
 import { planByKey } from "@/lib/planos";
 import { ROUTES } from "@/lib/rotas";
@@ -172,8 +173,8 @@ export function ClientesView() {
                 de cadastrar pela mesma linha. */}
             {!isMobile && L.exportarCsv}
           </Button>
-          <Button
-            onClick={() => a.goTo(ROUTES.novoCliente)}
+          <NavLink
+            href={ROUTES.novoCliente}
             className="hv-brilho"
             style={css(
               "display:flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);" +
@@ -183,7 +184,7 @@ export function ClientesView() {
           >
             <span style={css("font-size:14px;line-height:1")}>+</span>
             {L.novoCliente}
-          </Button>
+          </NavLink>
         </div>
       </div>
 
@@ -352,8 +353,8 @@ export function ClientesView() {
           <span style={css("font-size:12.5px;color:var(--text2);line-height:1.55;max-width:44ch")}>
             {L.vazioClientesTexto}
           </span>
-          <Button
-            onClick={() => a.goTo(ROUTES.novoCliente)}
+          <NavLink
+            href={ROUTES.novoCliente}
             className="hv-brilho"
             style={css(
               "margin-top:4px;display:flex;align-items:center;gap:7px;background:var(--accent);" +
@@ -363,7 +364,7 @@ export function ClientesView() {
           >
             <span style={css("font-size:14px;line-height:1")}>+</span>
             {L.vazioClientesBotao}
-          </Button>
+          </NavLink>
         </div>
       )}
     </section>

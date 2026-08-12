@@ -15,6 +15,7 @@ import {
   TABLE_HEADER,
 } from "@aguiar/ui";
 import { useAdmin } from "@/components/AdminProvider";
+import { NavLink } from "@/components/NavLink";
 import {
   fetchExistingKeys,
   importProducts,
@@ -250,8 +251,8 @@ export function ImportarProdutosView({ customerId }: { customerId: string }) {
 
   return (
     <div style={css("display:flex;flex-direction:column;gap:16px")}>
-      <Button
-        onClick={() => a.goTo(customerHref(customerId))}
+      <NavLink
+        href={customerHref(customerId)}
         className="hv-acc"
         style={css(
           "align-self:flex-start;background:none;border:none;color:var(--text2);font-size:12.5px;" +
@@ -259,7 +260,7 @@ export function ImportarProdutosView({ customerId }: { customerId: string }) {
         )}
       >
         ← {L.voltarAoCliente}
-      </Button>
+      </NavLink>
 
       <ScreenHeader title={L.importar} subtitle={`${L.subtituloImportar} ${c.name}.`} />
 
