@@ -18,7 +18,7 @@ import {
   VisaoIcone,
 } from "@/lib/icons";
 import { ROUTES, isActiveRoute } from "@/lib/rotas";
-import { navStyle } from "@/lib/styleKit";
+import { headerHeight, navStyle } from "@/lib/styleKit";
 
 /**
  * O id da barra lateral. O botão da gaveta, lá na barra de topo, aponta para
@@ -120,13 +120,23 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
       inert={isMobile && !s.navOpen}
     >
       <div
+        // A altura vem de `headerHeight`, a mesma que a barra de topo usa: é o
+        // que põe as duas linhas de base na mesma altura, formando uma única
+        // linha contínua em vez do degrau que havia no encontro das duas.
         style={css(
-          "position:relative;height:66px;flex:none;display:flex;align-items:center;gap:11px;" +
+          "position:relative;height:" +
+            headerHeight(isMobile) +
+            ";flex:none;display:flex;align-items:center;gap:11px;" +
             "border-bottom:1px solid var(--side-border);" +
-            (col ? "padding:0 34px 0 12px;" : "padding:0 42px 0 16px;"),
+            (col ? "padding:0 30px 0 13px;" : "padding:0 42px 0 16px;"),
         )}
       >
-        <Logo size={36} priority />
+        {/* Sem o ladrilho petrol atrás, o "A" pousa direto na barra e podia
+            crescer: o arquivo é um ícone de app, com folga própria nas bordas,
+            então o desenho só ganha presença se a caixa ganhar. Recolhida, a
+            barra tem 84px de largura e a caixa cede o suficiente para não
+            encostar no botão. */}
+        <Logo size={col ? 38 : 44} priority />
         <div
           style={css(
             col
@@ -152,12 +162,26 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
               isMobile ? { navOpen: false } : { collapsed: !st.collapsed, hint: null },
             )
           }
-          className="hv-side"
+          className="hv-menu"
+          /**
+           * O fundo é o da BARRA DE TOPO, não o da barra lateral.
+           *
+           * Ele fica exatamente na costura entre as duas, e com o lavado de
+           * branco da barra escura (`--side-card`) aparecia como um bloco
+           * solto, colado na marca. Vestido de `--surface` — com a borda e o
+           * texto da mesma família — ele deixa de ser um terceiro elemento:
+           * lê-se como a superfície do cabeçalho do conteúdo entrando na
+           * lateral, arredondada só do lado de fora e sem borda do lado em que
+           * encosta.
+           *
+           * Centrado por `top:50%`, e não por um `top` fixo: a faixa mudou de
+           * altura e ainda pode mudar de novo.
+           */
           style={css(
-            "position:absolute;top:18px;right:0;width:26px;height:30px;border-radius:8px 0 0 8px;" +
-              "display:flex;align-items:center;justify-content:center;border:1px solid var(--side-border);" +
-              "border-right:none;background:var(--side-card);color:var(--side-text2);cursor:pointer;" +
-              "padding:0;transition:color .12s,background .12s" +
+            "position:absolute;top:50%;transform:translateY(-50%);right:0;width:26px;height:30px;" +
+              "border-radius:8px 0 0 8px;display:flex;align-items:center;justify-content:center;" +
+              "border:1px solid var(--border);border-right:none;background:var(--surface);" +
+              "color:var(--text2);cursor:pointer;padding:0;transition:color .12s,background .12s" +
               (isMobile ? ";font-size:17px;line-height:1" : ""),
           )}
           aria-label={isMobile ? L.fecharMenu : col ? L.expandir : L.colapsar}

@@ -10,6 +10,23 @@ import type { Language, Plan, Priority, TicketStatus, CustomerStatus } from "@/t
  * urgente ganha, como um módulo desligado aparece.
  */
 
+/**
+ * A ALTURA DA FAIXA DE TOPO — uma só, lida pelos dois cabeçalhos.
+ *
+ * O topo da barra lateral (onde está a marca) e o topo do conteúdo (onde está
+ * o título da tela) são duas caixas independentes que se encostam. Cada uma
+ * termina num `border-bottom`, e enquanto as alturas vinham de lugares
+ * diferentes — 66px fixos de um lado, o texto mais o respiro do outro — as
+ * duas linhas caíam em alturas diferentes: um degrau bem no canto onde elas se
+ * encontram, que é o que fazia a tela parecer ter dois fundos.
+ *
+ * Daqui em diante a altura é ESTE número, e ninguém mede o cabeçalho por
+ * conta própria. Como `tokens.css` põe tudo em `border-box`, a borda entra na
+ * conta: as duas linhas terminam no mesmo pixel e atravessam a tela como uma
+ * só. Mudar a faixa é mudar esta linha.
+ */
+export const headerHeight = (isMobile: boolean) => (isMobile ? "62px" : "72px");
+
 /** O selo do painel sempre tem contorno; é o que o distingue nas tabelas densas. */
 export const panelBadge = (tone: Tone) => badge(tone, { bordered: true });
 

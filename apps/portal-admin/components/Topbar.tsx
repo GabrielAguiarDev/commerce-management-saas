@@ -7,7 +7,7 @@ import { NAV_ID } from "@/components/Sidebar";
 import { todayLabel } from "@/lib/datas";
 import { IdiomaIcone, LuaIcone, SinoIcone, SolIcone } from "@/lib/icons";
 import { ROUTES } from "@/lib/rotas";
-import { planName } from "@/lib/styleKit";
+import { headerHeight, planName } from "@/lib/styleKit";
 
 interface TopbarProps {
   title: string;
@@ -75,10 +75,23 @@ export function Topbar({ title, subtitle }: TopbarProps) {
 
   return (
     <header
+      /**
+       * A altura é a MESMA da faixa do topo da barra lateral (`headerHeight`),
+       * e não mais a soma do título com o respiro: era essa conta que fazia as
+       * duas linhas de base pararem em alturas diferentes.
+       *
+       * Por isso o respiro vertical sai do `padding` — quem centra o conteúdo
+       * na faixa agora é o `align-items`. `flex:none` protege a altura nas
+       * telas de altura travada, onde a casca é um flex que pode encolher os
+       * filhos.
+       */
       style={css(
         "display:flex;align-items:center;justify-content:space-between;background:var(--surface);" +
-          "border-bottom:1px solid var(--border);position:sticky;top:0;z-index:6;" +
-          (isMobile ? "gap:10px;padding:11px 14px" : "gap:24px;padding:16px 30px"),
+          "border-bottom:1px solid var(--border);position:sticky;top:0;z-index:6;flex:none;" +
+          "height:" +
+          headerHeight(isMobile) +
+          ";" +
+          (isMobile ? "gap:10px;padding:0 14px" : "gap:24px;padding:0 30px"),
       )}
     >
       {/* O botão da gaveta. Só existe no celular — no desktop a barra lateral
