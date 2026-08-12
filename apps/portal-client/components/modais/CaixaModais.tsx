@@ -11,7 +11,7 @@ import {
   sumByMethod,
   QUICK_CHANGE,
 } from "@/lib/dados/caixa";
-import { METHODS, METHOD_NOTE } from "@/lib/dados/vendas";
+import { METHODS, METHOD_NOTE, PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { brl, brlDelta, deltaColor, parseBrNumber, dateLabel } from "@/lib/formato";
 import { cashInDrawer, expectedInShift, salesInShift } from "@/lib/selectors";
 import type { ClosedRegister } from "@/types/types";
@@ -288,7 +288,7 @@ export function CaixaFecharModal() {
               )}
             >
               <span style={css("flex:1;min-width:0")}>
-                <span style={css(`display:block;font:600 12.5px ${SANS}`)}>{forma}</span>
+                <span style={css(`display:block;font:600 12.5px ${SANS}`)}>{PAYMENT_LABEL[forma]}</span>
                 <span style={css(`display:block;margin-top:2px;font:500 11px ${SANS};color:var(--muted)`)}>
                   {METHOD_NOTE[forma]}
                 </span>

@@ -3,6 +3,7 @@
 import { usePortal } from "@/components/PortalProvider";
 import { Button, css, MONO, NUM, PANEL, SANS, PANEL_TITLE, SCREEN_TITLE } from "@aguiar/ui";
 import { MODULES } from "@/lib/dados/perfis";
+import { PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { brl, shortBrl, longDate, weekday, dateLabel, greeting, totalV } from "@/lib/formato";
 import { POS_ROUTE, ROUTES } from "@/lib/rotas";
 import {
@@ -335,7 +336,7 @@ export function DashboardView() {
                       `flex:none;padding:3px 9px;border-radius:999px;background:var(--surface3);color:var(--text2);font:600 11px ${SANS}`,
                     )}
                   >
-                    {v.payment}
+                    {PAYMENT_LABEL[v.payment]}
                   </span>
                 )}
                 <span

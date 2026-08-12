@@ -3,6 +3,7 @@
 import { ModalFrame } from "@/components/modais/Base";
 import { usePortal } from "@/components/PortalProvider";
 import { css, MONO, NUM, SANS } from "@aguiar/ui";
+import { PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { brl, dateLabel, totalV } from "@/lib/formato";
 import type { Sale } from "@/types/types";
 
@@ -14,7 +15,7 @@ export function VendaDetalheModal({ sale }: { sale: Sale }) {
     <ModalFrame
       closeLabel="Fechar"
       title="Detalhes da venda"
-      subtitle={`${dateLabel(sale.d, sale.time)} · ${sale.payment}`}
+      subtitle={`${dateLabel(sale.d, sale.time)} · ${PAYMENT_LABEL[sale.payment]}`}
       width={440}
       onClose={a.closeModal}
     >

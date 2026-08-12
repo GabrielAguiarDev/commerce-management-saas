@@ -2,7 +2,7 @@
 
 import { usePortal } from "@/components/PortalProvider";
 import { Button, ScreenHeader, css, PILL_GROUP, MONO, NUM, pill, KPI_LABEL, SANS, Empty } from "@aguiar/ui";
-import { METHODS } from "@/lib/dados/vendas";
+import { METHODS, PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { brl, shortBrl, ddmm, weekday, qtdV, totalV } from "@/lib/formato";
 import {
   costOfSales,
@@ -330,7 +330,12 @@ function SalesBlock({
   const total = totalRevenue(sales);
   const payments = METHODS.map((forma) => {
     const amount = valid.filter((v) => v.payment === forma).reduce((x, v) => x + totalV(v), 0);
-    return { name: forma, amount, pct: total > 0 ? (amount / total) * 100 : 0, color: PAYMENT_COLOR[forma] };
+    return {
+      name: PAYMENT_LABEL[forma],
+      amount,
+      pct: total > 0 ? (amount / total) * 100 : 0,
+      color: PAYMENT_COLOR[forma],
+    };
   }).filter((p) => p.amount > 0);
 
   return (

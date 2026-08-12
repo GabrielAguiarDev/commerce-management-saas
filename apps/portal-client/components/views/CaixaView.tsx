@@ -4,7 +4,7 @@ import { usePortal } from "@/components/PortalProvider";
 import { RowMenu } from "@/components/ui";
 import { primaryButton, Button, TABLE_HEADER, ScreenHeader, css, kpiStrip, LIST, MONO, NUM, KPI_LABEL, columnLabel, SANS, Empty } from "@aguiar/ui";
 import { REGISTER_MOVEMENT_STYLE, movementsBalance, sumByMethod } from "@/lib/dados/caixa";
-import { METHODS, METHOD_NOTE } from "@/lib/dados/vendas";
+import { METHODS, METHOD_NOTE, PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { brl, brlDelta, deltaColor, dateLabel } from "@/lib/formato";
 import { cashInDrawer, expectedInShift, salesInShift } from "@/lib/selectors";
 import type { ClosedRegister } from "@/types/types";
@@ -157,7 +157,7 @@ export function CaixaView() {
                       )}
                     />
                     <span style={css("flex:1;min-width:0")}>
-                      <span style={css(`display:block;font:600 13.5px ${SANS}`)}>{f}</span>
+                      <span style={css(`display:block;font:600 13.5px ${SANS}`)}>{PAYMENT_LABEL[f]}</span>
                       <span
                         style={css(`display:block;margin-top:2px;font:500 11.5px ${SANS};color:var(--muted)`)}
                       >
@@ -322,8 +322,8 @@ export function CaixaView() {
 
           {/* O esperado por forma, já visível antes de abrir a conferência. */}
           <p style={css(`margin:12px 0 0;font:500 11.5px ${SANS};color:var(--muted)`)}>
-            Se fechasse now, o expected seria{" "}
-            {METHODS.map((f) => `${f} ${brl(expected[f])}`).join(" · ")}.
+            Se fechasse agora, o esperado seria{" "}
+            {METHODS.map((f) => `${PAYMENT_LABEL[f]} ${brl(expected[f])}`).join(" · ")}.
           </p>
         </div>
       )}

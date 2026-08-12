@@ -15,6 +15,13 @@ export const METHOD_NOTE: Record<PaymentMethod, string> = {
  * português. A tradução mora aqui para o banco não depender do idioma da
  * interface — e para trocar o rótulo não virar migração.
  */
+export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  cash: "Dinheiro",
+  pix: "Pix",
+  debit: "Débito",
+  credit: "Crédito",
+};
+
 export const PAYMENT_DB: Record<PaymentMethod, string> = {
   cash: "cash",
   pix: "pix",

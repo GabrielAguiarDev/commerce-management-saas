@@ -1,8 +1,9 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
-import { Button, field, css, MONO, NUM, PANEL, SANS, SimpleSelect } from "@aguiar/ui";
+import { Button, field, css, MONO, NUM, PANEL, SANS, Select } from "@aguiar/ui";
 import { brl } from "@/lib/formato";
+import { PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { ROUTES } from "@/lib/rotas";
 import type { Product } from "@/types/types";
 
@@ -314,12 +315,17 @@ export function PdvView() {
               <label style={css(`display:block;margin-bottom:7px;font:600 11px ${SANS};color:var(--text2)`)}>
                 Forma de pagamento
               </label>
-              <SimpleSelect
+              <Select
                 value={s.currentMethod}
-                options={s.acceptedMethods}
-                onChange={(v) => a.set({ currentMethod: v as typeof s.currentMethod })}
+                onChange={(e) => a.set({ currentMethod: e.target.value as typeof s.currentMethod })}
                 cssText={field(false, true).replace("padding:13px 14px", "padding:12px 12px")}
-              />
+              >
+                {s.acceptedMethods.map((f) => (
+                  <option key={f} value={f}>
+                    {PAYMENT_LABEL[f]}
+                  </option>
+                ))}
+              </Select>
 
               <div
                 style={css(

@@ -253,7 +253,7 @@ export function BottomBar() {
             `border-radius:13px;background:var(--accent);color:var(--accent-ink);font:700 15px ${SANS};box-shadow:var(--shadow-lg)`,
         )}
       >
-        <span style={css(`font:600 17px/1 ${MONO}`)}>+</span>Nova sale
+        <span style={css(`font:600 17px/1 ${MONO}`)}>+</span>Nova venda
       </NavLink>
     </div>
   );

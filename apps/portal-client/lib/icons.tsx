@@ -83,3 +83,31 @@ export function ModuleIcon({ module, size = 20 }: { module: ModuleKey; size?: nu
     </svg>
   );
 }
+
+/**
+ * O par do botão de tema, traçado igual ao do console admin — mesma grade de 18
+ * e mesmos vértices. Antes eram os glifos `☀`/`☾` do texto, e é por isso que os
+ * dois portais mostravam desenhos diferentes: a lua de um glifo é a que a fonte
+ * do sistema tiver, não a da marca.
+ */
+export function SunIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden>
+      <circle cx="9" cy="9" r="3.4" fill="currentColor" />
+      <path
+        d="M9 .8v2.6M9 14.6v2.6M.8 9h2.6M14.6 9h2.6M3.2 3.2l1.9 1.9M12.9 12.9l1.9 1.9M14.8 3.2l-1.9 1.9M5.1 12.9l-1.9 1.9"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function MoonIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden>
+      <path d="M15.2 11.4A6.8 6.8 0 0 1 6.6 2.8a6.9 6.9 0 1 0 8.6 8.6Z" fill="currentColor" />
+    </svg>
+  );
+}

@@ -2,8 +2,8 @@
 
 import { usePortal } from "@/components/PortalProvider";
 import { RowMenu } from "@/components/ui";
-import { NewButton, Button, TABLE_HEADER, ScreenHeader, css, PILL_GROUP, ClearFilters, LIST, MONO, NUM, PANEL, pill, columnLabel, SANS, SimpleSelect, PANEL_TITLE, Empty } from "@aguiar/ui";
-import { METHODS } from "@/lib/dados/vendas";
+import { NewButton, Button, TABLE_HEADER, ScreenHeader, css, PILL_GROUP, ClearFilters, LIST, MONO, NUM, PANEL, pill, columnLabel, SANS, Select, SimpleSelect, PANEL_TITLE, Empty } from "@aguiar/ui";
+import { METHODS, PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { brl, qtdV, itemSummary, dateLabel, totalV } from "@/lib/formato";
 import { POS_ROUTE } from "@/lib/rotas";
 import { totalRevenue, itemsSold } from "@/lib/selectors";
@@ -38,7 +38,7 @@ export function VendasView() {
     if (f.payment !== ALL_METHODS && v.payment !== f.payment) return false;
     if (f.product !== ALL_PRODUCTS && !v.items.some((i) => i.name === f.product)) return false;
     if (f.search.trim()) {
-      const alvo = `${itemSummary(v.items)} ${v.payment} ${v.time}`.toLowerCase();
+      const alvo = `${itemSummary(v.items)} ${PAYMENT_LABEL[v.payment]} ${v.time}`.toLowerCase();
       if (!alvo.includes(f.search.trim().toLowerCase())) return false;
     }
     return true;
@@ -146,7 +146,14 @@ export function VendasView() {
             ))}
           </div>
 
-          <SimpleSelect value={f.payment} options={[ALL_METHODS, ...METHODS]} onChange={(v) => set({ payment: v })} />
+          <Select value={f.payment} onChange={(e) => set({ payment: e.target.value })}>
+            <option value={ALL_METHODS}>{ALL_METHODS}</option>
+            {METHODS.map((m) => (
+              <option key={m} value={m}>
+                {PAYMENT_LABEL[m]}
+              </option>
+            ))}
+          </Select>
           <SimpleSelect
             value={f.product}
             options={[ALL_PRODUCTS, ...productNames]}
@@ -231,7 +238,7 @@ function SaleRow({
                 text:
                   "A venda sai do faturamento e o estoque dos itens volta. Ela continua no histórico, riscada.",
                 summary: itemSummary(v.items),
-                detail: `${dateLabel(v.d, v.time)} · ${brl(total)} · ${v.payment}`,
+                detail: `${dateLabel(v.d, v.time)} · ${brl(total)} · ${PAYMENT_LABEL[v.payment]}`,
                 reversal: "Dá para desfazer o estorno depois, pelo menu da própria venda.",
                 button: "Estornar venda",
                 buttonBg: "var(--danger)",
@@ -288,7 +295,7 @@ function SaleRow({
           </span>
           <span style={css(`text-align:center;font:600 12.5px ${MONO};color:var(--text2)`)}>{qtdV(v)}</span>
           <span>
-            <span style={css(BADGE_NEUTRAL)}>{v.payment}</span>
+            <span style={css(BADGE_NEUTRAL)}>{PAYMENT_LABEL[v.payment]}</span>
           </span>
           <span style={css(`text-align:right;font:700 13.5px ${SANS};${NUM};color:${color};${risk}`)}>
             {brl(total)}
@@ -308,7 +315,7 @@ function SaleRow({
               {itemSummary(v.items)}
             </div>
             <div style={css("margin-top:7px;display:flex;align-items:center;gap:8px")}>
-              <span style={css(BADGE_NEUTRAL)}>{v.payment}</span>
+              <span style={css(BADGE_NEUTRAL)}>{PAYMENT_LABEL[v.payment]}</span>
               <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>
                 {qtdV(v)} {qtdV(v) === 1 ? "item" : "itens"}
               </span>

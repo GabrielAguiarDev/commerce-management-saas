@@ -42,11 +42,19 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
 
+  /**
+   * O ícone da ABA não entra aqui: quem o serve é o `app/favicon.ico`, pela
+   * convenção de arquivo do Next. É o `.ico` de fundo transparente de propósito
+   * — na aba o ícone senta sobre a barra do navegador, que muda de cor com o
+   * tema do sistema, e um ladrilho petrol viraria um quadrado escuro no meio de
+   * uma barra clara.
+   *
+   * Os ladrilhos opacos (`/icons/icon-*.png`) continuam valendo onde o sistema
+   * pede um ícone quadrado e cheio, e só lá: o manifesto os declara para o app
+   * instalado, e o `apple-touch-icon` faz esse papel no iOS. Declarar qualquer
+   * um deles como `icons.icon` é o que trazia o fundo de volta para a aba.
+   */
   icons: {
-    icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
 

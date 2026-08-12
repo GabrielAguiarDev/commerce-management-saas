@@ -5,6 +5,7 @@ import { NavLink } from "@/components/NavLink";
 import { usePortal } from "@/components/PortalProvider";
 import { primaryButton, Button, css, MONO, NUM, SANS } from "@aguiar/ui";
 import { brl, longDate } from "@/lib/formato";
+import { MoonIcon, SunIcon } from "@/lib/icons";
 import { totalRevenue, productsOutOfStock } from "@/lib/selectors";
 import { POS_ROUTE, ROUTES } from "@/lib/rotas";
 
@@ -119,11 +120,12 @@ export function Topbar() {
             title={s.theme === "light" ? "Usar tema escuro" : "Usar tema claro"}
             className="hv-borda"
             style={css(
-              "width:36px;height:36px;border-radius:9px;border:1px solid var(--border);" +
-                `background:var(--surface2);color:var(--text2);font:600 13px ${MONO}`,
+              "display:flex;align-items:center;justify-content:center;padding:0;" +
+                "width:36px;height:36px;border-radius:9px;border:1px solid var(--border);" +
+                "background:var(--surface2);color:var(--text2)",
             )}
           >
-            {s.theme === "light" ? "☾" : "☀"}
+            {s.theme === "light" ? <MoonIcon /> : <SunIcon />}
           </Button>
 
           {isDesktop && has("sales") && !inPos && (
@@ -132,7 +134,7 @@ export function Topbar() {
               className="hv-brilho"
               style={css(`display:flex;align-items:center;gap:9px;${primaryButton("sm")}`)}
             >
-              <span style={css(`font:600 15px/1 ${MONO}`)}>+</span>Nova sale
+              <span style={css(`font:600 15px/1 ${MONO}`)}>+</span>Nova venda
             </NavLink>
           )}
         </div>

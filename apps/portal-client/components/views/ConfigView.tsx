@@ -21,7 +21,7 @@ import { usePortal } from "@/components/PortalProvider";
 import { RowMenu } from "@/components/ui";
 import { MODULES, PERMISSION_MODULES } from "@/lib/dados/perfis";
 import { categoriesOf } from "@/lib/dados/produtos";
-import { METHODS, METHOD_NOTE } from "@/lib/dados/vendas";
+import { METHODS, METHOD_NOTE, PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { dataDirty } from "@/lib/estado";
 import { initialsOf } from "@/lib/formato";
 import { ROUTES } from "@/lib/rotas";
@@ -241,7 +241,7 @@ function PreferencesTab() {
               key={f}
               on={s.acceptedMethods.includes(f)}
               onToggle={() => a.toggleMethod(f)}
-              title={f}
+              title={PAYMENT_LABEL[f]}
               note={METHOD_NOTE[f]}
               state={s.acceptedMethods.includes(f) ? "Aceito" : "Desligado"}
             />
