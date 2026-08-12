@@ -277,7 +277,7 @@ export function ClientesView() {
                 onClick={() => a.openCustomer(c.id)}
                 style={css(
                   "width:100%;display:flex;align-items:center;justify-content:center;" +
-                    "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);" +
+                    "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent-text);" +
                     "font-size:13px;font-weight:500;padding:10px;border-radius:9px;cursor:pointer",
                 )}
               >
@@ -313,7 +313,7 @@ export function ClientesView() {
                 onClick={() => a.openCustomer(c.id)}
                 className="hv-brilho-sm"
                 style={css(
-                  "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);" +
+                  "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent-text);" +
                     "font-size:12px;font-weight:500;padding:7px 12px;border-radius:7px;cursor:pointer",
                 )}
               >
@@ -341,7 +341,7 @@ export function ClientesView() {
           <div
             style={css(
               "width:50px;height:50px;border-radius:14px;background:var(--accent-soft);" +
-                "border:1px solid var(--accent-line);color:var(--accent);display:flex;" +
+                "border:1px solid var(--accent-line);color:var(--accent-text);display:flex;" +
                 "align-items:center;justify-content:center",
             )}
           >

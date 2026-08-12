@@ -135,7 +135,7 @@ export function PlanosView() {
                 <div style={css("display:flex;flex-direction:column;gap:3px")}>
                   <span
                     style={css(
-                      "font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--accent)",
+                      "font-size:22px;font-weight:600;letter-spacing:-.02em;color:var(--accent-text)",
                     )}
                   >
                     {L.semPrecoFixo}

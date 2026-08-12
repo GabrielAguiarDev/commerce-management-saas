@@ -67,7 +67,7 @@ export function SuporteView() {
         >
           <span
             style={css(
-              "width:46px;height:46px;border-radius:13px;background:var(--accent-soft);color:var(--accent);" +
+              "width:46px;height:46px;border-radius:13px;background:var(--accent-soft);color:var(--accent-text);" +
                 `display:flex;align-items:center;justify-content:center;font:700 15px ${MONO}`,
             )}
           >

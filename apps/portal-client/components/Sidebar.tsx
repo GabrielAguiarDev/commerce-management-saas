@@ -179,7 +179,7 @@ export function Sidebar() {
         >
           <span
             style={css(
-              "flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent);" +
+              "flex:none;width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent-text);" +
                 `display:flex;align-items:center;justify-content:center;font:600 11px ${MONO}`,
             )}
           >
@@ -236,7 +236,7 @@ function ItemMenu({
         "position:relative;display:flex;align-items:center;gap:11px;width:100%;padding:9px;" +
           "border-radius:9px;text-align:left;" +
           (active
-            ? `background:var(--accent-soft);color:var(--accent);font:600 13.5px ${SANS};box-shadow:inset 0 0 0 1px var(--accent-soft)`
+            ? `background:var(--accent-soft);color:var(--accent-text);font:600 13.5px ${SANS};box-shadow:inset 0 0 0 1px var(--accent-soft)`
             : `background:transparent;color:var(--text2);font:500 13.5px ${SANS}`),
       )}
     >

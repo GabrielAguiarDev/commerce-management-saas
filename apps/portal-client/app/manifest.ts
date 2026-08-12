@@ -1,3 +1,4 @@
+import { BRAND } from "@aguiar/ui";
 import type { MetadataRoute } from "next";
 
 /**
@@ -56,7 +57,7 @@ export default function manifest(): MetadataRoute.Manifest {
     // do splash do app mobile e da barra lateral do console. Emendar a moldura
     // do sistema com o fundo do ícone é o que faz o portal instalado parecer um
     // programa e não uma página.
-    theme_color: "#020e18",
+    theme_color: BRAND.ink,
 
     orientation: "any",
     categories: ["business", "finance", "productivity"],

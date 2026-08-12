@@ -249,7 +249,7 @@ export function DashboardView() {
                   <span
                     style={css(
                       "width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;" +
-                        `font:600 10px ${MONO};background:var(--accent-soft);color:var(--accent)`,
+                        `font:600 10px ${MONO};background:var(--accent-soft);color:var(--accent-text)`,
                     )}
                   >
                     {x.initials}
@@ -293,7 +293,7 @@ export function DashboardView() {
             onClick={() => a.goTo(ROUTES.sales)}
             className="hv-acc-borda"
             style={css(
-              `padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--accent);font:600 12.5px ${SANS}`,
+              `padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--accent-text);font:600 12.5px ${SANS}`,
             )}
           >
             Ver todas

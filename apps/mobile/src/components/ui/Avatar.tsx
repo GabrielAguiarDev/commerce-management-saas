@@ -6,7 +6,7 @@ interface AvatarProps {
   size?: number;
 }
 
-/** Círculo teal claro com as iniciais. Header e lista de equipe usam o mesmo. */
+/** Círculo azul-claro da marca com as iniciais. Header e lista de equipe usam o mesmo. */
 export function Avatar({ initials, size = 38 }: AvatarProps) {
   return (
     <Box
@@ -20,7 +20,7 @@ export function Avatar({ initials, size = 38 }: AvatarProps) {
       accessibilityRole="image"
       accessibilityLabel={`Avatar de ${initials}`}
     >
-      <Text variant="avatarInitials" color="primary">
+      <Text variant="avatarInitials" color="primaryText">
         {initials}
       </Text>
     </Box>

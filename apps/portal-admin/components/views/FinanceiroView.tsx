@@ -428,7 +428,7 @@ export function FinanceiroView() {
             <div
               style={css(
                 "width:48px;height:48px;border-radius:13px;background:var(--accent-soft);" +
-                  "border:1px solid var(--accent-line);color:var(--accent);display:flex;" +
+                  "border:1px solid var(--accent-line);color:var(--accent-text);display:flex;" +
                   "align-items:center;justify-content:center",
               )}
             >

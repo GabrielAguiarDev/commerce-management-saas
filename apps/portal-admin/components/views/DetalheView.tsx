@@ -132,7 +132,7 @@ export function DetalheView({ customerId }: { customerId: string }) {
         <div
           style={css(
             "flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;" +
-              "font-weight:600;background:var(--accent-soft);color:var(--accent);" +
+              "font-weight:600;background:var(--accent-soft);color:var(--accent-text);" +
               (isMobile ? "width:46px;height:46px;font-size:15px" : "width:58px;height:58px;font-size:18px"),
           )}
         >
@@ -325,7 +325,7 @@ export function DetalheView({ customerId }: { customerId: string }) {
             <div style={css("display:flex;flex-direction:column;align-items:flex-end;gap:2px")}>
               <span
                 style={css(
-                  `font-family:${MONO};font-size:20px;font-weight:600;color:var(--accent);line-height:1`,
+                  `font-family:${MONO};font-size:20px;font-weight:600;color:var(--accent-text);line-height:1`,
                 )}
               >
                 {r.mods.length}/{s.modules.length}

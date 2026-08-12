@@ -110,7 +110,7 @@ export function ConfigView() {
                   className="hv-acc-soft-borda"
                   style={css(
                     "display:flex;align-items:center;gap:8px;border:1px solid transparent;" +
-                      `background:none;font-family:${MONO};font-size:12px;color:var(--accent);` +
+                      `background:none;font-family:${MONO};font-size:12px;color:var(--accent-text);` +
                       "border-radius:7px;padding:5px 8px;cursor:pointer",
                   )}
                 >

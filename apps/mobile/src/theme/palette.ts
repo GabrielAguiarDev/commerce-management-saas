@@ -23,6 +23,28 @@
 const BRAND_PRIMARY = '#1B9ABD';
 const BRAND_SECONDARY = '#020E18';
 
+/**
+ * A marca nos dois outros pontos de luminosidade de que os temas precisam.
+ *
+ * As duas são o MESMO AZUL — matiz 193°, o do "A" — e só isso: uma é a marca
+ * aberta para sobreviver sobre o fundo escuro, a outra é a marca fechada para
+ * poder ser LIDA sobre o fundo claro. Derivam de `BRAND_PRIMARY` e não existem
+ * sozinhas; trocar a marca é trocar as três, e nada mais.
+ *
+ * O que NÃO pode voltar a acontecer: a primária do tema escuro escorregar para
+ * o teal (`#2fb3ba`, matiz 183°). Foi o que estava aqui, e o problema não era
+ * o tom em si — era ter saído do azul da marca e ido parar ao lado do verde de
+ * lucro, de forma que "primário" e "positivo" viravam a mesma cor de relance.
+ * Azul é a marca; verde é dinheiro. Nunca a mesma família.
+ *
+ * `PRIMARY_DARK` dá 7,1:1 sobre `surfaceDark`, contra 5,2:1 da marca chapada.
+ * `PRIMARY_TEXT` dá 5,3:1 sobre branco e 4,7:1 sobre `bgLight`, onde a marca
+ * chapada dá 3,3:1 — suficiente para um botão ou uma borda, não para uma
+ * palavra.
+ */
+const BRAND_PRIMARY_DARK = '#35b5da';
+const BRAND_PRIMARY_TEXT = '#0e7590';
+
 export const palette = {
   // ── Claro ────────────────────────────────────────────────────────────────
   brandPrimary: BRAND_PRIMARY,
@@ -33,8 +55,10 @@ export const palette = {
   lineLight: 'rgba(15,42,54,0.11)',
   textLight: '#0f2a34',
   mutedLight: '#5f7783',
-  tealLight: '#0e7c86',
-  tealSoftLight: '#e0f1f2',
+  /** A marca ESCRITA sobre superfície clara — ver `BRAND_PRIMARY_TEXT`. */
+  primaryTextLight: BRAND_PRIMARY_TEXT,
+  /** A marca lavada em branco a 12%. Fundo de avatar, chip e ícone destacado. */
+  primarySoftLight: '#e4f3f7',
   greenLight: '#17795e',
   greenSoftLight: '#e2f2ec',
   redLight: '#c4453c',
@@ -45,21 +69,27 @@ export const palette = {
   onPetrolLight: '#eaf4f5',
 
   // ── Escuro ───────────────────────────────────────────────────────────────
-  bgDark: '#0b1a21',
-  surfaceDark: '#132a34',
-  surface2Dark: '#193540',
+  // O chão do tema escuro é o CHÃO DA LOGO: `bgDark` é o secundário da marca
+  // levantado o mínimo para não ser preto, e cada superfície acima dele sobe
+  // pelo mesmo azul quase-marinho. O app escuro e a marca que ele carrega
+  // passam a estar na mesma luz. Os degraus continuam onde estavam: `surface`
+  // é o card, `surface2` o campo.
+  bgDark: '#030f1a',
+  surfaceDark: '#0a1e2b',
+  surface2Dark: '#102836',
   lineDark: 'rgba(255,255,255,0.10)',
   textDark: '#e9f2f4',
   mutedDark: '#94aeb8',
-  tealDark: '#2fb3ba',
-  tealSoftDark: 'rgba(47,179,186,0.16)',
-  greenDark: '#43c193',
-  greenSoftDark: 'rgba(67,193,147,0.15)',
+  primaryDark: BRAND_PRIMARY_DARK,
+  primarySoftDark: 'rgba(53,181,218,0.16)',
+  /** Verde de lucro, um passo mais verde para não vizinhar com o azul. */
+  greenDark: '#3fc98c',
+  greenSoftDark: 'rgba(63,201,140,0.15)',
   redDark: '#e3736a',
   redSoftDark: 'rgba(227,115,106,0.15)',
   amberDark: '#e0a950',
   amberSoftDark: 'rgba(224,169,80,0.14)',
-  petrolDark: '#0d2029',
+  petrolDark: '#061a28',
   onPetrolDark: '#e9f2f4',
 
   // ── Constantes de marca (não mudam com o tema) ───────────────────────────
@@ -67,9 +97,15 @@ export const palette = {
   black: '#000000',
   transparent: 'transparent',
 
-  /** Topo e base do gradiente do FAB de nova venda. */
-  fabTop: '#149ba6',
-  fabBottom: '#0b6b74',
+  /**
+   * A sombra colorida sob o FAB do carrinho.
+   *
+   * É a marca fechada em direção ao seu próprio escuro — a sombra de um botão
+   * azul é azul. Era `#0b6b74`, verde-petróleo herdado do teal: com o botão em
+   * `primary`, a sombra saía de uma família de cor diferente do objeto que a
+   * projeta.
+   */
+  primaryShadow: '#0b5f77',
 
   /**
    * Fundo do toast. Fixo nos dois temas de propósito: no protótipo o toast é
@@ -93,9 +129,12 @@ export const palette = {
   pillGhost: 'rgba(255,255,255,0.2)',
   pillGhostSoft: 'rgba(255,255,255,0.18)',
 
-  /** Pill "Aberto às 08:12" do card de caixa aberto. */
-  shiftPillBg: 'rgba(47,179,186,0.22)',
-  shiftPillFg: '#7fd7db',
+  /**
+   * Pill "Aberto às 08:12" do card de caixa aberto. Fica sobre o card petrol,
+   * nos dois temas — daí ser a marca aberta, e não o `primary` do tema.
+   */
+  shiftPillBg: 'rgba(53,181,218,0.22)',
+  shiftPillFg: '#8ad4ea',
 
   /** Borda do card de alerta de estoque (âmbar com alpha). */
   amberBorder: 'rgba(169,112,15,0.2)',
@@ -132,15 +171,16 @@ export const palette = {
   /**
    * O azul dos links sobre o fundo da entrada.
    *
-   * Não é o `primary`: no tema escuro ele é teal esverdeado (`#2fb3ba`), e
-   * sobre este fundo azul o link sairia de outra família de cor que o resto da
-   * tela.
+   * É a marca aberta — a MESMA que o tema escuro usa como primária. Não pode
+   * ser o token `primary`, que segue a preferência do usuário: esta tela é
+   * sempre escura, inclusive para quem escolheu o tema claro. Era um azul
+   * próprio (`#35abd6`), a um passo deste; agora é este, e são um só.
    */
-  authLink: '#35abd6',
+  authLink: BRAND_PRIMARY_DARK,
 
-  /** O gradiente do botão "Entrar". */
+  /** O gradiente do botão "Entrar" — termina na marca chapada. */
   ctaTop: '#38b7de',
-  ctaBottom: '#1a90bd',
+  ctaBottom: BRAND_PRIMARY,
 } as const;
 
 export type PaletteColor = keyof typeof palette;

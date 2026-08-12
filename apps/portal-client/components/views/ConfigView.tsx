@@ -397,7 +397,7 @@ function TeamTab() {
                       "flex:none;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;" +
                         `font:700 12.5px ${SANS};` +
                         (x.active
-                          ? "background:var(--accent-soft);color:var(--accent)"
+                          ? "background:var(--accent-soft);color:var(--accent-text)"
                           : "background:var(--surface3);color:var(--muted)"),
                     )}
                   >
@@ -417,7 +417,7 @@ function TeamTab() {
                         style={css(
                           `padding:2px 8px;border-radius:999px;font:600 10.5px ${SANS};` +
                             (x.owner
-                              ? "background:var(--accent-soft);color:var(--accent)"
+                              ? "background:var(--accent-soft);color:var(--accent-text)"
                               : "background:var(--surface3);color:var(--text2)"),
                         )}
                       >
@@ -527,7 +527,7 @@ function TeamTab() {
                         {p.fixed && (
                           <span
                             style={css(
-                              `padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font:600 10.5px ${SANS}`,
+                              `padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent-text);font:600 10.5px ${SANS}`,
                             )}
                           >
                             acesso total

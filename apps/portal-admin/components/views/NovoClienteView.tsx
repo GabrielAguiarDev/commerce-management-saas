@@ -352,7 +352,7 @@ export function NovoClienteView() {
             <div style={css("display:flex;flex-direction:column;align-items:flex-end;gap:2px")}>
               <span
                 style={css(
-                  `font-family:${MONO};font-size:20px;font-weight:600;color:var(--accent);line-height:1`,
+                  `font-family:${MONO};font-size:20px;font-weight:600;color:var(--accent-text);line-height:1`,
                 )}
               >
                 {active.length}/{s.modules.length}

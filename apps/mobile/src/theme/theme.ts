@@ -9,8 +9,8 @@ import { palette } from './palette';
  * DECISÃO: tema de MARCA com dois conjuntos de tokens (claro/escuro), trocado
  * por preferência do usuário em Configurações › Preferências — não pelo modo do
  * sistema operacional. É o que o protótipo faz (o toggle "Tema escuro" vive nas
- * preferências) e é o que o produto quer: a identidade petrol/teal é a mesma nos
- * dois modos, só a superfície muda.
+ * preferências) e é o que o produto quer: a identidade — o azul da marca sobre
+ * petrol — é a mesma nos dois modos, só a superfície muda.
  *
  * Regra dura: nenhum componente escreve cor. Se um tom não existe aqui, a
  * correção é criar o token — nunca escrever o hex na tela.
@@ -182,8 +182,15 @@ const tokensClaros = {
   textPrimary: palette.textLight,
   textMuted: palette.mutedLight,
 
+  /**
+   * A marca. `primary` é a marca DESENHADA (o botão preenchido, o traço do
+   * ícone, a borda); `primaryText` é a marca ESCRITA sobre superfície clara,
+   * onde a chapada não alcança o contraste de uma palavra. `onPrimary` é o que
+   * se escreve por cima do preenchido.
+   */
   primary: palette.brandPrimary,
-  primarySoft: palette.tealSoftLight,
+  primaryText: palette.primaryTextLight,
+  primarySoft: palette.primarySoftLight,
   onPrimary: palette.white,
 
   secondary: palette.brandSecondary,
@@ -242,8 +249,15 @@ const darkColors: Cores = {
   textPrimary: palette.textDark,
   textMuted: palette.mutedDark,
 
-  primary: palette.tealDark,
-  primarySoft: palette.tealSoftDark,
+  /**
+   * A MESMA marca, aberta em luminosidade para carregar sobre o fundo escuro —
+   * mesmo matiz, nunca outro. Aqui `primaryText` aponta para a própria
+   * primária: sobre este chão a marca aberta já se lê como palavra (7,1:1),
+   * então não há nada a corrigir.
+   */
+  primary: palette.primaryDark,
+  primaryText: palette.primaryDark,
+  primarySoft: palette.primarySoftDark,
 
   success: palette.greenDark,
   successSoft: palette.greenSoftDark,

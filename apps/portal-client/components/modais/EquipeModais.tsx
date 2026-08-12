@@ -146,7 +146,7 @@ export function RoleModal() {
           <span style={css(`font:600 11px ${SANS};color:var(--text2)`)}>O que pode acessar</span>
           <Button
             onClick={() => set({ modules: all ? [] : available.slice() })}
-            style={css(`font:600 11.5px ${SANS};color:var(--accent)`)}
+            style={css(`font:600 11.5px ${SANS};color:var(--accent-text)`)}
           >
             {all ? "Desmarcar todos" : "Marcar todos"}
           </Button>

@@ -38,12 +38,22 @@ body {
      `palette.brandSecondary`, and the same ones painted into every icon,
      splash and system chrome across the products.
 
-     They are INVARIANT — no theme, no surface, no hover changes them. That is
-     what separates them from `--accent` below, which starts here in the light
-     theme but shifts to the brand's teal in the dark one so it survives on a
-     petrol surface. When something must be the brand and not "the accent of
-     the moment" — a mark, a splash, the color the OS paints around an
-     installed window — it reaches for these.
+     `--brand` IS THE SINGLE SOURCE OF TRUTH for the brand blue. Everything
+     accent-colored in either theme is this hue — 193° — and nothing else:
+     `--accent` aliases it outright in the light theme, and the dark theme
+     lifts only its LUMINANCE (`#35b5da`) so it survives on a petrol surface.
+     Changing the brand is changing this one line plus that one lifted tone.
+
+     What must NEVER happen again: the dark accent drifting toward teal
+     (`#2fb3ba`, hue 183°) — it left the brand's hue and landed next door to
+     `--pos`, so "primary" and "profit" read as the same color at a glance.
+     Blue is the brand; green is money. They are never the same family.
+
+     For anything that must be the brand rather than "the accent of the
+     moment" — a mark, a splash, the color the OS paints around an installed
+     window — reach for `--brand` directly. Its literal value also lives in
+     `BRAND` (see `@aguiar/ui`), for the handful of places Next's metadata
+     demands a string instead of a CSS variable.
      --------------------------------------------------------------------- */
   --brand: #1b9abd;
   --brand-ink: #020e18;
@@ -68,20 +78,30 @@ body {
   --text2: #33505c;
   --muted: #5f7783;
 
-  /* Accent. `ink` is what gets written on top of the accent, `soft` its washed
-     background, `line` the border matching that background, and `hi` the vivid
-     version used on hover and for details on dark backgrounds.
+  /* Accent — the brand, in the roles a surface needs it for. `ink` is what
+     gets written on top of the accent, `soft` its washed background, `line`
+     the border matching that background, and `hi` the vivid version used in
+     gradients and on details over dark backgrounds.
 
-     In the light theme this IS `--brand` — see the block at the top. It is
-     written out rather than aliased because the dark theme replaces it, and a
-     token that sometimes points at the brand and sometimes does not would read
-     as if the brand itself changed. `hi` is the light end of the brand's CTA
-     gradient. */
-  --accent: #1b9abd;
+     In the light theme the accent IS the brand, aliased and not copied: there
+     is exactly one place the blue is written down.
+
+     `soft` and `line` are that same blue washed over white (12% and 25%), so
+     a badge never drifts into a teal that belongs to no one — which is what
+     the previous hand-mixed `#e0f1f2` did.
+
+     `text` is the accent WHEN IT IS TEXT. `--accent` on white is 3.3:1, which
+     is enough for a filled button or a border but not for a label or a link;
+     this is the same hue (192.5°) taken darker, at 5.3:1 on `--surface` and
+     4.7:1 on `--bg`. Rule: filled or drawn → `--accent`; written → this.
+     `text-hi` is its hover, which opens back up into the brand itself. */
+  --accent: var(--brand);
   --accent-ink: #ffffff;
-  --accent-soft: #e0f1f2;
-  --accent-line: #bfe0e8;
+  --accent-soft: #e4f3f7;
+  --accent-line: #c6e6ef;
   --accent-hi: #38b7de;
+  --accent-text: #0e7590;
+  --accent-text-hi: var(--brand);
   --petrol: #123c4a;
 
   /* States. Each with a background and border of its own, for the badges. */
@@ -132,39 +152,57 @@ body {
 }
 
 body[data-theme="dark"] {
-  --bg: #0b1a21;
-  --surface: #132a34;
-  --surface2: #193540;
-  --surface3: #1f3d49;
-  --surface-hover: #1a3b47;
+  /* The dark ground is the LOGO'S OWN ground. `--bg` is `--brand-ink`
+     (`#020e18`) lifted just off black, and every surface above it climbs that
+     same near-navy hue — so the dark theme and the mark it carries are lit by
+     the same color, instead of the app sitting on a blue-grey the brand never
+     had. The steps stay where they were: `surface` is the card, `surface2`
+     the field, `surface3` the badge and the highlighted row. */
+  --bg: #030f1a;
+  --surface: #0a1e2b;
+  --surface2: #102836;
+  --surface3: #16323f;
+  --surface-hover: #122c3a;
 
-  --border-soft: #16303b;
-  --border: #23414d;
-  --border2: #305260;
+  --border-soft: #0f2531;
+  --border: #1c3a49;
+  --border2: #2a5061;
 
   --text: #e9f2f4;
   --text2: #c3d5da;
   --muted: #94aeb8;
 
-  /* The dark accent is the brand's teal, not the primary washed out: on a
-     petrol surface `#1b9abd` reads as a hole, and this is the tone the mobile
-     app switches to for the same reason. */
-  --accent: #2fb3ba;
-  --accent-ink: #04222a;
-  --accent-soft: #184049;
-  --accent-line: #266a72;
+  /* The dark accent is THE BRAND, lifted in luminance and not in hue: same
+     193° as `--brand`, opened up until it carries on a petrol surface (7.1:1
+     on `--surface`, against 5.2:1 for the flat brand). It is emphatically NOT
+     a teal — see the note at the top of the file. `soft` and `line` are this
+     same blue washed onto the dark ground.
+
+     `text` needs no darkening here — on this ground the lifted brand already
+     carries as a label — so it points straight at the accent, and its hover
+     opens one more step into `hi`. */
+  --accent: #35b5da;
+  --accent-ink: #02202b;
+  --accent-soft: #103343;
+  --accent-line: #195368;
   --accent-hi: #4cc4e6;
+  --accent-text: var(--accent);
+  --accent-text-hi: var(--accent-hi);
   --petrol: #7fb4cc;
 
-  --pos: #43c193;
-  --pos-soft: #10332a;
-  --pos-line: #285541;
+  /* Green, and never anything but green: `--pos` is money going the right way
+     and it has to be told apart from the accent at a glance, on a chart and
+     in a badge. Pushed a touch greener (153° against the accent's 193°) now
+     that both live on the same dark ground. */
+  --pos: #3fc98c;
+  --pos-soft: #0d3328;
+  --pos-line: #1c5644;
   --warn: #e0a950;
-  --warn-soft: #33291a;
-  --warn-line: #544529;
+  --warn-soft: #2a2213;
+  --warn-line: #4a3d22;
   --danger: #e3736a;
-  --danger-soft: #2f1b19;
-  --danger-line: #57302c;
+  --danger-soft: #2a1614;
+  --danger-line: #4d2925;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 22px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
@@ -194,12 +232,12 @@ button:disabled {
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-text);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--accent-hi);
+  color: var(--accent-text-hi);
 }
 
 /* ---------------------------------------------------------------------------
@@ -578,21 +616,22 @@ select.field:disabled {
 }
 
 .hv-acc:hover {
-  color: var(--accent) !important;
+  color: var(--accent-text) !important;
 }
 
 .hv-acc-hi:hover {
-  color: var(--accent-hi) !important;
+  color: var(--accent-text-hi) !important;
 }
 
 .hv-border-acc:hover {
   border-color: var(--accent) !important;
 }
 
-/* Accent border and text — the hover of the outlined buttons. */
+/* Accent border and text — the hover of the outlined buttons. The border is
+   drawn, so it takes `--accent`; the label is read, so it takes `--accent-text`. */
 .hv-acc-border:hover {
   border-color: var(--accent) !important;
-  color: var(--accent) !important;
+  color: var(--accent-text) !important;
 }
 
 /* Just the washed background, for anything without a border. */

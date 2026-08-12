@@ -78,7 +78,7 @@ export function CartBar() {
         gap="s12"
         paddingHorizontal="s18"
         style={{
-          shadowColor: palette.fabBottom,
+          shadowColor: palette.primaryShadow,
           shadowOpacity: 0.55,
           shadowRadius: 15,
           shadowOffset: { width: 0, height: 10 },

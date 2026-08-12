@@ -172,7 +172,7 @@ export function Topbar() {
           ))}
           <Button
             onClick={() => a.set({ notificationsOpen: false })}
-            style={css(`width:100%;padding:10px;font:600 12px ${SANS};color:var(--accent)`)}
+            style={css(`width:100%;padding:10px;font:600 12px ${SANS};color:var(--accent-text)`)}
           >
             Fechar
           </Button>

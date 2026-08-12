@@ -221,7 +221,7 @@ export function VisaoView() {
             <Button
               onClick={() => a.goTo(ROUTES.customers)}
               style={css(
-                "background:none;border:none;color:var(--accent);font-size:12.5px;font-weight:500;" +
+                "background:none;border:none;color:var(--accent-text);font-size:12.5px;font-weight:500;" +
                   "cursor:pointer;padding:0",
               )}
             >

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, css, SANS } from "@aguiar/ui";
+import { BRAND, Button, css, SANS } from "@aguiar/ui";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -26,7 +26,7 @@ const LABEL = `display:block;margin-bottom:6px;font:600 11px ${SANS};color:var(-
  * para o instante ANTES dela carregar — sem isso o primeiro quadro da tela é
  * metade branca, e a página pisca ao ser preenchida.
  */
-const BANNER_INK = "#020e18";
+const BANNER_INK = BRAND.ink;
 
 /** O motivo pelo qual o middleware devolveu a pessoa para cá. */
 const REASONS: Record<string, string> = {

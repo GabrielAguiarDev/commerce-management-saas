@@ -301,7 +301,7 @@ export function ImportarProdutosView({ customerId }: { customerId: string }) {
                       "display:inline-flex;align-items:center;gap:6px;border-radius:99px;" +
                         "padding:5px 11px;font-size:11.5px;font-weight:500;border:1px solid " +
                         (required
-                          ? "var(--accent);background:var(--accent-soft);color:var(--accent)"
+                          ? "var(--accent);background:var(--accent-soft);color:var(--accent-text)"
                           : "var(--border);background:var(--surface2);color:var(--text2)"),
                     )}
                   >

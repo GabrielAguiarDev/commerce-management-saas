@@ -197,7 +197,7 @@ export function pill(active: boolean, size: "sm" | "md" = "md"): string {
   return (
     `${p};font:${active ? "700" : "500"} 12.5px ${SANS};` +
     (active
-      ? "background:var(--surface);color:var(--accent);box-shadow:var(--shadow)"
+      ? "background:var(--surface);color:var(--accent-text);box-shadow:var(--shadow)"
       : "background:transparent;color:var(--muted)")
   );
 }
@@ -216,7 +216,7 @@ export function chip(active: boolean, size: "sm" | "md" = "sm"): string {
     base +
     "border-radius:99px;" +
     (active
-      ? "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);"
+      ? "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent-text);"
       : "border:1px solid var(--border);background:var(--surface);color:var(--muted);")
   );
 }

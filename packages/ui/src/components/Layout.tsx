@@ -231,7 +231,7 @@ export function ClearFilters({ onClick, text }: { onClick: () => unknown; text: 
   return (
     <Button
       onClick={onClick}
-      cssText={`padding:10px 13px;border-radius:10px;font:600 12.5px ${SANS};color:var(--accent)`}
+      cssText={`padding:10px 13px;border-radius:10px;font:600 12.5px ${SANS};color:var(--accent-text)`}
     >
       {text}
     </Button>

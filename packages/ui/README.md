@@ -54,12 +54,24 @@ Um vocabulário só, claro e escuro, trocado por `data-tema="escuro"` no `<body>
 
 | Grupo       | Tokens                                                          |
 | ----------- | --------------------------------------------------------------- |
+| Marca       | `--brand` `--brand-ink` (e `BRAND` em JS, para o que não lê CSS) |
 | Superfícies | `--bg` `--surface` `--surface2` `--surface3` `--surface-hover`   |
 | Bordas      | `--border-soft` `--border` `--border2`                           |
 | Texto       | `--text` `--text2` `--muted`                                     |
-| Destaque    | `--accent` `--accent-ink` `--accent-soft` `--accent-line` `--accent-hi` |
+| Destaque    | `--accent` `--accent-ink` `--accent-soft` `--accent-line` `--accent-hi` `--accent-text` `--accent-text-hi` |
 | Estados     | `--pos` `--warn` `--danger`, cada um com `-soft` e `-line`       |
 | Lateral     | `--side` `--side-card` `--side-text` `--side-text2` `--side-border` |
+
+**A marca mora em `--brand`, e em nenhum outro lugar.** `--accent` é ela nos
+dois temas — apontando direto no claro, e com a luminosidade aberta no escuro,
+sempre no mesmo matiz (193°). Trocar a marca é trocar `--brand`, o par escuro
+logo abaixo dele e `brand.ts`. O azul jamais vira verde no escuro: verde é
+`--pos`, e é só de lucro.
+
+Destaque **desenhado** (preenchimento, borda, traço de ícone) usa `--accent`;
+destaque **escrito** (rótulo, link, número em evidência) usa `--accent-text`,
+que é o mesmo azul fechado o bastante para ser lido sobre superfície clara —
+`--accent` chapado dá 3,3:1 no claro, que serve a um botão e não a uma palavra.
 
 Cores de estado saem sempre da tabela de tons (`selo`, `corDoTom`,
 `fundoDoTom`), nunca de um hex solto: é o que mantém "verde é resolvido,

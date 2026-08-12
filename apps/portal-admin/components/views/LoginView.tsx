@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAdmin } from "@/components/AdminProvider";
-import { Button, css, MOBILE_BREAKPOINT } from "@aguiar/ui";
+import { BRAND, Button, css, MOBILE_BREAKPOINT } from "@aguiar/ui";
 import { Logo } from "@/components/Logo";
 import { Wordmark } from "@/components/Wordmark";
 import { ROUTES } from "@/lib/rotas";
@@ -59,7 +59,7 @@ const PRIMARY =
  * existe para o instante ANTES da imagem carregar: sem ele o primeiro quadro da
  * tela é metade branca, e a página pisca ao ser preenchida.
  */
-const BANNER_INK = "#020e18";
+const BANNER_INK = BRAND.ink;
 
 export function LoginView() {
   const { s, a } = useAdmin();
@@ -382,7 +382,7 @@ export function LoginView() {
                   }}
                   className="hv-acc-hi"
                   style={css(
-                    "align-self:center;background:none;border:none;color:var(--accent);" +
+                    "align-self:center;background:none;border:none;color:var(--accent-text);" +
                       "font-size:12.5px;cursor:pointer;padding:0",
                   )}
                 >

@@ -14,6 +14,7 @@
  * dictionary.
  */
 
+export { BRAND } from "./brand";
 export { css, font, MONO, SANS } from "./css";
 export { ChevronDownIcon, CloseIcon, SearchIcon, type IconProps } from "./icons";
 

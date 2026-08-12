@@ -1,3 +1,4 @@
+import { BRAND } from "@aguiar/ui";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { AdminProvider } from "@/components/AdminProvider";
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
  * não muda com o tema: o tema é preferência de quem trabalha, a marca não.
  */
 export const viewport: Viewport = {
-  themeColor: "#020e18",
+  themeColor: BRAND.ink,
 };
 
 export default async function RootLayout({

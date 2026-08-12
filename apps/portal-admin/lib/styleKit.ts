@@ -49,7 +49,7 @@ export function avatar(plan: Plan | undefined): string {
     "width:34px;height:34px;flex:none;border-radius:9px;display:flex;align-items:center;" +
     "justify-content:center;font-size:11.5px;font-weight:600;" +
     (charged
-      ? "background:var(--accent-soft);color:var(--accent);"
+      ? "background:var(--accent-soft);color:var(--accent-text);"
       : "background:var(--surface3);color:var(--muted);")
   );
 }

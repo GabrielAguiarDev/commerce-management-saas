@@ -43,6 +43,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d116a5fc-bb2e-492e-9985-693856bdca73"
+      }
+    },
+    "owner": "aguiar20"
   }
 }

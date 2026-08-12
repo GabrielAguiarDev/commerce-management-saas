@@ -91,7 +91,7 @@ export default function VerifyCodeScreen() {
             onPress={() => showToast(t.toasts.recoveryCodeReady)}
             padding="s6"
           >
-            <Text variant="titleSm" color="primary">
+            <Text variant="titleSm" color="authLink">
               {t.auth.code.resend}
             </Text>
           </Touchable>

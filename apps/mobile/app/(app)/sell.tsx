@@ -113,7 +113,7 @@ function SaleCard({ product, onPress }: { product: Product; onPress: () => void 
         {product.name}
       </Text>
       <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap="s6">
-        <Text variant="moneyMd" color="primary">
+        <Text variant="moneyMd" color="primaryText">
           {formatBRL(product.priceCents)}
         </Text>
         <Box
@@ -124,7 +124,7 @@ function SaleCard({ product, onPress }: { product: Product; onPress: () => void 
           alignItems="center"
           justifyContent="center"
         >
-          <Text variant="gridPlus" color="primary">
+          <Text variant="gridPlus" color="primaryText">
             +
           </Text>
         </Box>

@@ -146,7 +146,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
               "position:relative;display:flex;align-items:center;justify-content:center;width:36px;" +
                 "height:36px;border-radius:8px;cursor:pointer;padding:0;" +
                 (s.notificationsOpen
-                  ? "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent);"
+                  ? "border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent-text);"
                   : "border:1px solid var(--border);background:var(--surface);color:var(--text2);"),
             )}
           >
@@ -198,7 +198,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                   <Button
                     onClick={() => a.set({ lidas: true })}
                     style={css(
-                      "border:none;background:none;color:var(--accent);font-size:11.5px;font-weight:500;" +
+                      "border:none;background:none;color:var(--accent-text);font-size:11.5px;font-weight:500;" +
                         "cursor:pointer;padding:0;text-align:right",
                     )}
                   >
@@ -255,7 +255,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                   style={css(
                     "display:block;text-align:center;width:100%;border:none;" +
                       "border-top:1px solid var(--border-soft);background:var(--surface2);" +
-                      "color:var(--accent);font-size:12px;font-weight:500;padding:11px;cursor:pointer",
+                      "color:var(--accent-text);font-size:12px;font-weight:500;padding:11px;cursor:pointer",
                   )}
                 >
                   {L.support}

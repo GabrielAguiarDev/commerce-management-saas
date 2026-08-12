@@ -62,7 +62,7 @@ export default function PreferencesTab() {
                 <Text variant="rowLabel">{t.language.names[tag]}</Text>
               </Box>
               {tag === language ? (
-                <Text variant="rowLabel" color="primary">
+                <Text variant="rowLabel" color="primaryText">
                   ✓
                 </Text>
               ) : null}

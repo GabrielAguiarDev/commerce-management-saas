@@ -169,7 +169,7 @@ export default function HomeScreen() {
                 : 'Abra para começar o turno'}
             </Text>
           </Box>
-          <Text variant="sectionLabel" color="primary">
+          <Text variant="sectionLabel" color="primaryText">
             Ver
           </Text>
         </Touchable>

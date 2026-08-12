@@ -80,7 +80,7 @@ export function CustosView() {
         >
           <span
             style={css(
-              `flex:none;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font:600 10.5px ${SANS}`,
+              `flex:none;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent-text);font:600 10.5px ${SANS}`,
             )}
           >
             Estoque
@@ -178,7 +178,7 @@ function CostRow({ cost: c, cols, categoryCol }: { cost: Cost; cols: string; cat
       {c.fromStock && (
         <span
           style={css(
-            `padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font:600 10px ${SANS}`,
+            `padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent-text);font:600 10px ${SANS}`,
           )}
         >
           veio do estoque

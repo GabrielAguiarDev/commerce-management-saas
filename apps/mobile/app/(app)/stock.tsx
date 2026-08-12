@@ -148,7 +148,7 @@ function StockLine({
         alignItems="center"
         justifyContent="center"
       >
-        <Text variant="buttonTiny" color="primary">
+        <Text variant="buttonTiny" color="primaryText">
           Movimentar
         </Text>
       </Touchable>
