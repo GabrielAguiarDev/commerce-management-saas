@@ -65,6 +65,7 @@ export const en = {
     catalog: {
       name_required: 'Give the product a name to save it.',
       invalid_price: 'The price cannot be negative.',
+      duplicate_code: 'Another product already uses this code. Check it or leave it blank.',
       network: 'Could not save right now. Try again.',
       unknown: 'Something went wrong with this product.',
     } as Record<CatalogErrorCode, string>,
@@ -119,9 +120,11 @@ export const en = {
     recoveryCodeReady: 'Code ready. In the simulation it is not sent by e-mail.',
     passwordChanged: 'New password saved. Sign in with it.',
     cameraUnavailable: 'The barcode camera would open here.',
-    editUnavailable: (name: string) =>
-      `This would open editing for ${name}. Changing the price applies only to future sales.`,
     productCreated: (name: string) => `"${name}" created and ready to sell.`,
+    // Says what editing does NOT do: a sale recorded yesterday keeps
+    // yesterday's price.
+    productUpdated: (name: string) =>
+      `"${name}" updated. The new price applies to future sales.`,
     saleRecorded: (total: string) => `Sale of ${total} recorded!`,
     // Does NOT promise automatic syncing: the user is the one who sends the
     // queue, from the pending sales screen.

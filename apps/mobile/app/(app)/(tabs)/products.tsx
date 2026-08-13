@@ -54,7 +54,6 @@ export default function ProductsScreen() {
   const { data: products = [], isPending } = useCatalog();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const openSheet = useUIStore((s) => s.openSheet);
-  const showToast = useUIStore((s) => s.showToast);
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<CatalogFilter>('all');
@@ -149,10 +148,9 @@ export default function ProductsScreen() {
             </Box>
 
             <Touchable
-              accessibilityLabel={`Mais ações de ${product.name}`}
-              // Edição completa fora de escopo desta fase — o protótipo também
-              // só avisa. Registrado em DEVELOPMENT.md › Pendências.
-              onPress={() => showToast(t.toasts.editUnavailable(product.name))}
+              accessibilityLabel={`Editar ${product.name}`}
+              // Mesmo sheet do cadastro rápido, com os campos preenchidos.
+              onPress={() => openSheet({ type: 'product', productId: product.id })}
               width={34}
               height={34}
               borderRadius="r11"

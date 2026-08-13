@@ -42,7 +42,8 @@ export interface Confirm {
 /** Os cinco sheets do produto. Uma união fechada, não uma string solta. */
 export type Sheet =
   | { type: 'cart' }
-  | { type: 'product' }
+  /** Sem `productId` é cadastro rápido; com ele, edição do mesmo formulário. */
+  | { type: 'product'; productId?: string }
   | { type: 'closeOut' }
   | { type: 'ticket' }
   | { type: 'withdrawal' }

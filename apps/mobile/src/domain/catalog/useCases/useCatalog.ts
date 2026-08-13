@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSessionStore } from '@store/sessionStore';
 
 import * as service from '../catalogService';
-import type { NewProduct } from '../catalogTypes';
+import type { NewProduct, ProductUpdate } from '../catalogTypes';
 
 export const catalogoKeys = {
   all: ['catalogo'] as const,
@@ -29,6 +29,21 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: (novo: NewProduct) => service.createProduct(tenantId as string, novo),
+    onSuccess: () => client.invalidateQueries({ queryKey: catalogoKeys.all }),
+  });
+}
+
+/**
+ * Editar NÃO é otimista, ao contrário de favoritar: aqui muda preço, e um
+ * preço que aparece alterado na lista e volta atrás depois é pior do que um
+ * botão que demora meio segundo — o balconista pode ter vendido no meio.
+ */
+export function useUpdateProduct() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ productId, ...mudanca }: ProductUpdate & { productId: string }) =>
+      service.updateProduct(productId, mudanca),
     onSuccess: () => client.invalidateQueries({ queryKey: catalogoKeys.all }),
   });
 }

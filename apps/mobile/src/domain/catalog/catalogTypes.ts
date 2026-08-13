@@ -35,13 +35,38 @@ export interface CatalogSortKey {
 
 export interface NewProduct {
   name: string;
+  /** Código de barras / SKU. Opcional: em branco vira `null`. */
+  code: string | null;
   priceCents: number;
   costCents: number | null;
   initialStock: number | null;
   minimumStock: number | null;
 }
 
-export type CatalogErrorCode = 'name_required' | 'invalid_price' | 'network' | 'unknown';
+/**
+ * O que a edição pela lista pode mudar.
+ *
+ * Repare no que NÃO está aqui: a quantidade em estoque. Saldo só se move por
+ * movimentação (`apply_stock_movement`, que grava o motivo e ajusta o produto
+ * na mesma transação) — deixar o formulário sobrescrever `stock_quantity`
+ * apagaria a entrada do livro e o dono perderia o rastro do ajuste. O mínimo,
+ * esse sim, é configuração do produto e muda aqui.
+ */
+export interface ProductUpdate {
+  name: string;
+  code: string | null;
+  priceCents: number;
+  costCents: number | null;
+  minimumStock: number | null;
+}
+
+export type CatalogErrorCode =
+  | 'name_required'
+  | 'invalid_price'
+  /** Já existe outro produto com o mesmo código de barras. */
+  | 'duplicate_code'
+  | 'network'
+  | 'unknown';
 
 export class CatalogError extends Error {
   constructor(readonly code: CatalogErrorCode, message?: string) {

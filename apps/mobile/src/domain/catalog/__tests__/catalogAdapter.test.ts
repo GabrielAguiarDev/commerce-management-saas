@@ -1,5 +1,10 @@
 import type { ProductAPI } from '../catalogApiTypes';
-import { stockStatus, toProduct, toProductCreatePayload } from '../catalogAdapter';
+import {
+  stockStatus,
+  toProduct,
+  toProductCreatePayload,
+  toProductUpdatePayload,
+} from '../catalogAdapter';
 
 const base: ProductAPI = {
   id: 'prd_1',
@@ -88,6 +93,7 @@ describe('toProductCreatePayload', () => {
     expect(
       toProductCreatePayload('tnt_1', {
         name: '  Coleira nova  ',
+        code: ' 7891 ',
         priceCents: 4590,
         costCents: null,
         initialStock: 10,
@@ -96,6 +102,7 @@ describe('toProductCreatePayload', () => {
     ).toEqual({
       tenant_id: 'tnt_1',
       name: 'Coleira nova',
+      sku: '7891',
       price_cents: 4590,
       cost_cents: null,
       stock_qty: 10,
@@ -107,11 +114,57 @@ describe('toProductCreatePayload', () => {
   it('propaga null de estoque como "não controla", não como zero', () => {
     const payload = toProductCreatePayload('tnt_1', {
       name: 'Serviço',
+      code: null,
       priceCents: 100,
       costCents: null,
       initialStock: null,
       minimumStock: null,
     });
     expect(payload.stock_qty).toBeNull();
+  });
+
+  it('código em branco vira null, e não string vazia', () => {
+    const payload = toProductCreatePayload('tnt_1', {
+      name: 'Sem código',
+      code: '   ',
+      priceCents: 100,
+      costCents: null,
+      initialStock: null,
+      minimumStock: null,
+    });
+    expect(payload.sku).toBeNull();
+  });
+});
+
+describe('toProductUpdatePayload', () => {
+  it('apara nome e código, e não carrega quantidade de estoque', () => {
+    const payload = toProductUpdatePayload({
+      name: '  Coleira  ',
+      code: '  7891  ',
+      priceCents: 4590,
+      costCents: 2000,
+      minimumStock: 3,
+    });
+
+    expect(payload).toEqual({
+      name: 'Coleira',
+      sku: '7891',
+      price_cents: 4590,
+      cost_cents: 2000,
+      stock_min: 3,
+    });
+    expect(payload).not.toHaveProperty('stock_qty');
+  });
+
+  it('mínimo nulo continua nulo — é "não mexe", não "zera"', () => {
+    expect(
+      toProductUpdatePayload({
+        name: 'Serviço',
+        code: null,
+        priceCents: 100,
+        costCents: null,
+        minimumStock: null,
+      }).stock_min,
+    ).toBeNull();
   });
 });

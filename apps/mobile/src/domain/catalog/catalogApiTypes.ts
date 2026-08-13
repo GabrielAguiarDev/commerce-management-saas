@@ -27,9 +27,24 @@ export interface ProductAPI {
 export interface ProductCreateAPI {
   tenant_id: string;
   name: string;
+  sku: string | null;
   price_cents: number;
   cost_cents: number | null;
   stock_qty: number | null;
   stock_min: number | null;
   is_service: boolean;
+}
+
+/**
+ * Edição de um produto que já existe.
+ *
+ * Sem `tenant_id` (o RLS já isola) e sem `stock_qty`: quantidade se move por
+ * movimentação, não por formulário. Ver `ProductUpdate` no domínio.
+ */
+export interface ProductUpdateAPI {
+  name: string;
+  sku: string | null;
+  price_cents: number;
+  cost_cents: number | null;
+  stock_min: number | null;
 }

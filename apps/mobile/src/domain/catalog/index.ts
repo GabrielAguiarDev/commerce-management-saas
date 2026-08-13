@@ -4,6 +4,7 @@ export type {
   CatalogFilter,
   NewProduct,
   Product,
+  ProductUpdate,
   StockStatus,
 } from './catalogTypes';
 export { CatalogError } from './catalogTypes';
@@ -19,10 +20,11 @@ export {
   stockSummary,
   type StockSummary,
 } from './catalogSelectors';
-export { validateNewProduct } from './catalogService';
+export { validateNewProduct, validateProductUpdate } from './catalogService';
 export {
   catalogoKeys,
   useToggleFavorite,
   useCreateProduct,
+  useUpdateProduct,
   useCatalog,
 } from './useCases/useCatalog';

@@ -1,12 +1,30 @@
-import { toProduct, toProductCreatePayload } from './catalogAdapter';
+import { toProduct, toProductCreatePayload, toProductUpdatePayload } from './catalogAdapter';
 import * as api from './catalogApi';
-import { CatalogError, type NewProduct, type Product } from './catalogTypes';
+import {
+  CatalogError,
+  type NewProduct,
+  type Product,
+  type ProductUpdate,
+} from './catalogTypes';
 
 /** AS REGRAS do catálogo. Valida antes da rede, normaliza o erro na saída. */
 
 function normalize(error: unknown): never {
   if (error instanceof CatalogError) throw error;
+  // Violação de unicidade do Postgres. Só acontece nas escritas que carregam
+  // código de barras, e chega aqui como erro de rede se não for separada —
+  // mandando o dono "tentar de novo" para sempre num conflito que só ele pode
+  // resolver, trocando o código.
+  if (isUniqueViolation(error)) throw new CatalogError('duplicate_code');
   throw new CatalogError('network', error instanceof Error ? error.message : undefined);
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === '23505'
+  );
 }
 
 export async function listProducts(tenantId: string): Promise<Product[]> {
@@ -36,6 +54,35 @@ export async function createProduct(tenantId: string, novo: NewProduct): Promise
 
   try {
     const raw = await api.createProduct(toProductCreatePayload(tenantId, novo));
+    return toProduct(raw);
+  } catch (e) {
+    return normalize(e);
+  }
+}
+
+/**
+ * Edição pela lista de produtos.
+ *
+ * Mesmas duas regras do cadastro — nome obrigatório, preço não negativo —, e
+ * de propósito na MESMA função: quem edita não pode conseguir deixar o produto
+ * num estado que o cadastro recusaria.
+ */
+export function validateProductUpdate(mudanca: ProductUpdate): CatalogError | null {
+  if (!mudanca.name.trim()) return new CatalogError('name_required');
+  if (mudanca.priceCents < 0) return new CatalogError('invalid_price');
+  return null;
+}
+
+export async function updateProduct(
+  productId: string,
+  mudanca: ProductUpdate,
+): Promise<Product> {
+  const invalido = validateProductUpdate(mudanca);
+  if (invalido) throw invalido;
+
+  try {
+    const raw = await api.updateProduct(productId, toProductUpdatePayload(mudanca));
+    if (!raw) throw new CatalogError('unknown', 'Produto não encontrado.');
     return toProduct(raw);
   } catch (e) {
     return normalize(e);

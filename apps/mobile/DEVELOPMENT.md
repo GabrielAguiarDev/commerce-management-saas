@@ -32,7 +32,7 @@ são o que o tenant contratou. Eles mudam, na mesma carga:
 | tab bar | o 3º item vira **Caixa** (com `cash`) ou **Custos** (sem) |
 | tela "Mais" | a grade só mostra os módulos do plano |
 | Início | o atalho de caixa e o alerta de estoque só existem com o módulo |
-| Cadastro rápido | campos de estoque e de custo só aparecem se houver o módulo |
+| Cadastro rápido / Editar produto | campos de estoque e de custo só aparecem se houver o módulo |
 | acesso ao app | sem o módulo `app` (`is_access`), cai na tela de **bloqueio** |
 
 Tudo isso sai de **uma função pura**, `derivarCapacidades()`, e de duas que a
@@ -830,7 +830,6 @@ mostra hoje um toast explicando o que faria):
 - **Câmera de código de barras** em Vender → `expo-camera` + permissão no config.
 - **Anexar foto** no chamado → `expo-image-picker` + permissão.
 - **Exportar PDF / planilha** em Relatórios → `expo-print` + `expo-sharing`.
-- **Edição de produto** (o `⋯` da lista) → o protótipo também só avisa.
 - **"Falar com o suporte" na tela de bloqueio** → precisa de canal EXTERNO
   (WhatsApp/e-mail via `Linking`), porque o suporte in-app é justamente o que
   aquele plano não tem.
@@ -1191,6 +1190,40 @@ negócio que vende pelos dois canais vê as duas no histórico. `utils/payment.t
 traduz as seis chaves para não mostrar identificador cru na tela, mas isso é
 curativo: unificar é **migração de dados**, não mudança de rótulo, e precisa ser
 combinado com o portal antes.
+
+---
+
+## 15. Editar produto pela lista (o `⋯` de Produtos)
+
+O `⋯` de cada linha **abre o mesmo sheet do cadastro rápido**, com os campos
+preenchidos. Um sheet só, e não dois: os campos são idênticos, e o que muda
+entre cadastrar e corrigir um preço é de onde vêm os valores iniciais e para
+onde vai o salvar. Duas telas se desencontrariam na primeira vez que um campo
+novo entrasse em uma delas.
+
+`Sheet` ganhou `productId?` — **ausente é cadastro, presente é edição**. O
+`ProductSheet` resolve o produto no cache do `useCatalog` (quem tocou na linha
+veio de uma lista já carregada) e só então monta o formulário, para os valores
+iniciais existirem no primeiro render. Se o id não estiver no cache, o sheet diz
+isso em vez de abrir campos vazios — salvar em branco apagaria nome e preço.
+
+**O código de barras virou campo (opcional) do formulário.** Antes só o backend
+o preenchia; agora `NewProduct.code` e `ProductUpdate.code` chegam ao adapter,
+que apara e converte vazio em `null` — nunca `''`, que casaria com busca vazia e
+brigaria com o índice único. Conflito de código volta do Postgres como `23505` e
+é traduzido em `duplicate_code`: sem isso viraria "erro de rede", mandando o
+dono tentar de novo para sempre num conflito que só ele resolve.
+
+**A quantidade em estoque NÃO é editável aqui**, e é a decisão central desta
+tela. Saldo se move por movimentação (`apply_stock_movement`, com motivo e na
+mesma transação); um campo "quanto tem" no formulário sobrescreveria o saldo por
+cima do livro e apagaria o rastro do ajuste. O sheet mostra o saldo atual e
+manda para Estoque. O **mínimo**, esse sim, é configuração do produto e muda
+aqui — e `stock_min` só entra no `update` quando veio número, porque `null` é
+"não tenho esse campo" (plano sem estoque), não "zera o aviso".
+
+Editar **não é otimista**, ao contrário de favoritar: preço que aparece alterado
+e volta atrás é pior que meio segundo de espera — pode haver venda no meio.
 
 ---
 

@@ -1,5 +1,5 @@
-import type { ProductAPI, ProductCreateAPI } from './catalogApiTypes';
-import type { NewProduct, Product, StockStatus } from './catalogTypes';
+import type { ProductAPI, ProductCreateAPI, ProductUpdateAPI } from './catalogApiTypes';
+import type { NewProduct, Product, ProductUpdate, StockStatus } from './catalogTypes';
 
 /**
  * Regra de saúde do estoque, isolada porque três telas dependem dela:
@@ -49,15 +49,40 @@ export function toProduct(raw: ProductAPI): Product {
   };
 }
 
+/**
+ * Código em branco vira `null`, e nunca `''`.
+ *
+ * A coluna `barcode` é anulável e a busca por código compara texto: uma string
+ * vazia gravada faria "produto sem código" virar um código que casa com
+ * qualquer busca vazia, além de brigar com o índice único quando dois produtos
+ * ficassem com o mesmo `''`.
+ */
+function toSku(code: string | null): string | null {
+  const trimmed = code?.trim() ?? '';
+  return trimmed === '' ? null : trimmed;
+}
+
 /** Domínio → payload de escrita. O caminho de volta do adapter. */
 export function toProductCreatePayload(tenantId: string, novo: NewProduct): ProductCreateAPI {
   return {
     tenant_id: tenantId,
     name: novo.name.trim(),
+    sku: toSku(novo.code),
     price_cents: novo.priceCents,
     cost_cents: novo.costCents,
     stock_qty: novo.initialStock,
     stock_min: novo.minimumStock,
     is_service: false,
+  };
+}
+
+/** Domínio → payload de edição. Mesmas regras de aparo do cadastro. */
+export function toProductUpdatePayload(mudanca: ProductUpdate): ProductUpdateAPI {
+  return {
+    name: mudanca.name.trim(),
+    sku: toSku(mudanca.code),
+    price_cents: mudanca.priceCents,
+    cost_cents: mudanca.costCents,
+    stock_min: mudanca.minimumStock,
   };
 }

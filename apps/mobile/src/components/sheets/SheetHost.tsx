@@ -47,7 +47,7 @@ function conteudo(sheet: Sheet) {
     case 'cart':
       return <CartSheet />;
     case 'product':
-      return <ProductSheet />;
+      return <ProductSheet productId={sheet.productId} />;
     case 'closeOut':
       return <CloseOutSheet />;
     case 'ticket':

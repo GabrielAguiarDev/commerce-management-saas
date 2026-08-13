@@ -1,7 +1,7 @@
 import { supabase } from '@services/supabase';
 import { centsToReal, realToCents } from '@utils/money';
 
-import type { ProductAPI, ProductCreateAPI } from './catalogApiTypes';
+import type { ProductAPI, ProductCreateAPI, ProductUpdateAPI } from './catalogApiTypes';
 
 /**
  * FRONTEIRA DE REDE do catálogo.
@@ -102,6 +102,7 @@ export async function createProduct(payload: ProductCreateAPI): Promise<ProductA
     .insert({
       tenant_id: payload.tenant_id,
       name: payload.name,
+      barcode: payload.sku,
       price: centsToReal(payload.price_cents),
       cost: payload.cost_cents == null ? null : centsToReal(payload.cost_cents),
       is_service: payload.is_service,
@@ -118,6 +119,37 @@ export async function createProduct(payload: ProductCreateAPI): Promise<ProductA
 
   if (error) throw error;
   return toProductAPI(data as ProductRow);
+}
+
+/**
+ * Edição de um produto já cadastrado.
+ *
+ * `stock_min` só entra no `update` quando veio um número: `null` aqui é "não
+ * tenho esse campo no formulário" (plano sem estoque), e não "zera o mínimo".
+ * Gravar 0 nesse caso desligaria silenciosamente o aviso de estoque baixo de
+ * quem só queria corrigir o preço.
+ *
+ * `stock_quantity` NÃO é tocado de propósito — ver `ProductUpdate`.
+ */
+export async function updateProduct(
+  productId: string,
+  payload: ProductUpdateAPI,
+): Promise<ProductAPI | null> {
+  const { data, error } = await supabase
+    .from('products')
+    .update({
+      name: payload.name,
+      barcode: payload.sku,
+      price: centsToReal(payload.price_cents),
+      cost: payload.cost_cents == null ? null : centsToReal(payload.cost_cents),
+      ...(payload.stock_min === null ? {} : { stock_min: payload.stock_min }),
+    })
+    .eq('id', productId)
+    .select(PRODUCT_COLUMNS)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? toProductAPI(data as ProductRow) : null;
 }
 
 export async function toggleFavorite(

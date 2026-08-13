@@ -43,6 +43,7 @@ export const ptBR: Messages = {
     catalog: {
       name_required: 'Dê um nome ao produto para salvar.',
       invalid_price: 'O preço não pode ser negativo.',
+      duplicate_code: 'Já existe um produto com esse código. Confira ou deixe em branco.',
       network: 'Não deu para salvar agora. Tente de novo.',
       unknown: 'Algo deu errado com este produto.',
     },
@@ -96,9 +97,11 @@ export const ptBR: Messages = {
     recoveryCodeReady: 'Código pronto. Na simulação ele não sai por e-mail.',
     passwordChanged: 'Senha nova salva. Entre com ela.',
     cameraUnavailable: 'Câmera do código de barras abriria aqui.',
-    editUnavailable: (name: string) =>
-      `Aqui abriria a edição de ${name}. Mudar o preço vale só para as próximas vendas.`,
     productCreated: (name: string) => `"${name}" cadastrado e pronto pra vender.`,
+    // Diz o que a edição NÃO faz: venda registrada ontem continua com o preço
+    // de ontem. Sem essa frase, o dono pode achar que corrigiu o faturamento.
+    productUpdated: (name: string) =>
+      `"${name}" atualizado. O preço novo vale para as próximas vendas.`,
     saleRecorded: (total: string) => `Venda de ${total} registrada!`,
     // NÃO promete sincronia automática: quem lança as vendas é o vendedor, no
     // botão da tela de pendentes. A versão anterior dizia "vai sincronizar
