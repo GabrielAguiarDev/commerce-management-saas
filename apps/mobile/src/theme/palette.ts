@@ -114,6 +114,25 @@ export const palette = {
    */
   toast: '#0f2a34',
 
+  /**
+   * As cores POR TIPO do toast do Reactix (`@components/ui/toast`).
+   *
+   * Só aparecem em quem chama `Toast.show` direto pedindo um `type`: a fachada
+   * do app (`useUIStore().showToast`) sempre passa `backgroundColor` e cai no
+   * `toast` petrol acima, ou no vermelho do tema quando é erro.
+   *
+   * Os valores são os do componente original — não são cores da marca. Estão
+   * aqui porque a paleta é o único lugar onde hex pode morar, e porque o dia em
+   * que alguém quiser um verde nosso no toast de sucesso é aqui que ele mexe.
+   */
+  toastSuccess: '#10B981',
+  toastError: '#EF4444',
+  toastWarning: '#F59E0B',
+  toastInfo: '#3B82F6',
+  toastNeutral: '#262626',
+  /** Ripple do Android sobre o toast — branco quase apagado. */
+  toastRipple: 'rgba(255,255,255,0.1)',
+
   /** Véus dos overlays. */
   scrimSheet: 'rgba(6,20,26,0.5)',
   scrimDialog: 'rgba(6,20,26,0.55)',

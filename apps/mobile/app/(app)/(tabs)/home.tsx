@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Box, Card, Divider, Icon, Pill, Screen, Skeleton, Text, Touchable } from '@components';
 import { lowStockProducts, useCatalog } from '@domain/catalog';
 import { useOpenShift } from '@domain/cash';
-import { ROUTES } from '@domain/navigation/routes';
+import { ROUTES, saleDetailRoute } from '@domain/navigation/routes';
 import { useDailySummary, usePendingSalesCount, useRecentSales } from '@domain/sales';
 import { useCapabilities, useCurrentTenant } from '@domain/tenant';
 import { goTo } from '@hooks/navigation';
@@ -11,6 +11,7 @@ import { useSessionStore } from '@store/sessionStore';
 import type { Messages } from '@i18n';
 import { useTranslation } from '@i18n';
 import { formatBRL } from '@utils/money';
+import { paymentLabel } from '@utils/payment';
 
 /**
  * Início.
@@ -30,7 +31,7 @@ export default function HomeScreen() {
   const { data: tenant } = useCurrentTenant();
   const { capabilities } = useCapabilities();
   const { data: summary, isPending: summaryPending } = useDailySummary();
-  const { data: sales = [] } = useRecentSales();
+  const { data: sales = [], isPending: salesPending } = useRecentSales();
   const { data: shift } = useOpenShift();
   const { data: products = [] } = useCatalog();
   const pendingCount = usePendingSalesCount();
@@ -44,6 +45,7 @@ export default function HomeScreen() {
       title={`Bom dia, ${firstName(user?.name)}`}
       subtitle={`${tenant?.name ?? '—'} · ${longDate()}`}
       showBack={false}
+      padded
     >
       <Box backgroundColor="secondary" borderRadius="r22" padding="s20">
         <Text variant="chipLabel" color="onPetrol" opacity={0.65}>
@@ -246,21 +248,45 @@ export default function HomeScreen() {
         </Touchable>
       ) : null}
 
+      {/* AS ÚLTIMAS VENDAS — dez, não a fita inteira do dia.
+          Num balcão movimentado esta lista cresce o dia todo, e um card que
+          rola sem fim empurra tudo o que vem depois dele para fora da tela.
+          Dez é o que cabe numa olhada; o resto é o HISTÓRICO, que tem
+          cabeçalho por dia e paginação — o botão do rodapé é a porta dele. */}
       <Card paddingVertical="s6" paddingHorizontal="s16">
         <Text variant="sectionTitle" paddingTop="s12" paddingBottom="s4">
-          Últimas vendas
+          {t.home.recentSales}
         </Text>
+
+        {sales.length === 0 && !salesPending ? (
+          <Text variant="caption" color="textMuted" paddingVertical="s12">
+            {t.home.noSalesToday}
+          </Text>
+        ) : null}
+
         {sales.map((sale) => (
           <Box key={sale.id}>
             <Divider />
-            <Box flexDirection="row" alignItems="center" gap="s12" paddingVertical="s11">
+            <Touchable
+              accessibilityLabel={`${sale.time}, ${sale.itemsSummary}, ${formatBRL(sale.totalCents)}`}
+              onPress={() => router.push(saleDetailRoute(sale.id) as never)}
+              flexDirection="row"
+              alignItems="center"
+              gap="s12"
+              paddingVertical="s11"
+            >
+              {/* `minWidth` e não largura fixa, com folga nas laterais: em 34px
+                  cravados o "00:27" encostava nas duas bordas da caixinha. O
+                  horário é o único conteúdo dela e o tamanho dele muda com a
+                  fonte do sistema — quem manda no tamanho é o texto. */}
               <Box
-                width={34}
+                minWidth={52}
                 height={34}
                 borderRadius="r11"
                 backgroundColor="surface2"
                 alignItems="center"
                 justifyContent="center"
+                paddingHorizontal="s8"
               >
                 <Text variant="tinyBold" color="textMuted">
                   {sale.time}
@@ -270,14 +296,34 @@ export default function HomeScreen() {
                 <Text variant="rowText" numberOfLines={1}>
                   {sale.itemsSummary}
                 </Text>
+                {/* A forma de pagamento vem do banco como CHAVE (`cash`) e
+                    aparecia crua aqui, em inglês, no meio de uma tela em
+                    português. Ver `utils/payment`. */}
                 <Text variant="hint" color="textMuted" marginTop="s2">
-                  {sale.paymentMethod}
+                  {paymentLabel(t, sale.paymentMethod)}
                 </Text>
               </Box>
               <Text variant="titleXs">{formatBRL(sale.totalCents)}</Text>
-            </Box>
+            </Touchable>
           </Box>
         ))}
+
+        <Divider />
+
+        <Touchable
+          accessibilityLabel={t.home.seeAllSales}
+          onPress={() => router.push(ROUTES.sales as never)}
+          flexDirection="row"
+          alignItems="center"
+          justifyContent="center"
+          gap="s6"
+          paddingVertical="s14"
+        >
+          <Text variant="sectionLabel" color="primaryText">
+            {t.home.seeAllSales}
+          </Text>
+          <Icon name="chevronRight" size={16} color="primary" />
+        </Touchable>
       </Card>
     </Screen>
   );

@@ -105,7 +105,18 @@ export const ptBR: Messages = {
     // sozinha" e mandava o balconista embora achando que estava resolvido.
     saleSavedOffline: (total: string) =>
       `Venda de ${total} salva no aparelho. Lance no sistema quando a internet voltar.`,
-    saleCancelled: 'Venda cancelada.',
+    saleRefunded: 'Venda estornada. O estoque dos itens voltou.',
+    refundUndone: 'Estorno desfeito. A venda voltou a contar.',
+    // O estorno DEU CERTO e mesmo assim há o que dizer: a venda saiu do
+    // faturamento, mas o saldo de algum item não se moveu. Quem lê isto é a
+    // única pessoa que pode acertar a prateleira — e ela precisa saber hoje,
+    // não no dia da conferência.
+    stockNotReturned: (count: number) =>
+      `A venda foi estornada, mas o estoque de ${count} ${count === 1 ? 'item' : 'itens'} não voltou. Ajuste em Estoque.`,
+    stockNotRemoved: (count: number) =>
+      `O estorno foi desfeito, mas o estoque de ${count} ${count === 1 ? 'item' : 'itens'} não foi baixado. Ajuste em Estoque.`,
+    saleUpdated: (total: string) => `Venda atualizada para ${total}. A anterior ficou estornada.`,
+    editingSale: 'Ajuste os itens e finalize para substituir a venda.',
     cashOpened: 'Caixa aberto. Bom turno!',
     cashClosed: 'Caixa fechado. Bom descanso!',
     withdrawalRecorded: 'Retirada registrada no caixa.',
@@ -136,6 +147,14 @@ export const ptBR: Messages = {
       title: 'Cancelar esta venda?',
       text: 'Os itens do carrinho serão removidos. Nada é registrado.',
       button: 'Cancelar venda',
+    },
+    // Sair da edição não desfaz nada: a venda original NUNCA foi tocada até
+    // aqui — o estorno só acontece no salvar. Dizer isso evita a pergunta que
+    // o botão "Cancelar edição" naturalmente levanta.
+    cancelEdit: {
+      title: 'Sair da edição?',
+      text: 'A venda original continua como está. Os itens do carrinho serão descartados.',
+      button: 'Sair da edição',
     },
     closeCash: {
       title: 'Fechar o caixa agora?',
@@ -220,10 +239,23 @@ export const ptBR: Messages = {
     pix: 'Pix',
     debit_card: 'Cartão de débito',
     credit_card: 'Cartão de crédito',
+    // As duas grafias que o PORTAL grava na mesma coluna. Ver `utils/payment`.
+    debit: 'Cartão de débito',
+    credit: 'Cartão de crédito',
   },
 
   cart: {
     summary: (count: number) => `${count} ${count === 1 ? 'item' : 'itens'} no carrinho`,
+    /**
+     * O carrinho EM MODO EDIÇÃO.
+     *
+     * O título muda porque o botão faz outra coisa: aqui ele substitui uma
+     * venda que já existe, e o texto é a única pista disso antes do toque.
+     */
+    editTitle: 'Editando uma venda',
+    editHint: 'Ao salvar, a venda original é estornada e esta entra no lugar.',
+    saveEdit: (total: string) => `Salvar alterações · ${total}`,
+    cancelEdit: 'Cancelar edição',
   },
 
   stockStatus: {
@@ -238,6 +270,91 @@ export const ptBR: Messages = {
       items: (count: number) => `${count} ${count === 1 ? 'item' : 'itens'}`,
     },
     noSalesYet: 'ainda sem vendas hoje',
+    recentSales: 'Últimas vendas',
+    noSalesToday: 'Nenhuma venda registrada hoje ainda.',
+    seeAllSales: 'Ver todas as vendas',
+  },
+
+  sales: {
+    title: 'Vendas',
+    subtitle: 'Tudo o que já foi vendido',
+    today: 'Hoje',
+    yesterday: 'Ontem',
+    /** "3 vendas · R$ 517,00" — o cabeçalho do dia. Estornadas não entram. */
+    dayTotal: (count: number, total: string) =>
+      `${count} ${count === 1 ? 'venda' : 'vendas'} · ${total}`,
+    saleCount: (count: number) => `${count} ${count === 1 ? 'venda' : 'vendas'} no período`,
+    refundedInDay: (count: number) =>
+      `${count} ${count === 1 ? 'estornada' : 'estornadas'}`,
+
+    /** Os quatro recortes. O rótulo é curto: a fileira rola, mas cabe melhor. */
+    filters: {
+      all: 'Todas',
+      today: 'Hoje',
+      month: 'Mês atual',
+      custom: 'Selecionar período',
+    },
+
+    period: {
+      title: 'Período',
+      from: 'De',
+      to: 'Até',
+      apply: 'Aplicar período',
+      // Diz o que fazer, não o que faltou: os dois campos vazios é o estado
+      // inicial normal deste filtro, não um erro do usuário.
+      hint: 'Preencha uma das datas — ou as duas — e toque em aplicar.',
+      between: (from: string, to: string) => `De ${from} até ${to}`,
+      since: (from: string) => `A partir de ${from}`,
+      until: (to: string) => `Até ${to}`,
+    },
+    refundedBadge: 'Estornada',
+    loadingMore: 'Carregando…',
+    end: 'Você chegou ao começo do histórico.',
+    empty: {
+      title: 'Nenhuma venda por aqui ainda',
+      text: 'Assim que você registrar a primeira venda, ela aparece aqui com valor, itens e forma de pagamento.',
+      // Vazio COM filtro é outra história: não falta venda no sistema, falta
+      // venda naquele recorte. Mandar "registre a primeira venda" para quem tem
+      // 300 vendas e escolheu o mês errado seria absurdo.
+      filteredTitle: 'Nenhuma venda neste período',
+      filteredText: 'Tente outro período ou volte para "Todas" para ver o histórico inteiro.',
+    },
+
+    detail: {
+      title: 'Detalhes da venda',
+      notFound: {
+        title: 'Venda não encontrada',
+        text: 'Ela pode ter sido apagada pelo portal. Volte ao histórico para ver o que existe hoje.',
+      },
+      /** O aviso no topo da venda estornada. */
+      refundedNotice:
+        'Esta venda foi estornada e não conta no faturamento. Ela continua no histórico para você ter o registro.',
+      items: 'Itens',
+      total: 'Total',
+      /** Ações. */
+      edit: 'Editar venda',
+      refund: 'Estornar venda',
+      undoRefund: 'Desfazer estorno',
+      offlineHint: 'Sem internet não dá para estornar nem editar: as duas coisas precisam falar com o servidor.',
+    },
+
+    /** A confirmação do estorno. Diz o que sai, o que volta e o que fica. */
+    refundConfirm: {
+      title: 'Estornar esta venda?',
+      text: 'A venda sai do faturamento e o estoque dos itens volta. Ela continua no histórico, riscada, e dá para desfazer depois.',
+      button: 'Estornar venda',
+    },
+    undoConfirm: {
+      title: 'Desfazer o estorno?',
+      text: 'A venda volta a contar no faturamento e o estoque dos itens é baixado de novo.',
+      button: 'Desfazer estorno',
+    },
+    /** Editar avisa ANTES: a edição cria uma segunda linha no histórico. */
+    editConfirm: {
+      title: 'Editar esta venda?',
+      text: 'A venda atual será estornada e uma nova entra no lugar — as duas ficam no histórico. Os itens vão para o carrinho para você ajustar.',
+      button: 'Editar no carrinho',
+    },
   },
 
   products: {

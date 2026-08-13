@@ -1,7 +1,6 @@
 import { toProduct } from '../catalogAdapter';
 import type { ProductAPI } from '../catalogApiTypes';
 import {
-  SALE_GRID_LIMIT,
   searchHasNoResults,
   casaBusca,
   filterCatalog,
@@ -121,9 +120,22 @@ describe('filtrarCatalogo', () => {
 });
 
 describe('gradeDeVenda', () => {
-  it('sem busca mostra só os favoritos', () => {
+  it('sem busca mostra o catálogo inteiro — a tela de venda não abre vazia', () => {
     const r = saleGrid(CATALOGO, '');
-    expect(r.some((p) => p.name === 'Brinquedo mordedor')).toBe(false);
+    expect(r).toHaveLength(CATALOGO.length);
+    expect(r.some((p) => p.name === 'Brinquedo mordedor')).toBe(true);
+  });
+
+  it('favorito vem antes do resto', () => {
+    const r = saleGrid(CATALOGO, '');
+    // O único não favoritado do catálogo de teste cai para o fim.
+    expect(r[r.length - 1]!.name).toBe('Brinquedo mordedor');
+    expect(r.slice(0, -1).every((p) => p.favorite)).toBe(true);
+  });
+
+  it('sem favorito nenhum, ainda mostra tudo', () => {
+    const nenhumFavorito = CATALOGO.map((p) => ({ ...p, favorite: false }));
+    expect(saleGrid(nenhumFavorito, '')).toHaveLength(CATALOGO.length);
   });
 
   it('com busca alcança até o não favoritado', () => {
@@ -131,11 +143,13 @@ describe('gradeDeVenda', () => {
     expect(r.map((p) => p.name)).toEqual(['Brinquedo mordedor']);
   });
 
-  it('nunca passa do limite de cartões da grade', () => {
+  it('não muta o catálogo recebido', () => {
     const muitos = Array.from({ length: 30 }, (_, i) =>
-      toProduct(api({ id: `m${i}`, name: `Produto ${i}` })),
+      toProduct(api({ id: `m${i}`, name: `Produto ${i}`, is_favorite: i > 20 })),
     );
-    expect(saleGrid(muitos, '')).toHaveLength(SALE_GRID_LIMIT);
+    const antes = muitos.map((p) => p.id);
+    saleGrid(muitos, '');
+    expect(muitos.map((p) => p.id)).toEqual(antes);
   });
 });
 
@@ -146,10 +160,10 @@ describe('buscaSemResultado', () => {
   });
 
   it('catálogo só de não-favoritos NÃO é "nada encontrado"', () => {
-    // Distinção que evita oferecer "Cadastrar produto" para quem só precisa
-    // favoritar o que já tem.
+    // Nada favoritado não é catálogo vazio: a grade mostra o item e a tela não
+    // oferece "Cadastrar produto" para quem já tem o que vender.
     const noFavorites = [toProduct(api({ id: 'x', name: 'Item', is_favorite: false }))];
-    expect(saleGrid(noFavorites, '')).toHaveLength(0);
+    expect(saleGrid(noFavorites, '')).toHaveLength(1);
     expect(searchHasNoResults(noFavorites, '')).toBe(false);
   });
 });

@@ -11,9 +11,10 @@ import { formatBRL } from '@utils/money';
 /**
  * Nova venda.
  *
- * A grade sem busca mostra só os FAVORITOS — é a tela de bate-rápido do
- * balcão, e o dono decide o que fica à mão favoritando em Produtos. Com busca,
- * o catálogo inteiro entra. A regra é pura e vive em `gradeDeVenda`.
+ * A grade mostra o catálogo inteiro desde a abertura — sem busca não é tela
+ * vazia — com os FAVORITOS na frente: o dono decide o que fica à mão
+ * favoritando em Produtos, e o resto continua a uma rolagem. A regra é pura e
+ * vive em `saleGrid`.
  */
 export default function SellScreen() {
   const t = useTranslation();
@@ -27,7 +28,7 @@ export default function SellScreen() {
   const isEmpty = searchHasNoResults(products, search);
 
   return (
-    <Screen title="Nova venda" subtitle="Toque nos itens para montar a venda">
+    <Screen title="Nova venda" subtitle="Toque nos itens para montar a venda" padded>
       <Box flexDirection="row" gap="s9">
         <Box flex={1}>
           <Field
@@ -60,7 +61,7 @@ export default function SellScreen() {
       </Box>
 
       <Text variant="gridLabel" color="textMuted" marginTop="s2">
-        {search.trim() ? 'Resultados da busca' : 'Mais vendidos'}
+        {search.trim() ? 'Resultados da busca' : 'Produtos'}
       </Text>
 
       <Box flexDirection="row" flexWrap="wrap" gap="s10">

@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box } from '@components/ui/Box';
+import { useAppTheme } from '@hooks/useAppTheme';
 
 import { ESPACO_INFERIOR_INTERNO } from './Screen';
 
@@ -20,13 +21,19 @@ import { ESPACO_INFERIOR_INTERNO } from './Screen';
  */
 export function TabPane({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
 
   return (
     <ScrollView
       style={{ flex: 1 }}
+      // O gutter vem daqui, e não da raiz da tela: é o `Screen` que deixou de
+      // aplicá-lo para a BARRA de abas poder sangrar até a borda. Cada aba
+      // recoloca a margem no próprio conteúdo, no content container junto do
+      // padding vertical — nunca no `style`, que recortaria a rolagem.
       contentContainerStyle={{
         paddingTop: 14,
         paddingBottom: ESPACO_INFERIOR_INTERNO + insets.bottom,
+        paddingHorizontal: theme.spacing.screen,
       }}
       // O formulário de Negócio tem teclado aberto quando o dedo chega no
       // "Salvar": sem isto o primeiro toque só fecharia o teclado.

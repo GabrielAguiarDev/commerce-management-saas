@@ -1,5 +1,10 @@
 import { create } from 'zustand';
 
+import { Toast } from '@components/ui/toast';
+import { palette } from '@theme';
+
+import { usePreferencesStore } from './preferencesStore';
+
 /**
  * Estado da CHROME do app: toast, confirmação e bottom sheet.
  *
@@ -7,16 +12,21 @@ import { create } from 'zustand';
  * `toast` são campos únicos no estado). Manter a restrição no tipo é o que
  * impede dois sheets empilhados ou dois toasts brigando pelo mesmo canto.
  *
+ * O toast é a exceção: o ESTADO dele não mora mais aqui. Quem guarda a fila e
+ * desenha é o sistema do Reactix (`@components/ui/toast`), e `showToast`
+ * virou uma fachada — traduz o vocabulário do produto (tom, Desfazer) para as
+ * opções de lá. As ~30 telas que chamam `useUIStore().showToast` continuam
+ * iguais; foi por isso que a fachada ficou.
+ *
  * Nada aqui é persistido: um diálogo de confirmação gravado no disco
  * reapareceria na abertura seguinte, sem contexto nenhum.
  */
 
 export type ToastTone = 'neutral' | 'erro';
 
-export interface Toast {
-  text: string;
+export interface ToastOptions {
   tone: ToastTone;
-  /** Mostra o botão Desfazer e liga o callback abaixo. */
+  /** Mostra o botão Desfazer e liga o callback `onUndo`. */
   withUndo: boolean;
 }
 
@@ -43,13 +53,10 @@ export type Sheet =
 export type SheetType = Sheet['type'];
 
 interface UIState {
-  toast: Toast | null;
   confirm: Confirm | null;
   sheet: Sheet | null;
-  /** Callback do "Desfazer"; separado do toast para não entrar em comparação. */
-  onUndo: (() => void) | null;
 
-  showToast: (text: string, options?: Partial<Omit<Toast, 'text'>> & { onUndo?: () => void }) => void;
+  showToast: (text: string, options?: Partial<ToastOptions> & { onUndo?: () => void }) => void;
   closeToast: () => void;
   requestConfirm: (c: Confirm) => void;
   closeConfirm: () => void;
@@ -60,39 +67,57 @@ interface UIState {
 /** Tempo que o toast fica na tela — inclusive a janela do Desfazer. */
 export const TOAST_DURATION_MS = 4200;
 
-let toastTimer: ReturnType<typeof setTimeout> | null = null;
+/**
+ * O fundo é petrol fixo nos dois temas — decisão do design, registrada em
+ * `palette.toast`. Toast de erro vira vermelho, e esse SIM segue o tema, como
+ * o token `danger` já fazia.
+ */
+function corDeFundo(tone: ToastTone): string {
+  if (tone !== 'erro') return palette.toast;
+  return usePreferencesStore.getState().darkTheme ? palette.redDark : palette.redLight;
+}
+
+/**
+ * Um toast por vez, como no protótipo: o novo derruba o anterior. O sistema
+ * do Reactix EMPILHA por padrão, então a restrição precisa ser aplicada aqui —
+ * sem isso, dois erros seguidos ficariam um em cima do outro.
+ */
+let toastAtual: string | null = null;
 
 export const useUIStore = create<UIState>()((set) => ({
-  toast: null,
   confirm: null,
   sheet: null,
-  onUndo: null,
 
   showToast: (text, options) => {
-    // Um toast por vez: o novo cancela o timer do anterior. Sem isso, o timer
-    // velho apagaria o toast novo antes da hora — bug clássico de fila de
-    // notificação implícita.
-    if (toastTimer) clearTimeout(toastTimer);
+    if (toastAtual) Toast.dismiss(toastAtual);
 
-    set({
-      toast: {
-        text,
-        tone: options?.tone ?? 'neutral',
-        withUndo: options?.withUndo ?? false,
+    const tone = options?.tone ?? 'neutral';
+    const onUndo = options?.onUndo;
+    const withUndo = (options?.withUndo ?? false) && !!onUndo;
+
+    // `id` é lido pelo `onClose` abaixo, que só roda depois desta atribuição.
+    // A comparação NÃO é zelo: o toast derrubado deixa para trás um timer de
+    // saída que ainda vai chamar o `onClose` dele. Sem o guarda, esse eco
+    // zeraria o `toastAtual` do toast NOVO — e a partir daí o próximo
+    // `showToast` não teria mais quem derrubar, voltando a empilhar.
+    let id = '';
+    id = Toast.show(text, {
+      duration: TOAST_DURATION_MS,
+      position: 'top',
+      // `type` só desenha o ícone (✗ no erro); a cor vem do `backgroundColor`.
+      type: tone === 'erro' ? 'error' : 'default',
+      backgroundColor: corDeFundo(tone),
+      action: withUndo && onUndo ? { label: 'Desfazer', onPress: onUndo } : null,
+      onClose: () => {
+        if (toastAtual === id) toastAtual = null;
       },
-      onUndo: options?.onUndo ?? null,
     });
-
-    toastTimer = setTimeout(() => {
-      set({ toast: null, onUndo: null });
-      toastTimer = null;
-    }, TOAST_DURATION_MS);
+    toastAtual = id;
   },
 
   closeToast: () => {
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = null;
-    set({ toast: null, onUndo: null });
+    if (toastAtual) Toast.dismiss(toastAtual);
+    toastAtual = null;
   },
 
   requestConfirm: (c) => set({ confirm: c }),

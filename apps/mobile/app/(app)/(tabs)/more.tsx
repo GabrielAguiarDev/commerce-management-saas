@@ -43,7 +43,7 @@ export default function MoreScreen() {
   }
 
   return (
-    <Screen title="Mais" subtitle="Tudo o que seu plano inclui" showBack={false}>
+    <Screen title="Mais" subtitle="Tudo o que seu plano inclui" showBack={false} padded>
       <Box flexDirection="row" flexWrap="wrap" gap="s12">
         {items.map((item) => (
           <Touchable

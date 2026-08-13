@@ -77,29 +77,30 @@ export function specialCategoryOf(products: Product[]): string | null {
   return best;
 }
 
-/** Quantos itens a grade de venda mostra antes de exigir busca. */
-export const SALE_GRID_LIMIT = 8;
-
 /**
  * Grade da tela Vender.
  *
- * Sem busca, mostra só os favoritos — é a tela de "bate-rápido" de quem vende
- * no balcão, e o dono escolhe o que fica à mão favoritando. Com busca, o
- * catálogo inteiro entra na peneira. Em ambos os casos, no máximo 8 cartões:
- * mais que isso exige rolar, e rolar no meio da venda é o que se quer evitar.
+ * Mostra o CATÁLOGO INTEIRO peneirado pela busca — inclusive com a busca vazia.
+ * Antes, sem busca a grade se limitava aos favoritos e cortava em 8 cartões, e
+ * o resultado prático era uma tela de venda vazia para quem ainda não favoritou
+ * nada: não dava para vender sem digitar.
+ *
+ * O favorito não sumiu, virou ORDEM: quem o dono deixou à mão aparece primeiro,
+ * então o bate-rápido do balcão continua no topo e o resto fica a uma rolagem.
+ * A ordem relativa dentro de cada grupo é a do catálogo (`sort` estável).
  */
 export function saleGrid(products: Product[], search: string): Product[] {
-  const casados = products.filter((p) => casaBusca(p, search));
-  const visiveis = search.trim() ? casados : casados.filter((p) => p.favorite);
-  return visiveis.slice(0, SALE_GRID_LIMIT);
+  return products
+    .filter((p) => casaBusca(p, search))
+    .sort((a, b) => Number(b.favorite) - Number(a.favorite));
 }
 
 /**
  * `true` quando nem a busca nem o catálogo produziram resultado — o gatilho do
  * estado vazio "Nada encontrado / Cadastrar produto".
  *
- * Repara que olha para `casaBusca`, não para o resultado de `gradeDeVenda`:
- * um catálogo só de não-favoritos NÃO é "nada encontrado", é "nada favoritado".
+ * Repara que olha para `casaBusca`, não para o resultado de `saleGrid`: são a
+ * mesma peneira, mas o vazio que interessa aqui é o da BUSCA, não o da grade.
  */
 export function searchHasNoResults(products: Product[], search: string): boolean {
   return products.filter((p) => casaBusca(p, search)).length === 0;

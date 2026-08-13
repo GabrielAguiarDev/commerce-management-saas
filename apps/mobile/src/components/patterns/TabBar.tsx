@@ -10,8 +10,13 @@ import { tabBarItems } from '@domain/navigation/routes';
 import { useCapabilities } from '@domain/tenant';
 import { goToRoot } from '@hooks/navigation';
 
-/** 88px é a altura do design. A safe area entra POR CIMA, não no lugar dela. */
-export const ALTURA_TAB_BAR = 88;
+import {
+  ALTURA_TAB_BAR,
+  BASE_ROTULO_TAB,
+  GAP_ITEM_TAB,
+  TAMANHO_ICONE_TAB,
+  VAO_BOTAO_VENDER,
+} from './tabBarGeometry';
 
 /**
  * A CASCA DAS ABAS — estável nelas, ausente fora delas.
@@ -53,8 +58,12 @@ export function TabBar() {
       borderTopWidth={1}
       borderTopColor="line"
       flexDirection="row"
-      alignItems="flex-start"
-      paddingTop="s9"
+      // `stretch`, e não `flex-start`: os alvos tocáveis ocupam a altura útil
+      // INTEIRA da barra, enquanto o ícone e o rótulo se posicionam dentro
+      // deles. Antes os itens tinham a altura do próprio conteúdo e o resto da
+      // barra era vazio morto — dedo grande em balcão errava a aba por acertar
+      // o vazio.
+      alignItems="stretch"
       paddingHorizontal="s8"
       style={{ height: ALTURA_TAB_BAR + insets.bottom, paddingBottom: insets.bottom }}
       accessibilityRole="tablist"
@@ -63,13 +72,9 @@ export function TabBar() {
         const active = path === item.route;
         return (
           <Fragment key={item.key}>
-            {/* O VÃO DO BOTÃO CENTRAL. 84px fixos entre o 2º e o 3º item, como
-                no design — é o espaço onde o `NewSaleButton` pousa. Ele precisa
-                estar AQUI, e não ser só um recuo do botão, porque as quatro
-                abas são `flex: 1`: sem tirar largura do fluxo, elas se
-                repartiriam a barra inteira e os rótulos ficariam por baixo do
-                círculo. */}
-            {index === 2 && <Box width={84} />}
+            {/* O VÃO DO BOTÃO CENTRAL, entre o 2º e o 3º item — o espaço onde o
+                `NewSaleButton` pousa. Ver `VAO_BOTAO_VENDER`. */}
+            {index === 2 && <Box width={VAO_BOTAO_VENDER} />}
             <Touchable
               accessibilityLabel={item.label}
               accessibilityRole="tab"
@@ -81,17 +86,25 @@ export function TabBar() {
               }}
               flex={1}
               alignItems="center"
-              gap="s5"
-              paddingVertical="s6"
+              justifyContent="flex-end"
             >
-              <Icon
-                name={item.icon as IconName}
-                size={22}
-                color={active ? 'primary' : 'textMuted'}
-              />
-              <Text variant="tabLabel" color={active ? 'primary' : 'textMuted'}>
-                {item.label}
-              </Text>
+              {/* O bloco ícone+rótulo, apoiado a `BASE_ROTULO_TAB` da base da
+                  área útil. Medido daqui de baixo, e não centralizado por conta
+                  própria, porque é esta mesma medida que o "Vender" usa para
+                  alinhar o rótulo dele com estes quatro. */}
+              <Box
+                alignItems="center"
+                style={{ gap: GAP_ITEM_TAB, paddingBottom: BASE_ROTULO_TAB }}
+              >
+                <Icon
+                  name={item.icon as IconName}
+                  size={TAMANHO_ICONE_TAB}
+                  color={active ? 'primary' : 'textMuted'}
+                />
+                <Text variant="tabLabel" color={active ? 'primary' : 'textMuted'}>
+                  {item.label}
+                </Text>
+              </Box>
             </Touchable>
           </Fragment>
         );

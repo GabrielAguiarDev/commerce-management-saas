@@ -1,5 +1,7 @@
 import { ScrollView } from 'react-native';
 
+import { useAppTheme } from '@hooks/useAppTheme';
+
 import { Box } from './Box';
 import { Text } from './Text';
 import { Touchable } from './Touchable';
@@ -26,6 +28,15 @@ interface ChipsProps<T extends string> {
  * outros três; `expandir` desliga a rolagem e divide a largura em partes
  * iguais, que é como Custos usa.
  *
+ * O GUTTER É DELE quando rola: o padding sai daqui, do `contentContainerStyle`,
+ * para a fileira poder sangrar até a borda real do aparelho. Por isso a tela
+ * que usa a versão que ROLA não pode ser `<Screen padded>` — o gutter viria
+ * duas vezes e o primeiro chip sairia do prumo. Ela envolve os blocos estáticos
+ * em `<Gutter>` e deixa esta fileira solta. Ver `padding-layout.md`.
+ *
+ * Com `expandir` é o contrário: não há rolagem para preservar, a fileira é uma
+ * linha estática como qualquer outra e herda o gutter de quem a contém.
+ *
  * `accessibilityState.selected` importa: sem ele, o leitor de tela anuncia
  * quatro botões idênticos e o usuário não sabe qual filtro está ativo.
  */
@@ -36,6 +47,8 @@ export function Chips<T extends string>({
   method = 'pilula',
   expandir = false,
 }: ChipsProps<T>) {
+  const theme = useAppTheme();
+
   const content = options.map((o) => {
     const active = o.key === selecionada;
     return (
@@ -73,7 +86,11 @@ export function Chips<T extends string>({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 8, paddingBottom: 2 }}
+      contentContainerStyle={{
+        gap: 8,
+        paddingBottom: 2,
+        paddingHorizontal: theme.spacing.screen,
+      }}
     >
       {content}
     </ScrollView>

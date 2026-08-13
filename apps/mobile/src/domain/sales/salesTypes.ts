@@ -22,13 +22,80 @@ export interface Sale {
   id: string;
   /** `HH:mm` já formatado pelo adapter — a tela não faz conta com data. */
   time: string;
+  /**
+   * O instante ISO em que a venda foi feita.
+   *
+   * A lista de hoje não precisa dele; o HISTÓRICO precisa, porque é ele que
+   * decide em qual dia a venda cai. Agrupar por `time` seria juntar as 14h de
+   * hoje com as 14h da semana passada.
+   */
+  soldAt: string;
   items: SoldItem[];
   /** "2× Acarajé completo · 1× Água" — resumo pronto para a linha da lista. */
   itemsSummary: string;
   paymentMethod: string;
   totalCents: number;
+  /**
+   * ESTORNADA: continua no histórico, riscada, fora de todo total.
+   *
+   * O nome é `refunded` e não `cancelled` porque é o que o banco guarda e o
+   * que o portal escreve — as duas telas falam da mesma linha.
+   */
+  refunded: boolean;
   /** Venda feita offline e ainda não confirmada pelo servidor. */
   pendingSync: boolean;
+}
+
+/**
+ * Um DIA do histórico: o cabeçalho e as vendas embaixo dele.
+ *
+ * Montado por `groupSalesByDay`, que é função pura. O rótulo visível ("Hoje",
+ * "12 de agosto") NÃO vem daqui de propósito — vem da tela, pelo i18n. O que o
+ * domínio entrega é o fato: qual dia é, e se ele é hoje ou ontem.
+ */
+export interface SaleDay {
+  /** `YYYY-MM-DD` no fuso do aparelho — a identidade do grupo. */
+  key: string;
+  /** O ISO da primeira venda do dia, para a tela formatar a data. */
+  iso: string;
+  /** `today` e `yesterday` ganham nome próprio na tela; o resto vira data. */
+  relative: 'today' | 'yesterday' | null;
+  sales: Sale[];
+  /** Soma do dia SEM as estornadas — o que de fato entrou. */
+  totalCents: number;
+  /** Quantas contam para o total (estornadas não contam). */
+  saleCount: number;
+  refundedCount: number;
+}
+
+/**
+ * O RESUMO de um recorte do histórico — o cabeçalho que muda com o filtro.
+ *
+ * Vem do banco sobre o período INTEIRO, não da página carregada. Ver
+ * `salesApi.fetchSalesTotals`.
+ */
+export interface SalesTotals {
+  saleCount: number;
+  totalCents: number;
+  refundedCount: number;
+}
+
+/** Uma página do histórico, do jeito que a rolagem infinita consome. */
+export interface SalesPage {
+  sales: Sale[];
+  /** Onde a próxima página começa. `null` = acabou. */
+  nextOffset: number | null;
+}
+
+/**
+ * O que sobrou de um estorno.
+ *
+ * `stockFailures > 0` significa que a venda FOI estornada mas o saldo de algum
+ * item não se moveu. Não é erro da operação — é uma pendência que a tela
+ * precisa dizer em voz alta, porque só quem está ali pode ajustar o estoque.
+ */
+export interface RefundResult {
+  stockFailures: number;
 }
 
 export interface TopSeller {

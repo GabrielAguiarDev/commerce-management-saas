@@ -6,7 +6,6 @@ import {
   AO_FADE,
   CartBar,
   Box,
-  ConfirmHost,
   SheetHost,
   StartupError,
   StartupLoading,
@@ -56,7 +55,11 @@ export const unstable_settings = { anchor: '(tabs)' };
  *  - `CartBar`, porque uma venda em montagem tem que sobreviver a uma consulta
  *    de estoque — e é justamente em Vender, que é tela empilhada, que ela mais
  *    importa. Ela se reposiciona sozinha conforme haja tab bar embaixo;
- *  - `SheetHost` e `ConfirmHost`, que são modais e cobrem tudo por definição.
+ *  - `SheetHost`, que é modal e cobre tudo por definição.
+ *
+ * O `ConfirmHost` já morou aqui e SUBIU para `AppProviders`: dentro deste
+ * layout ele ficava por baixo do portal dos bottom sheets, e o diálogo de
+ * "Cancelar venda" abria atrás do carrinho. Ver o comentário lá.
  */
 export default function AppLayout() {
   const hydrated = useAppHydrated();
@@ -150,13 +153,18 @@ function AppShell() {
           <Stack.Screen name="sell" />
           <Stack.Screen name="stock" />
           <Stack.Screen name="pending-sales" />
+          {/* O histórico e o detalhe de uma venda. Como `support`, são uma
+              pasta sem layout próprio: as duas telas empilham direto aqui, e é
+              o que faz o botão voltar do detalhe cair no histórico e o do
+              histórico cair no Início. */}
+          <Stack.Screen name="sales" />
           <Stack.Screen name="reports" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="support" />
         </Stack>
 
         {/* A chrome que vale na PILHA INTEIRA. Ordem = ordem de empilhamento:
-            sheet e confirm por último, porque precisam cobrir o resto.
+            o sheet por último, porque precisa cobrir o resto.
 
             Nada aqui desmonta ao navegar: são irmãos da pilha, montados uma vez
             quando o guardião liberou.
@@ -164,12 +172,12 @@ function AppShell() {
             A tab bar e o botão Vender NÃO estão mais aqui — ver o cabeçalho
             deste arquivo e `(tabs)/_layout.tsx`.
 
-            O ToastHost também não: ele vive no layout RAIZ, porque `login` e
-            `blocked` também precisam dele e estão fora deste grupo. Montá-lo nos
-            dois lugares mostraria o mesmo toast duplicado aqui dentro. */}
+            O toast também não: o provider dele vive em `AppProviders`, porque
+            `login` e `blocked` também precisam dele e estão fora deste grupo.
+            Montá-lo nos dois lugares mostraria o mesmo toast duplicado aqui
+            dentro. */}
         <CartBar />
         <SheetHost />
-        <ConfirmHost />
       </Box>
     </Animated.View>
   );

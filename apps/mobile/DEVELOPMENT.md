@@ -227,9 +227,10 @@ No `(app)/_layout.tsx` ficou só o que vale na pilha inteira: a **barra do
 carrinho** — some-la em Vender seria escondê-la exatamente onde é usada — e os
 hosts de sheet e confirm, que são modais.
 
-**Três coisas se posicionam a partir do rodapé** e por isso precisam saber se há
-tab bar embaixo: a barra do carrinho, o toast e o espaço reservado no fim do
-`Screen`. Todas perguntam a `useOnTabScreen()`, que é `isTabRoute(usePathname())`
+**Duas coisas se posicionam a partir do rodapé** e por isso precisam saber se há
+tab bar embaixo: a barra do carrinho e o espaço reservado no fim do
+`Screen`. (O toast era a terceira, até subir para o topo — ver a regra 10.)
+As duas perguntam a `useOnTabScreen()`, que é `isTabRoute(usePathname())`
 — a mesma função pura já testada no node. Sem isso elas boiariam sobre um rodapé
 vazio nas telas internas. Na barra do carrinho a mudança é **animada** (mesma
 curva do `aoUp`): ela acontece durante a transição de tela, e sem interpolar
@@ -361,7 +362,7 @@ fronteira de rede; a tradução, do adapter.
 |---|---|---|
 | `sessionStore` | **não** (mudou na fase 5) | usuário, tenantId, roleId. Quem persiste a sessão é o cliente Supabase, criptografada — duas cópias divergiriam. Reconstruído no boot por `restore()` |
 | `preferenciasStore` | sim | tema escuro, formas de pagamento aceitas |
-| `carrinhoStore` | **não** | itens, forma de pagamento, snapshot do Desfazer |
+| `carrinhoStore` | **não** | itens, forma de pagamento |
 | `uiStore` | não | toast, confirmação, sheet (um de cada por vez) |
 | `conexaoStore` | não | online, sincronizando |
 
@@ -562,38 +563,97 @@ não é rota, então não há `gestureEnabled` do navegador para herdar. O arras
 vertical (fecha acima de 90px ou com velocidade > 800) está no `BottomSheet`. Sem
 ele, o sheet só fecharia no ✕.
 
-**8. Por que o bottom sheet não é rota.** O sheet do carrinho precisa **reabrir a
-partir do "Desfazer" do toast**, que vive fora da pilha. Como rota, isso exigiria
-empurrar uma rota a partir de um componente global — e no iOS tudo que é
-empilhado *depois* de um modal também é apresentado como modal, quebrando a
-navegação seguinte.
+**8. Por que o bottom sheet não é rota.** Os sheets são abertos a partir de
+componentes GLOBAIS que vivem fora da pilha — a `CartBar`, o toast, o próprio
+`uiStore`. Como rota, isso exigiria empurrar uma rota a partir de um componente
+global — e no iOS tudo que é empilhado *depois* de um modal também é apresentado
+como modal, quebrando a navegação seguinte.
 
 **9. `Seletor` usa `Modal` do RN, e não overlay absoluto.** Ele é aberto de
 dentro de um bottom sheet; um overlay comum ficaria por baixo.
 
-**10. Toast: um por vez, e o timer do anterior é cancelado.** Sem isso, o timer
-velho apaga o toast novo antes da hora.
+**10. Toast: o sistema é o do Reactix, e ele nasce NO TOPO.** O componente é
+copiado da doc ([reacticx.com/docs/components/toast](https://www.reacticx.com/docs/components/toast))
+e vive em `src/components/ui/toast/` — código de terceiro, não dependência npm.
+Os desvios do original, todos comentados no código:
 
-**10b. O `ToastHost` mora no layout RAIZ, não no de `(app)`.** Ficou no
-`(app)/_layout.tsx` por muito tempo — mas `login` e `blocked` estão FORA desse
-grupo. Nas duas telas o `showToast` escrevia na store e **nada renderizava**: o
-toque no botão não produzia efeito nenhum.
+1. `position` default é `'top'`, não `'bottom'`. O rodapé aqui já é disputado
+   por tab bar, barra do carrinho e FAB; toast ali cobre ação.
+2. **A safe area é aplicada no `Toast`, não no `ToastViewport`.** O original põe
+   `paddingTop: insets.top + 10` no viewport e `top: 80` no toast — só que o
+   toast é `position: 'absolute'`, e filho absoluto **não herda padding do
+   pai**. O padding nunca chegou nele; quem segurava o toast fora da barra de
+   status eram os 80 fixos, e num iPhone com Dynamic Island isso é curto — o
+   toast aparecia POR BAIXO da ilha. Agora o viewport não tem padding nenhum e
+   o toast calcula `insets.top + AFASTAMENTO`. `AFASTAMENTO` (10) é o número a
+   mexer para descer o toast.
+3. `Toast.types.ts` é nosso: a doc publica os outros quatro arquivos, esse não.
+4. **Arrastar para fechar** é acréscimo nosso — o Reactix só fecha por tempo,
+   por toque na ação ou por API. O gesto segue a posição: no topo fecha para
+   cima, no rodapé para baixo. Fecha por distância (48pt) **ou** por velocidade
+   (700pt/s), senão o flick curto não fecharia. Puxar para o lado errado dá
+   rubber band e volta.
+
+   O arrasto escreve num shared value SEPARADO (`dragY`), somado ao `translateY`
+   no transform. Escrever no mesmo valor faria uma spring de reposicionamento de
+   pilha arrancar o toast de baixo do dedo.
+5. **A largura é o gutter da tela**, não os `width: '90%'` + `maxWidth: 400` do
+   original. Mesma armadilha do item 2, no outro eixo: o `paddingHorizontal: 16`
+   do viewport nunca chegou ao toast absoluto, e o que sobrava era uma
+   porcentagem que não conversa com margem nenhuma do app — o toast entrava
+   desalinhado com os cartões que ele cobre, e o texto quebrava antes da hora.
+   Agora o `Toast` aplica `left`/`right` = `theme.spacing.screen`, o mesmo token
+   do `Gutter`. Mudar a margem do app move o toast junto.
+
+   O `activeOffsetY` de 10pt não é enfeite: sem ele o pan reivindica o toque no
+   primeiro pixel e o `onPress` do conteúdo expansível nunca dispara.
+
+   **O timer não pausa durante o arrasto.** Segurar o toast parado não estende os
+   4,2s, e no limite ele some sob o dedo. Pausar de verdade exigiria mexer também
+   no timer do `ToastContext`, que é quem manda no ciclo de vida — não foi feito.
+
+**10b. As telas NÃO chamam esse sistema direto.** A porta de entrada continua
+sendo `useUIStore().showToast(texto, { tone, withUndo, onUndo })` — uma fachada
+que traduz o vocabulário do produto para as opções do Reactix (`tone: 'erro'`
+vira `type: 'error'` com o vermelho do tema; `withUndo` vira `action`). Foi o
+que permitiu trocar o toast inteiro sem tocar nas ~30 chamadas espalhadas.
+
+Um por vez, e o novo derruba o anterior: o Reactix **empilha** por padrão, então
+a restrição do protótipo é aplicada na fachada. Sem isso, dois erros seguidos
+ficariam um em cima do outro.
+
+**10c. O provider mora em `AppProviders`, que envolve o app inteiro.** Antes era
+`<ToastHost />` no layout raiz, e antes disso no `(app)/_layout.tsx` — mas
+`login` e `blocked` estão FORA desse grupo. Nas duas telas o `showToast`
+escrevia na store e **nada renderizava**: o toque no botão não produzia efeito
+nenhum.
 
 Doeu mais no LOGIN, onde o toast é o único retorno de erro que existe. Senha
 errada, conta sem negócio, falha de rede — tudo silencioso, e o sintoma que
 chegava era "o login não faz nada", que manda depurar navegação e rede em vez
 da camada de UI.
 
-Uma instância só. Montar na raiz **e** em `(app)` mostraria o toast duplicado
-dentro do app. O afastamento inferior tem três composições, e o componente
-pergunta as duas coisas que as separam: `useSegments()` para saber se está
-dentro de `(app)` (fora dele não há tab bar nem carrinho, e manter o afastamento
-faria o toast flutuar no meio da tela de login) e `useOnTabScreen()` para saber
-se há tab bar embaixo (numa tela interna há só o espaço do carrinho).
+Uma instância só. Montar em dois lugares mostraria o toast duplicado. O
+`ToastProviderWithViewport` renderiza o viewport depois dos filhos, e é isso que
+põe o toast por cima — por isso ele fica POR FORA do `BottomSheetModalProvider`,
+e não por dentro como já esteve: lá o toast de erro do checkout saía atrás do
+próprio carrinho que o disparou.
 
-Se criar uma tela nova fora de `(app)` que precise de confirmação ou de sheet,
-`ConfirmHost` e `SheetHost` têm exatamente o mesmo problema: continuam só em
-`(app)`, de propósito, porque hoje só o app os usa.
+**10d. O `ConfirmHost` subiu para `AppProviders` pelo mesmo motivo de camada.**
+Ele morava em `(app)/_layout.tsx`, dentro do `BottomSheetModalProvider`. Só que
+o `PortalProvider` do `@gorhom/bottom-sheet` desenha o host do portal DEPOIS dos
+próprios filhos — ou seja, o sheet pinta por cima de tudo que estiver dentro do
+provider. O sintoma era exato: "Cancelar venda" abria o diálogo de confirmação
+ATRÁS do sheet do carrinho.
+
+A ordem de pintura agora é: telas → sheets (portal) → `ConfirmHost` → toast.
+`ConfirmHost` é irmão POSTERIOR do `BottomSheetModalProvider`; nada disso usa
+`zIndex`, é ordem de irmão mesmo — mover qualquer um deles na árvore muda a
+camada.
+
+`SheetHost` continua só em `(app)`, de propósito, porque hoje só o app usa
+sheets. Se criar uma tela nova fora do grupo que precise de um, ela tem o mesmo
+problema que o toast tinha.
 
 **11. `conexaoStore.definirOnline` ignora chamada com o mesmo valor.** O NetInfo
 emite eventos repetidos ao trocar de rede; sem a guarda, o banner
@@ -1009,6 +1069,131 @@ apareceria longe do momento em que dava para lembrar do que houve no balcão.
 
 ---
 
+## 14. Histórico de vendas: ver, editar e estornar
+
+**A promessa:** o que dá para fazer com uma venda no portal passa a dar para
+fazer no balcão. Ver o detalhe, corrigir o que foi digitado errado e estornar —
+sem abrir o computador, que é exatamente onde o dono do negócio **não** está no
+momento em que percebe o erro.
+
+### Três telas, e o que cada uma responde
+
+| tela | pergunta |
+|---|---|
+| card do Início | "o que vendi agora há pouco?" — as **10** últimas de hoje |
+| `app/(app)/sales/index.tsx` | "o que eu já vendi?" — tudo, por dia, paginado |
+| `app/(app)/sales/[id].tsx` | "o que tinha nessa venda, e o que faço com ela?" |
+
+O card do Início mostrava **3** e crescia sem limite conforme o dia andava,
+empurrando o resto da tela para fora. Agora ele mostra dez e termina com a porta
+do histórico ("Ver todas as vendas") — que é a única forma de chegar lá, como a
+fila offline é alcançada pelo card dela.
+
+### A rolagem infinita, e a porta que ela abriu no `Screen`
+
+O histórico carrega **20 por vez** e busca as próximas ao chegar a 320px do fim.
+Isso exigiu a única prop nova do `Screen` em muito tempo: `onEndReached`.
+
+Ela mora lá porque **quem rola é o `ScrollView` do `Screen`** — a alternativa
+seria a tela trazer o próprio `FlatList`, e `VirtualizedList` dentro de
+`ScrollView` é erro em runtime, não questão de gosto. O `onScroll` só é ligado
+quando alguém passa a prop: uma tela comum não paga por um callback a cada
+quadro de rolagem.
+
+⚠️ **A guarda `!isFetchingNextPage` é obrigatória** em quem consome. O evento
+repete enquanto o dedo está na faixa final; sem ela, uma rolagem até o fim pede
+a mesma página quatro ou cinco vezes e a lista aparece com vendas duplicadas.
+
+### As peças novas
+
+| arquivo | papel |
+|---|---|
+| `sales/salesHistory.ts` | **função pura**: agrupa por dia local, soma o dia sem as estornadas |
+| `salesApi.listSales` | a página do histórico — sem recorte de data e **com** as estornadas |
+| `salesApi.fetchSale` | uma venda com os itens |
+| `salesApi.setSaleStatus` / `moveSaleStock` | o estorno: status + volta do estoque |
+| `salesService.refundSale` / `undoRefund` / `editSale` | as regras |
+| `useCases`: `useSalesHistory`, `useSale`, `useRefundSale`, `useUndoRefund`, `useEditSale` | |
+| `utils/payment.ts` | chave do banco → nome visível, num lugar só |
+
+### O recorte, e por que o total NÃO é somado na tela
+
+Quatro filtros: **Todas**, **Hoje**, **Mês atual** e **Selecionar período** (duas
+datas `dd/mm/aaaa`, com qualquer uma das pontas opcional). O intervalo de cada
+um sai de `rangeForFilter`, função pura e testada — "mês atual" calculado em UTC
+devolve o mês errado na noite do dia 1º.
+
+⚠️ **O `to` do intervalo é EXCLUSIVO** (meia-noite do dia seguinte, comparado com
+`lt`). Com `lte` na meia-noite do próprio dia, a venda das 14h do último dia do
+período ficaria de fora — o erro de relatório mais difícil de notar, porque a
+lista fica *quase* certa. Tem teste com essa venda das 23h59.
+
+O resumo do topo (`useSalesTotals`) é **consulta própria sobre o período
+inteiro**, não a soma da página carregada. Com 20 vendas de um mês que tem 300,
+somar a tela mostraria um terço do faturamento com toda a confiança do mundo.
+O custo: `fetchSalesTotals` lê uma linha (duas colunas) por venda do recorte.
+Barato no porte deste app, **e não escala para sempre** — a substituição certa é
+uma função de agregação no banco, que é migração e não código de tela.
+
+### A estornada NÃO some da lista
+
+Ela fica riscada, com selo, **fora do total do dia**. É o mesmo desenho do
+portal e pela mesma razão: é essa linha que explica ao contador por que o
+caderno e o sistema divergem naquele dia. Apagar faria o número fechar e a
+história sumir.
+
+### O estorno devolve o estoque À MÃO
+
+⚠️ O trigger de `sale_items` só reage à **inserção** do item — mudar
+`sales.status` não move saldo nenhum. Por isso `moveSaleStock` chama
+`apply_stock_movement` item a item, com a quantidade **assinada** (a função
+ignora o `p_type` e soma o que recebe — ver `shared/dbEnums`). Sem isso,
+estornar tiraria a venda do faturamento e deixaria a mercadoria fora da
+prateleira.
+
+A ordem é **status primeiro, estoque depois**. Se a devolução falhar no meio, o
+pior caso é uma venda estornada com saldo a ajustar à mão — e o app **diz isso
+em voz alta** (`toasts.stockNotReturned`) em vez de fingir sucesso. Na ordem
+inversa o pior caso seria mercadoria de volta ao estoque com a venda ainda
+contando no faturamento.
+
+### Editar é estornar e registrar de novo
+
+Mesma decisão do portal (`apps/portal-client/app/vendas/actions.ts`): a venda
+antiga é estornada e uma nova entra no lugar. Reescrever a linha original
+apagaria o rastro da correção e exigiria uma lógica nova só para acertar a
+diferença de estoque entre o carrinho velho e o novo. O custo, visível e
+honesto: o histórico fica com **duas linhas**.
+
+O caminho na interface passa pelo **carrinho**: "Editar venda" carrega os itens
+e leva para Vender, com `cartStore.editingSaleId` guardando de qual venda eles
+vieram. Enquanto esse campo estiver preenchido, o botão do `CartSheet`
+substitui em vez de registrar. **Nada é tocado no servidor até salvar** — sair
+da edição não desfaz coisa alguma, e o diálogo diz isso.
+
+O `editingSaleId` mora no carrinho, e não numa prop de tela, porque o carrinho
+sobrevive à navegação: quem edita pode ir a Produtos conferir um preço e voltar.
+
+### Sem caminho offline — e isso é dito na tela
+
+Vender funciona offline (§13); **estornar e editar não**. Os dois dependem de
+ler os itens no servidor e chamar a função de estoque do banco, e enfileirar
+isso seria prometer o que não dá para cumprir: a edição deixaria a antiga
+estornada no servidor e a substituta dormindo no aparelho. Offline, os botões
+somem e o aviso aparece no lugar deles.
+
+### Pendência descoberta aqui: duas grafias na mesma coluna
+
+O app grava `debit_card`/`credit_card` (as chaves de
+`preferencesStore.PAYMENT_METHODS`); o portal grava `debit`/`credit`
+(`lib/dados/vendas.ts`). **A coluna `sales.payment_method` tem as duas**, e um
+negócio que vende pelos dois canais vê as duas no histórico. `utils/payment.ts`
+traduz as seis chaves para não mostrar identificador cru na tela, mas isso é
+curativo: unificar é **migração de dados**, não mudança de rótulo, e precisa ser
+combinado com o portal antes.
+
+---
+
 ## 12. Referência de design
 
 **Fonte de verdade:** o protótipo `design.html` (Claude Design). Não apagar esta
@@ -1061,8 +1246,14 @@ notícia (despesa subindo é âmbar, não verde).
 - Grade de Vender sem busca = só favoritos; máximo 8 cartões.
 - Badge de estoque: verde "N em estoque" · âmbar "N — está baixo" · vermelho
   "Sem estoque".
-- Toast dura 4,2s; o de venda finalizada tem **Desfazer**, que restaura o
-  carrinho e reabre o sheet.
+- Toast dura 4,2s. No protótipo o de venda finalizada tinha **Desfazer**, que
+  restaurava o carrinho e reabria o sheet. **Divergimos aqui**: o botão saiu.
+  Ele desfazia só o CARRINHO — a venda continuava em `sales`/`sale_items` e o
+  gatilho do banco já tinha baixado o estoque, então tocar nele e finalizar de
+  novo criava uma segunda venda, com receita e baixa em dobro. Volta quando
+  existir estorno de verdade no banco (cancelar a venda e devolver o estoque).
+  Mesmo motivo do banner teal logo abaixo: um botão que promete o que não faz é
+  pior que a ausência dele.
 - Offline: banner âmbar. Ao voltar: banner teal por 2,4s e depois o toast
   "Tudo sincronizado. Nada se perdeu."
   **Divergimos aqui, na fase 6.** No protótipo o banner teal era um `setTimeout`

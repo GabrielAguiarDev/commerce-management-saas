@@ -29,7 +29,7 @@ export default function CostsScreen() {
   const list = filterCosts(costs, filter);
 
   return (
-    <Screen title="Custos" subtitle="O que sai do seu bolso">
+    <Screen title="Custos" subtitle="O que sai do seu bolso" padded>
       <Card borderRadius="r22" padding="s18">
         <Box
           flexDirection="row"

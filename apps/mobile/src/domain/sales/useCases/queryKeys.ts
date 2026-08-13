@@ -11,6 +11,12 @@ export const salesKeys = {
   all: ['vendas'] as const,
   doDia: (tenantId: string) => [...salesKeys.all, 'do-dia', tenantId] as const,
   summary: (tenantId: string) => [...salesKeys.all, 'resumo', tenantId] as const,
+  /** O histórico paginado. Fica sob `all` para um estorno invalidar tudo junto. */
+  history: (tenantId: string) => [...salesKeys.all, 'historico', tenantId] as const,
+  /** O agregado do recorte (contagem e faturamento), por filtro. */
+  totals: (tenantId: string) => [...salesKeys.all, 'totais', tenantId] as const,
+  /** Uma venda específica — a tela de detalhe. */
+  detail: (saleId: string) => [...salesKeys.all, 'detalhe', saleId] as const,
 };
 
 export const pendingSalesKeys = {

@@ -17,7 +17,7 @@ import { formatBRL } from '@utils/money';
 import { palette } from '@theme';
 
 import { AO_UP } from './animations';
-import { ALTURA_TAB_BAR } from './TabBar';
+import { ALTURA_TAB_BAR } from './tabBarGeometry';
 
 /** A folga entre a barra e o que estiver embaixo dela. */
 const FOLGA = 16;

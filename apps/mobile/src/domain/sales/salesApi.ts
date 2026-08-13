@@ -3,7 +3,8 @@ import { supabase } from '@services/supabase';
 import { startOfTodayISO, todayDateOnly } from '@utils/dates';
 import { centsToReal, realToCents } from '@utils/money';
 
-import type { DailySummaryAPI, SaleAPI, SaleCreateAPI } from './salesApiTypes';
+import type { DailySummaryAPI, SaleAPI, SaleCreateAPI, SalesTotalsAPI } from './salesApiTypes';
+import type { SalesRange } from './salesHistory';
 
 /**
  * FRONTEIRA DE REDE das vendas.
@@ -54,6 +55,7 @@ function toSaleAPI(row: SaleRow): SaleAPI {
     created_at: row.sold_at,
     total_cents: realToCents(row.total),
     payment_method: row.payment_method ?? 'cash',
+    status: row.status,
     items: (row.sale_items ?? []).map((i) => ({
       product_id: i.product_id ?? '',
       product_name: i.product_name,
@@ -73,7 +75,7 @@ function toSaleAPI(row: SaleRow): SaleAPI {
  * venda que não entra naquele total não pode aparecer como se tivesse entrado.
  * O histórico completo, com as estornadas riscadas, é tela do portal.
  */
-export async function listDailySales(tenantId: string, limite = 3): Promise<SaleAPI[]> {
+export async function listDailySales(tenantId: string, limite = 10): Promise<SaleAPI[]> {
   void tenantId; // O RLS já isola pelo tenant do usuário logado.
 
   const { data, error } = await supabase
@@ -86,6 +88,168 @@ export async function listDailySales(tenantId: string, limite = 3): Promise<Sale
 
   if (error) throw error;
   return ((data ?? []) as SaleRow[]).map(toSaleAPI);
+}
+
+/**
+ * O HISTÓRICO — uma página de vendas de qualquer dia.
+ *
+ * Três diferenças em relação à consulta de cima, e as três são o que separa
+ * "o que vendi hoje" de "o que já vendi":
+ *
+ *  1. sem recorte de data — a rolagem é que limita, não o calendário;
+ *  2. **com as estornadas**. Elas aparecem riscadas e fora dos totais. Uma
+ *     venda que sumiu da lista depois de estornada é a maneira mais rápida de
+ *     alguém achar que o estorno apagou a venda — e o histórico existe
+ *     justamente para provar o contrário ao contador;
+ *  3. `range` em vez de `limit`: a tela pede a página seguinte, não uma lista
+ *     maior. Pedir 60 para mostrar 30 é o padrão que faz a segunda página
+ *     custar o dobro da primeira.
+ *
+ * Pede-se UM ITEM A MAIS que o tamanho da página, e o service usa esse extra
+ * só para responder "tem mais?" — sem uma segunda consulta de contagem.
+ */
+export async function listSales(
+  tenantId: string,
+  offset: number,
+  limite: number,
+  range: SalesRange = { from: null, to: null },
+): Promise<SaleAPI[]> {
+  void tenantId;
+
+  let query = supabase.from('sales').select(SALE_COLUMNS);
+
+  // `lt` e não `lte` no fim: o `to` que chega já é a meia-noite do dia
+  // SEGUINTE. Ver `SalesRange`.
+  if (range.from) query = query.gte('sold_at', range.from);
+  if (range.to) query = query.lt('sold_at', range.to);
+
+  const { data, error } = await query
+    .order('sold_at', { ascending: false })
+    .range(offset, offset + limite - 1);
+
+  if (error) throw error;
+  return ((data ?? []) as SaleRow[]).map(toSaleAPI);
+}
+
+/**
+ * O TOTAL DO RECORTE — quantas vendas e quanto deu, no período inteiro.
+ *
+ * Existe porque o cabeçalho não pode somar o que está na TELA: com 30 vendas
+ * carregadas de um mês que tem 300, um total calculado no cliente mostraria um
+ * terço do faturamento com toda a confiança do mundo. A conta é do banco, sobre
+ * o período inteiro, e não sobre a página.
+ *
+ * Traz `total` e `status` das vendas do período — duas colunas, sem os itens —
+ * e soma aqui. As estornadas entram na CONTAGEM delas e ficam fora do dinheiro,
+ * que é a mesma regra do cabeçalho de cada dia (`groupSalesByDay`); ter as duas
+ * contas no mesmo lugar é o que impede a soma do topo de discordar da soma dos
+ * dias logo abaixo.
+ *
+ * ⚠️ ISTO NÃO ESCALA PARA SEMPRE. "Todas" num negócio com anos de operação
+ * baixa uma linha por venda só para somar. Para o porte deste app é barato
+ * (duas colunas numéricas), e a alternativa honesta — uma função de agregação
+ * no banco — é migração, não código de tela. Está anotado em DEVELOPMENT.md.
+ */
+export async function fetchSalesTotals(
+  tenantId: string,
+  range: SalesRange = { from: null, to: null },
+): Promise<SalesTotalsAPI> {
+  void tenantId;
+
+  let query = supabase.from('sales').select('total, status');
+
+  if (range.from) query = query.gte('sold_at', range.from);
+  if (range.to) query = query.lt('sold_at', range.to);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  let totalCents = 0;
+  let saleCount = 0;
+  let refundedCount = 0;
+
+  for (const row of (data ?? []) as { total: number | null; status: string | null }[]) {
+    if (row.status === SALE_STATUS.refunded) {
+      refundedCount += 1;
+      continue;
+    }
+    totalCents += realToCents(row.total);
+    saleCount += 1;
+  }
+
+  return { sale_count: saleCount, total_cents: totalCents, refunded_count: refundedCount };
+}
+
+/** UMA venda, com os itens — a tela de detalhe. `null` = não existe mais. */
+export async function fetchSale(saleId: string): Promise<SaleAPI | null> {
+  const { data, error } = await supabase
+    .from('sales')
+    .select(SALE_COLUMNS)
+    .eq('id', saleId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? toSaleAPI(data as SaleRow) : null;
+}
+
+/** Marca a venda como estornada (ou de volta como completa). */
+export async function setSaleStatus(saleId: string, status: string): Promise<void> {
+  const { error } = await supabase.from('sales').update({ status }).eq('id', saleId);
+  if (error) throw error;
+}
+
+/**
+ * DEVOLVE (ou tira de novo) o estoque dos itens de uma venda.
+ *
+ * ⚠️ ISTO É FEITO À MÃO, e não por gatilho. O trigger de `sale_items` só reage
+ * à INSERÇÃO do item — mudar `sales.status` não move saldo nenhum (verificado
+ * no banco, e é o mesmo motivo pelo qual o portal faz esta volta à mão em
+ * `app/vendas/actions.ts`). Sem esta função, estornar tiraria a venda do
+ * faturamento e deixaria a mercadoria fora da prateleira para sempre.
+ *
+ * `sign = 1` devolve à prateleira (estorno); `-1` baixa de novo (estorno
+ * desfeito). O SINAL é o que conta: `apply_stock_movement` ignora o `p_type` e
+ * soma o `p_quantity` como veio — ver o aviso em `shared/dbEnums`.
+ *
+ * Devolve quantos itens NÃO conseguiram voltar. O chamador não desfaz o
+ * estorno por causa disso — a venda já saiu do faturamento e desfazer traria
+ * de volta um número que o dono acabou de mandar tirar. Ele AVISA, e o ajuste
+ * de estoque fica a um toque de distância, na tela de Estoque. Silêncio aqui
+ * seria a única saída pior que as duas.
+ */
+export async function moveSaleStock(saleId: string, sign: 1 | -1): Promise<number> {
+  const { data, error } = await supabase
+    .from('sale_items')
+    .select('product_id, quantity, products(tracks_stock)')
+    .eq('sale_id', saleId);
+
+  if (error) throw error;
+
+  let failures = 0;
+
+  for (const item of data ?? []) {
+    const product = (Array.isArray(item.products) ? item.products[0] : item.products) as {
+      tracks_stock?: boolean | null;
+    } | null;
+
+    // Produto avulso (sem `product_id`) ou que não controla estoque não tem
+    // saldo para mexer — não é falha, é um item que nunca esteve na prateleira.
+    if (!item.product_id || !product?.tracks_stock) continue;
+
+    const { error: movementError } = await supabase.rpc('apply_stock_movement', {
+      p_product_id: item.product_id,
+      p_type: 'adjustment',
+      // ASSINADO. Ver `moveSaleStock` acima e `stockApi.createStockMovement`.
+      p_quantity: sign * Number(item.quantity ?? 0),
+      p_reason: sign > 0 ? 'Devolução por estorno' : 'Baixa por estorno desfeito',
+      p_sale_id: saleId,
+      p_unit_cost: null,
+    });
+
+    if (movementError) failures += 1;
+  }
+
+  return failures;
 }
 
 /**
@@ -295,6 +459,7 @@ export async function recordSale(payload: SaleCreateAPI): Promise<SaleAPI> {
     created_at: sale.sold_at,
     total_cents: payload.total_cents,
     payment_method: payload.payment_method,
+    status: SALE_STATUS.completed,
     items: payload.items,
     is_synced: true,
   };

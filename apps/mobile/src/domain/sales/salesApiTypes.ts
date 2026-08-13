@@ -15,8 +15,25 @@ export interface SaleAPI {
   total_cents: number;
   payment_method: string;
   items: SaleItemAPI[];
+  /**
+   * `sales.status` cru — `completed` ou `refunded`.
+   *
+   * Chega até aqui porque o HISTÓRICO mostra a venda estornada riscada, em vez
+   * de escondê-la: a linha continua no lugar, fora do faturamento. O resumo do
+   * Início e as "últimas vendas" seguem filtrando `completed` na consulta, e é
+   * por isso que este campo nasce depois — a primeira leitura de vendas do app
+   * nunca via uma venda que não fosse completa.
+   */
+  status: string | null;
   /** `false` = registrada offline, ainda não confirmada pelo servidor. */
   is_synced: boolean | null;
+}
+
+/** O agregado de um recorte do histórico. Ver `fetchSalesTotals`. */
+export interface SalesTotalsAPI {
+  sale_count: number;
+  total_cents: number;
+  refunded_count: number;
 }
 
 export interface DailySummaryAPI {

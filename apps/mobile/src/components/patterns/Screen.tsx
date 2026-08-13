@@ -8,18 +8,24 @@ import { Box } from '@components/ui/Box';
 import { Icon } from '@components/ui/Icon';
 import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
+import { useAppTheme } from '@hooks/useAppTheme';
 import { useOnTabScreen } from '@hooks/navigation';
 import { useSessionStore } from '@store/sessionStore';
 
 import { ConnectionBanner } from './ConnectionBanner';
+import { ALTURA_TAB_BAR } from './tabBarGeometry';
 
 /**
- * Altura reservada no fim do conteúdo para a tab bar (88), a barra do carrinho
- * e o FAB não cobrirem o último item. O protótipo usa 150px de padding-bottom.
+ * Altura reservada no fim do conteúdo para a tab bar, a barra do carrinho e o
+ * botão "Vender" não cobrirem o último item.
+ *
+ * Derivado da altura da barra: era um 150 fixo que embutia os 88 de outrora, e
+ * encolher a barra sem isto deixaria um rodapé vazio no fim de toda rolagem.
+ * Os 62 são a barra do carrinho mais a folga.
  *
  * Vale nas ABAS. Ver `ESPACO_INFERIOR_INTERNO` para as telas de pilha.
  */
-export const ESPACO_INFERIOR = 150;
+export const ESPACO_INFERIOR = ALTURA_TAB_BAR + 62;
 
 /**
  * O mesmo, nas telas INTERNAS (Vender, Estoque, Configurações, Suporte…), onde
@@ -42,6 +48,35 @@ interface ScreenProps {
   noScroll?: boolean;
   /** Botão voltar. Padrão: aparece quando há para onde voltar na pilha. */
   showBack?: boolean;
+  /**
+   * O ATALHO para a tela em que NADA rola na horizontal: aplica o gutter no
+   * conteúdo inteiro de uma vez, em vez de obrigar cada bloco a se envolver
+   * num `<Gutter>`.
+   *
+   * O padrão é `false` de propósito. A tela que tem uma fileira de chips, uma
+   * barra de abas ou qualquer coisa que role na horizontal precisa que o
+   * conteúdo alcance a borda REAL do aparelho — e a única forma de garantir
+   * que ninguém ative isso por hábito e volte a cortar a rolagem é fazer o
+   * caso seguro ser o que se escreve.
+   *
+   * Ver `padding-layout.md` na raiz do app.
+   */
+  padded?: boolean;
+  /**
+   * A ROLAGEM CHEGOU PERTO DO FIM — a deixa para carregar a próxima página.
+   *
+   * Existe para o histórico de vendas, e mora AQUI porque quem rola é o
+   * `ScrollView` deste componente: sem esta porta, a tela teria que trocar o
+   * `Screen` por um `FlatList` próprio (e um `VirtualizedList` dentro de um
+   * `ScrollView` é erro em runtime, não uma questão de gosto).
+   *
+   * Cabe a quem passa não disparar duas buscas: o evento repete a cada quadro
+   * de rolagem dentro da faixa. O padrão é checar `!isFetchingNextPage` antes
+   * de pedir a próxima.
+   */
+  onEndReached?: () => void;
+  /** A que distância do fim (px) o aviso dispara. */
+  onEndReachedThreshold?: number;
 }
 
 /**
@@ -63,8 +98,12 @@ export function Screen({
   children,
   noScroll = false,
   showBack,
+  padded = false,
+  onEndReached,
+  onEndReachedThreshold = 320,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
   const user = useSessionStore((s) => s.user);
   const onTab = useOnTabScreen();
 
@@ -79,23 +118,16 @@ export function Screen({
 
   const bottomSpace = onTab ? ESPACO_INFERIOR : ESPACO_INFERIOR_INTERNO + insets.bottom;
 
-  // `flex={1}` só no caso SEM rolagem: ali o conteúdo é quem tem altura própria
-  // (a thread do suporte, o navegador de abas de Configurações) e precisa
-  // receber a altura restante da tela. Dentro do `ScrollView` seria o oposto —
-  // altura fixa impediria a rolagem.
-  const content = (flexible: boolean) => (
-    <Box flex={flexible ? 1 : undefined} gap="s12" paddingHorizontal="s16" paddingTop="s2">
-      {children}
-    </Box>
-  );
-
   return (
     <Box flex={1} backgroundColor="bg" style={{ paddingTop: insets.top }}>
       <Box
         flexDirection="row"
         alignItems="center"
         gap="s12"
-        paddingHorizontal="s18"
+        // O header é conteúdo estático e usa o MESMO gutter do resto. Era
+        // `s18` — 2px a mais que o conteúdo abaixo dele, o que colocava o
+        // título fora do prumo do primeiro cartão.
+        paddingHorizontal="screen"
         paddingTop="s2"
         paddingBottom="s12"
       >
@@ -131,15 +163,46 @@ export function Screen({
       <ConnectionBanner />
 
       {noScroll ? (
-        content(true)
+        // SEM rolagem, o padding fica no próprio Box: não há
+        // `contentContainerStyle` onde colocá-lo. `flex={1}` é o que dá ao
+        // conteúdo — que aqui tem altura própria (a thread do suporte, o
+        // navegador de abas de Configurações) — a altura restante da tela.
+        <Box flex={1} gap="s12" paddingTop="s2" paddingHorizontal={padded ? 'screen' : undefined}>
+          {children}
+        </Box>
       ) : (
+        // COM rolagem, TODO o padding vai para o `contentContainerStyle` — o
+        // horizontal junto do vertical. No `style` do ScrollView o horizontal
+        // recortaria a área visível: no dia em que esta tela ganhasse uma
+        // fileira que rola na horizontal, ela voltaria a ser cortada antes da
+        // borda, que é justamente o defeito que esta divisão corrige. Altura
+        // fixa aqui seria o oposto do caso acima: impediria a rolagem.
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: bottomSpace }}
+          contentContainerStyle={{
+            paddingTop: theme.spacing.s2,
+            paddingBottom: bottomSpace,
+            paddingHorizontal: padded ? theme.spacing.screen : 0,
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          // `onScroll` só é ligado quando alguém quer saber — uma tela comum
+          // não paga por um callback a cada quadro de rolagem.
+          onScroll={
+            onEndReached
+              ? ({ nativeEvent: e }) => {
+                  const distanciaDoFim =
+                    e.contentSize.height - e.contentOffset.y - e.layoutMeasurement.height;
+                  if (distanciaDoFim <= onEndReachedThreshold) onEndReached();
+                }
+              : undefined
+          }
+          // 16ms daria um evento por quadro; 100 é o suficiente para pedir a
+          // próxima página bem antes de o usuário alcançar o fim, sem inundar
+          // a ponte com eventos durante uma rolagem rápida.
+          scrollEventThrottle={onEndReached ? 100 : undefined}
         >
-          {content(false)}
+          <Box gap="s12">{children}</Box>
         </ScrollView>
       )}
     </Box>

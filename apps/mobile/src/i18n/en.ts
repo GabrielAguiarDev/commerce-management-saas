@@ -127,7 +127,17 @@ export const en = {
     // queue, from the pending sales screen.
     saleSavedOffline: (total: string) =>
       `Sale of ${total} saved on the device. Send it once the internet is back.`,
-    saleCancelled: 'Sale cancelled.',
+    saleRefunded: 'Sale refunded. The stock of its items is back.',
+    refundUndone: 'Refund undone. The sale counts again.',
+    // The refund WORKED and there is still something to say: the sale left the
+    // revenue, but some item's balance did not move. Whoever reads this is the
+    // only person who can fix the shelf.
+    stockNotReturned: (count: number) =>
+      `The sale was refunded, but the stock of ${count} ${count === 1 ? 'item' : 'items'} did not come back. Adjust it in Stock.`,
+    stockNotRemoved: (count: number) =>
+      `The refund was undone, but the stock of ${count} ${count === 1 ? 'item' : 'items'} was not deducted. Adjust it in Stock.`,
+    saleUpdated: (total: string) => `Sale updated to ${total}. The previous one was refunded.`,
+    editingSale: 'Adjust the items and finish to replace the sale.',
     cashOpened: 'Register open. Have a good shift!',
     cashClosed: 'Register closed. Enjoy your rest!',
     withdrawalRecorded: 'Withdrawal recorded at the register.',
@@ -159,6 +169,13 @@ export const en = {
       title: 'Cancel this sale?',
       text: 'The cart items will be removed. Nothing is recorded.',
       button: 'Cancel sale',
+    },
+    // Leaving the edit undoes nothing: the original sale is untouched until
+    // you save — the refund only happens then.
+    cancelEdit: {
+      title: 'Leave the edit?',
+      text: 'The original sale stays as it is. The cart items will be discarded.',
+      button: 'Leave the edit',
     },
     closeCash: {
       title: 'Close the register now?',
@@ -269,11 +286,19 @@ export const en = {
     pix: 'Pix',
     debit_card: 'Debit card',
     credit_card: 'Credit card',
+    /** The spellings the web PORTAL writes into the same column. See `utils/payment`. */
+    debit: 'Debit card',
+    credit: 'Credit card',
   },
 
   cart: {
     /** "1 item in the cart" / "3 items in the cart". */
     summary: (count: number) => `${count} ${count === 1 ? 'item' : 'items'} in the cart`,
+    /** The cart in EDIT mode — the button replaces a sale that already exists. */
+    editTitle: 'Editing a sale',
+    editHint: 'On save, the original sale is refunded and this one takes its place.',
+    saveEdit: (total: string) => `Save changes · ${total}`,
+    cancelEdit: 'Leave the edit',
   },
 
   stockStatus: {
@@ -288,6 +313,85 @@ export const en = {
       items: (count: number) => `${count} ${count === 1 ? 'item' : 'items'}`,
     },
     noSalesYet: 'no sales yet today',
+    recentSales: 'Latest sales',
+    noSalesToday: 'No sales recorded today yet.',
+    seeAllSales: 'See all sales',
+  },
+
+  sales: {
+    title: 'Sales',
+    subtitle: 'Everything you have sold so far',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    /** "3 sales · R$ 517.00" — the day header. Refunded ones are left out. */
+    dayTotal: (count: number, total: string) =>
+      `${count} ${count === 1 ? 'sale' : 'sales'} · ${total}`,
+    saleCount: (count: number) => `${count} ${count === 1 ? 'sale' : 'sales'} in the period`,
+    refundedInDay: (count: number) => `${count} refunded`,
+
+    /** The four ranges. Short labels: the row scrolls, but it fits better. */
+    filters: {
+      all: 'All',
+      today: 'Today',
+      month: 'This month',
+      custom: 'Pick a period',
+    },
+
+    period: {
+      title: 'Period',
+      from: 'From',
+      to: 'To',
+      apply: 'Apply period',
+      // Says what to do, not what is missing: both fields empty is this
+      // filter's normal starting state, not a user error.
+      hint: 'Fill in one of the dates — or both — and tap apply.',
+      between: (from: string, to: string) => `From ${from} to ${to}`,
+      since: (from: string) => `From ${from} onwards`,
+      until: (to: string) => `Up to ${to}`,
+    },
+    refundedBadge: 'Refunded',
+    loadingMore: 'Loading…',
+    end: 'You have reached the beginning of the history.',
+    empty: {
+      title: 'No sales here yet',
+      text: 'As soon as you record the first sale, it shows up here with amount, items and payment method.',
+      // Empty WITH a filter is a different story: it is not that there are no
+      // sales, it is that there are none in that range.
+      filteredTitle: 'No sales in this period',
+      filteredText: 'Try another period, or go back to "All" to see the whole history.',
+    },
+
+    detail: {
+      title: 'Sale details',
+      notFound: {
+        title: 'Sale not found',
+        text: 'It may have been deleted from the portal. Go back to the history to see what exists today.',
+      },
+      refundedNotice:
+        'This sale was refunded and does not count towards revenue. It stays in the history so you keep the record.',
+      items: 'Items',
+      total: 'Total',
+      edit: 'Edit sale',
+      refund: 'Refund sale',
+      undoRefund: 'Undo refund',
+      offlineHint: 'Without internet you cannot refund or edit: both need to talk to the server.',
+    },
+
+    refundConfirm: {
+      title: 'Refund this sale?',
+      text: 'The sale leaves the revenue and the stock of its items comes back. It stays in the history, struck through, and you can undo it later.',
+      button: 'Refund sale',
+    },
+    undoConfirm: {
+      title: 'Undo the refund?',
+      text: 'The sale counts towards revenue again and the stock of its items is deducted once more.',
+      button: 'Undo refund',
+    },
+    editConfirm: {
+      title: 'Edit this sale?',
+      text: 'The current sale will be refunded and a new one takes its place — both stay in the history. The items go to the cart for you to adjust.',
+      button: 'Edit in the cart',
+    },
   },
 
   products: {

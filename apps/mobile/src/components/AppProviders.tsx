@@ -6,6 +6,8 @@ import { useMemo, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ConfirmHost } from '@components/patterns/ConfirmHost';
+import { ToastProviderWithViewport } from '@components/ui/toast';
 import { useSessionSync } from '@hooks/useSessionSync';
 import { usePreferencesStore } from '@store/preferencesStore';
 import { darkTheme, lightTheme } from '@theme';
@@ -20,12 +22,29 @@ import { darkTheme, lightTheme } from '@theme';
  *     pelo Screen, pela tab bar, pelo FAB e pelo toast.
  *  3. `ThemeProvider` antes do resto, para que a troca de tema não remonte a
  *     árvore de navegação.
- *  4. `BottomSheetModalProvider` por ÚLTIMO, e não em volta de tudo: ele é o
- *     host do portal onde os bottom sheets são renderizados de fato. Como o
+ *  4. `BottomSheetModalProvider` bem por dentro, e não em volta de tudo: ele é
+ *     o host do portal onde os bottom sheets são renderizados de fato. Como o
  *     `@gorhom/portal` monta o nó na posição do host, o contexto que o
  *     conteúdo do sheet enxerga é o daqui — se o provider ficasse acima do
  *     `ThemeProvider`, os sheets ficariam sem tema, sem query client e sem
  *     safe area.
+ *  5. `ToastProviderWithViewport` POR FORA do sheet provider, porque ele
+ *     renderiza o viewport DEPOIS dos filhos — daqui o toast fica por cima das
+ *     telas E dos sheets.
+ *
+ * ⚠️ O toast tem que ser montado AQUI, e uma vez só. Antes ele vivia no
+ * layout raiz como `<ToastHost />`, e antes disso em `app/(app)/_layout.tsx` —
+ * onde `login` e `blocked`, que estão fora daquele grupo, ficavam sem nada
+ * renderizando o toast. Doeu mais no login, onde o toast é o ÚNICO retorno de
+ * erro: senha errada e falha de rede eram silenciosas.
+ *
+ * ⚠️ O `ConfirmHost` também vive aqui, e IRMÃO DEPOIS do sheet provider — não
+ * é decoração de ordem, é o que conserta a camada. O `PortalProvider` do
+ * `@gorhom/bottom-sheet` desenha o host do portal DEPOIS dos próprios filhos,
+ * então tudo que estivesse dentro dele (era o caso do `ConfirmHost`, montado
+ * em `app/(app)/_layout.tsx`) pinta ABAIXO do sheet: pedir "Cancelar venda"
+ * abria o diálogo atrás do carrinho. Como irmão posterior, ele pinta por cima
+ * — e o toast, mais tarde ainda, por cima dos dois.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   const isDark = usePreferencesStore((s) => s.darkTheme);
@@ -60,7 +79,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <SafeAreaProvider>
         <QueryClientProvider client={client}>
           <ThemeProvider theme={theme}>
-            <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
+            <ToastProviderWithViewport>
+              <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
+              <ConfirmHost />
+            </ToastProviderWithViewport>
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

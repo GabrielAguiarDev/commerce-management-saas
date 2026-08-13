@@ -50,6 +50,24 @@ export default function SettingsLayout() {
           // telas de comprimento.
           tabBarItemStyle: { width: 'auto', paddingHorizontal: 14 },
 
+          // O GUTTER DA BARRA, no content container e não na raiz da tela.
+          //
+          // A barra é um ScrollView horizontal por dentro. Com o padding no
+          // container raiz do `Screen`, ela era recortada 16px antes da borda
+          // do aparelho: "Conta e plano" sumia numa faixa morta em vez de
+          // deslizar até o fim da tela, e o fio de baixo virava um traço solto
+          // no meio da tela em vez de atravessá-la.
+          //
+          // Aqui o padding vai para DENTRO da rolagem: a primeira aba nasce no
+          // mesmo prumo dos cartões de baixo, e a última desliza até a borda de
+          // verdade. Ver `padding-layout.md`.
+          //
+          // Só `paddingHorizontal` — nunca `paddingLeft`/`Right` separados: a
+          // biblioteca troca a ordem de `paddingStart`/`paddingEnd` num dos dois
+          // pontos onde calcula a largura da aba, e com padding assimétrico o
+          // indicador sairia do lugar.
+          tabBarContentContainerStyle: { paddingHorizontal: theme.spacing.screen },
+
           tabBarActiveTintColor: theme.colors.primary,
           tabBarInactiveTintColor: theme.colors.textMuted,
           tabBarIndicatorStyle: { backgroundColor: theme.colors.primary, height: 2 },

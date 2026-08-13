@@ -33,7 +33,7 @@ export default function StockScreen() {
   const summary = stockSummary(products);
 
   return (
-    <Screen title="Estoque" subtitle="O que tem e o que está acabando">
+    <Screen title="Estoque" subtitle="O que tem e o que está acabando" padded>
       <Box flexDirection="row" gap="s10">
         <Contador label="Em dia" amount={summary.emDia} color="success" />
         <Contador label="Baixo" amount={summary.low} color="warning" />

@@ -19,7 +19,7 @@ export default function SupportScreen() {
   const openSheet = useUIStore((s) => s.openSheet);
 
   return (
-    <Screen title="Suporte" subtitle="A gente responde por aqui">
+    <Screen title="Suporte" subtitle="A gente responde por aqui" padded>
       {tickets.map((ticket) => (
         <Touchable
           key={ticket.id}

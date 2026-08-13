@@ -37,7 +37,7 @@ export default function CashScreen() {
   // a navegação inteira, só sem o número.
   if (isPending) {
     return (
-      <Screen title="Caixa" subtitle={subtitle}>
+      <Screen title="Caixa" subtitle={subtitle} padded>
         <Skeleton height={128} borderRadius="r22" />
         <Skeleton height={168} borderRadius="r20" />
         <Skeleton height={52} borderRadius="r16" />
@@ -47,7 +47,7 @@ export default function CashScreen() {
 
   if (!shift) {
     return (
-      <Screen title="Caixa" subtitle={subtitle}>
+      <Screen title="Caixa" subtitle={subtitle} padded>
         <Card borderRadius="r22" padding="s22" alignItems="center">
           <Box
             width={62}
@@ -122,7 +122,7 @@ export default function CashScreen() {
   }
 
   return (
-    <Screen title="Caixa" subtitle={subtitle}>
+    <Screen title="Caixa" subtitle={subtitle} padded>
       <Box backgroundColor="petrol" borderRadius="r22" padding="s20">
         <Box flexDirection="row" justifyContent="space-between" alignItems="center">
           <Text variant="chipLabel" color="onPetrol" opacity={0.7}>

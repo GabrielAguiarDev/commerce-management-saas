@@ -66,7 +66,10 @@ export function ConnectionBanner() {
   return (
     <Animated.View entering={FadeIn.duration(AO_FADE.bannerDuration)}>
       <Box
-        marginHorizontal="s16"
+        // O banner é desenhado pelo `Screen` FORA do conteúdo, então não herda
+        // o gutter de ninguém — mas precisa ficar no prumo dele. Daí a margem
+        // com o mesmo token, e não um `s16` copiado à mão.
+        marginHorizontal="screen"
         marginBottom="s10"
         borderRadius="r14"
         paddingVertical="s11"

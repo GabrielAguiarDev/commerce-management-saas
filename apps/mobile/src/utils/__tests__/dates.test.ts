@@ -1,4 +1,12 @@
-import { daysAgoDateOnly, daysSince, toDateOnly, todayDateOnly } from '../dates';
+import {
+  daysAgoDateOnly,
+  daysSince,
+  formatDayInput,
+  maskDayInput,
+  parseDayInput,
+  toDateOnly,
+  todayDateOnly,
+} from '../dates';
 
 /**
  * As réguas de tempo das consultas.
@@ -59,5 +67,61 @@ describe('daysSince', () => {
 
   it('data inválida vira 0 em vez de NaN', () => {
     expect(daysSince('ontem à tarde')).toBe(0);
+  });
+});
+
+describe('maskDayInput', () => {
+  it('insere as barras conforme digita', () => {
+    expect(maskDayInput('1')).toBe('1');
+    expect(maskDayInput('13')).toBe('13');
+    expect(maskDayInput('1308')).toBe('13/08');
+    expect(maskDayInput('13082026')).toBe('13/08/2026');
+  });
+
+  it('descarta o que não é dígito e não passa de 8', () => {
+    expect(maskDayInput('13/08/2026')).toBe('13/08/2026');
+    expect(maskDayInput('13a08b2026999')).toBe('13/08/2026');
+  });
+
+  it('apagar até o fim não deixa barra órfã', () => {
+    expect(maskDayInput('13/0')).toBe('13/0');
+    expect(maskDayInput('13/')).toBe('13');
+    expect(maskDayInput('')).toBe('');
+  });
+});
+
+describe('parseDayInput', () => {
+  it('lê dd/mm/aaaa como meia-noite local', () => {
+    const date = parseDayInput('13/08/2026');
+    expect(date?.getFullYear()).toBe(2026);
+    expect(date?.getMonth()).toBe(7);
+    expect(date?.getDate()).toBe(13);
+    expect(date?.getHours()).toBe(0);
+  });
+
+  it('RECUSA data que não existe em vez de estourar para o mês seguinte', () => {
+    // Sem a validação, o `Date` do JS devolveria 3 de março sem reclamar — e o
+    // filtro traria um período que ninguém pediu.
+    expect(parseDayInput('31/02/2026')).toBeNull();
+    expect(parseDayInput('32/01/2026')).toBeNull();
+    expect(parseDayInput('13/13/2026')).toBeNull();
+  });
+
+  it('aceita 29/02 em ano bissexto e recusa fora dele', () => {
+    expect(parseDayInput('29/02/2028')).not.toBeNull();
+    expect(parseDayInput('29/02/2026')).toBeNull();
+  });
+
+  it('recusa incompleto e ano de dois dígitos', () => {
+    expect(parseDayInput('13/08')).toBeNull();
+    expect(parseDayInput('13/08/26')).toBeNull();
+    expect(parseDayInput('')).toBeNull();
+  });
+});
+
+describe('formatDayInput', () => {
+  it('é o caminho de volta do parse', () => {
+    expect(formatDayInput(new Date(2026, 7, 3))).toBe('03/08/2026');
+    expect(parseDayInput(formatDayInput(new Date(2026, 0, 1)))?.getMonth()).toBe(0);
   });
 });

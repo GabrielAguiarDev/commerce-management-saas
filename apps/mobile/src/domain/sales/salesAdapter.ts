@@ -1,4 +1,6 @@
 
+import { SALE_STATUS } from '@domain/shared/dbEnums';
+
 import type { DailySummaryAPI, SaleAPI, SaleCreateAPI, SaleItemAPI } from './salesApiTypes';
 import type { CartItem, DailySummary, Sale } from './salesTypes';
 
@@ -31,6 +33,7 @@ export function toSale(raw: SaleAPI): Sale {
   return {
     id: raw.id,
     time: localTime(raw.created_at),
+    soldAt: raw.created_at,
     items: raw.items.map((i) => ({
       productId: i.product_id,
       name: i.product_name,
@@ -40,6 +43,10 @@ export function toSale(raw: SaleAPI): Sale {
     itemsSummary: resumir(raw.items),
     paymentMethod: raw.payment_method,
     totalCents: raw.total_cents,
+    // Nulo é venda COMPLETA, não estornada: a coluna admite nulo e uma venda
+    // sem status nunca foi estornada por ninguém. O contrário riscaria vendas
+    // boas no histórico.
+    refunded: raw.status === SALE_STATUS.refunded,
     pendingSync: raw.is_synced === false,
   };
 }

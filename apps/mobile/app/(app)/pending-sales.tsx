@@ -11,6 +11,7 @@ import type { Messages } from '@i18n';
 import { useConnectionStore } from '@store/connectionStore';
 import { useUIStore } from '@store/uiStore';
 import { formatBRL } from '@utils/money';
+import { paymentLabel } from '@utils/payment';
 
 /**
  * VENDAS PENDENTES — a fila que o aparelho guardou.
@@ -55,7 +56,7 @@ export default function PendingSalesScreen() {
   }
 
   return (
-    <Screen title={t.pendingSales.title} subtitle={t.pendingSales.subtitle}>
+    <Screen title={t.pendingSales.title} subtitle={t.pendingSales.subtitle} padded>
       {!loading && pending.length === 0 ? (
         <EmptyState title={t.pendingSales.empty.title} text={t.pendingSales.empty.text} />
       ) : null}
@@ -121,12 +122,9 @@ function PendingSaleCard({
 }) {
   const failed = sale.status === 'error';
 
-  // `payment_method` vem do banco como chave (`debit_card`), e o catálogo do
-  // i18n cobre as quatro conhecidas. Uma forma de pagamento que o portal criar
-  // amanhã cai no próprio identificador em vez de sumir da linha.
-  const paymentLabel =
-    (t.paymentMethods as Record<string, string | undefined>)[sale.paymentMethod] ??
-    sale.paymentMethod;
+  // Mesma tradução do Início e do histórico — ver `utils/payment`, que é onde
+  // a regra passou a morar quando a terceira tela precisou dela.
+  const payment = paymentLabel(t, sale.paymentMethod);
 
   return (
     <Card
@@ -140,7 +138,7 @@ function PendingSaleCard({
             {sale.itemsSummary}
           </Text>
           <Text variant="hint" color="textMuted" marginTop="s3">
-            {`${sale.day} · ${sale.time} · ${paymentLabel}`}
+            {`${sale.day} · ${sale.time} · ${payment}`}
           </Text>
         </Box>
         <Text variant="moneyBase">{formatBRL(sale.totalCents)}</Text>

@@ -7,15 +7,7 @@ import { Touchable } from '@components/ui/Touchable';
 import { ROUTES } from '@domain/navigation/routes';
 import { goToRoot } from '@hooks/navigation';
 
-/**
- * 52, e não os 44 do design.
- *
- * O desenho original vem de um protótipo em tela de navegador, onde 44px de
- * círculo já pareciam grandes. No aparelho, sendo ESTE o botão que o balconista
- * usa dezenas de vezes por dia, ele merece polegar de sobra. O vão reservado na
- * barra é de 84, então ainda sobram 16 de folga de cada lado.
- */
-const TAMANHO = 52;
+import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
 
 /**
  * O botão CENTRAL da tab bar — "Vender".
@@ -32,11 +24,11 @@ const TAMANHO = 52;
  * botão só existe nas abas, e nas abas nunca estamos em `/sell`. O estado ativo
  * que havia aqui era código morto e saiu.
  *
- * A geometria vem do design: o círculo apoiado a 57px do fundo, e o rótulo a
- * 29,5px, na mesma linha dos rótulos das abas. Aqui isso é expresso de baixo
- * para cima (rótulo a 30 + `gap` de 14), que dá o mesmo desenho sem depender de
- * dois valores absolutos concordarem — e é o que faz o círculo crescer PARA
- * CIMA quando `TAMANHO` muda, mantendo o rótulo alinhado com os das abas.
+ * A geometria é expressa DE BAIXO PARA CIMA, e isso é o que a mantém correta
+ * sozinha: o rótulo pousa na mesma linha dos rótulos das abas
+ * (`BASE_ROTULO_TAB`, acima da safe area) e o círculo cresce para cima a partir
+ * dele. Mudar a altura da barra ou o tamanho do círculo reposiciona o conjunto
+ * inteiro sem nenhum segundo número para acertar à mão.
  *
  * O vão que ele ocupa é reservado pela própria `TabBar`. Ver o espaçador lá.
  */
@@ -49,7 +41,7 @@ export function NewSaleButton() {
       left={0}
       right={0}
       alignItems="center"
-      style={{ bottom: 32 + insets.bottom }}
+      style={{ bottom: BASE_ROTULO_TAB + insets.bottom }}
       // Sem isto, esta caixa cobriria a largura inteira da barra e engoliria os
       // toques das quatro abas que passam por baixo dela.
       pointerEvents="box-none"
@@ -64,16 +56,16 @@ export function NewSaleButton() {
         gap="s8"
       >
         <Box
-          width={TAMANHO}
-          height={TAMANHO}
+          width={TAMANHO_BOTAO_VENDER}
+          height={TAMANHO_BOTAO_VENDER}
           borderRadius="full"
           backgroundColor="primary"
           alignItems="center"
           justifyContent="center"
         >
-          {/* 24 acompanha o círculo: o design usa 20 num círculo de 44, e é
+          {/* 22 acompanha o círculo: o design usa 20 num círculo de 44, e é
               essa proporção (~0,45) que mantém o ícone respirando dentro dele. */}
-          <Icon name="cart" size={24} color="onPrimary" />
+          <Icon name="cart" size={22} color="onPrimary" />
         </Box>
 
         <Text variant="tabLabel" color="textMuted">

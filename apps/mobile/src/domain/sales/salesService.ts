@@ -1,4 +1,7 @@
+import { SALE_STATUS } from '@domain/shared/dbEnums';
+
 import { totalCents } from './cart';
+import { HISTORY_PAGE_SIZE, type SalesRange } from './salesHistory';
 import * as queue from './offlineQueueApi';
 import {
   encodeFailure,
@@ -13,7 +16,10 @@ import {
   type CartItem,
   type DailySummary,
   type PendingSale,
+  type RefundResult,
   type Sale,
+  type SalesPage,
+  type SalesTotals,
   type SyncSummary,
 } from './salesTypes';
 import { classifySyncError, isDuplicate } from './syncErrors';
@@ -26,12 +32,140 @@ function normalize(error: unknown): never {
   throw new SaleError('network', error instanceof Error ? error.message : undefined);
 }
 
-export async function listDailySales(tenantId: string): Promise<Sale[]> {
+export async function listDailySales(tenantId: string, limit?: number): Promise<Sale[]> {
   try {
-    return (await api.listDailySales(tenantId)).map(toSale);
+    return (await api.listDailySales(tenantId, limit)).map(toSale);
   } catch (e) {
     return normalize(e);
   }
+}
+
+/**
+ * UMA PÁGINA do histórico.
+ *
+ * Pede um item A MAIS que o tamanho pedido e o usa apenas como resposta a "tem
+ * mais?". É o truque que evita a segunda consulta de `count` — que, numa
+ * tabela que só cresce, fica mais cara que a própria página.
+ *
+ * O extra é DESCARTADO antes de subir: quem chama recebe exatamente o número
+ * de vendas que pediu, e um `nextOffset` que é onde continuar (ou `null`,
+ * quando acabou).
+ */
+export async function listSalesPage(
+  tenantId: string,
+  offset: number,
+  range: SalesRange = { from: null, to: null },
+  pageSize: number = HISTORY_PAGE_SIZE,
+): Promise<SalesPage> {
+  try {
+    const raw = await api.listSales(tenantId, offset, pageSize + 1, range);
+    const hasMore = raw.length > pageSize;
+
+    return {
+      sales: raw.slice(0, pageSize).map(toSale),
+      nextOffset: hasMore ? offset + pageSize : null,
+    };
+  } catch (e) {
+    return normalize(e);
+  }
+}
+
+/** Quantas vendas e quanto deu no recorte inteiro — o cabeçalho do filtro. */
+export async function getSalesTotals(
+  tenantId: string,
+  range: SalesRange = { from: null, to: null },
+): Promise<SalesTotals> {
+  try {
+    const raw = await api.fetchSalesTotals(tenantId, range);
+    return {
+      saleCount: raw.sale_count,
+      totalCents: raw.total_cents,
+      refundedCount: raw.refunded_count,
+    };
+  } catch (e) {
+    return normalize(e);
+  }
+}
+
+/** Uma venda, com os itens. `null` = não existe (foi apagada por fora). */
+export async function getSale(saleId: string): Promise<Sale | null> {
+  try {
+    const raw = await api.fetchSale(saleId);
+    return raw ? toSale(raw) : null;
+  } catch (e) {
+    return normalize(e);
+  }
+}
+
+/**
+ * ESTORNAR — a venda sai do faturamento e a mercadoria volta à prateleira.
+ *
+ * NADA É APAGADO, e essa é a regra inteira: a linha continua no histórico,
+ * riscada, e é ela que explica ao contador por que o caderno e o sistema
+ * divergem naquele dia. Apagar a venda faria o número fechar e a história
+ * sumir.
+ *
+ * A ORDEM É DELIBERADA — primeiro o status, depois o estoque. Se a devolução
+ * do estoque falhar no meio, o pior caso é uma venda estornada com saldo a
+ * ajustar à mão, e o app diz isso em voz alta (ver `moveSaleStock`). Na ordem
+ * inversa o pior caso seria mercadoria devolvida ao estoque com a venda ainda
+ * contando no faturamento — dinheiro e prateleira mentindo ao mesmo tempo.
+ *
+ * ⚠️ NÃO TEM CAMINHO OFFLINE. Ao contrário de vender, estornar depende de ler
+ * os itens no servidor e chamar a função de estoque do banco: não há como
+ * enfileirar isso com honestidade. Quem chama verifica a conexão ANTES —
+ * é o `useCase` que faz isso, como manda a camada.
+ */
+export async function refundSale(saleId: string): Promise<RefundResult> {
+  try {
+    await api.setSaleStatus(saleId, SALE_STATUS.refunded);
+    return { stockFailures: await api.moveSaleStock(saleId, 1) };
+  } catch (e) {
+    return normalize(e);
+  }
+}
+
+/** Desfaz o estorno: a venda volta a contar e o estoque é baixado de novo. */
+export async function undoRefund(saleId: string): Promise<RefundResult> {
+  try {
+    await api.setSaleStatus(saleId, SALE_STATUS.completed);
+    return { stockFailures: await api.moveSaleStock(saleId, -1) };
+  } catch (e) {
+    return normalize(e);
+  }
+}
+
+/**
+ * EDITAR É SUBSTITUIR: estorna a antiga e registra uma nova no lugar.
+ *
+ * Mesma decisão do portal (`app/vendas/actions.ts`), e vale repetir o porquê:
+ * reescrever a linha original apagaria o rastro de que houve correção, e ainda
+ * exigiria uma lógica nova só para acertar o estoque da diferença entre o
+ * carrinho velho e o novo. O estorno já sabe devolver tudo; o registro já sabe
+ * baixar tudo. Duas operações que existem e são testadas valem mais que uma
+ * terceira que só a edição usaria.
+ *
+ * O custo é honesto e visível: o histórico passa a ter DUAS linhas — a
+ * estornada e a que a substituiu. É o que um caderno de balcão faria.
+ *
+ * `online` chega como argumento porque a nova venda passa pelo mesmo
+ * `checkoutSale` de sempre — mas com `false` ele enfileiraria a venda nova
+ * enquanto o estorno acabou de falhar. Por isso o useCase barra a edição
+ * offline antes de chegar aqui, e este parâmetro só existe para o caminho
+ * normal continuar sendo um só.
+ */
+export async function editSale(
+  tenantId: string,
+  saleId: string,
+  items: readonly CartItem[],
+  paymentMethod: string,
+  online: boolean,
+): Promise<CheckoutResult> {
+  if (items.length === 0) throw new SaleError('empty_cart');
+  if (!online) throw new SaleError('network');
+
+  await refundSale(saleId);
+  return checkoutSale(tenantId, items, paymentMethod, online);
 }
 
 const EMPTY_SUMMARY: DailySummary = {

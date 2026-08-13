@@ -17,6 +17,22 @@ import { palette } from './palette';
  */
 
 const spacing = {
+  /**
+   * O GUTTER DA TELA: a distância entre o conteúdo e a borda do aparelho.
+   *
+   * É o ÚNICO token semântico desta escala, e existe porque este número é o
+   * único que aparece em dois lugares que precisam CONCORDAR — o bloco estático
+   * e o `contentContainerStyle` de quem rola na horizontal. Escrever `s16` nos
+   * dois é escrever o mesmo alinhamento duas vezes, e um dia só um dos dois
+   * muda: o primeiro chip da fileira sai do prumo do cartão logo abaixo.
+   *
+   * Vale `s16` hoje. Quem quiser mudar a margem do app mexe AQUI, uma vez.
+   *
+   * Ver `padding-layout.md` na raiz do app: a raiz da tela não usa este token,
+   * quem usa é o conteúdo.
+   */
+  screen: 16,
+
   s0: 0,
   s2: 2,
   s3: 3,

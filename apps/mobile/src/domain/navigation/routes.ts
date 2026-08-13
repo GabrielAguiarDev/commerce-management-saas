@@ -44,6 +44,19 @@ export const ROUTES = {
    * vendedor a ignorá-lo justamente no dia em que ele importa.
    */
   pendingSales: '/pending-sales',
+  /**
+   * O HISTÓRICO de vendas.
+   *
+   * Também não está na tab bar nem na grade do "Mais", e pelo motivo oposto ao
+   * da fila offline: o histórico não é um destino que se procura, é o "e as
+   * outras?" do card de últimas vendas do Início. A porta dele é o botão "Ver
+   * todas" desse card.
+   *
+   * O DETALHE de uma venda mora em `saleDetailRoute`, no fim deste arquivo, e
+   * não aqui: `ROUTES` é um mapa de caminhos FIXOS — é isso que permite ao
+   * teste percorrer os valores e cobrar um arquivo de rota para cada um.
+   */
+  sales: '/sales',
   products: '/products',
   more: '/more',
   cash: '/cash',
@@ -55,6 +68,19 @@ export const ROUTES = {
 } as const;
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES];
+
+/**
+ * O caminho do DETALHE de uma venda — a única rota do app com parâmetro.
+ *
+ * Fora de `ROUTES` porque lá só cabem caminhos fixos (ver o comentário em
+ * `sales`), mas pelo mesmo princípio: este é o ÚNICO lugar que monta
+ * `/sales/<id>`. Duas telas navegam para cá — o card do Início e o histórico —
+ * e uma string montada à mão numa delas é como o caminho de uma some quando a
+ * pasta é renomeada.
+ */
+export function saleDetailRoute(saleId: string): string {
+  return `${ROUTES.sales}/${saleId}`;
+}
 
 /**
  * As rotas que vivem DENTRO do navegador de abas (`app/(app)/(tabs)/`).

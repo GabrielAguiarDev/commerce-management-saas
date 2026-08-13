@@ -1,6 +1,18 @@
 import { useState } from 'react';
 
-import { Button, Box, Field, Chips, Icon, Pill, Screen, Skeleton, Text, Touchable } from '@components';
+import {
+  Button,
+  Box,
+  Field,
+  Chips,
+  Gutter,
+  Icon,
+  Pill,
+  Screen,
+  Skeleton,
+  Text,
+  Touchable,
+} from '@components';
 import type { ChipOption } from '@components';
 import {
   specialCategoryOf,
@@ -62,104 +74,111 @@ export default function ProductsScreen() {
 
   return (
     <Screen title="Produtos" subtitle={`${products.length} cadastrados`}>
-      <Field
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Buscar por nome ou código"
-        height={48}
-        radius={15}
-        accessibilityLabel="Buscar por nome ou código"
-        returnKeyType="search"
-        prefix={<Icon name="search" size={17} color="textMuted" />}
-      />
+      <Gutter>
+        <Field
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Buscar por nome ou código"
+          height={48}
+          radius={15}
+          accessibilityLabel="Buscar por nome ou código"
+          returnKeyType="search"
+          prefix={<Icon name="search" size={17} color="textMuted" />}
+        />
+      </Gutter>
 
+      {/* FORA do `Gutter`: a fileira de filtros rola na horizontal e dá o
+          próprio gutter por dentro, para o último chip deslizar até a borda do
+          aparelho em vez de sumir 16px antes. */}
       <Chips options={options} selecionada={filter} onSelect={setFilter} />
 
-      {/* Busca e filtros ficam de pé e utilizáveis enquanto o catálogo vem: o
-          que carrega é a LISTA, não a tela. Três linhas fantasmas dão à página
-          a altura que ela terá, para o conteúdo não pular quando chegar. */}
-      {isPending
-        ? [0, 1, 2].map((i) => <Skeleton key={i} height={96} borderRadius="r18" />)
-        : null}
+      <Gutter gap="s12">
+        {/* Busca e filtros ficam de pé e utilizáveis enquanto o catálogo vem: o
+            que carrega é a LISTA, não a tela. Três linhas fantasmas dão à página
+            a altura que ela terá, para o conteúdo não pular quando chegar. */}
+        {isPending
+          ? [0, 1, 2].map((i) => <Skeleton key={i} height={96} borderRadius="r18" />)
+          : null}
 
-      {list.map((product) => (
-        <Box
-          key={product.id}
-          backgroundColor="surface"
-          borderColor="line"
-          borderWidth={1}
-          borderRadius="r18"
-          padding="s14"
-          flexDirection="row"
-          gap="s12"
-          alignItems="flex-start"
-        >
-          <Touchable
-            accessibilityLabel={
-              product.favorite ? `Desfavoritar ${product.name}` : `Favoritar ${product.name}`
-            }
-            accessibilityState={{ selected: product.favorite }}
-            onPress={() => toggleFavorite(product.id)}
-            width={34}
-            height={34}
-            borderRadius="r11"
-            backgroundColor={product.favorite ? 'primarySoft' : 'surface2'}
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Text variant="star" color={product.favorite ? 'primary' : 'textMuted'}>
-              ★
-            </Text>
-          </Touchable>
-
-          <Box flex={1} minWidth={0}>
-            <Text variant="titleSm">{product.name}</Text>
-            <Text variant="captionSm" color="textMuted" marginTop="s3">
-              {productMeta(product, capabilities.hasCosts)}
-            </Text>
-
-            <Box flexDirection="row" gap="s6" marginTop="s9" flexWrap="wrap" alignItems="center">
-              <Text variant="moneyMd">{formatBRL(product.priceCents)}</Text>
-              {capabilities.hasStock && product.stock ? (
-                <Pill
-                  text={badgeLabel(product, t)}
-                  backgroundColor={BADGE[product.stock.status].fundo}
-                  textColor={BADGE[product.stock.status].text}
-                />
-              ) : null}
-            </Box>
-          </Box>
-
-          <Touchable
-            accessibilityLabel={`Mais ações de ${product.name}`}
-            // Edição completa fora de escopo desta fase — o protótipo também
-            // só avisa. Registrado em DEVELOPMENT.md › Pendências.
-            onPress={() => showToast(t.toasts.editUnavailable(product.name))}
-            width={34}
-            height={34}
-            borderRadius="r11"
-            borderWidth={1}
+        {list.map((product) => (
+          <Box
+            key={product.id}
+            backgroundColor="surface"
             borderColor="line"
-            alignItems="center"
-            justifyContent="center"
+            borderWidth={1}
+            borderRadius="r18"
+            padding="s14"
+            flexDirection="row"
+            gap="s12"
+            alignItems="flex-start"
           >
-            <Text variant="rowLabel" color="textMuted">
-              ⋯
-            </Text>
-          </Touchable>
-        </Box>
-      ))}
+            <Touchable
+              accessibilityLabel={
+                product.favorite ? `Desfavoritar ${product.name}` : `Favoritar ${product.name}`
+              }
+              accessibilityState={{ selected: product.favorite }}
+              onPress={() => toggleFavorite(product.id)}
+              width={34}
+              height={34}
+              borderRadius="r11"
+              backgroundColor={product.favorite ? 'primarySoft' : 'surface2'}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Text variant="star" color={product.favorite ? 'primary' : 'textMuted'}>
+                ★
+              </Text>
+            </Touchable>
 
-      <Box marginTop="s2">
-        <Button
-          title="+ Cadastro rápido"
-          onPress={() => openSheet({ type: 'product' })}
-          variant="tracejado"
-          height={52}
-          radius={18}
-          textVariant="buttonSm"
-        />
-      </Box>
+            <Box flex={1} minWidth={0}>
+              <Text variant="titleSm">{product.name}</Text>
+              <Text variant="captionSm" color="textMuted" marginTop="s3">
+                {productMeta(product, capabilities.hasCosts)}
+              </Text>
+
+              <Box flexDirection="row" gap="s6" marginTop="s9" flexWrap="wrap" alignItems="center">
+                <Text variant="moneyMd">{formatBRL(product.priceCents)}</Text>
+                {capabilities.hasStock && product.stock ? (
+                  <Pill
+                    text={badgeLabel(product, t)}
+                    backgroundColor={BADGE[product.stock.status].fundo}
+                    textColor={BADGE[product.stock.status].text}
+                  />
+                ) : null}
+              </Box>
+            </Box>
+
+            <Touchable
+              accessibilityLabel={`Mais ações de ${product.name}`}
+              // Edição completa fora de escopo desta fase — o protótipo também
+              // só avisa. Registrado em DEVELOPMENT.md › Pendências.
+              onPress={() => showToast(t.toasts.editUnavailable(product.name))}
+              width={34}
+              height={34}
+              borderRadius="r11"
+              borderWidth={1}
+              borderColor="line"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Text variant="rowLabel" color="textMuted">
+                ⋯
+              </Text>
+            </Touchable>
+          </Box>
+        ))}
+
+        <Box marginTop="s2">
+          <Button
+            title="+ Cadastro rápido"
+            onPress={() => openSheet({ type: 'product' })}
+            variant="tracejado"
+            height={52}
+            radius={18}
+            textVariant="buttonSm"
+          />
+        </Box>
+      </Gutter>
     </Screen>
   );
 }

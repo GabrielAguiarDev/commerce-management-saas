@@ -86,7 +86,8 @@ export default function TabsLayout() {
       </Tabs>
 
       {/* A barra e o botão Vender, sobrepostos às abas e SÓ a elas. O botão vem
-          depois para ficar por cima do vão de 84px que a barra reserva. */}
+          depois para ficar por cima do vão que a barra reserva. A altura dos
+          dois sai de `tabBarGeometry.ts`. */}
       <TabBar />
       <NewSaleButton />
     </Box>

@@ -36,7 +36,7 @@ export default function TicketScreen() {
   }
 
   return (
-    <Screen title="Chamado" subtitle="Resposta em até 1 dia útil" noScroll>
+    <Screen title="Chamado" subtitle="Resposta em até 1 dia útil" noScroll padded>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

@@ -11,7 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect } from 'react';
 
-import { AppProviders, Box, ToastHost } from '@components';
+import { AppProviders, Box } from '@components';
 import { useAppHydrated } from '@hooks/useAppHydrated';
 import { useConnectionMonitor } from '@hooks/useConnectionMonitor';
 import { usePreferencesStore } from '@store/preferencesStore';
@@ -107,11 +107,9 @@ function Chrome({ fontsReady }: { fontsReady: boolean }) {
         <Stack.Screen name="(app)" />
       </Stack>
 
-      {/* O toast fica AQUI, e não no layout de `(app)`, porque `login` e
-          `blocked` também o usam e estão fora daquele grupo. Era o motivo de
-          os erros de login não aparecerem: a store recebia o toast e nada o
-          renderizava. Ver o comentário em ToastHost. */}
-      <ToastHost />
+      {/* O toast NÃO fica mais aqui: ele é montado por `AppProviders`, que
+          envolve o app inteiro — inclusive `login` e `blocked`, que estão fora
+          do grupo `(app)`. Ver o comentário em `AppProviders`. */}
     </Box>
   );
 }

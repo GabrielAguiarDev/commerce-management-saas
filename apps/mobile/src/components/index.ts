@@ -18,6 +18,7 @@ export { Card } from './ui/Card';
 export { Chips, type ChipOption } from './ui/Chips';
 export { Divider } from './ui/Divider';
 export { EmptyState } from './ui/EmptyState';
+export { Gutter } from './ui/Gutter';
 export { Icon, type IconName } from './ui/Icon';
 export { Logo } from './ui/Logo';
 export { Switch } from './ui/Switch';
@@ -25,6 +26,17 @@ export { Pill } from './ui/Pill';
 export { Select, type SelectOption } from './ui/Select';
 export { Skeleton } from './ui/Skeleton';
 export { Text, type TextProps } from './ui/Text';
+// O toast do Reactix. A porta de entrada normal é `useUIStore().showToast`;
+// o `Toast` global fica exposto para os casos fora de React e para opções que
+// a fachada não cobre (ícone de sucesso, conteúdo expansível, `position`).
+export {
+  Toast,
+  ToastProviderWithViewport,
+  useToast,
+  type ToastOptions,
+  type ToastPosition,
+  type ToastType,
+} from './ui/toast';
 export { Touchable, type TouchableProps } from './ui/Touchable';
 
 // ── Padrões ─────────────────────────────────────────────────────────────────
@@ -33,7 +45,8 @@ export { AO_FADE, AO_PULSE, AO_SHEET, AO_UP } from './patterns/animations';
 export { AuthBackdrop } from './patterns/AuthBackdrop';
 export { AuthScreen } from './patterns/AuthScreen';
 export { ConnectionBanner } from './patterns/ConnectionBanner';
-export { TabBar, ALTURA_TAB_BAR } from './patterns/TabBar';
+export { TabBar } from './patterns/TabBar';
+export { ALTURA_TAB_BAR } from './patterns/tabBarGeometry';
 export { CartBar } from './patterns/CartBar';
 export { NewSaleButton } from './patterns/NewSaleButton';
 export { BottomSheet } from './patterns/BottomSheet';
@@ -43,7 +56,6 @@ export { Screen, ESPACO_INFERIOR, ESPACO_INFERIOR_INTERNO } from './patterns/Scr
 export { TabPane } from './patterns/TabPane';
 export { StartupError } from './patterns/StartupError';
 export { StartupLoading } from './patterns/StartupLoading';
-export { ToastHost } from './patterns/ToastHost';
 
 // ── Sheets ──────────────────────────────────────────────────────────────────
 export { SheetHost } from './sheets/SheetHost';

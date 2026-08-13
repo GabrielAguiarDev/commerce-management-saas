@@ -17,7 +17,7 @@ export {
   type Confirm,
   type Sheet,
   type SheetType,
-  type Toast,
+  type ToastOptions,
   type ToastTone,
 } from './uiStore';
 export { useConnectionStore } from './connectionStore';
