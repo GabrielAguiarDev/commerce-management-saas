@@ -585,8 +585,22 @@ Os desvios do original, todos comentados no código:
    pai**. O padding nunca chegou nele; quem segurava o toast fora da barra de
    status eram os 80 fixos, e num iPhone com Dynamic Island isso é curto — o
    toast aparecia POR BAIXO da ilha. Agora o viewport não tem padding nenhum e
-   o toast calcula `insets.top + AFASTAMENTO`. `AFASTAMENTO` (10) é o número a
-   mexer para descer o toast.
+   o toast calcula `insets.top + ALTURA_HEADER + AFASTAMENTO`. `AFASTAMENTO` (8)
+   é o número a mexer para descer o toast.
+
+   **E ele pousa ABAIXO do header, não colado na safe area.** Em cima do header
+   o toast cobria título, subtítulo e avatar, e a metade de baixo ainda cobria o
+   primeiro campo do conteúdo — parado entre os dois, sem pertencer a nenhum.
+   Abaixo do header ele flutua sobre o CONTEÚDO, que é o que um aviso passageiro
+   deve cobrir, e quem lê continua vendo em que tela está. A altura do header
+   mora em `patterns/headerGeometry.ts` (`ALTURA_HEADER`, 57pt) e **espelha os
+   paddings do `Screen`**: mexeu num, mexe no outro. Não é medida em runtime de
+   propósito — o header não é ancestral do toast, e ler o layout dele pediria um
+   `onLayout` mais um estado global só para transportar o número.
+
+   Pela mesma conta, a faixa do viewport subiu de 200 para 340pt: no Android o
+   pai recorta o filho que passa da borda, e com o toast começando em ~124pt
+   sobravam 76 — um erro de três linhas perdia a última.
 3. `Toast.types.ts` é nosso: a doc publica os outros quatro arquivos, esse não.
 4. **Arrastar para fechar** é acréscimo nosso — o Reactix só fecha por tempo,
    por toque na ação ou por API. O gesto segue a posição: no topo fecha para
@@ -612,11 +626,44 @@ Os desvios do original, todos comentados no código:
    4,2s, e no limite ele some sob o dedo. Pausar de verdade exigiria mexer também
    no timer do `ToastContext`, que é quem manda no ciclo de vida — não foi feito.
 
+**10a. A CAIXA do toast: ícone de estado à esquerda, texto do tema, raio de 16.**
+Três defeitos que andavam juntos, todos vindos do original:
+
+- **O ícone era um glifo de texto** (`'✓'`, `'✗'`, `'ℹ'`) num `<Text>` de 20px:
+  peso, largura e alinhamento vertical mudavam entre iOS e Android, e o "ℹ" saía
+  colorido em alguns aparelhos. Agora são `path` do nosso `Icon` (`check`,
+  `close`, `info`, `alert`) dentro de uma faixa redonda translúcida. A faixa não
+  é enfeite: é ela que fecha o "i" (o ícone é só pingo e haste) e é ela que
+  segura o ✕ do erro no lugar de ESTADO — solto sobre o vermelho ele leria como
+  botão de fechar.
+- **O texto não usava o tema**: `fontSize: 16` sem `fontFamily`, ou seja, fonte
+  do SISTEMA no meio de um app inteiro em Manrope, e dois pontos maior que o
+  corpo de qualquer tela. Virou `variant="bodyMd"` (14/21) com `color="white"`.
+- **O raio era 100 no container e 12 no `Pressable` de dentro.** O de dentro
+  nunca apareceu (quem recorta é o container, com `overflow: 'hidden'`), e 100
+  num bloco de ~60pt de alto vira pílula — o recado de duas linhas ficava dentro
+  de um comprimido, com as curvas comendo o respiro dos cantos. Agora é
+  `theme.borderRadii.r16` **nos dois**, e o padding é 12/14 com 10 de gap em vez
+  do `padding: 16` cravado (o mesmo número dos cartões, num bloco de metade da
+  altura deles).
+
 **10b. As telas NÃO chamam esse sistema direto.** A porta de entrada continua
 sendo `useUIStore().showToast(texto, { tone, withUndo, onUndo })` — uma fachada
 que traduz o vocabulário do produto para as opções do Reactix (`tone: 'erro'`
 vira `type: 'error'` com o vermelho do tema; `withUndo` vira `action`). Foi o
 que permitiu trocar o toast inteiro sem tocar nas ~30 chamadas espalhadas.
+
+São TRÊS tons, e o que muda entre eles é o ÍCONE: `neutral` mostra o "i",
+`sucesso` o visto, `erro` o ✕ (e esse é o único que também muda de cor). O fundo
+petrol é identidade do toast (`palette.toast`, fixo nos dois temas), então
+confirmação e recado saem no mesmo fundo — "salvo", "venda registrada", "caixa
+fechado" ganham o visto, não um verde.
+
+Nenhum toast do app é `'default'`, o tipo sem ícone do Reactix: recado sem estado
+nenhum ainda é informação. Onde o tom depende do RESULTADO, ele sai do mesmo
+resultado que escolhe a frase — venda que ficou no aparelho é `neutral` (ainda
+falta lançar, e um visto diria que acabou), sincronização parcial é `neutral`
+(sobrou venda na fila), estorno com estoque que não voltou é `erro`.
 
 Um por vez, e o novo derruba o anterior: o Reactix **empilha** por padrão, então
 a restrição do protótipo é aplicada na fachada. Sem isso, dois erros seguidos

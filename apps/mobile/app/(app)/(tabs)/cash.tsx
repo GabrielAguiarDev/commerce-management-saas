@@ -73,7 +73,9 @@ export default function CashScreen() {
           <Button
             title="Abrir caixa"
             onPress={() =>
-              openCash(undefined, { onSuccess: () => showToast(t.toasts.cashOpened) })
+              openCash(undefined, {
+                onSuccess: () => showToast(t.toasts.cashOpened, { tone: 'sucesso' }),
+              })
             }
             loading={abrindo}
             height={52}

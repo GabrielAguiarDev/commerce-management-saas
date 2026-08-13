@@ -127,6 +127,10 @@ export function Screen({
         // O header é conteúdo estático e usa o MESMO gutter do resto. Era
         // `s18` — 2px a mais que o conteúdo abaixo dele, o que colocava o
         // título fora do prumo do primeiro cartão.
+        //
+        // ⚠️ Estes dois paddings verticais (e os `lineHeight` do título e do
+        // subtítulo) estão espelhados em `headerGeometry.ALTURA_HEADER`, que é
+        // por onde o toast sabe onde o header acaba. Mexeu aqui, mexe lá.
         paddingHorizontal="screen"
         paddingTop="s2"
         paddingBottom="s12"

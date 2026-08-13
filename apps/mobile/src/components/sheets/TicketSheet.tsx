@@ -28,7 +28,7 @@ export function TicketSheet() {
       {
         onSuccess: () => {
           closeSheet();
-          showToast(t.toasts.ticketOpened);
+          showToast(t.toasts.ticketOpened, { tone: 'sucesso' });
         },
         onError: (error) => {
           const code = error instanceof SupportError ? error.code : 'network';

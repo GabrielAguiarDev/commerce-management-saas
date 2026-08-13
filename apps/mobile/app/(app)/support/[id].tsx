@@ -30,7 +30,7 @@ export default function TicketScreen() {
     reply(resposta, {
       onSuccess: () => {
         setResposta('');
-        showToast(t.toasts.replySent);
+        showToast(t.toasts.replySent, { tone: 'sucesso' });
       },
     });
   }

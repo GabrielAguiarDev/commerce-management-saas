@@ -91,7 +91,7 @@ export default function SaleDetailScreen() {
               result.stockFailures > 0
                 ? t.toasts.stockNotReturned(result.stockFailures)
                 : t.toasts.saleRefunded,
-              { tone: result.stockFailures > 0 ? 'erro' : 'neutral' },
+              { tone: result.stockFailures > 0 ? 'erro' : 'sucesso' },
             ),
           onError: () => showToast(t.errors.sale.network, { tone: 'erro' }),
         }),
@@ -112,7 +112,7 @@ export default function SaleDetailScreen() {
               result.stockFailures > 0
                 ? t.toasts.stockNotRemoved(result.stockFailures)
                 : t.toasts.refundUndone,
-              { tone: result.stockFailures > 0 ? 'erro' : 'neutral' },
+              { tone: result.stockFailures > 0 ? 'erro' : 'sucesso' },
             ),
           onError: () => showToast(t.errors.sale.network, { tone: 'erro' }),
         }),

@@ -65,7 +65,7 @@ export function CloseOutSheet() {
           {
             onSuccess: () => {
               closeSheet();
-              showToast(t.toasts.cashClosed);
+              showToast(t.toasts.cashClosed, { tone: 'sucesso' });
             },
             onError: (error) => {
               const code = error instanceof CashError ? error.code : 'unknown';

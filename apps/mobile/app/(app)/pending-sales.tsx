@@ -10,6 +10,7 @@ import { useTranslation } from '@i18n';
 import type { Messages } from '@i18n';
 import { useConnectionStore } from '@store/connectionStore';
 import { useUIStore } from '@store/uiStore';
+import type { ToastTone } from '@store/uiStore';
 import { formatBRL } from '@utils/money';
 import { paymentLabel } from '@utils/payment';
 
@@ -201,8 +202,11 @@ function summarize(summary: SyncSummary, t: Messages): string {
   return t.pendingSales.summary.partial(summary.synced, summary.failed);
 }
 
-function tone(summary: SyncSummary): 'neutral' | 'erro' {
+function tone(summary: SyncSummary): ToastTone {
   // Erro só quando NADA subiu. Uma sincronização parcial é, sobretudo, um
   // sucesso parcial — e a tela abaixo já está mostrando o que faltou.
-  return summary.synced === 0 && summary.failed > 0 ? 'erro' : 'neutral';
+  if (summary.synced === 0 && summary.failed > 0) return 'erro';
+  // ...mas parcial também não ganha o VISTO: ele diria que a fila esvaziou, e
+  // ainda tem venda ali esperando. Visto só quando não sobrou nada.
+  return summary.failed === 0 ? 'sucesso' : 'neutral';
 }

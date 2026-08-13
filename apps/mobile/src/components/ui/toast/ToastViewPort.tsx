@@ -16,6 +16,19 @@ import { useToast } from './context/ToastContext';
  * contar em dobro.
  */
 
+/**
+ * A ALTURA de cada faixa. Eram 200, do original.
+ *
+ * Não é decoração: no Android o pai recorta o filho que passa da borda. Com o
+ * toast pousando abaixo do header (safe area + 57 + 8 ≈ 124pt num iPhone com
+ * ilha), 200 deixava ~76pt para o toast — o bastante para duas linhas, e um erro
+ * de três linhas teria a última cortada.
+ *
+ * 340 cabe a faixa inteira sem alcançar o conteúdo útil de aparelho nenhum, e
+ * `pointerEvents: 'box-none'` garante que a área sobrando não intercepta toque.
+ */
+const ALTURA_FAIXA = 340;
+
 export const ToastViewport: React.FC = () => {
   const { toasts } = useToast();
 
@@ -24,14 +37,14 @@ export const ToastViewport: React.FC = () => {
 
   return (
     <>
-      <View style={[styles.viewport, styles.topViewport, { height: 200 }]}>
+      <View style={[styles.viewport, styles.topViewport, { height: ALTURA_FAIXA }]}>
         {topToasts.map((toast, arrayIndex) => {
           const displayIndex = topToasts.length - 1 - arrayIndex;
           return <Toast key={toast.id} toast={toast} index={displayIndex} />;
         })}
       </View>
 
-      <View style={[styles.viewport, styles.bottomViewport, { height: 200 }]}>
+      <View style={[styles.viewport, styles.bottomViewport, { height: ALTURA_FAIXA }]}>
         {bottomToasts.map((toast, arrayIndex) => {
           const displayIndex = bottomToasts.length - 1 - arrayIndex;
           return <Toast key={toast.id} toast={toast} index={displayIndex} />;

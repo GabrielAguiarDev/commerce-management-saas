@@ -31,6 +31,20 @@ export type IconName =
   | 'lock'
   | 'alert'
   /**
+   * Os três ÍCONES DE ESTADO do toast — sucesso, erro e informação.
+   *
+   * Desenhados no traço do conjunto (2.2 no `viewBox` de 24, ponta e junta
+   * arredondadas) e sem círculo em volta: quem desenha o círculo é o toast,
+   * numa faixa translúcida sobre o próprio fundo. Círculo no `path` daria dois
+   * círculos concêntricos ali.
+   *
+   * O `check` e o `close` servem fora do toast também — o ✕ de fechar sheet e o
+   * visto de item selecionado desenham o mesmo traço hoje, cada um por conta.
+   */
+  | 'check'
+  | 'close'
+  | 'info'
+  /**
    * Os seis das telas de ENTRADA. Diferente do resto do conjunto, não vêm do
    * protótipo — ele não tem tela de login com ícone dentro do campo. São
    * desenhados no mesmo traço (2.2 no `viewBox` de 24, ponta e junta
@@ -69,6 +83,9 @@ const STROKE_WIDTH: Record<IconName, number> = {
   cart: 2,
   lock: 1.8,
   alert: 2,
+  check: 2.4,
+  close: 2.4,
+  info: 2.2,
   mail: 1.9,
   eye: 1.9,
   eyeOff: 1.9,
@@ -195,6 +212,22 @@ export function Icon({ name, size = 22, color = 'textPrimary', colorOverride }: 
         <>
           <Path d="M12 8v5M12 16.5v.5" {...common} />
           <Circle cx={12} cy={12} r={9} {...common} />
+        </>
+      )}
+
+      {/* Sem círculo, ao contrário do `alert`: os três vão dentro da faixa
+          redonda que o toast desenha. */}
+      {name === 'check' && <Path d="M5 12.6l4.6 4.6L19 7.2" {...common} />}
+
+      {name === 'close' && <Path d="M6.5 6.5l11 11M17.5 6.5l-11 11" {...common} />}
+
+      {/* O pingo é um círculo PREENCHIDO, e não um `path` de meio ponto com
+          ponta arredondada: no tamanho em que o toast usa o ícone (17px) meio
+          ponto de traço vira um cinza sujo em vez de um pingo. */}
+      {name === 'info' && (
+        <>
+          <Circle cx={12} cy={7.4} r={1.2} fill={stroke} stroke="none" />
+          <Path d="M12 11.2v6" {...common} />
         </>
       )}
 

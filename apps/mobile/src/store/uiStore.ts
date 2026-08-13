@@ -22,7 +22,17 @@ import { usePreferencesStore } from './preferencesStore';
  * reapareceria na abertura seguinte, sem contexto nenhum.
  */
 
-export type ToastTone = 'neutral' | 'erro';
+/**
+ * Os TRÊS tons do produto, que o toast traduz em ícone (e o erro, em cor):
+ * `neutral` mostra o "i", `sucesso` o visto, `erro` o ✕.
+ *
+ * `sucesso` existe porque "salvo", "venda registrada" e "caixa fechado" não são
+ * recado: são confirmação, e um visto verde-branco fecha o gesto que o
+ * balconista acabou de fazer. Sai no MESMO petrol do neutro de propósito — o
+ * fundo é identidade do toast (ver `palette.toast`), e o que muda entre um
+ * recado e uma confirmação é o ícone, não a cor da caixa.
+ */
+export type ToastTone = 'neutral' | 'sucesso' | 'erro';
 
 export interface ToastOptions {
   tone: ToastTone;
@@ -105,8 +115,11 @@ export const useUIStore = create<UIState>()((set) => ({
     id = Toast.show(text, {
       duration: TOAST_DURATION_MS,
       position: 'top',
-      // `type` só desenha o ícone (✗ no erro); a cor vem do `backgroundColor`.
-      type: tone === 'erro' ? 'error' : 'default',
+      // `type` só desenha o ÍCONE do canto esquerdo; a cor vem do
+      // `backgroundColor`, logo abaixo. Nenhum toast do app é `'default'` (o
+      // tipo sem ícone do Reactix): recado sem estado nenhum ainda é informação,
+      // e o "i" é o que faz o balconista reconhecer a caixa de longe.
+      type: tone === 'erro' ? 'error' : tone === 'sucesso' ? 'success' : 'info',
       backgroundColor: corDeFundo(tone),
       action: withUndo && onUndo ? { label: 'Desfazer', onPress: onUndo } : null,
       onClose: () => {

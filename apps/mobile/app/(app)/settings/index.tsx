@@ -50,7 +50,7 @@ export default function BusinessTab() {
             save(
               { name, phone },
               {
-                onSuccess: () => showToast(t.toasts.businessSaved),
+                onSuccess: () => showToast(t.toasts.businessSaved, { tone: 'sucesso' }),
                 // Sem este ramo, uma recusa do banco não daria retorno NENHUM na
                 // tela — o botão pararia de girar e o nome voltaria ao antigo na
                 // próxima carga. Hoje isto dispara de verdade: falta a política

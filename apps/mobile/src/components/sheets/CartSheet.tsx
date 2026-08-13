@@ -88,7 +88,7 @@ export function CartSheet() {
           checkoutCart();
           closeSheet();
           goToRoot(ROUTES.sales);
-          showToast(t.toasts.saleUpdated(formatBRL(saleTotal)));
+          showToast(t.toasts.saleUpdated(formatBRL(saleTotal)), { tone: 'sucesso' });
         },
         onError: (error) => {
           const code = error instanceof SaleError ? error.code : 'unknown';
@@ -123,10 +123,14 @@ export function CartSheet() {
           // venda, com receita e baixa em dobro. Estornar de verdade precisa de
           // caminho no banco (marcar a venda como cancelada e devolver o
           // estoque), que não existe. Enquanto não existir, não se oferece.
+          // O tom sai do MESMO resultado, pelo mesmo motivo: a venda que subiu é
+          // confirmação (visto), a que ficou no aparelho é recado — ainda falta
+          // o vendedor lançar, e um visto ali diria que acabou.
           showToast(
             result.queued
               ? t.toasts.saleSavedOffline(formatBRL(saleTotal))
               : t.toasts.saleRecorded(formatBRL(saleTotal)),
+            { tone: result.queued ? 'neutral' : 'sucesso' },
           );
         },
         onError: (error) => {

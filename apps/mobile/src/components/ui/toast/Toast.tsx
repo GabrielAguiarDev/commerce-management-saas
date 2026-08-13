@@ -4,7 +4,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   TouchableOpacity,
   UIManager,
   View,
@@ -22,6 +21,10 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { ALTURA_HEADER } from '@components/patterns/headerGeometry';
+import { Icon } from '@components/ui/Icon';
+import type { IconName } from '@components/ui/Icon';
+import { Text } from '@components/ui/Text';
 import { useAppTheme } from '@hooks/useAppTheme';
 import { palette } from '@theme';
 
@@ -35,7 +38,7 @@ if (Platform.OS === 'android') {
 }
 
 /**
- * A folga entre a área segura e o toast. ⬅️ MEXA AQUI para descer o toast.
+ * A folga entre o header da tela e o toast. ⬅️ MEXA AQUI para descer o toast.
  *
  * ⚠️ A safe area é somada AQUI, e não no `ToastViewport` como faz o Reactix.
  * O original põe `paddingTop: insets.top + 10` no viewport e `top: 80` no
@@ -47,7 +50,20 @@ if (Platform.OS === 'android') {
  *
  * Medir a safe area de verdade resolve os dois casos com um número só.
  */
-const AFASTAMENTO = 10;
+const AFASTAMENTO = -30;
+
+/**
+ * ...e o toast desce o header inteiro antes de pousar (ver `headerGeometry`).
+ *
+ * Colado na safe area ele cobria título, subtítulo e avatar, e a metade de baixo
+ * ainda cobria o primeiro campo do conteúdo — parado no meio dos dois, sem
+ * pertencer a nenhum. Abaixo do header ele flutua sobre o CONTEÚDO, que é o que
+ * um aviso passageiro deve cobrir, e quem lê continua vendo em que tela está.
+ *
+ * Nas telas de entrada (login, recuperação) não existe header; ali estes 57pt
+ * são só respiro, e o toast fica um pouco mais baixo do que o topo.
+ */
+const OFFSET_TOPO = ALTURA_HEADER + AFASTAMENTO;
 
 /**
  * ARRASTAR PARA FECHAR — não vem do Reactix, é acréscimo nosso.
@@ -106,18 +122,29 @@ const getBackgroundColor = (type: ToastVariant) => {
   }
 };
 
-const getIconForType = (type: ToastVariant) => {
+/**
+ * O ÍCONE DE ESTADO, no canto esquerdo: visto no sucesso, ✕ no erro, "i" no
+ * informativo.
+ *
+ * Era um GLIFO de texto (`'✓'`, `'✗'`, `'ℹ'`) num `<Text>` de 20px. Emoji-ish de
+ * fonte do sistema: peso, largura e alinhamento vertical mudavam entre iOS e
+ * Android, o "ℹ" saía colorido em alguns aparelhos e nenhum dos quatro combinava
+ * com o traço dos ícones do app. Agora são `path` do nosso conjunto.
+ *
+ * `default` continua sem ícone: é o toast de recado seco, sem estado a anunciar.
+ */
+const getIconForType = (type: ToastVariant): IconName | null => {
   switch (type) {
     case 'success':
-      return '✓';
+      return 'check';
     case 'error':
-      return '✗';
+      return 'close';
     case 'warning':
-      return '⚠';
+      return 'alert';
     case 'info':
-      return 'ℹ';
+      return 'info';
     default:
-      return '';
+      return null;
   }
 };
 
@@ -401,23 +428,35 @@ export const Toast: React.FC<ToastProps> = ({ toast, index }) => {
             // largura que não conversa com margem nenhuma do app.
             left: theme.spacing.screen,
             right: theme.spacing.screen,
-            top: toast.options.position === 'top' ? insets.top + AFASTAMENTO : undefined,
+            top: toast.options.position === 'top' ? insets.top + OFFSET_TOPO : undefined,
             bottom: toast.options.position === 'bottom' ? insets.bottom + AFASTAMENTO : undefined,
+            // O RAIO, e ele vem do tema porque tem que ser o MESMO nos dois
+            // níveis: quem recorta é este container (`overflow: 'hidden'`), quem
+            // pinta é o `Pressable` de dentro. Eram 100 aqui e 12 lá — o de
+            // dentro nunca apareceu, e os 100 num bloco de ~60pt de alto viram
+            // pílula: o recado de duas linhas ficava dentro de um comprimido.
+            borderRadius: theme.borderRadii.r16,
           },
           _styles,
         ]}
         accessibilityLiveRegion="polite"
       >
         <Pressable
-          style={[styles.toast, { backgroundColor }]}
+          style={[styles.toast, { backgroundColor, borderRadius: theme.borderRadii.r16 }]}
           onPress={handlePress}
           android_ripple={{ color: palette.toastRipple }}
         >
           <View style={styles.mainContent}>
-            {icon ? <Text style={styles.icon}>{icon}</Text> : null}
+            {icon ? (
+              <View style={styles.iconBadge}>
+                <Icon name={icon} size={17} colorOverride={palette.white} />
+              </View>
+            ) : null}
             <View style={styles.contentContainer}>
               {typeof toast.content === 'string' ? (
-                <Text style={styles.text}>{toast.content}</Text>
+                <Text variant="bodyMd" color="white">
+                  {toast.content}
+                </Text>
               ) : (
                 toast.content
               )}
@@ -430,7 +469,9 @@ export const Toast: React.FC<ToastProps> = ({ toast, index }) => {
                   animatedDismiss();
                 }}
               >
-                <Text style={styles.actionText}>{toast.options.action.label}</Text>
+                <Text variant="buttonTiny" color="white">
+                  {toast.options.action.label}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -450,7 +491,6 @@ export const Toast: React.FC<ToastProps> = ({ toast, index }) => {
 const styles = StyleSheet.create({
   toastContainer: {
     marginVertical: 4,
-    borderRadius: 100,
     overflow: 'hidden',
     shadowColor: palette.black,
     shadowOffset: {
@@ -463,41 +503,46 @@ const styles = StyleSheet.create({
   },
   toast: {
     flexDirection: 'column',
-    borderRadius: 12,
   },
+  /**
+   * A CAIXA do toast: 14 de respiro em volta, 10 entre ícone, texto e ação.
+   *
+   * Era `padding: 16` cravado — mesmo número dos cartões da lista, num bloco que
+   * tem metade da altura deles. Com o texto em 16px sem `fontFamily` (fonte do
+   * sistema, não a Manrope) e o raio de 100, o recado de duas linhas enchia a
+   * pílula de ponta a ponta e as bordas curvas comiam o respiro que sobrava nos
+   * cantos — o texto encostava justo onde a curva é mais funda.
+   */
   mainContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 10,
   },
-  icon: {
-    color: palette.white,
-    fontSize: 20,
-    marginRight: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    width: 24,
+  /**
+   * A faixa redonda atrás do ícone.
+   *
+   * É ela que fecha o "i" do informativo — o `path` do ícone é só o pingo e a
+   * haste, e o círculo dele é este. Também é o que segura o ✕ do erro no lugar
+   * de estado: solto sobre o vermelho ele leria como botão de fechar.
+   */
+  iconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: palette.pillGhostSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   contentContainer: {
     flex: 1,
   },
-  text: {
-    color: palette.white,
-    fontSize: 16,
-    fontWeight: '500',
-    lineHeight: 20,
-  },
   actionButton: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingVertical: 7,
+    borderRadius: 8,
     backgroundColor: palette.pillGhost,
-    marginLeft: 12,
-  },
-  actionText: {
-    color: palette.white,
-    fontSize: 14,
-    fontWeight: '600',
   },
   expandedContent: {
     overflow: 'hidden',

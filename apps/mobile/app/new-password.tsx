@@ -31,7 +31,7 @@ export default function NewPasswordScreen() {
     setSalvando(true);
     try {
       await redefinirSenha(senha, confirmacao);
-      showToast(t.toasts.passwordChanged);
+      showToast(t.toasts.passwordChanged, { tone: 'sucesso' });
       // Zera a pilha da recuperação ANTES de voltar. Um `replace` sozinho troca
       // só a tela do topo: "conferir código" continuaria viva embaixo do login,
       // alcançável pelo gesto de voltar do iOS — e conferindo um código que

@@ -121,7 +121,7 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
   function confirmar() {
     const sucesso = (message: string) => () => {
       closeSheet();
-      showToast(message);
+      showToast(message, { tone: 'sucesso' });
     };
 
     if (type === 'withdrawal' || type === 'topUp') {

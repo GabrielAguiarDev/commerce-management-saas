@@ -92,7 +92,7 @@ function ProductForm({ product }: { product: Product | null }) {
     return {
       onSuccess: (salvo: Product) => {
         closeSheet();
-        showToast(mensagem(salvo.name));
+        showToast(mensagem(salvo.name), { tone: 'sucesso' });
       },
       onError: (error: unknown) => {
         const code = error instanceof CatalogError ? error.code : 'unknown';
