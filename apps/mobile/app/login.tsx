@@ -65,7 +65,7 @@ export default function LoginScreen() {
     >
       <Box gap="s16">
         <Field
-          onPetrol
+          onAuth
           highlightOnFocus
           label={t.auth.signIn.emailLabel}
           value={email}
@@ -77,11 +77,11 @@ export default function LoginScreen() {
           autoCapitalize="none"
           autoComplete="email"
           textContentType="emailAddress"
-          prefix={<Icon name="mail" size={19} color="onPetrolMuted" />}
+          prefix={<Icon name="mail" size={19} color="authMuted" />}
         />
 
         <Field
-          onPetrol
+          onAuth
           highlightOnFocus
           label={t.auth.signIn.passwordLabel}
           value={password}
@@ -95,7 +95,7 @@ export default function LoginScreen() {
           textContentType="password"
           onSubmitEditing={acessar}
           returnKeyType="go"
-          prefix={<Icon name="lock" size={19} color="onPetrolMuted" />}
+          prefix={<Icon name="lock" size={19} color="authMuted" />}
           accessory={
             <Touchable
               accessibilityLabel={
@@ -106,7 +106,7 @@ export default function LoginScreen() {
               paddingHorizontal="s6"
               justifyContent="center"
             >
-              <Icon name={verSenha ? 'eye' : 'eyeOff'} size={20} color="onPetrolMuted" />
+              <Icon name={verSenha ? 'eye' : 'eyeOff'} size={20} color="authMuted" />
             </Touchable>
           }
         />
@@ -154,22 +154,22 @@ export default function LoginScreen() {
         paddingHorizontal="s14"
         borderRadius="r16"
         borderWidth={1}
-        borderColor="fieldBorderOnPetrol"
-        backgroundColor="fieldOnPetrol"
+        borderColor="authBorder"
+        backgroundColor="authSurface"
       >
         <Box
           width={44}
           height={44}
           borderRadius="r12"
-          backgroundColor="pillOnPetrol"
+          backgroundColor="authPill"
           alignItems="center"
           justifyContent="center"
         >
-          <Icon name="store" size={21} color="onPetrol" />
+          <Icon name="store" size={21} color="authInk" />
         </Box>
 
         <Box flex={1} gap="s3">
-          <Text variant="bodySm" color="onPetrolFaint">
+          <Text variant="bodySm" color="authMuted">
             {t.auth.signIn.noAccount}
           </Text>
           <Text variant="titleSm" color="authLink">
@@ -177,7 +177,7 @@ export default function LoginScreen() {
           </Text>
         </Box>
 
-        <Icon name="chevronRight" size={17} color="onPetrolGhost" />
+        <Icon name="chevronRight" size={17} color="authFaint" />
       </Touchable>
 
       {/* DENTRO da rolagem, fechando o conteúdo — não ancorado na base da tela.
@@ -192,8 +192,8 @@ export default function LoginScreen() {
         gap="s8"
         marginTop="s24"
       >
-        <Icon name="shield" size={15} color="onPetrolGhost" />
-        <Text variant="captionSm" color="onPetrolGhost">
+        <Icon name="shield" size={15} color="authFaint" />
+        <Text variant="captionSm" color="authFaint">
           {t.auth.signIn.dataProtected}
         </Text>
       </Box>
@@ -214,11 +214,11 @@ function SeparadorOu({ label }: { label: string }) {
       // solto entre eles só atrapalharia.
       accessibilityElementsHidden
     >
-      <Box flex={1} height={1} backgroundColor="fieldBorderOnPetrol" />
-      <Text variant="captionSm" color="onPetrolGhost">
+      <Box flex={1} height={1} backgroundColor="authLine" />
+      <Text variant="captionSm" color="authFaint">
         {label}
       </Text>
-      <Box flex={1} height={1} backgroundColor="fieldBorderOnPetrol" />
+      <Box flex={1} height={1} backgroundColor="authLine" />
     </Box>
   );
 }

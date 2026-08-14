@@ -55,8 +55,11 @@ export function CodeInput({
             // são um campo, e um raio maior aqui as faria parecer botões.
             borderRadius="r12"
             borderWidth={1}
-            borderColor={i === ativo ? 'primary' : 'fieldBorderOnPetrol'}
-            backgroundColor="fieldOnPetrol"
+            // `authBrand`, e não `primary`: a tela do código não segue o tema
+            // (ver `AuthScreen`), então a caixa ativa não pode acender numa cor
+            // que muda com a preferência do usuário.
+            borderColor={i === ativo ? 'authBrand' : 'authBorder'}
+            backgroundColor="authSurface"
             alignItems="center"
             justifyContent="center"
             // As caixas somem do leitor de tela: quem se anuncia é o campo de
@@ -65,7 +68,7 @@ export function CodeInput({
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
           >
-            <Text variant="codeDigit" color="white">
+            <Text variant="codeDigit" color="authInk">
               {digitos[i] ?? ''}
             </Text>
           </Box>

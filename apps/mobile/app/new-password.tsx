@@ -57,7 +57,7 @@ export default function NewPasswordScreen() {
       paddingHorizontal="s6"
       justifyContent="center"
     >
-      <Icon name={verSenha ? 'eye' : 'eyeOff'} size={20} color="onPetrolMuted" />
+      <Icon name={verSenha ? 'eye' : 'eyeOff'} size={20} color="authMuted" />
     </Touchable>
   );
 
@@ -65,7 +65,7 @@ export default function NewPasswordScreen() {
     <AuthScreen title={t.auth.newPassword.title} subtitle={t.auth.newPassword.intro}>
       <Box gap="s16" marginBottom="s24">
         <Field
-          onPetrol
+          onAuth
           highlightOnFocus
           label={t.auth.newPassword.passwordLabel}
           value={senha}
@@ -77,12 +77,12 @@ export default function NewPasswordScreen() {
           autoCapitalize="none"
           autoComplete="new-password"
           textContentType="newPassword"
-          prefix={<Icon name="lock" size={19} color="onPetrolMuted" />}
+          prefix={<Icon name="lock" size={19} color="authMuted" />}
           accessory={olho}
         />
 
         <Field
-          onPetrol
+          onAuth
           highlightOnFocus
           label={t.auth.newPassword.confirmLabel}
           value={confirmacao}
@@ -96,11 +96,12 @@ export default function NewPasswordScreen() {
           textContentType="newPassword"
           onSubmitEditing={salvar}
           returnKeyType="done"
-          prefix={<Icon name="lock" size={19} color="onPetrolMuted" />}
+          prefix={<Icon name="lock" size={19} color="authMuted" />}
         />
       </Box>
 
       <Button
+        variant="gradiente"
         title={t.auth.newPassword.submit}
         onPress={salvar}
         height={56}
@@ -110,7 +111,7 @@ export default function NewPasswordScreen() {
       />
 
       <Box alignItems="center" marginTop="s16">
-        <Text variant="hint" color="onPetrolGhost" textAlign="center">
+        <Text variant="hint" color="authFaint" textAlign="center">
           {t.auth.mockShortNotice}
         </Text>
       </Box>

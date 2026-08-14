@@ -4,8 +4,8 @@ Contexto vivo do projeto. **Leia este arquivo por inteiro antes de mexer no cód
 Ele vale mais que intuição: registra o que foi decidido, por quê, e as armadilhas
 já descobertas.
 
-Última atualização: **2026-08-08** (telas de entrada: login redesenhado e
-recuperação de senha **simulada** — ver §7.1)
+Última atualização: **2026-08-13** (as quatro telas de ENTRADA agora são
+**claras**, e só o login tem a marca d'água no topo — ver §7.1)
 
 ---
 
@@ -76,7 +76,9 @@ da tela divergir do recibo.
 
 **Tema de marca, com claro/escuro por preferência do usuário** — não pelo modo
 do sistema. É onde o protótipo põe o toggle (Configurações › Preferências) e
-mantém a identidade petrol/teal igual nos dois modos.
+mantém a identidade petrol/teal igual nos dois modos. **As telas de entrada são
+a exceção: elas são claras sempre**, porque acontecem antes de haver usuário e,
+portanto, antes de haver preferência. Ver §7.1.
 
 **O plano vem do tenant do usuário autenticado, não de um chip nem do e-mail.**
 Os chips de demo ficaram fora de escopo por decisão do brief. Na fase de mock o
@@ -404,13 +406,59 @@ identidade, e leva a uma tela diferente. Ele responde `true` / `false` / `null`
 — e `null` (carregando ou sem rede) **segura o portão** em vez de bloquear.
 Confundir os dois manda para a tela de bloqueio quem só está sem sinal.
 
-### 7.1 As telas de ENTRADA — login redesenhado e recuperação SIMULADA
+### 7.1 As telas de ENTRADA — claras, com a marca d'água só no login
 
-Quatro telas dividem o mesmo esqueleto, o `AuthScreen` (fundo petrol, conteúdo
+Quatro telas dividem o mesmo esqueleto, o `AuthScreen` (fundo claro, conteúdo
 centrado, título grande, botão voltar no topo quando há pilha). Ele existe
 separado do `Screen` porque as duas famílias não têm nada em comum: o `Screen`
 desenha header com avatar do usuário, banner de conexão e espaço para a tab bar
 — nada disso faz sentido antes de haver usuário.
+
+**A entrada era PETROL ESCURA até 2026-08-13, e virou CLARA.** A troca é de luz,
+não de identidade: a marca continua o azul sobre petrol, só que agora é o petrol
+que está na tinta e o azul que está no fundo, lavado. O que isso implicou:
+
+- **Uma família de tokens própria, `auth*`** (`authInk`, `authMuted`,
+  `authFaint`, `authSurface`, `authBorder`, `authPill`, `authLine`, `authLink`,
+  `authBrand`), fixa nos dois temas — as telas de entrada acontecem **antes** de
+  haver usuário e portanto antes de haver preferência de tema. Elas **não** usam
+  os tokens `onPetrol*`/`fieldOnPetrol`, que continuam existindo e continuam
+  escuros: são de outro lugar (os cards petrol do Início e do Caixa). Repintar
+  aqueles para clarear o login teria clareado o card de "Vendas de hoje" junto.
+- **`Field` tem `onAuth` no lugar de `onPetrol`.** O nome antigo descrevia a COR
+  de onde o campo se apoia; o que ele sempre quis dizer é "este campo é de uma
+  tela de entrada". Trocado o fundo, o nome antigo passaria a mentir.
+- **As quatro usam `Button variant="gradiente"`**, e não mais só o login. O
+  `primario` lê o `primary` do tema corrente: numa tela de cor FIXA, o mesmo
+  botão sairia num azul com a preferência no claro e noutro com ela no escuro —
+  e a marca aberta do tema escuro sobre o campo branco não sustenta texto branco
+  por cima. Mesmo motivo para a caixa ativa do `CodeInput` acender em
+  `authBrand`, não em `primary`.
+- **O `StatusBar` das quatro é `dark`**, fixo, pelo espelho do motivo antigo: o
+  `_layout` raiz segue a preferência do usuário, e com ela no escuro o relógio
+  sairia branco sobre o fundo claro e sumiria.
+
+**A marca d'água do topo é SÓ DO LOGIN** (`AuthBackdrop`: degradê + halo + três
+"A" em `authWatermark`). Os três passos da recuperação ficam no `authBase`
+chapado, que é a cor em que o degradê do login termina — sair do login apaga o
+clarão e não troca o chão embaixo dos pés. Duas medidas do desenho que têm razão
+de ser e não devem ser mexidas por gosto:
+
+- **Nenhum dos três "A" desce abaixo dos ~300pt.** Chegando aos campos, a aresta
+  do desenho cruzava a borda do campo branco e passava a ler como risco na tela,
+  não como relevo do fundo.
+- **Cada marca se DISSOLVE em direção ao próprio pé** (`Logo fadeBase`), então
+  nenhuma termina numa linha reta atravessada na tela — elas somem antes de
+  acabar. O gradiente do fade usa `gradientUnits="userSpaceOnUse"` medindo a
+  altura do desenho, e **não** o padrão (a caixa de cada `Path`): o "A" são dois
+  caminhos com caixas diferentes, e pelo padrão a perna estaria apagada com a
+  haste ainda cheia, na mesma altura da tela.
+- **A lavagem é OPACIDADE, não cor.** O `authWatermark` é a marca chapada e quem
+  a esmaece é o `OPACIDADE_MARCA` (8,5%) da moldura, como já era com o
+  `authGlow`. Uma cor `rgba(...)` ali não funciona: o `stopColor` do
+  react-native-svg **descarta o alfa**, e o "A" sai chapado na marca cheia,
+  gritando no topo da tela. Acima de ~8,5% os vincos ganham aresta nítida atrás
+  do letreiro e o fundo vira o assunto do topo.
 
 Duas coisas ficaram do jeito que já eram, depois de tentar o contrário:
 

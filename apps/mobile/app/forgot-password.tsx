@@ -52,7 +52,7 @@ export default function ForgotPasswordScreen() {
 
       <Box marginBottom="s24">
         <Field
-          onPetrol
+          onAuth
           highlightOnFocus
           label={t.auth.forgot.emailLabel}
           value={email}
@@ -66,11 +66,12 @@ export default function ForgotPasswordScreen() {
           textContentType="emailAddress"
           onSubmitEditing={enviarCodigo}
           returnKeyType="send"
-          prefix={<Icon name="mail" size={19} color="onPetrolMuted" />}
+          prefix={<Icon name="mail" size={19} color="authMuted" />}
         />
       </Box>
 
       <Button
+        variant="gradiente"
         title={t.auth.forgot.submit}
         onPress={enviarCodigo}
         height={56}
@@ -97,11 +98,11 @@ function MockNotice({ text }: { text: string }) {
       padding="s14"
       marginBottom="s22"
       borderRadius="r16"
-      backgroundColor="pillOnPetrol"
+      backgroundColor="authPill"
     >
-      <Icon name="alert" size={18} color="white" />
+      <Icon name="alert" size={18} color="authLink" />
       <Box flex={1}>
-        <Text variant="hint" color="onPetrol">
+        <Text variant="hint" color="authInk">
           {text}
         </Text>
       </Box>

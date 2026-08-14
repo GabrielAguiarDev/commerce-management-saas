@@ -57,6 +57,7 @@ export default function VerifyCodeScreen() {
       subtitle={email ? t.auth.code.sentTo(email) : undefined}
       footer={
         <Button
+          variant="gradiente"
           title={t.auth.code.submit}
           onPress={confirmar}
           height={56}
@@ -79,7 +80,7 @@ export default function VerifyCodeScreen() {
 
       <Box alignItems="center" marginTop="s20">
         {segundos > 0 ? (
-          <Text variant="caption" color="onPetrolGhost">
+          <Text variant="caption" color="authFaint">
             {t.auth.code.resendIn(segundos)}
           </Text>
         ) : (

@@ -17,12 +17,13 @@ import { Touchable } from './Touchable';
  * `fantasma`   — sem fundo nem borda. "Cancelar venda", "Agora não".
  * `tracejado`  — borda pontilhada teal. "+ Cadastro rápido".
  * `contorno`   — só borda, texto teal. "Quero mudar meu plano".
- * `gradiente`  — azul em degradê. SÓ o "Entrar" da tela de entrada.
+ * `gradiente`  — azul em degradê. SÓ nas quatro telas de ENTRADA.
  *
  * O `gradiente` é o único que não usa cor do tema corrente, e é deliberado: ele
- * vive sobre o fundo fixo da entrada, que também não muda com o tema. Usá-lo
- * numa tela de dentro do app o faria destoar do resto — para lá existe o
- * `primario`.
+ * vive sobre o fundo fixo da entrada, que também não muda com o tema — um
+ * `primario` ali sairia num azul com a preferência no claro e noutro com ela no
+ * escuro, na mesma tela de cor fixa. Usá-lo numa tela de dentro do app faz o
+ * inverso: destoa do resto. Para lá existe o `primario`.
  */
 export type ButtonVariant =
   | 'primario'

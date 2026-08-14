@@ -45,6 +45,17 @@ const BRAND_SECONDARY = '#020E18';
 const BRAND_PRIMARY_DARK = '#35b5da';
 const BRAND_PRIMARY_TEXT = '#0e7590';
 
+/**
+ * A TINTA do tema claro — o petrol quase preto em que todo texto é escrito
+ * sobre superfície clara.
+ *
+ * Fora do objeto pelo mesmo motivo das cores da marca: tem dois papéis. É o
+ * `textLight` do app e é a tinta das telas de ENTRADA, que não seguem o tema.
+ * Escrito duas vezes, um dia só um dos dois muda — e o título do login sai de
+ * um preto e o do resto do app de outro.
+ */
+const INK = '#0f2a34';
+
 export const palette = {
   // ── Claro ────────────────────────────────────────────────────────────────
   brandPrimary: BRAND_PRIMARY,
@@ -53,7 +64,7 @@ export const palette = {
   surfaceLight: '#ffffff',
   surface2Light: '#f4f8f9',
   lineLight: 'rgba(15,42,54,0.11)',
-  textLight: '#0f2a34',
+  textLight: INK,
   mutedLight: '#5f7783',
   /** A marca ESCRITA sobre superfície clara — ver `BRAND_PRIMARY_TEXT`. */
   primaryTextLight: BRAND_PRIMARY_TEXT,
@@ -159,43 +170,80 @@ export const palette = {
   amberBorder: 'rgba(169,112,15,0.2)',
   amberIconBg: 'rgba(169,112,15,0.14)',
 
-  // ── Tela de ENTRADA ──────────────────────────────────────────────────────
-  // Fixas nos dois temas, como o toast: o login é sempre escuro. Ele acontece
-  // ANTES de haver usuário, e portanto antes de haver preferência de tema — um
-  // login que muda de cor conforme o que ficou salvo do dono anterior do
-  // aparelho é uma primeira tela que não se parece com ela mesma.
+  // ── Telas de ENTRADA ─────────────────────────────────────────────────────
+  // Fixas nos dois temas, como o toast: a entrada é sempre CLARA. Ela acontece
+  // ANTES de haver usuário, e portanto antes de haver preferência de tema — uma
+  // primeira tela que muda de cor conforme o que ficou salvo do dono anterior
+  // do aparelho é uma tela que não se parece com ela mesma.
+  //
+  // Foi petrol escuro até 2026-08-13, e a troca é de LUZ, não de identidade: a
+  // marca continua o azul sobre petrol, só que agora é o petrol que está na
+  // tinta e o azul que está no fundo, lavado.
 
   /** O "A" da marca, do topo claro à base na cor primária. */
   logoTop: '#4cc4e6',
   logoBottom: BRAND_PRIMARY,
 
   /**
-   * O fundo, do azul do topo ao quase-preto da base.
+   * O fundo, do azul lavado do topo ao branco quase puro da base.
    *
    * O `authBase` tem DOIS papéis: é a última parada do degradê do login e é o
    * fundo chapado das três telas de recuperação de senha. É de propósito que
    * seja a mesma cor — quem sai do login para "Esqueci minha senha" continua no
    * mesmo chão, e só o clarão do topo fica para trás.
    */
-  authTop: '#0e5375',
-  authMid: '#072634',
-  authBase: BRAND_SECONDARY,
+  authTop: '#d3e9f6',
+  authMid: '#eaf4fa',
+  authBase: '#f8fbfd',
 
   /** O halo atrás da marca. A opacidade é dada nas paradas do gradiente. */
-  authGlow: '#2fb6e6',
-
-  /** A marca gigante e quase invisível atrás do topo. */
-  authWatermark: 'rgba(126,208,238,0.05)',
+  authGlow: '#8ec9e8',
 
   /**
-   * O azul dos links sobre o fundo da entrada.
+   * A marca gigante e quase invisível atrás do topo.
    *
-   * É a marca aberta — a MESMA que o tema escuro usa como primária. Não pode
-   * ser o token `primary`, que segue a preferência do usuário: esta tela é
-   * sempre escura, inclusive para quem escolheu o tema claro. Era um azul
-   * próprio (`#35abd6`), a um passo deste; agora é este, e são um só.
+   * É a MARCA, não um cinza: sobre fundo claro, um véu neutro sujaria o azul do
+   * degradê em vez de se somar a ele.
+   *
+   * CHAPADA, como o `authGlow` logo acima — a lavagem é dada por quem a usa, em
+   * opacidade (ver `AuthBackdrop`). Já foi um `rgba(...,0.065)` e não funcionou:
+   * a marca d'água é pintada por um gradiente do SVG, e o `stopColor` do
+   * react-native-svg descarta o alfa da cor. O "A" saía chapado na marca cheia,
+   * gritando no topo da tela.
    */
-  authLink: BRAND_PRIMARY_DARK,
+  authWatermark: BRAND_PRIMARY,
+
+  /** A tinta da entrada — a mesma do tema claro. Ver `INK`. */
+  authInk: INK,
+  /** Rótulo de campo, assinatura da marca, texto de apoio. */
+  authMuted: '#5a7480',
+  /** O tom mais apagado que ainda se lê: contagem, rodapé, placeholder. */
+  authFaint: '#88a0ab',
+
+  /** Campo e cartão: branco chapado sobre o degradê, com borda de contorno. */
+  authSurface: '#ffffff',
+  authBorder: 'rgba(15,42,54,0.10)',
+  /** O quadrado atrás do ícone do cartão de suporte, e o aviso do mock. */
+  authPill: '#eef4f7',
+  /** As réguas do separador "ou". */
+  authLine: 'rgba(15,42,54,0.09)',
+
+  /**
+   * O azul ESCRITO da entrada — "Esqueceu a senha?", "Fale com o suporte".
+   *
+   * É a marca fechada (`BRAND_PRIMARY_TEXT`), e não a chapada: sobre branco, a
+   * chapada dá 3,3:1, que sustenta um botão ou uma borda, não uma palavra. Era
+   * a marca ABERTA enquanto o fundo era escuro — a inversão do fundo inverte
+   * também qual das três luminosidades da marca pode ser lida.
+   */
+  authLink: BRAND_PRIMARY_TEXT,
+
+  /**
+   * A marca DESENHADA sobre a entrada: o "One" do letreiro e a borda do campo
+   * em foco. Aqui pode ser a chapada — são traço e tipografia grande, não
+   * palavra em corpo de texto.
+   */
+  authBrand: BRAND_PRIMARY,
 
   /** O gradiente do botão "Entrar" — termina na marca chapada. */
   ctaTop: '#38b7de',

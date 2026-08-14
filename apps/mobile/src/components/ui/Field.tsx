@@ -15,15 +15,22 @@ interface FieldProps extends Omit<TextInputProps, 'style' | 'value' | 'onChangeT
   label?: string;
   height?: number;
   radius?: Raio;
-  /** Variante do login: campo translúcido sobre o fundo petrol. */
-  onPetrol?: boolean;
   /**
-   * A borda acende em teal enquanto o campo tem foco.
+   * Variante das telas de ENTRADA: campo branco chapado, um pouco maior, sobre
+   * o fundo claro do login e da recuperação de senha.
+   *
+   * Chamava-se `onPetrol` enquanto a entrada era escura. O nome mudou junto com
+   * o fundo porque ele descrevia a COR de onde o campo se apoia; o que ele
+   * sempre quis dizer é "este campo é de uma tela de entrada", e agora diz.
+   */
+  onAuth?: boolean;
+  /**
+   * A borda acende na marca enquanto o campo tem foco.
    *
    * Opcional, e não o padrão, de propósito: nas telas de dentro do app quase
    * todo formulário mora dentro de um card ou de um sheet, onde o próprio
    * teclado e o contexto já dizem onde se está digitando. Nas telas de entrada
-   * o campo está sozinho no meio de um fundo escuro, e o foco precisa aparecer.
+   * o campo está sozinho no meio da tela, e o foco precisa aparecer.
    */
   highlightOnFocus?: boolean;
   alignRight?: boolean;
@@ -50,7 +57,7 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
     label,
     height = 50,
     radius = 14,
-    onPetrol = false,
+    onAuth = false,
     highlightOnFocus = false,
     alignRight = false,
     multiline = false,
@@ -98,9 +105,12 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
           // um retângulo com o fundo da tela cobrindo a linha, e esse retângulo
           // interrompe a borda arredondada — o campo perde o desenho fechado
           // que é a identidade dele no app inteiro.
-          variant={onPetrol ? 'label' : 'fieldLabel'}
-          color={aceso ? 'primary' : onPetrol ? 'onPetrolMuted' : 'textMuted'}
-          marginBottom={onPetrol ? 's7' : 's6'}
+          // Na entrada o rótulo acende em `authLink` e não em `primary`: aquelas
+          // telas não seguem o tema, e o `primary` do tema escuro (a marca
+          // aberta) sobre o campo branco sairia lavado demais para uma palavra.
+          variant={onAuth ? 'label' : 'fieldLabel'}
+          color={aceso ? (onAuth ? 'authLink' : 'primary') : onAuth ? 'authInk' : 'textMuted'}
+          marginBottom={onAuth ? 's7' : 's6'}
         >
           {label}
         </Text>
@@ -109,8 +119,10 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
       <Box
         flexDirection="row"
         alignItems={multiline ? 'flex-start' : 'center'}
-        backgroundColor={onPetrol ? 'fieldOnPetrol' : 'surface2'}
-        borderColor={aceso ? 'primary' : onPetrol ? 'fieldBorderOnPetrol' : 'line'}
+        backgroundColor={onAuth ? 'authSurface' : 'surface2'}
+        borderColor={
+          aceso ? (onAuth ? 'authBrand' : 'primary') : onAuth ? 'authBorder' : 'line'
+        }
         borderWidth={1}
         borderRadius={tokenDeRaio(radius)}
         height={multiline ? undefined : height}
@@ -124,12 +136,12 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
           value={value}
           onChangeText={onChangeText}
           multiline={multiline}
-          placeholderTextColor={onPetrol ? theme.colors.onPetrolGhost : theme.colors.textMuted}
+          placeholderTextColor={onAuth ? theme.colors.authFaint : theme.colors.textMuted}
           style={{
             flex: 1,
-            color: onPetrol ? theme.colors.white : theme.colors.textPrimary,
-            fontFamily: onPetrol ? fontFamily.medium : fontFamily.semibold,
-            fontSize: onPetrol ? 15 : 14.5,
+            color: onAuth ? theme.colors.authInk : theme.colors.textPrimary,
+            fontFamily: onAuth ? fontFamily.medium : fontFamily.semibold,
+            fontSize: onAuth ? 15 : 14.5,
             textAlign: alignRight ? 'right' : 'left',
             paddingVertical: multiline ? 12 : 0,
             // Android desenha um padding interno próprio que desalinha o texto

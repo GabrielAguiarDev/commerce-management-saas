@@ -18,8 +18,8 @@ import { useTranslation } from '@i18n';
  * Existe separado do `Screen` porque as duas famílias não têm nada em comum
  * além de serem telas: o `Screen` desenha header com avatar do usuário, banner
  * de conexão e espaço reservado para a tab bar, e nada disso faz sentido antes
- * de haver usuário. O que estas quatro compartilham é o oposto — fundo petrol,
- * conteúdo centrado verticalmente e um título grande.
+ * de haver usuário. O que estas quatro compartilham é o oposto — fundo claro
+ * fixo, conteúdo centrado verticalmente e um título grande.
  *
  * Centralizar o conteúdo com `justifyContent: 'center'` DENTRO do
  * `contentContainerStyle` (e não `flex: 1` no filho) é o que mantém a rolagem
@@ -34,7 +34,7 @@ interface AuthScreenProps {
   /**
    * Qual das duas telas de entrada esta é.
    *
-   * `passo`   — os três passos da recuperação de senha. Fundo petrol chapado,
+   * `passo`   — os três passos da recuperação de senha. Fundo claro chapado,
    *             título grande alinhado à esquerda. Cada um é uma etapa de um
    *             fluxo que já começou, e a marca já foi apresentada.
    * `entrada` — o LOGIN. A PRIMEIRA tela do app: ganha o fundo com halo e marca
@@ -84,23 +84,23 @@ export function AuthScreen({
 
   return (
     <Box flex={1} backgroundColor="authBase" style={{ paddingTop: insets.top }}>
-      {/* Hora, bateria e sinal em BRANCO, fixo — não `auto` nem o tema.
+      {/* Hora, bateria e sinal em PRETO, fixo — não `auto` nem o tema.
           O `_layout` raiz decide o estilo pela preferência do usuário
           (`isDark ? 'light' : 'dark'`), e é a regra certa para o app inteiro,
           onde o fundo acompanha o tema. Aqui não acompanha: estas quatro telas
-          são escuras SEMPRE, então com a preferência no claro o relógio saía
-          preto sobre o `authBase` e sumia.
+          são claras SEMPRE, então com a preferência no escuro o relógio sairia
+          branco sobre o `authBase` e sumiria.
           O `StatusBar` do React Native empilha por componente montado e
           desempilha ao desmontar, então isto vale só enquanto uma tela de
           entrada estiver em cena — ao entrar no app, o estilo do raiz volta
           sozinho. Não é preciso restaurar nada na saída. */}
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       {/* Antes de tudo, e fora do fluxo: as três camadas do fundo. Só o LOGIN
           as recebe — nos três passos da recuperação de senha fica o `authBase`
           chapado acima, que é exatamente a cor em que o degradê do login
-          termina. Era `petrol` (#123c4a) e destoava: sair do login dava a
-          impressão de trocar de app no meio do caminho. */}
+          termina. Sair do login para "Esqueci minha senha" apaga o clarão e a
+          marca d'água, e não troca o chão embaixo dos pés. */}
       {entrada ? <AuthBackdrop /> : null}
 
       {/* FORA da rolagem, e antes dela: o voltar é do aparelho, não do
@@ -117,12 +117,12 @@ export function AuthScreen({
             height={38}
             borderRadius="r12"
             borderWidth={1}
-            borderColor="fieldBorderOnPetrol"
-            backgroundColor="fieldOnPetrol"
+            borderColor="authBorder"
+            backgroundColor="authSurface"
             alignItems="center"
             justifyContent="center"
           >
-            <Icon name="back" size={17} color="white" />
+            <Icon name="back" size={17} color="authInk" />
           </Touchable>
         </Box>
       ) : null}
@@ -148,7 +148,7 @@ export function AuthScreen({
 
           <Text
             variant={entrada ? 'authWelcome' : 'authTitle'}
-            color="white"
+            color="authInk"
             textAlign={entrada ? 'center' : 'left'}
             accessibilityRole="header"
           >
@@ -158,7 +158,7 @@ export function AuthScreen({
           {subtitle ? (
             <Text
               variant="bodyLoose"
-              color="onPetrolFaint"
+              color="authMuted"
               textAlign={entrada ? 'center' : 'left'}
               marginTop={entrada ? 's6' : 's10'}
             >
@@ -204,15 +204,15 @@ function Brand({ tagline }: { tagline: string }) {
 
       <Text
         variant="brandWordmark"
-        color="white"
+        color="authInk"
         textAlign="center"
         marginTop="s16"
         accessibilityLabel="Aguiar One"
       >
-        Aguiar <Text variant="brandWordmark" color="authLink">One</Text>
+        Aguiar <Text variant="brandWordmark" color="authBrand">One</Text>
       </Text>
 
-      <Text variant="captionSm" color="onPetrolFaint" textAlign="center" marginTop="s12">
+      <Text variant="captionSm" color="authMuted" textAlign="center" marginTop="s12">
         {tagline}
       </Text>
     </Box>
