@@ -19,8 +19,14 @@ export function PortalShell({ children }: { children: ReactNode }) {
   const { isMobile, d } = usePortal();
   const pathname = usePathname();
 
-  // O login ocupa a tela inteira — sem menu, sem topo, sem barra de venda.
-  const inLogin = pathname === "/login";
+  /**
+   * As telas de autenticação ocupam a tela inteira — sem menu, sem topo, sem
+   * barra de venda. São as três que a pessoa vê ANTES de estar no portal: a
+   * entrada e as duas da redefinição de senha. Dentro da casca elas viriam com
+   * um menu lateral vazio por companhia, porque não há retrato de negócio para
+   * preenchê-lo.
+   */
+  const inAuth = ["/login", "/esqueci-senha", "/redefinir-senha"].includes(pathname);
 
   /**
    * O retrato do negócio já chegou.
@@ -44,9 +50,9 @@ export function PortalShell({ children }: { children: ReactNode }) {
   // durante a travessia do login para o portal: trocada de lugar, ela
   // remontaria no meio do caminho e recomeçaria a contagem — a pessoa veria a
   // tela reiniciar justamente no instante em que ela deveria estar saindo.
-  const splash = <Splash ready={!inLogin && loaded} />;
+  const splash = <Splash ready={!inAuth && loaded} />;
 
-  if (inLogin)
+  if (inAuth)
     return (
       <>
         {children}

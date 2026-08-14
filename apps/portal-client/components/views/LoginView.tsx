@@ -2,8 +2,10 @@
 
 import { BRAND, Button, css, SANS } from "@aguiar/ui";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AuthNotice } from "@/components/AuthShell";
 import { Logo } from "@/components/Logo";
 import { usePortal } from "@/components/PortalProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -28,12 +30,20 @@ const LABEL = `display:block;margin-bottom:6px;font:600 11px ${SANS};color:var(-
  */
 const BANNER_INK = BRAND.ink;
 
-/** O motivo pelo qual o middleware devolveu a pessoa para cá. */
+/**
+ * O motivo pelo qual a pessoa foi devolvida para cá.
+ *
+ * Os dois primeiros são do middleware. `link_invalido` vem de outro lugar — da
+ * rota que abre o link do e-mail de senha (`app/auth/confirmar/route.ts`) —,
+ * mas chega no mesmo `?erro=` e é lido do mesmo jeito.
+ */
 const REASONS: Record<string, string> = {
   "e-admin":
     "Esta conta é de administrador da plataforma. Use o painel admin, não o portal do cliente.",
   "sem-negocio":
     "Esta conta ainda não está ligada a um negócio. Fale com o suporte para liberar o seu acesso.",
+  link_invalido:
+    "Este link de redefinição não vale mais: ele expira depois de um tempo e só pode ser usado uma vez.",
 };
 
 export function LoginView() {
@@ -42,7 +52,14 @@ export function LoginView() {
   const { a, isMobile } = usePortal();
 
   // O nome do parâmetro é o que o middleware escreve (`?erro=…`).
-  const reason = REASONS[params.get("erro") ?? ""] ?? null;
+  const reasonKey = params.get("erro") ?? "";
+  const reason = REASONS[reasonKey] ?? null;
+
+  /** Link de senha vencido: além do aviso, a pessoa precisa do caminho de volta. */
+  const invalidLink = reasonKey === "link_invalido";
+
+  /** Veio de `/redefinir-senha`, com a senha nova já gravada. */
+  const passwordChanged = params.get("senha_alterada") === "1";
 
   const [email, setEmail] = useState("");
   const [password, setSenha] = useState("");
@@ -201,6 +218,15 @@ export function LoginView() {
             </p>
           </div>
 
+          {/* A confirmação da troca de senha. Fica ACIMA do formulário, e não
+              no lugar do erro: ela não é a resposta a uma tentativa de entrar,
+              é o fecho do caminho que trouxe a pessoa até aqui. */}
+          {passwordChanged && (
+            <AuthNotice tone="pos">
+              Senha alterada. Entre com a nova senha para continuar.
+            </AuthNotice>
+          )}
+
           <div>
             <label style={css(LABEL)} htmlFor="email">
               E-mail
@@ -242,6 +268,20 @@ export function LoginView() {
               role="alert"
             >
               {error}
+              {/* O aviso de link vencido só serve com a saída junto: sem isto a
+                  pessoa lê que o link morreu e não tem o que fazer na tela. */}
+              {invalidLink && !attemptError && (
+                <>
+                  {" "}
+                  <Link
+                    href="/esqueci-senha"
+                    style={css("color:inherit;text-decoration:underline")}
+                  >
+                    Pedir um novo link
+                  </Link>
+                  .
+                </>
+              )}
             </div>
           )}
 
@@ -265,7 +305,14 @@ export function LoginView() {
           </Button>
 
           <p style={css(`margin:0;text-align:center;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
-            Esqueceu a senha ou não consegue entrar? Fale com a nossa equipe.
+            <Link
+              href="/esqueci-senha"
+              style={css(`font:600 12px ${SANS};color:var(--accent-text);text-decoration:underline`)}
+            >
+              Esqueci minha senha
+            </Link>
+            <br />
+            Não consegue entrar? Fale com a nossa equipe.
           </p>
 
           {/* No desktop o copyright fica sobre o banner; sem ele, é aqui. */}

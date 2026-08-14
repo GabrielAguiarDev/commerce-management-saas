@@ -4,6 +4,23 @@ import { NextResponse, type NextRequest } from "next/server";
 const LOGIN = "/login";
 
 /**
+ * As rotas que existem JUSTAMENTE para quem ainda não tem sessão.
+ *
+ * `/auth/confirmar` é a que não pode faltar: é o destino do link do e-mail de
+ * senha, e quem clica nele chega sem cookie nenhum — a sessão só nasce lá
+ * dentro, quando o `verifyOtp` troca o token. Fora desta lista, o middleware
+ * mandaria a pessoa para o login antes de o handler rodar, e o fluxo morreria
+ * calado: o e-mail chega, o link funciona, e mesmo assim a tela sempre diz
+ * "link inválido".
+ *
+ * `/redefinir-senha` também entra, e por um motivo diferente: quem chega nela
+ * TEM sessão, mas ela precisa continuar acessível se o cookie já tiver
+ * expirado — quem decide o que fazer nesse caso é a própria página, que manda
+ * de volta para `/esqueci-senha` em vez de para o login.
+ */
+const PUBLIC_ROUTES = [LOGIN, "/esqueci-senha", "/auth/confirmar", "/redefinir-senha"];
+
+/**
  * Mantém a sessão do dono do comércio viva e barra quem não pode usar o portal.
  *
  * Server Components não escrevem cookies, então é aqui que o token é renovado.
@@ -53,6 +70,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const inLogin = request.nextUrl.pathname === LOGIN;
+  const isPublic = PUBLIC_ROUTES.includes(request.nextUrl.pathname);
 
   /**
    * Redireciona preservando os cookies que o `setAll` acabou de gravar em
@@ -68,10 +86,15 @@ export async function proxy(request: NextRequest) {
     return out;
   };
 
-  if (!user) return inLogin ? response : redirect(LOGIN);
+  if (!user) return isPublic ? response : redirect(LOGIN);
 
   // Logado — falta saber se este usuário é de um comércio. A consulta passa
   // pelo RLS com a sessão dele, que enxerga apenas o próprio perfil.
+  //
+  // As duas recusas abaixo poupam as rotas públicas: numa delas a pessoa pode
+  // estar no meio da troca de senha, e trocar a própria senha não depende de
+  // ter um negócio ligado à conta. Para o `/login` o efeito é o de sempre —
+  // seguir e deixar a tela explicar o `?erro=`.
   const { data: perfil } = await supabase
     .from("profiles")
     .select("tenant_id, is_platform_admin")
@@ -80,11 +103,11 @@ export async function proxy(request: NextRequest) {
 
   if (perfil?.is_platform_admin) {
     // Admin da plataforma entrou no portal errado: a tela de login explica.
-    return inLogin ? response : redirect(LOGIN, "e-admin");
+    return isPublic ? response : redirect(LOGIN, "e-admin");
   }
 
   if (!perfil?.tenant_id) {
-    return inLogin ? response : redirect(LOGIN, "sem-negocio");
+    return isPublic ? response : redirect(LOGIN, "sem-negocio");
   }
 
   return inLogin ? redirect("/") : response;
