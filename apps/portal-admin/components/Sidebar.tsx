@@ -266,16 +266,95 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
       <div
         style={css(
           "margin-top:auto;padding:12px;border-top:1px solid var(--side-border);display:flex;" +
-            "flex-direction:column;gap:8px",
+            // `relative` é a âncora do balão de "sair", que flutua sobre o que
+            // estiver acima do rodapé.
+            "flex-direction:column;gap:8px;position:relative",
         )}
       >
-        <div
+        {/* Sair.
+            A pergunta acontece aqui mesmo, no rodapé, e não num diálogo sobre a
+            tela: é o mesmo balão do portal do cliente. O clique de dentro para
+            de subir para que o listener do provider — que fecha o balão a
+            qualquer clique — não o feche no mesmo gesto.
+
+            Fora do fluxo de propósito: no fluxo ele empurrava o rodapé e
+            entrava na altura rolável da barra, que ganhava uma rolagem só para
+            caber a pergunta. `absolute` o deixa flutuar sobre o cartão de
+            receita, e o rodapé não se mexe ao abrir e fechar.
+
+            O fundo precisa ser opaco — `--side-card` é branco translúcido, e
+            sozinho deixaria o conteúdo de trás aparecer através do balão. Daí a
+            camada sobre `--side`, que dá o mesmo tom sem transparência. */}
+        {s.signOutOpen && !col && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={css(
+              "position:absolute;left:12px;right:12px;bottom:100%;margin-bottom:8px;z-index:2;" +
+                "padding:11px;border:1px solid var(--side-border);border-radius:10px;" +
+                "background:linear-gradient(var(--side-card),var(--side-card)),var(--side);" +
+                "box-shadow:var(--shadow-lg);animation:pop .16s ease",
+            )}
+          >
+            <div style={css("font-size:12px;font-weight:600;line-height:1.4;color:#e4edf1")}>
+              {L.signOutTitulo}
+            </div>
+            <div
+              style={css("margin-top:3px;font-size:11px;line-height:1.4;color:var(--side-text2)")}
+            >
+              {L.signOutTexto}
+            </div>
+            <div style={css("display:flex;gap:6px;margin-top:9px")}>
+              {/* Devolve a promessa: é dela que o botão tira o girador. O balão
+                  fica aberto até o servidor responder — fechá-lo aqui
+                  desmontaria o botão antes de o girador aparecer. */}
+              <Button
+                onClick={() => a.signOut()}
+                loadingLabel={L.saindo}
+                style={css(
+                  "flex:1;padding:7px;border-radius:8px;border:none;background:var(--danger);" +
+                    "color:#fff;font-size:12px;font-weight:600;cursor:pointer",
+                )}
+              >
+                {L.signOutBotao}
+              </Button>
+              <Button
+                onClick={() => a.set({ signOutOpen: false })}
+                style={css(
+                  "flex:1;padding:7px;border-radius:8px;border:1px solid var(--side-border);" +
+                    "background:transparent;color:var(--side-text);font-size:12px;font-weight:600;" +
+                    "cursor:pointer",
+                )}
+              >
+                {L.cancelar}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            // Na barra recolhida não cabe o balão (o texto quebraria dentro dos
+            // 84px, e a barra rola no eixo Y). Então o clique abre a barra e faz
+            // a pergunta já com largura para lê-la.
+            a.set((st) =>
+              col
+                ? { collapsed: false, signOutOpen: true }
+                : { signOutOpen: !st.signOutOpen },
+            );
+          }}
+          className="hv-side"
+          aria-label={L.signOut}
+          aria-expanded={s.signOutOpen}
+          {...hint}
           style={css(
-            "display:flex;align-items:center;gap:12px;padding:8px 4px 2px;" +
+            "display:flex;align-items:center;gap:12px;width:100%;padding:8px 6px;border-radius:9px;" +
+              "border:none;background:none;text-align:left;cursor:pointer;" +
+              "transition:background .12s,color .12s;" +
               (col ? "justify-content:center;" : ""),
           )}
         >
-          <div
+          <span
             style={css(
               "width:32px;height:32px;flex:none;border-radius:8px;background:var(--side-card);" +
                 "color:var(--side-text);display:flex;align-items:center;justify-content:center;" +
@@ -283,8 +362,8 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
             )}
           >
             RA
-          </div>
-          <div
+          </span>
+          <span
             style={css(
               col ? "display:none" : "display:flex;flex-direction:column;gap:1px;min-width:0;flex:1",
             )}
@@ -299,23 +378,18 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
                   depois no rótulo genérico, se o perfil não tiver nome. */}
               {s.adminName || L.admin}
             </span>
-            <span style={css("font-size:10.5px;color:var(--side-text2)")}>{L.admin}</span>
-          </div>
-          <Button
-            onClick={() => a.openModal("signOut")}
+            <span style={css("font-size:10.5px;color:var(--side-text2)")}>{L.signOut}</span>
+          </span>
+          <span
             style={css(
               col
                 ? "display:none"
-                : "flex:none;display:flex;align-items:center;justify-content:center;width:30px;" +
-                    "height:30px;margin-left:6px;border:none;background:none;color:var(--side-text2);" +
-                    "border-radius:7px;cursor:pointer;padding:0",
+                : "flex:none;display:flex;align-items:center;color:var(--side-text2)",
             )}
-            aria-label={L.signOut}
-            title={L.signOut}
           >
             <SairIcone />
-          </Button>
-        </div>
+          </span>
+        </Button>
       </div>
     </aside>
   );

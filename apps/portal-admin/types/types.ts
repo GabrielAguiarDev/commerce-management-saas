@@ -126,7 +126,6 @@ export interface Draft {
 }
 
 export type ModalTipo =
-  | "signOut"
   | "discard"
   | "moduleOff"
   | "clear"
@@ -208,6 +207,8 @@ export interface AdminState {
   hint: HintState | null;
   draft: Draft | null;
   notificationsOpen: boolean;
+  /** O balão de confirmação do "sair", no rodapé da barra lateral. */
+  signOutOpen: boolean;
   lidas: boolean;
   form: FormState | null;
   editingSetting: string | null;
@@ -271,6 +272,12 @@ export interface AdminActions {
    * clique, sem que cada diálogo precise do seu próprio "salvando".
    */
   confirmModal: () => Promise<void>;
+  /**
+   * Encerra a sessão e volta para o login. Devolve a promessa: é dela que o
+   * botão do balão de "sair" tira o girador, e é por isso que o balão fica
+   * aberto até o servidor responder.
+   */
+  signOut: () => Promise<void>;
   /**
    * Closes the transient chrome (drawer, row menus, tooltips) and answers
    * whether leaving the current screen is allowed. A customer record with

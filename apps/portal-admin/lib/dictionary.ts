@@ -7,6 +7,9 @@ import type { Language } from "@/types/types";
  *
  * Entries whose names end in `Titulo` / `Texto` / `Botao` are also reached
  * dynamically by the confirmation modal (see `dyn`), keyed off the modal type.
+ * O prefixo é o próprio `ModalTipo` — `deleteTitulo`, `discardBotao` — e é essa
+ * igualdade que faz o diálogo achar o texto. Renomear um tipo sem renomear a
+ * chave devolve um diálogo em branco.
  */
 const pt = {
   console: "Console admin",
@@ -118,16 +121,16 @@ const pt = {
   naoLidas: "não lidas",
   marcarLidas: "Marcar todas como lidas",
   semNotificacoes: "Nenhuma notificação por aqui.",
-  modOffTitulo: "Desativar este módulo?",
-  modOffBotao: "Desativar módulo",
-  limparTitulo: "Desativar todos os módulos?",
-  limparTexto:
+  moduleOffTitulo: "Desativar este módulo?",
+  moduleOffBotao: "Desativar módulo",
+  clearTitulo: "Desativar todos os módulos?",
+  clearTexto:
     "O cliente ficará sem nenhuma funcionalidade no próximo acesso. Você ainda precisa salvar para aplicar.",
-  limparBotao: "Desativar todos",
-  todosTitulo: "Ativar todos os módulos?",
-  todosTexto:
+  clearBotao: "Desativar todos",
+  allTitulo: "Ativar todos os módulos?",
+  allTexto:
     "Todos os módulos serão liberados para este cliente. Você ainda precisa salvar para aplicar.",
-  todosBotao: "Ativar todos",
+  allBotao: "Ativar todos",
   valorPorCliente: "valor definido por cliente",
   semPrecoFixo: "Sob medida",
   entrarTitulo: "Entrar no painel",
@@ -145,14 +148,14 @@ const pt = {
   customer: "Cliente",
   cancelar: "Cancelar",
   fechar: "Fechar",
-  desativarTitulo: "Desativar este cliente?",
-  desativarTexto:
+  deactivateTitulo: "Desativar este cliente?",
+  deactivateTexto:
     "O cliente perderá acesso ao sistema até ser reativado. Os dados são mantidos.",
-  desativarBotao: "Desativar cliente",
-  reativarTitulo: "Reativar este cliente?",
-  reativarTexto:
+  deactivateBotao: "Desativar cliente",
+  reactivateTitulo: "Reativar este cliente?",
+  reactivateTexto:
     "O acesso ao sistema volta imediatamente, com os módulos que já estavam ativos.",
-  reativarBotao: "Confirmar",
+  reactivateBotao: "Confirmar",
   excluirPlanoTitulo: "Excluir este plano?",
   excluirPlanoTexto:
     "O plano sai do catálogo e deixa de aparecer no cadastro e nos filtros. Clientes já cadastrados não são afetados.",
@@ -164,19 +167,21 @@ const pt = {
     "Mude o plano de cada cliente abaixo antes de excluir. A troca vale na hora e recalcula os módulos e a mensalidade pelo plano de destino.",
   moverPara: "Mover para",
   clientesNoPlano: "clientes neste plano",
-  excluirTitulo: "Excluir cliente permanentemente",
-  excluirTexto:
+  deleteTitulo: "Excluir cliente permanentemente",
+  deleteTexto:
     "Esta ação não pode ser desfeita. Vendas, produtos, histórico de caixa e chamados deste cliente serão apagados para sempre.",
-  excluirBotao: "Excluir cliente",
+  deleteBotao: "Excluir cliente",
   avisoExcluir: "Todos os dados serão apagados imediatamente e não há como recuperar.",
   instrucaoExcluir: "Para confirmar, digite o nome do negócio:",
-  sairTitulo: "Deseja sair?",
-  sairTexto: "Você precisará entrar novamente para acessar o painel.",
-  sairBotao: "Sair",
-  descartarTitulo: "Alterações não salvas",
-  descartarTexto:
+  signOutTitulo: "Deseja sair?",
+  signOutTexto: "Você precisará entrar novamente para acessar o painel.",
+  signOutBotao: "Sair",
+  /* O nome que o leitor de tela anuncia enquanto o botão gira. */
+  saindo: "Saindo…",
+  discardTitulo: "Alterações não salvas",
+  discardTexto:
     "Você tem alterações não salvas nesta ficha. Deseja sair sem salvar?",
-  descartarBotao: "Sair sem salvar",
+  discardBotao: "Sair sem salvar",
   continuarEditando: "Continuar editando",
   save: "Salvar alterações",
   discard: "Descartar",
@@ -507,16 +512,16 @@ const en: Dic = {
   naoLidas: "unread",
   marcarLidas: "Mark all as read",
   semNotificacoes: "Nothing here right now.",
-  modOffTitulo: "Disable this module?",
-  modOffBotao: "Disable module",
-  limparTitulo: "Disable every module?",
-  limparTexto:
+  moduleOffTitulo: "Disable this module?",
+  moduleOffBotao: "Disable module",
+  clearTitulo: "Disable every module?",
+  clearTexto:
     "The customer will have no features on their next sign-in. You still need to save to apply.",
-  limparBotao: "Disable all",
-  todosTitulo: "Enable every module?",
-  todosTexto:
+  clearBotao: "Disable all",
+  allTitulo: "Enable every module?",
+  allTexto:
     "Every module will be unlocked for this customer. You still need to save to apply.",
-  todosBotao: "Enable all",
+  allBotao: "Enable all",
   valorPorCliente: "amount set per customer",
   semPrecoFixo: "Custom",
   entrarTitulo: "Sign in to the panel",
@@ -532,14 +537,14 @@ const en: Dic = {
   customer: "Customer",
   cancelar: "Cancel",
   fechar: "Close",
-  desativarTitulo: "Deactivate this customer?",
-  desativarTexto:
+  deactivateTitulo: "Deactivate this customer?",
+  deactivateTexto:
     "The customer loses access to the system until reactivated. All data is kept.",
-  desativarBotao: "Deactivate customer",
-  reativarTitulo: "Reactivate this customer?",
-  reativarTexto:
+  deactivateBotao: "Deactivate customer",
+  reactivateTitulo: "Reactivate this customer?",
+  reactivateTexto:
     "Access is restored immediately, with the modules that were already enabled.",
-  reativarBotao: "Confirm",
+  reactivateBotao: "Confirm",
   excluirPlanoTitulo: "Delete this plan?",
   excluirPlanoTexto:
     "The plan leaves the catalog and stops showing up in signup and filters. Existing customers are not affected.",
@@ -551,18 +556,19 @@ const en: Dic = {
     "Move each customer below to another plan before deleting. The change applies immediately and recalculates modules and fee from the target plan.",
   moverPara: "Move to",
   clientesNoPlano: "customers on this plan",
-  excluirTitulo: "Delete customer permanently",
-  excluirTexto:
+  deleteTitulo: "Delete customer permanently",
+  deleteTexto:
     "This action cannot be undone. Sales, products, register history and tickets for this customer will be erased forever.",
-  excluirBotao: "Delete customer",
+  deleteBotao: "Delete customer",
   avisoExcluir: "All data is erased immediately and cannot be recovered.",
   instrucaoExcluir: "To confirm, type the business name:",
-  sairTitulo: "Sign out?",
-  sairTexto: "You will need to sign in again to access the panel.",
-  sairBotao: "Sign out",
-  descartarTitulo: "Unsaved changes",
-  descartarTexto: "You have unsaved changes on this record. Leave without saving?",
-  descartarBotao: "Leave without saving",
+  signOutTitulo: "Sign out?",
+  signOutTexto: "You will need to sign in again to access the panel.",
+  signOutBotao: "Sign out",
+  saindo: "Signing out…",
+  discardTitulo: "Unsaved changes",
+  discardTexto: "You have unsaved changes on this record. Leave without saving?",
+  discardBotao: "Leave without saving",
   continuarEditando: "Keep editing",
   save: "Save changes",
   discard: "Discard",

@@ -15,6 +15,7 @@ export const INITIAL_STATE: AdminState = {
   hint: null,
   draft: null,
   notificationsOpen: false,
+  signOutOpen: false,
   lidas: false,
   form: null,
   editingSetting: null,

@@ -240,6 +240,23 @@ export function AdminProvider({
     set({ modal: null, confirmation: "", form: null });
   }, [set]);
 
+  /**
+   * Sair.
+   *
+   * O balão continua aberto durante a espera — fechá-lo aqui desmontaria o
+   * botão antes de o girador aparecer. Quem o fecha é a própria navegação para
+   * o login, que troca a barra lateral inteira. O rascunho vai junto: a ficha
+   * que estava em edição não sobrevive à sessão.
+   */
+  const signOut = useCallback(async () => {
+    set({ draft: null });
+    // Encerra a sessão de verdade: sem isto o middleware veria o cookie
+    // ainda válido e devolveria o usuário ao painel.
+    await createClient().auth.signOut();
+    router.push(ROUTES.login);
+    router.refresh();
+  }, [set, router]);
+
   const editDraft = useCallback(
     (fn: (r: Draft) => Draft) => {
       set((s) => ({ draft: s.draft ? fn(s.draft) : s.draft }));
@@ -532,14 +549,6 @@ export function AdminProvider({
     const id = state.language;
 
     switch (m.type) {
-      case "signOut":
-        set({ modal: null, draft: null });
-        // Encerra a sessão de verdade: sem isto o middleware veria o cookie
-        // ainda válido e devolveria o usuário ao painel.
-        await createClient().auth.signOut();
-        router.push(ROUTES.login);
-        router.refresh();
-        return;
       case "discard":
         set({
           modal: null,
@@ -662,6 +671,24 @@ export function AdminProvider({
     if (state.hint) set({ hint: null });
   };
 
+  /**
+   * Um clique em qualquer lugar fecha o balão do "sair".
+   *
+   * O listener entra num `setTimeout(0)` porque o próprio clique que abre o
+   * balão ainda está subindo até o `document` — sem o adiamento ele fecharia no
+   * mesmo gesto que o abriu. Os cliques de dentro do balão param a propagação
+   * antes de chegar aqui (ver `Sidebar`).
+   */
+  useEffect(() => {
+    if (!state.signOutOpen) return;
+    const fechar = () => set({ signOutOpen: false });
+    const t = setTimeout(() => document.addEventListener("click", fechar), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("click", fechar);
+    };
+  }, [state.signOutOpen, set]);
+
   // Theme lives on <body> so the CSS variables cascade to overlays too.
   useEffect(() => {
     document.body.dataset.theme = state.theme === "dark" ? "dark" : "light";
@@ -743,6 +770,7 @@ export function AdminProvider({
       openModal,
       closeModal,
       confirmModal,
+      signOut,
       beforeNavigate,
       goTo,
       openCustomer,
