@@ -45,15 +45,19 @@ export const metadata: Metadata = {
 
   /**
    * O ícone da ABA não entra aqui: quem o serve é o `app/favicon.ico`, pela
-   * convenção de arquivo do Next. É o `.ico` de fundo transparente de propósito
-   * — na aba o ícone senta sobre a barra do navegador, que muda de cor com o
-   * tema do sistema, e um ladrilho petrol viraria um quadrado escuro no meio de
-   * uma barra clara.
+   * convenção de arquivo do Next.
+   *
+   * É o MESMO ARQUIVO do `portal-admin`, byte a byte, e de FUNDO BRANCO: os
+   * dois apps ficam lado a lado na barra de abas de quem administra a
+   * plataforma, e ali eles precisam se parecer. O branco é opaco de propósito —
+   * transparente, o "A" azul mudava de aparência conforme o tema do navegador,
+   * e as duas abas nunca ficavam iguais.
    *
    * Os ladrilhos opacos (`/icons/icon-*.png`) continuam valendo onde o sistema
    * pede um ícone quadrado e cheio, e só lá: o manifesto os declara para o app
-   * instalado, e o `apple-touch-icon` faz esse papel no iOS. Declarar qualquer
-   * um deles como `icons.icon` é o que trazia o fundo de volta para a aba.
+   * instalado, e o `apple-touch-icon` faz esse papel no iOS. Eles seguem em
+   * petrol, que é o que emenda com o `theme_color` da barra do sistema — trocar
+   * o fundo deles por branco mudaria o ícone na tela de início do celular.
    */
   icons: {
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
