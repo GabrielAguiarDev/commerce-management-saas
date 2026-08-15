@@ -7,6 +7,33 @@ const nextConfig: NextConfig = {
   // a cada mudança.
   transpilePackages: ["@aguiar/ui"],
 
+  experimental: {
+    /**
+     * Por quanto tempo o Router Cache do navegador pode reaproveitar uma tela
+     * já visitada, em segundos.
+     *
+     * O padrão do Next 16 é `dynamic: 0` — e como o layout raiz é
+     * `force-dynamic`, toda rota deste portal é dinâmica. Zero significa que
+     * voltar para uma tela vista há dois segundos custa uma ida ao servidor
+     * inteira, com o `proxy.ts` renovando a sessão no caminho (medido: ~350ms
+     * dos ~400ms de cada navegação). Quem está no balcão vê o esqueleto de novo,
+     * e o portal parece lento sem estar buscando nada de novo.
+     *
+     * 15s, e não os 30s do exemplo da documentação, porque dois aparelhos no
+     * mesmo balcão — dono e funcionário — é cenário real aqui: é o teto de
+     * quanto tempo uma venda lançada no outro celular pode demorar a aparecer
+     * numa tela que ESTE aparelho já tinha aberto.
+     *
+     * O que este número NÃO atrasa: mudança feita neste aparelho. Toda Server
+     * Action chama `revalidatePath("/", "layout")`, que descarta este cache
+     * inteiro — a tela seguinte já vem do servidor.
+     *
+     * `static` fica de fora de propósito: o padrão (300s) só vale para rotas
+     * estáticas, e o `force-dynamic` do layout garante que não existe nenhuma.
+     */
+    staleTimes: { dynamic: 15 },
+  },
+
   async headers() {
     return [
       {

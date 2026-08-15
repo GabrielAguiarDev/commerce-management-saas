@@ -30,21 +30,7 @@ import type { PortalData } from "@/types/estado";
  * das vendas e entra no mesmo bloco: as oito leituras viajam juntas, em vez de
  * a do caixa esperar todas as outras terminarem para só então começar.
  */
-// ⚠️ TEMPORÁRIO — medição do Router Cache. Remover depois.
-let MEDICAO = 0;
-
 export async function loadPortal(): Promise<PortalData> {
-  // ⚠️ TEMPORÁRIO
-  const marca = `[loadPortal] execução #${++MEDICAO}`;
-  console.time(marca);
-  try {
-    return await loadPortalMedido();
-  } finally {
-    console.timeEnd(marca);
-  }
-}
-
-async function loadPortalMedido(): Promise<PortalData> {
   const session = await requireCustomer();
 
   // Sem sessão o middleware já redirecionou; chegar aqui significa ambiente sem
