@@ -24,6 +24,17 @@ import { createClient, supabaseConfigurado } from "@/lib/supabase/server";
  * mão: é ele que carrega para a resposta os cookies que o `verifyOtp` acabou de
  * gravar via `next/headers`. Uma resposta nova sairia sem a sessão, e a tela de
  * nova senha devolveria a pessoa para o começo.
+ *
+ * SOBRE O OUTRO FORMATO DE LINK (`?code=...`): existe e NÃO é aceito aqui, de
+ * propósito. É o que o template PADRÃO do Supabase gera quando o customizado
+ * não está no ar, e trocá-lo por sessão seria um `exchangeCodeForSession`. O
+ * problema é que o `code` não diz de que tipo de e-mail ele veio: aceitá-lo
+ * aqui abriria a mesma porta para um link de CONVITE (`inviteUserByEmail`, em
+ * `portal-admin/app/clientes/actions.ts`), que hoje nem manda `redirectTo` e
+ * cai no Site URL do projeto. Um endereço que existe para recuperação de senha
+ * passaria a criar sessão para um fluxo que ninguém revisou para isso. Se o
+ * template padrão voltar, o sintoma é um "link inválido" com `code` na lista de
+ * chaves logada abaixo — o conserto é o template, não esta rota.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -40,14 +51,31 @@ export async function GET(request: NextRequest) {
 
   // `recovery` e nada mais. Este endpoint existe para uma coisa só, e aceitar
   // outros tipos de OTP aqui abriria uma porta de sessão que ninguém pediu.
-  if (!tokenHash || type !== "recovery") redirect(INVALID);
+  //
+  // O log lista só as CHAVES da query, nunca os valores: um `token_hash` ou um
+  // `code` no log do servidor é uma sessão de graça para quem lê o log. As
+  // chaves bastam para o diagnóstico — é por elas que se vê um `code` sozinho
+  // (template padrão de volta) ou um `type` que não é `recovery`.
+  if (!tokenHash || type !== "recovery") {
+    console.error(
+      "[auth/confirmar] link não reconhecido — chaves recebidas:",
+      [...params.keys()].join(", ") || "(nenhuma)",
+    );
+    redirect(INVALID);
+  }
 
-  if (!supabaseConfigurado()) redirect(INVALID);
+  if (!supabaseConfigurado()) {
+    console.error("[auth/confirmar] Supabase não configurado neste ambiente");
+    redirect(INVALID);
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.verifyOtp({ type: "recovery", token_hash: tokenHash });
 
-  if (error) redirect(INVALID);
+  if (error) {
+    console.error("[auth/confirmar] verifyOtp falhou:", error.message);
+    redirect(INVALID);
+  }
 
   redirect("/redefinir-senha");
 }
