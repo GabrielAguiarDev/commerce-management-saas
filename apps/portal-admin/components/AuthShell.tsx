@@ -90,20 +90,20 @@ export function AuthNotice({ tone, children }: { tone: "danger" | "pos"; childre
 export function AuthSkeleton({
   screen,
 }: {
-  /** Qual das duas telas está a caminho: muda o título e a contagem de campos. */
-  screen: "forgot" | "reset";
+  /** Qual das três telas está a caminho: muda o título e a contagem de campos. */
+  screen: "login" | "forgot" | "reset";
 }) {
   const { a } = useAdmin();
   const { L } = a;
 
-  const forgot = screen === "forgot";
-
   // O título sai do dicionário aqui dentro, e não das props: um `loading.tsx` é
   // Server Component e não alcança o idioma escolhido, que vive no estado do
   // console.
-  const title = forgot ? L.esqueciTitulo : L.redefinirTitulo;
-  const subtitle = forgot ? L.esqueciSub : L.redefinirSub;
-  const fields = forgot ? 1 : 2;
+  const { title, subtitle, fields } = {
+    login: { title: L.entrarTitulo, subtitle: L.entrarSub, fields: 2 },
+    forgot: { title: L.esqueciTitulo, subtitle: L.esqueciSub, fields: 1 },
+    reset: { title: L.redefinirTitulo, subtitle: L.redefinirSub, fields: 2 },
+  }[screen];
 
   return (
     <AuthShell title={title} subtitle={subtitle}>
