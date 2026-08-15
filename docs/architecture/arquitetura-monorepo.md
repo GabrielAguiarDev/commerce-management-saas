@@ -40,6 +40,15 @@ aguiar-one-saas/
 └── (config do monorepo)
 ```
 
+### Atualização dos dados no portal do cliente
+
+O portal **não tem polling nem realtime**: o retrato do negócio é montado uma
+vez por navegação, no layout raiz (`loadPortal`), e só se renova em navegação,
+recarga ou depois de uma mutação (toda Server Action chama
+`revalidatePath("/", "layout")`). **É decisão de projeto, não esquecimento** —
+uma conexão aberta por aparelho custa caro no celular do balcão e o ganho não
+justifica; mudança feita em OUTRO aparelho aparece na próxima troca de tela.
+
 ---
 
 ## 2. Corrigir a estrutura de pastas de cada projeto Next.js
