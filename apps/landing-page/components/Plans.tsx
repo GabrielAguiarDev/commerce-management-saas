@@ -1,4 +1,5 @@
 import { css } from "@aguiar/ui";
+import { Reveal } from "@/components/Reveal";
 import { Check, Container, SectionIntro } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
 import { PLANS, SIGNUP } from "@/lib/links";
@@ -31,12 +32,14 @@ export function Plans() {
       style={css(SECTION + "background:var(--surface);border-top:1px solid var(--rule)")}
     >
       <Container narrow>
-        <SectionIntro
-          id="plans-title"
-          eyebrow={COPY.plans.eyebrow}
-          title={COPY.plans.title}
-          lead={COPY.plans.subtitle}
-        />
+        <Reveal>
+          <SectionIntro
+            id="plans-title"
+            eyebrow={COPY.plans.eyebrow}
+            title={COPY.plans.title}
+            lead={COPY.plans.subtitle}
+          />
+        </Reveal>
 
         {/* `align-items:start` para que o card do plano pago, que tem um item a
             mais, não estique o gratuito junto. */}
@@ -47,7 +50,7 @@ export function Plans() {
           )}
         >
           {/* Gratuito */}
-          <div
+          <Reveal
             style={css(
               "border:1px solid var(--border);border-radius:18px;padding:28px;background:var(--surface2)",
             )}
@@ -70,11 +73,12 @@ export function Plans() {
                 <Check key={f}>{f}</Check>
               ))}
             </div>
-          </div>
+          </Reveal>
 
           {/* Completo. A etiqueta "Recomendado" fica montada sobre a borda
               superior — daí o `position:relative` no card e o topo negativo. */}
-          <div
+          <Reveal
+            delay={80}
             style={css(
               "border:1.5px solid var(--petrol);border-radius:18px;padding:28px;" +
                 "background:var(--petrol);color:#fff;position:relative;" +
@@ -110,7 +114,7 @@ export function Plans() {
                 </Check>
               ))}
             </div>
-          </div>
+          </Reveal>
         </div>
       </Container>
     </section>

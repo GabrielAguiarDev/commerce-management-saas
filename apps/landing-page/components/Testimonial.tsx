@@ -1,4 +1,5 @@
 import { css } from "@aguiar/ui";
+import { Reveal } from "@/components/Reveal";
 import { COPY } from "@/lib/dictionary";
 import { DISPLAY, EYEBROW } from "@/lib/styleKit";
 
@@ -15,7 +16,8 @@ import { DISPLAY, EYEBROW } from "@/lib/styleKit";
 export function Testimonial() {
   return (
     <section style={css("padding:clamp(56px,7vw,80px) 20px;background:var(--bg)")}>
-      <figure
+      <Reveal
+        as="figure"
         style={css(
           "max-width:820px;margin:0 auto;background:var(--surface);border:1px solid var(--border);" +
             "border-radius:18px;padding:clamp(28px,4vw,44px)",
@@ -56,7 +58,7 @@ export function Testimonial() {
             <div style={css("font-size:14px;color:var(--muted)")}>{COPY.testimonial.role}</div>
           </div>
         </figcaption>
-      </figure>
+      </Reveal>
     </section>
   );
 }

@@ -1,11 +1,11 @@
 import { css } from "@aguiar/ui";
+import { MODULE_PANELS } from "@/components/ModulePanels";
+import { ModuleShowcase } from "@/components/ModuleShowcase";
+import { Reveal } from "@/components/Reveal";
 import { Container } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
 import { MODULES, PLANS, SIGNUP } from "@/lib/links";
-import { EYEBROW, grid, H2, LEAD, moduleTag, SECTION } from "@/lib/styleKit";
-
-const MODULE_CARD =
-  "border:1px solid var(--border);border-radius:16px;padding:24px;background:var(--surface2);";
+import { EYEBROW, H2, LEAD, SECTION } from "@/lib/styleKit";
 
 /**
  * "Módulos" — a dobra que sustenta a promessa de montar o sistema.
@@ -15,9 +15,17 @@ const MODULE_CARD =
  * `align-items:flex-end`, e essa exceção não vale um parâmetro no componente
  * compartilhado.
  *
- * O último card é vazado e tracejado. Ele não é um módulo — é o argumento
- * inverso, o de DESLIGAR o que não se usa —, e a borda tracejada é o que diz
- * isso antes de alguém ler o título.
+ * Os cinco módulos não são mais uma grade de cards: são uma VITRINE de coluna
+ * fixa. O índice à esquerda fica parado enquanto os painéis passam à direita,
+ * um por módulo, cada um com a tela que aquele módulo mostra. A lista, o texto
+ * e a ordem são os mesmos de antes — o que mudou foi quanto espaço cada módulo
+ * ganha para se explicar. Ver `ModuleShowcase.tsx`.
+ *
+ * O CARD TRACEJADO FICA FORA DA VITRINE, embaixo dela e em largura inteira. Ele
+ * não é um módulo — é o argumento inverso, o de DESLIGAR o que não se usa —, e
+ * virar o sexto painel de uma fila de módulos diria o contrário do que ele
+ * existe para dizer. A borda tracejada continua sendo o que anuncia isso antes
+ * de alguém ler o título.
  */
 export function Modules() {
   // O `id` sai da MESMA constante que o menu do topo aponta — assim renomear a
@@ -32,7 +40,7 @@ export function Modules() {
       )}
     >
       <Container>
-        <div
+        <Reveal
           style={css(
             "display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;" +
               "justify-content:space-between;margin-bottom:36px",
@@ -52,39 +60,28 @@ export function Modules() {
           >
             {COPY.modules.link}
           </a>
-        </div>
+        </Reveal>
 
-        <div style={css(grid(250, 16))}>
-          {COPY.modules.items.map((item) => (
-            <div key={item.title} className="lp-card" style={css(MODULE_CARD)}>
-              <div
-                style={css(
-                  "display:flex;align-items:center;justify-content:space-between;margin-bottom:14px",
-                )}
-              >
-                <div
-                  aria-hidden="true"
-                  style={css("width:34px;height:34px;border-radius:10px;background:var(--petrol)")}
-                />
-                <span style={css(moduleTag(item.free))}>
-                  {item.free ? COPY.modules.freeTag : COPY.modules.paidTag}
-                </span>
-              </div>
-              <h3 style={css("font-size:18px;font-weight:700;margin-bottom:8px;color:var(--petrol)")}>
-                {item.title}
-              </h3>
-              <p style={css("font-size:14.5px;line-height:1.6;color:var(--text2);margin:0")}>
-                {item.text}
-              </p>
-            </div>
+        <ModuleShowcase
+          items={COPY.modules.items}
+          freeTag={COPY.modules.freeTag}
+          paidTag={COPY.modules.paidTag}
+        >
+          {MODULE_PANELS.map((Panel, i) => (
+            <Panel key={i} />
           ))}
+        </ModuleShowcase>
 
-          <div
-            style={css(
-              "border:1px dashed var(--dashed);border-radius:16px;padding:24px;" +
-                "background:var(--surface);display:flex;flex-direction:column;justify-content:center",
-            )}
-          >
+        {/* Em largura inteira o parágrafo passaria de 1100px de linha, que
+            ninguém lê. A coluna de texto para de crescer nos mesmos 620px da
+            abertura da dobra. */}
+        <Reveal
+          style={css(
+            "border:1px dashed var(--dashed);border-radius:16px;padding:26px;" +
+              "background:var(--surface);margin-top:40px",
+          )}
+        >
+          <div style={css("max-width:620px")}>
             <h3 style={css("font-size:18px;font-weight:700;margin-bottom:8px;color:var(--petrol)")}>
               {COPY.modules.custom.title}
             </h3>
@@ -99,7 +96,7 @@ export function Modules() {
               {COPY.modules.custom.cta}
             </a>
           </div>
-        </div>
+        </Reveal>
       </Container>
     </section>
   );

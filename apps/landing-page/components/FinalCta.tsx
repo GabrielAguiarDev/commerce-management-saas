@@ -1,4 +1,5 @@
 import { css } from "@aguiar/ui";
+import { Reveal } from "@/components/Reveal";
 import { COPY } from "@/lib/dictionary";
 import { PLANS, SIGNUP } from "@/lib/links";
 import { ctaPrimary } from "@/lib/styleKit";
@@ -15,7 +16,9 @@ export function FinalCta() {
       aria-labelledby="cta-title"
       style={css("padding:clamp(56px,7vw,92px) 20px;background:var(--petrol);color:#fff")}
     >
-      <div style={css("max-width:760px;margin:0 auto;text-align:center")}>
+      {/* A dobra inteira num bloco só, sem cascata: aqui não há lista para
+          ordenar, e escalonar título, texto e botão faria a decisão esperar. */}
+      <Reveal style={css("max-width:760px;margin:0 auto;text-align:center")}>
         <h2
           id="cta-title"
           style={css(
@@ -52,7 +55,7 @@ export function FinalCta() {
         <p style={css("margin:20px 0 0;font-size:13.5px;color:var(--on-petrol-muted)")}>
           {COPY.finalCta.note}
         </p>
-      </div>
+      </Reveal>
     </section>
   );
 }

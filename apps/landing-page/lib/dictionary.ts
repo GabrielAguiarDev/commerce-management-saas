@@ -84,6 +84,9 @@ const pt = {
     link: "Ver o que vem em cada plano →",
     freeTag: "No plano grátis",
     paidTag: "Plano pago",
+    /* A ORDEM DESTA LISTA É CONTRATO: `MODULE_PANELS`, em
+       `components/ModulePanels.tsx`, tem um painel por item e casa por
+       posição. Reordenar aqui sem reordenar lá troca as ilustrações de lugar. */
     items: [
       {
         title: "Registro de vendas",
@@ -115,6 +118,76 @@ const pt = {
       title: "Só o que você precisa",
       text: "Desligue módulos que não usa. Sua tela fica limpa e o time não se perde.",
       cta: "Começar grátis →",
+    },
+    /* As ilustrações que acompanham cada módulo. São TELAS INVENTADAS, como a
+       da primeira dobra: nenhum número aqui vem de lugar nenhum. Os valores
+       conversam entre si de propósito — R$ 1.240 de venda, R$ 480 de custo,
+       R$ 760 de lucro são os MESMOS da primeira dobra, e a semana do relatório
+       é esse dia vezes sete. É o mesmo comércio fictício do começo ao fim da
+       página; números que se contradizem entre um painel e outro são a primeira
+       coisa que alguém atento percebe.
+
+       Cada painel traz um `alt`: a ilustração inteira é `aria-hidden`, e quem
+       ouve a página recebe uma frase em vez de trinta números soltos. */
+    panels: {
+      sales: {
+        caption: "Vendas · Hoje",
+        rows: [
+          { time: "14:32", item: "Combo executivo", value: "R$ 32,00", pay: "Pix" },
+          { time: "14:05", item: "Acarajé completo", value: "R$ 18,00", pay: "Dinheiro" },
+          { time: "13:48", item: "Refrigerante lata", value: "R$ 6,00", pay: "Cartão" },
+        ],
+        totalLabel: "Total do dia",
+        totalValue: "R$ 1.240",
+        alt: "Ilustração do registro de vendas: as últimas três vendas do dia, cada uma com horário, item, valor e forma de pagamento, e o total do dia.",
+      },
+      costs: {
+        caption: "Custos · Hoje",
+        rows: [
+          { item: "Insumos e compras", value: "R$ 240,00" },
+          { item: "Aluguel (rateio do dia)", value: "R$ 150,00" },
+          { item: "Gás", value: "R$ 90,00" },
+        ],
+        totalLabel: "Custo do dia",
+        totalValue: "R$ 480",
+        alt: "Ilustração do controle de custos: insumos, aluguel e gás lançados no dia, somando o custo total do dia.",
+      },
+      reports: {
+        caption: "Relatório",
+        periods: ["Dia", "Semana", "Mês"],
+        inLabel: "Entrou",
+        inValue: "R$ 8.680",
+        outLabel: "Saiu",
+        outValue: "R$ 3.360",
+        leftLabel: "Sobrou",
+        leftValue: "R$ 5.320",
+        chartTitle: "Lucro por dia",
+        alt: "Ilustração dos relatórios: quanto entrou, quanto saiu e quanto sobrou na semana, com um gráfico do lucro de cada dia.",
+      },
+      stock: {
+        caption: "Estoque",
+        rows: [
+          { item: "Refrigerante lata", qty: "48 un" },
+          { item: "Pão de hambúrguer", qty: "60 un" },
+          { item: "Óleo de soja", qty: "3 un" },
+        ],
+        lowTag: "Acabando",
+        alertLabel: "Aviso enviado quando o produto chega no mínimo.",
+        alt: "Ilustração do controle de estoque: três produtos com a quantidade em prateleira, o último marcado como acabando, e o aviso que é enviado antes de faltar.",
+      },
+      cash: {
+        caption: "Caixa · Fechamento",
+        rows: [
+          { item: "Abertura do turno", value: "R$ 200,00" },
+          { item: "Vendas em dinheiro", value: "R$ 620,00" },
+        ],
+        expectedLabel: "Esperado em caixa",
+        expectedValue: "R$ 820,00",
+        countedLabel: "Contado",
+        countedValue: "R$ 820,00",
+        okTag: "Confere",
+        alt: "Ilustração do caixa: abertura do turno e vendas em dinheiro somando o esperado em caixa, o valor contado no fim do turno e a conferência sem diferença.",
+      },
     },
   },
 
@@ -307,6 +380,66 @@ const en: Dic = {
       title: "Only what you need",
       text: "Switch off the modules you do not use. Your screen stays clean and your team does not get lost.",
       cta: "Start for free →",
+    },
+    panels: {
+      sales: {
+        caption: "Sales · Today",
+        rows: [
+          { time: "14:32", item: "Set lunch", value: "R$ 32,00", pay: "Pix" },
+          { time: "14:05", item: "Acarajé, the works", value: "R$ 18,00", pay: "Cash" },
+          { time: "13:48", item: "Canned soft drink", value: "R$ 6,00", pay: "Card" },
+        ],
+        totalLabel: "Total today",
+        totalValue: "R$ 1,240",
+        alt: "Illustration of sales entry: the day's last three sales, each with time, item, amount and payment method, and the day's total.",
+      },
+      costs: {
+        caption: "Costs · Today",
+        rows: [
+          { item: "Supplies and purchases", value: "R$ 240,00" },
+          { item: "Rent (share of the day)", value: "R$ 150,00" },
+          { item: "Gas", value: "R$ 90,00" },
+        ],
+        totalLabel: "Cost today",
+        totalValue: "R$ 480",
+        alt: "Illustration of cost tracking: supplies, rent and gas logged for the day, adding up to the day's total cost.",
+      },
+      reports: {
+        caption: "Report",
+        periods: ["Day", "Week", "Month"],
+        inLabel: "In",
+        inValue: "R$ 8,680",
+        outLabel: "Out",
+        outValue: "R$ 3,360",
+        leftLabel: "Left",
+        leftValue: "R$ 5,320",
+        chartTitle: "Profit by day",
+        alt: "Illustration of the reports: what came in, what went out and what was left over the week, with a chart of each day's profit.",
+      },
+      stock: {
+        caption: "Inventory",
+        rows: [
+          { item: "Canned soft drink", qty: "48 units" },
+          { item: "Burger buns", qty: "60 units" },
+          { item: "Cooking oil", qty: "3 units" },
+        ],
+        lowTag: "Running low",
+        alertLabel: "A warning goes out when a product hits its minimum.",
+        alt: "Illustration of inventory control: three products with the amount on the shelf, the last one flagged as running low, and the warning sent before it runs out.",
+      },
+      cash: {
+        caption: "Till · Closing",
+        rows: [
+          { item: "Opening float", value: "R$ 200,00" },
+          { item: "Cash sales", value: "R$ 620,00" },
+        ],
+        expectedLabel: "Expected in the till",
+        expectedValue: "R$ 820,00",
+        countedLabel: "Counted",
+        countedValue: "R$ 820,00",
+        okTag: "Matches",
+        alt: "Illustration of the till: opening float and cash sales adding up to the expected amount, the amount counted at the end of the shift, and the count matching with no difference.",
+      },
     },
   },
 

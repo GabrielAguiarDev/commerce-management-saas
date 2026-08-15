@@ -55,9 +55,53 @@ export const viewport: Viewport = {
   themeColor: "#020e18",
 };
 
+/**
+ * A trava da revelação, e o fusível dela.
+ *
+ * Roda no `<head>`, antes do primeiro pixel: põe `js-reveal` no `<html>` e é
+ * essa classe que autoriza o CSS a esconder o que vai ser revelado. Sem ela
+ * — JavaScript desligado, pacote que não chegou — o conteúdo simplesmente
+ * aparece, porque o HTML do servidor já vem no estado final.
+ *
+ * O FUSÍVEL é a segunda metade. `<noscript>` cobre quem desligou o JavaScript,
+ * mas não cobre o caso que realmente acontece no 4G instável: o script existe,
+ * a trava entra, e o pacote que faria a revelação nunca termina de baixar. Aí o
+ * conteúdo ficaria invisível para sempre. Dois segundos sem `__revealReady` —
+ * a bandeira que `<Reveal>` levanta ao hidratar — e a trava cai sozinha.
+ *
+ * Fica escrito à mão, em uma linha, porque `<Script>` do Next agenda a execução
+ * e esta precisa acontecer ANTES da pintura; qualquer atraso é o flash do
+ * conteúdo aparecendo para depois sumir.
+ */
+const REVEAL_GATE =
+  '(function(){var e=document.documentElement;e.classList.add("js-reveal");' +
+  'setTimeout(function(){window.__revealReady||e.classList.remove("js-reveal")},2000)})()';
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${sans.variable}`}>
+    /**
+     * `suppressHydrationWarning` porque o script acima é o ÚNICO jeito de a
+     * trava chegar antes da pintura, e chegar antes da pintura significa
+     * chegar antes da hidratação: quando o React confere o `<html>`, o
+     * `className` do DOM já tem um `js-reveal` que o HTML do servidor não
+     * tinha, e ele reclama da diferença.
+     *
+     * O aviso NÃO vale para a árvore inteira — ele para neste elemento e não
+     * desce para os filhos, então tudo que está dentro continua sendo
+     * conferido normalmente. O ponto cego é só o `<html>`, cujos atributos
+     * aqui são dois e ambos fixos: `lang` e as duas variáveis de fonte.
+     *
+     * É a mesma solução que qualquer troca de tema sem piscar usa, e pelo
+     * mesmo motivo.
+     */
+    <html
+      lang="pt-BR"
+      className={`${display.variable} ${sans.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: REVEAL_GATE }} />
+      </head>
       {/* `overflow-x:hidden` porque as sombras largas das dobras escuras
           empurram alguns pixels para fora da viewport no celular. */}
       <body style={{ overflowX: "hidden" }}>{children}</body>

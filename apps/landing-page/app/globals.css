@@ -254,3 +254,144 @@ section[id] {
   background: var(--petrol) !important;
   color: #fff !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Revelação ao entrar na viewport.
+
+   O ESTADO ESCONDIDO MORA ATRÁS DE `js-reveal`, e essa classe só existe se o
+   JavaScript rodar. O HTML que o servidor manda está no estado final: se o
+   pacote não chegar — 4G instável, e é o que o público desta página tem —, o
+   texto fica lá, legível, e ninguém vê uma tela em branco. O script do `<head>`
+   que põe a classe também a retira sozinho depois de dois segundos sem
+   hidratação; ver `layout.tsx`.
+
+   É `animation` e não `transition` de propósito. As classes de hover acima já
+   são donas do `transition` de vários destes elementos (`.lp-card` anima
+   `border-color`), e o atalho `transition` não se soma: o último a ser
+   declarado apaga o outro. `animation` corre por fora e não disputa.
+
+   Só `opacity` e `transform` — as duas que o compositor resolve sem refazer o
+   layout. O atraso vem inline, de `delay`, e é o que escalona os itens de uma
+   grade.
+--------------------------------------------------------------------------- */
+
+@keyframes lp-reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.js-reveal .lp-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+/* `both` para que o atraso segure o estado inicial em vez de piscar o final. */
+.js-reveal .lp-reveal[data-shown] {
+  animation: lp-reveal-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Quem pediu menos movimento recebe o conteúdo pousado, sem nada acontecendo.
+   Repete os mesmos seletores para vencer pela ordem, sem `!important`. */
+@media (prefers-reduced-motion: reduce) {
+  .js-reveal .lp-reveal,
+  .js-reveal .lp-reveal[data-shown] {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   A vitrine dos módulos: índice parado à esquerda, painéis passando à direita.
+
+   ESTE É O ÚNICO BREAKPOINT DA PÁGINA, e vale dizer por quê. O resto do site
+   se reparte sozinho com `auto-fit`, sem media query em lugar nenhum. Aqui não
+   dá: "coluna que gruda" e "pilha que rola" não são a mesma caixa em larguras
+   diferentes, são dois arranjos distintos, e `auto-fit` não sabe desligar um
+   `position:sticky`. O corte é em 768px — abaixo disso o índice não cabe sem
+   comer a largura que o painel precisa.
+
+   O MOBILE É O PADRÃO e o desktop é a exceção acrescentada: sem JavaScript,
+   sem media query e em qualquer navegador antigo, o que sai é a pilha
+   vertical, que é o arranjo que sempre funciona.
+
+   NÃO PONHA `overflow` EM NADA QUE ENVOLVA `.lp-showcase-index`. Um `overflow`
+   diferente de `visible` em qualquer ancestral transforma esse ancestral em
+   contêiner de rolagem, e o sticky passa a grudar nele em vez de na tela —
+   sem erro no console, sem aviso, só um índice que rola junto.
+--------------------------------------------------------------------------- */
+
+.lp-showcase {
+  display: grid;
+  gap: 28px;
+}
+
+/* No celular o índice some: cada painel já carrega o próprio título, e uma
+   coluna parada numa tela de 6" gasta metade da largura sem dizer nada. */
+.lp-showcase-index {
+  display: none;
+}
+
+.lp-panel + .lp-panel {
+  margin-top: 44px;
+}
+
+.lp-index-item {
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+
+@media (min-width: 768px) {
+  .lp-showcase {
+    grid-template-columns: minmax(190px, 250px) 1fr;
+    gap: 56px;
+    /* `start` e não o `stretch` padrão: um item esticado até a altura da linha
+       fica do tamanho do contêiner e não sobra folga nenhuma para deslizar. É
+       a razão nº 1 de sticky que "não funciona". */
+    align-items: start;
+  }
+
+  .lp-showcase-index {
+    display: block;
+    position: sticky;
+    /* A altura da barra do topo mais folga — o mesmo 76px que as âncoras da
+       página já usam em `scroll-margin-top`. */
+    top: 76px;
+  }
+
+  .lp-panel {
+    /* NÃO É `dvh` DE PROPÓSITO: `dvh` é justamente a unidade que RECALCULA
+       enquanto a barra do navegador sobe e desce, e recalcular a altura de
+       cinco painéis no meio da rolagem é o salto que se quer evitar. `svh` é a
+       viewport menor, a de barra visível: nunca muda de valor, e o painel cabe
+       inteiro mesmo no pior caso. Isto só alcança tablet — abaixo de 768px
+       nenhum painel tem altura de viewport e o problema não existe.
+
+       O fallback vem antes, em `vh`. NÃO DÁ PARA DECLARAR AS DUAS SEGUIDAS:
+       o minificador (Lightning CSS) enxerga duas declarações da mesma
+       propriedade, conclui que a primeira é morta e apaga o fallback — foi o
+       que aconteceu na primeira tentativa. `@supports` é uma condição, e
+       condição ele não tem como resolver na compilação. */
+    min-height: 78vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  @supports (height: 1svh) {
+    .lp-panel {
+      min-height: 78svh;
+    }
+  }
+
+  .lp-panel + .lp-panel {
+    margin-top: 0;
+  }
+}

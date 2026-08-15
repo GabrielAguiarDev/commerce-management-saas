@@ -1,4 +1,5 @@
 import { css } from "@aguiar/ui";
+import { Reveal } from "@/components/Reveal";
 import { Container, SectionIntro } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
 import { HOW } from "@/lib/links";
@@ -20,13 +21,18 @@ export function HowItWorks() {
       style={css(SECTION + "background:var(--bg)")}
     >
       <Container>
-        <SectionIntro id="how-title" eyebrow={COPY.how.eyebrow} title={COPY.how.title} />
+        <Reveal>
+          <SectionIntro id="how-title" eyebrow={COPY.how.eyebrow} title={COPY.how.title} />
+        </Reveal>
 
         {/* Uma lista ordenada: a ordem dos passos é conteúdo, não visual, e é o
             que um leitor de tela anuncia como "item 1 de 3". */}
         <ol style={css(grid(260, 18) + "list-style:none;margin:0;padding:0")}>
+          {/* `as="li"` e não um `<div>` dentro do `<li>`: a lista ordenada é o
+              que faz um leitor de tela anunciar "item 1 de 3", e um invólucro
+              entre o `ol` e o `li` desmontaria isso. */}
           {steps.map((step, i) => (
-            <li key={step.title} style={css(CARD)}>
+            <Reveal as="li" key={step.title} delay={i * 80} style={css(CARD)}>
               <div
                 aria-hidden="true"
                 style={css(
@@ -42,7 +48,7 @@ export function HowItWorks() {
                 {step.title}
               </h3>
               <p style={css(CARD_TEXT + "margin:0")}>{step.text}</p>
-            </li>
+            </Reveal>
           ))}
         </ol>
       </Container>

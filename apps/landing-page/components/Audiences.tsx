@@ -1,4 +1,5 @@
 import { css } from "@aguiar/ui";
+import { Reveal } from "@/components/Reveal";
 import { Container, SectionIntro } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
 import { CARD, CARD_TEXT, CARD_TITLE, grid, SECTION } from "@/lib/styleKit";
@@ -29,19 +30,25 @@ export function Audiences() {
   return (
     <section aria-labelledby="audiences-title" style={css(SECTION + "background:var(--bg)")}>
       <Container>
-        <SectionIntro
-          id="audiences-title"
-          eyebrow={COPY.audiences.eyebrow}
-          title={COPY.audiences.title}
-          lead={COPY.audiences.subtitle}
-        />
+        <Reveal>
+          <SectionIntro
+            id="audiences-title"
+            eyebrow={COPY.audiences.eyebrow}
+            title={COPY.audiences.title}
+            lead={COPY.audiences.subtitle}
+          />
+        </Reveal>
 
+        {/* Os três cards entram em cascata, 80ms entre eles: é o bastante para
+            a leitura seguir a ordem e pouco o suficiente para o último não
+            fazer ninguém esperar. */}
         <div style={css(grid(260, 18))}>
           {items.map((item, i) => {
             const dark = i === items.length - 1;
             return (
-              <div
+              <Reveal
                 key={item.title}
+                delay={i * 80}
                 style={css(
                   dark
                     ? "background:var(--petrol);border:1px solid var(--petrol);border-radius:16px;padding:26px;color:#fff"
@@ -69,7 +76,7 @@ export function Audiences() {
                 >
                   {item.note}
                 </div>
-              </div>
+              </Reveal>
             );
           })}
         </div>
