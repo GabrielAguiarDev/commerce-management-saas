@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { PUBLIC_ROUTES, ROUTES } from "@/lib/rotas";
 
-const LOGIN = "/login";
+const LOGIN = ROUTES.login;
 
 /**
  * Mantém a sessão do admin viva entre requisições E barra a entrada de quem
@@ -55,6 +56,16 @@ export async function proxy(request: NextRequest) {
   const inLogin = request.nextUrl.pathname === LOGIN;
 
   /**
+   * As rotas do fluxo de senha entram junto com o login (ver `PUBLIC_ROUTES`
+   * em `lib/rotas.ts`). `/auth/confirmar` é a crítica: quem clica no link do
+   * e-mail chega SEM cookie — a sessão nasce lá dentro, no `verifyOtp`. Sem
+   * esta isenção o middleware o mandaria para o login antes de o handler rodar,
+   * e o fluxo morreria calado: o e-mail chega, o link é válido, e mesmo assim a
+   * tela sempre diz "link inválido".
+   */
+  const isPublic = PUBLIC_ROUTES.includes(request.nextUrl.pathname);
+
+  /**
    * Redireciona preservando os cookies que o `setAll` acabou de gravar em
    * `response`. Um `NextResponse.redirect` novo nasce sem eles — e perder o
    * token recém-renovado jogaria o usuário num laço de logins.
@@ -69,7 +80,7 @@ export async function proxy(request: NextRequest) {
   };
 
   if (!user) {
-    return inLogin ? response : redirect(LOGIN);
+    return isPublic ? response : redirect(LOGIN);
   }
 
   // Logado — falta saber se é o admin da plataforma. A consulta passa pelo RLS
@@ -83,7 +94,12 @@ export async function proxy(request: NextRequest) {
   if (!perfil?.is_platform_admin) {
     // Dono de comércio logando no painel errado: fica na tela de login, que
     // explica o motivo, em vez de ver o painel vazio por conta do RLS.
-    return inLogin ? response : redirect(LOGIN, "nao-admin");
+    //
+    // A recusa poupa as rotas públicas: numa delas a pessoa pode estar no meio
+    // da troca de senha, e trocar a PRÓPRIA senha não depende de ser admin da
+    // plataforma. Para o `/login` o efeito é o de sempre — seguir e deixar a
+    // tela explicar o `?erro=`.
+    return isPublic ? response : redirect(LOGIN, "nao-admin");
   }
 
   // Admin já logado não precisa da tela de login.

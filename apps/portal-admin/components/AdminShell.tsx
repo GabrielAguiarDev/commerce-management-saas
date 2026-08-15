@@ -10,7 +10,7 @@ import { Topbar } from "@/components/Topbar";
 import { css } from "@aguiar/ui";
 import { currentMonth } from "@/lib/datas";
 import { computeMrr, billable, formatMrr } from "@/lib/money";
-import { customerIdFromRoute, ROUTES } from "@/lib/rotas";
+import { customerIdFromRoute, PUBLIC_ROUTES, ROUTES } from "@/lib/rotas";
 import { customerById } from "@/lib/state";
 
 /**
@@ -32,8 +32,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
     </>
   );
 
-  // Sign-in owns the whole viewport — no rail, no header.
-  if (pathname === ROUTES.login) {
+  // As telas de acesso ocupam a janela inteira — sem barra lateral, sem
+  // cabeçalho. É a mesma lista que o `proxy.ts` usa para deixá-las passar sem
+  // sessão: quem chega no fluxo de senha ainda não tem console para enquadrar.
+  if (PUBLIC_ROUTES.includes(pathname)) {
     return (
       <>
         {children}

@@ -9,6 +9,20 @@ import { cookies } from "next/headers";
  * por isso ele é quem autoriza a operação, antes de qualquer uso do cliente
  * admin. Ver `lib/supabase/admin.ts`.
  */
+/**
+ * Se este ambiente tem credenciais do Supabase.
+ *
+ * O console roda com dados de exemplo enquanto o `.env.local` não existe (ver
+ * `proxy.ts`), então as rotas de recuperação de senha precisam saber a
+ * diferença entre "o link falhou" e "não há Supabase aqui" antes de tentar
+ * qualquer chamada.
+ */
+export function supabaseConfigurado(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
 

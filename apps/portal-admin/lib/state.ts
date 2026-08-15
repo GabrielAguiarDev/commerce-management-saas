@@ -27,10 +27,6 @@ export const INITIAL_STATE: AdminState = {
   // render and the first client render agree.
   screenWidth: 1440,
   toasts: [],
-  authView: "login",
-  password1: "",
-  password2: "",
-  recoveryEmail: "",
   // Tudo abaixo vem do Supabase pelo layout (server component) e entra aqui
   // pelas props do <AdminProvider>. Sem semente local em lugar nenhum:
   //   receita/pagamentos → platform_payments   config → platform_settings

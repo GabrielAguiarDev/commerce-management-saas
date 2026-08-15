@@ -172,8 +172,6 @@ export interface HintState {
   left: number;
 }
 
-export type AuthView = "login" | "forgot" | "sent" | "reset";
-
 /** Presentation knobs the design exposes; set once on `<AdminProvider>`. */
 export interface AdminOptions {
   showEmptyStates: boolean;
@@ -218,10 +216,6 @@ export interface AdminState {
   paymentMenu: string | null;
   screenWidth: number;
   toasts: ToastState[];
-  authView: AuthView;
-  password1: string;
-  password2: string;
-  recoveryEmail: string;
   revenue: MonthlyRevenue[];
   payments: Record<string, Payment>;
   /** Falha ao ler `platform_payments`. */

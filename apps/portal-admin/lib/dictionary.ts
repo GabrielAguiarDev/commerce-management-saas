@@ -249,8 +249,10 @@ const pt = {
   forcaFraca: "Senha fraca",
   forcaMedia: "Senha média",
   forcaForte: "Senha forte",
-  forcaVazia: "Use ao menos 8 caracteres, com números e letras",
   senhasDiferentes: "As senhas não conferem.",
+  /* `{n}` é trocado pelo `MIN_PASSWORD` de `lib/senha.ts` na hora de exibir —
+     o número mora lá, e a frase não pode discordar dele. */
+  minimoSenha: "Pelo menos {n} caracteres.",
   esqueciTitulo: "Recuperar acesso",
   esqueciSub:
     "Informe o e-mail cadastrado e enviaremos um link para redefinir a senha.",
@@ -260,7 +262,17 @@ const pt = {
   redefinirTitulo: "Redefinir senha",
   redefinirSub: "Escolha uma nova senha para sua conta.",
   salvarSenha: "Salvar nova senha",
-  verRedefinir: "Ver tela de redefinir senha",
+  salvando: "Salvando…",
+  verifiqueEmail: "Verifique seu e-mail",
+  linkEnviadoNota:
+    "O link vale por tempo limitado e só pode ser usado uma vez. Não esqueça de olhar a caixa de spam.",
+  naoChegou: "Não chegou?",
+  tentarOutroEmail: "Tentar com outro e-mail",
+  /* `{email}` é trocado pelo endereço da sessão de recuperação. */
+  definindoSenhaDe: "Você está definindo a senha de {email}.",
+  entrarDeNovo: "Por segurança, você vai entrar de novo com a senha nova.",
+  erroLinkInvalido: "O link expirou ou já foi usado. Peça outro para continuar.",
+  senhaAlterada: "Senha alterada. Entre com a sua nova senha.",
   vazioClientesTitulo: "Nenhum cliente cadastrado ainda",
   vazioClientesTexto:
     "Cadastre o primeiro comércio para começar a ativar módulos e acompanhar a receita.",
@@ -632,8 +644,8 @@ const en: Dic = {
   forcaFraca: "Weak password",
   forcaMedia: "Medium password",
   forcaForte: "Strong password",
-  forcaVazia: "Use at least 8 characters, with numbers and letters",
   senhasDiferentes: "Passwords do not match.",
+  minimoSenha: "At least {n} characters.",
   esqueciTitulo: "Recover access",
   esqueciSub:
     "Enter your registered email and we will send a link to reset your password.",
@@ -643,7 +655,16 @@ const en: Dic = {
   redefinirTitulo: "Reset password",
   redefinirSub: "Choose a new password for your account.",
   salvarSenha: "Save new password",
-  verRedefinir: "See reset-password screen",
+  salvando: "Saving…",
+  verifiqueEmail: "Check your email",
+  linkEnviadoNota:
+    "The link is valid for a limited time and can only be used once. Remember to check your spam folder.",
+  naoChegou: "Didn't arrive?",
+  tentarOutroEmail: "Try another email",
+  definindoSenhaDe: "You are setting the password for {email}.",
+  entrarDeNovo: "For security, you will sign in again with the new password.",
+  erroLinkInvalido: "The link has expired or was already used. Request another one to continue.",
+  senhaAlterada: "Password changed. Sign in with your new password.",
   vazioClientesTitulo: "No customers yet",
   vazioClientesTexto:
     "Register the first business to start enabling modules and tracking revenue.",
