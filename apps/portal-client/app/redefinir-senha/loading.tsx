@@ -1,8 +1,12 @@
+import { AuthSkeleton } from "@/components/AuthShell";
+
 /**
- * Sem skeleton, pelo mesmo motivo do `app/login/loading.tsx`: o desenho do
- * painel (indicadores e listas) piscaria por cima de uma tela que é um
- * formulário centralizado.
+ * O subtítulo é o da versão SEM e-mail conhecido: quem o conhece é a página,
+ * que só o lê da sessão do outro lado da espera. Escrever aqui o texto genérico
+ * é o que mantém as duas linhas na mesma altura quando a tela real entra.
  */
 export default function Loading() {
-  return null;
+  return (
+    <AuthSkeleton title="Criar nova senha" subtitle="Escolha a nova senha da sua conta." />
+  );
 }

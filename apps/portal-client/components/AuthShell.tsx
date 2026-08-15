@@ -52,6 +52,57 @@ export function AuthNotice({ tone, children }: { tone: "danger" | "pos"; childre
   );
 }
 
+/**
+ * A moldura enquanto a rota de autenticação não chegou — o que cada
+ * `loading.tsx` de `/login`, `/esqueci-senha` e `/redefinir-senha` devolve.
+ *
+ * POR QUE EXISTE: um `loading.tsx` que devolve `null` NÃO é o mesmo que não ter
+ * `loading.tsx`. O arquivo, só por existir, cria a fronteira de suspensão da
+ * rota — e uma fronteira que resolve com nada pinta a tela inteira de branco
+ * até o servidor responder.
+ *
+ * Isso não aparece em desenvolvimento porque lá o `<Link>` não pré-carrega e a
+ * resposta vem de `localhost` em poucos milissegundos: a fronteira nem chega a
+ * ser desenhada. Em produção o `<Link>` PRÉ-CARREGA, e numa rota dinâmica (o
+ * layout raiz é `force-dynamic`) o que ele consegue guardar é exatamente a
+ * casca até a fronteira. O clique então mostra essa casca NA HORA — branca — e
+ * só depois busca o conteúdo, agora com o middleware (que valida a sessão e lê
+ * o perfil), o service worker e a latência real no caminho.
+ *
+ * Com a moldura de verdade na fronteira, a travessia entre as telas de
+ * autenticação passa a ser a mesma tela trocando o miolo.
+ */
+export function AuthSkeleton({
+  title,
+  subtitle,
+  fields = 2,
+}: {
+  title: string;
+  subtitle: string;
+  /** Quantos campos a tela de destino tem, para o miolo não mudar de altura. */
+  fields?: number;
+}) {
+  return (
+    <AuthShell title={title} subtitle={subtitle}>
+      <div style={css("display:flex;flex-direction:column;gap:18px")} aria-hidden>
+        {Array.from({ length: fields }, (_, i) => (
+          <div key={i}>
+            {/* As alturas copiam as do formulário real (rótulo, campo e botão
+                com o `padding` de `FIELD` e `AUTH_BUTTON`): é o que impede a
+                tela de saltar no instante em que o conteúdo entra. */}
+            <div className="sk" style={{ width: 64, height: 11, marginBottom: 6 }} />
+            <div className="sk" style={{ width: "100%", height: 44, borderRadius: 11 }} />
+          </div>
+        ))}
+
+        <div className="sk" style={{ width: "100%", height: 47, borderRadius: 11 }} />
+
+        <div className="sk" style={{ width: 180, height: 12, alignSelf: "center" }} />
+      </div>
+    </AuthShell>
+  );
+}
+
 export function AuthShell({
   title,
   subtitle,
