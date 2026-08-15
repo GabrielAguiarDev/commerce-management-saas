@@ -42,6 +42,111 @@ function error(message: string, field?: string): FormState {
 }
 
 /**
+ * A rota do portal do CLIENTE que troca o token do e-mail por sessão.
+ *
+ * Fica escrita aqui, e não em `lib/rotas.ts`, porque aquele arquivo é o mapa
+ * deste console — esta é uma rota do OUTRO app. O par dela é
+ * `portal-client/app/auth/confirmar/route.ts`: mexeu num, confira o outro.
+ */
+const CLIENT_CONFIRM_PATH = "/auth/confirmar";
+
+/** Quantos usuários por página, e até quantas páginas, ao caçar o órfão. */
+const ORPHAN_PAGE_SIZE = 1000;
+const ORPHAN_MAX_PAGES = 5;
+/** Fora desta janela, o usuário achado é de outra época — não desta chamada. */
+const ORPHAN_WINDOW_MS = 2 * 60 * 1000;
+
+/**
+ * Procura, e apaga, o usuário que ESTA chamada de `inviteUserByEmail` criou
+ * quando o envio do e-mail falhou logo depois.
+ *
+ * POR QUE ISTO EXISTE: o convite cria o usuário no Auth e SÓ ENTÃO manda o
+ * e-mail. Se o envio falhar e o usuário ficar de pé, o endereço fica ocupado
+ * para sempre — a próxima tentativa com o mesmo e-mail bate em "já existe", e
+ * não há tela neste console para remover um usuário do Auth. É a mesma
+ * compensação do PASSO 7, aplicada ao passo anterior.
+ *
+ * O id não vem do erro (ele não traz nenhum), então o usuário é procurado pelo
+ * e-mail. Duas travas antes de apagar qualquer coisa, porque apagar o usuário
+ * errado é pior do que deixar um órfão:
+ *
+ *   1. RECÉM-CRIADO — fora da janela, não foi esta chamada que o criou;
+ *   2. SEM CLIENTE — perfil ausente, ou presente mas ainda sem `tenant_id` e
+ *      sem `is_platform_admin`. Um dono de comércio já cadastrado tem
+ *      `tenant_id` (quem o grava é `admin_create_tenant`) e um admin da
+ *      plataforma tem a flag; nenhum dos dois é tocado aqui.
+ *
+ * Quem chama já descartou o caso "e-mail já registrado" — ali o usuário é de
+ * outro cadastro, legítimo, e não se apaga.
+ *
+ * Devolve o que aconteceu, porque a mensagem na tela muda: "limpo" e "nada"
+ * significam que não sobrou lixo; "falhou" significa que pode ter sobrado, e o
+ * admin precisa olhar o painel do Supabase antes de tentar de novo.
+ *
+ * O `email` chega já em minúsculas — quem chama normaliza na leitura do
+ * formulário, e a comparação abaixo conta com isso.
+ */
+async function cleanupFailedInvite(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string,
+): Promise<"limpo" | "nada" | "falhou"> {
+  // O Auth não tem busca por e-mail no SDK: só páginas. O laço é limitado —
+  // este é um caminho de falha, não pode virar uma varredura sem fim.
+  let found: { id: string; created_at: string } | null = null;
+
+  for (let page = 1; page <= ORPHAN_MAX_PAGES && !found; page++) {
+    const { data, error: erroLista } = await admin.auth.admin.listUsers({
+      page,
+      perPage: ORPHAN_PAGE_SIZE,
+    });
+
+    if (erroLista) {
+      console.error(`[criarCliente] não foi possível listar usuários: ${erroLista.message}`);
+      return "falhou";
+    }
+
+    const users = data?.users ?? [];
+    const hit = users.find((u) => (u.email ?? "").toLowerCase() === email);
+    if (hit) found = { id: hit.id, created_at: hit.created_at };
+    if (users.length < ORPHAN_PAGE_SIZE) break;
+  }
+
+  // Nada com este e-mail: o Supabase desfez a criação junto com o envio.
+  if (!found) return "nada";
+
+  // TRAVA 1 — recém-criado.
+  if (Date.now() - new Date(found.created_at).getTime() > ORPHAN_WINDOW_MS) return "nada";
+
+  // TRAVA 2 — sem cliente nem plataforma atrás dele.
+  const { data: perfil, error: erroPerfil } = await admin
+    .from("profiles")
+    .select("tenant_id, is_platform_admin")
+    .eq("id", found.id)
+    .maybeSingle();
+
+  if (erroPerfil) {
+    console.error(
+      `[criarCliente] não foi possível conferir o perfil de ${email}: ${erroPerfil.message}`,
+    );
+    return "falhou";
+  }
+
+  if (perfil && (perfil.tenant_id || perfil.is_platform_admin)) return "nada";
+
+  const { error: erroLimpeza } = await admin.auth.admin.deleteUser(found.id);
+
+  if (erroLimpeza) {
+    console.error(
+      `[criarCliente] usuário órfão no Auth: ${found.id} (${email}). ` +
+        `Remova manualmente. Causa da limpeza falha: ${erroLimpeza.message}`,
+    );
+    return "falhou";
+  }
+
+  return "limpo";
+}
+
+/**
  * Cria um cliente completo: usuário de acesso no Auth, tenant, papel Dono,
  * perfil e módulos do plano.
  *
@@ -175,18 +280,71 @@ export async function createCustomer(
   // dono do comércio, por um link de uso único.
   //
   // Requer SMTP configurado no projeto Supabase (Authentication → Emails).
+  //
+  // O `redirectTo` é o que faz o link do e-mail cair no portal do CLIENTE, e é
+  // a diferença entre um convite que funciona e um que não leva a lugar nenhum:
+  // sem ele o Supabase usa o Site URL do projeto, a pessoa é autenticada na
+  // raiz do portal e volta ao login sem nunca ter definido uma senha — com
+  // sessão e sem tela para criá-la.
+  //
+  // A leitura da variável vem ANTES do convite de propósito: até aqui nada foi
+  // criado, e um ambiente mal configurado precisa parar antes de existir um
+  // usuário no Auth.
   // =====================================================================
+  const clientPortal = process.env.NEXT_PUBLIC_PORTAL_CLIENTE_URL;
+  if (!clientPortal) {
+    return error(
+      "NEXT_PUBLIC_PORTAL_CLIENTE_URL não está configurada neste ambiente. " +
+        "Sem ela o convite sairia com um link para o app errado. " +
+        "Preencha o .env.local do portal-admin (veja .env.local.example) e reinicie o servidor.",
+    );
+  }
+
   const { data: convite, error: erroConvite } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: owner || null },
+    redirectTo: `${clientPortal}${CLIENT_CONFIRM_PATH}`,
   });
 
   if (erroConvite || !convite?.user) {
+    // ---------------------------------------------------------------
+    // Três desfechos diferentes, porque exigem três atitudes diferentes.
+    // ---------------------------------------------------------------
+
+    // 1. E-MAIL JÁ REGISTRADO. O usuário é de outro cadastro, legítimo: nada é
+    //    apagado, e a mensagem é a única que o admin consegue resolver sozinho.
     const alreadyExists =
       erroConvite?.status === 422 || /already|registered|exists/i.test(erroConvite?.message ?? "");
+
+    if (alreadyExists) {
+      return error("Já existe um usuário com este e-mail.", "email");
+    }
+
+    // O e-mail entra no log porque é o que permite achar o cadastro que falhou;
+    // não é segredo — quem lê este log já é quem digitou o formulário.
+    console.error(
+      `[criarCliente] convite falhou para ${email}: ` +
+        `${erroConvite?.message ?? "sem mensagem"} (status ${erroConvite?.status ?? "?"})`,
+    );
+
+    const cleanup = await cleanupFailedInvite(admin, email);
+    const motive = erroConvite?.message ?? "error desconhecido";
+
+    // 2. FALHA DE ENVIO, SEM LIXO. Ou o Supabase desfez a criação, ou nós
+    //    apagamos o usuário agora. O e-mail continua livre para tentar de novo.
+    if (cleanup !== "falhou") {
+      return error(
+        `Não foi possível enviar o convite de acesso: ${motive}. ` +
+          "O cliente NÃO foi cadastrado — confira o SMTP do projeto no Supabase e tente de novo.",
+        "email",
+      );
+    }
+
+    // 3. FALHA DE ENVIO E A LIMPEZA TAMBÉM FALHOU. Pode ter sobrado um usuário
+    //    ocupando este e-mail, e uma nova tentativa vai bater em "já existe".
     return error(
-      alreadyExists
-        ? "Já existe um usuário com este e-mail."
-        : `Não foi possível enviar o convite de acesso: ${erroConvite?.message ?? "error desconhecido"}`,
+      `Não foi possível enviar o convite de acesso: ${motive}. ` +
+        "O cliente NÃO foi cadastrado, e a limpeza automática falhou: verifique no Supabase " +
+        "(Authentication → Users) se restou um usuário com este e-mail antes de tentar de novo.",
       "email",
     );
   }

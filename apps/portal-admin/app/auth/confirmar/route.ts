@@ -31,10 +31,11 @@ import { createClient, supabaseConfigurado } from "@/lib/supabase/server";
  * não está no ar, e trocá-lo por sessão seria um `exchangeCodeForSession`. O
  * problema é que o `code` não diz de que tipo de e-mail ele veio: aceitá-lo
  * aqui abriria a mesma porta para um link de CONVITE (`inviteUserByEmail`, em
- * `app/clientes/actions.ts`), que hoje nem manda `redirectTo` e cai no Site URL
- * do projeto. Um endereço que existe para recuperação de senha passaria a criar
- * sessão para um fluxo que ninguém revisou para isso. Se o template padrão
- * voltar, o sintoma é um "link inválido" com `code` na lista de chaves logada
+ * `app/clientes/actions.ts`), que aponta para `/auth/confirmar` do PORTAL DO
+ * CLIENTE — este console não tem fluxo de convite, e um link de convite não
+ * deveria criar sessão aqui. Um endereço que existe para recuperação de senha
+ * passaria a criar sessão para um fluxo que ninguém revisou. Se o template
+ * padrão voltar, o sintoma é um "link inválido" com `code` na lista de chaves logada
  * abaixo — o conserto é o template, não esta rota.
  *
  * NÃO checa `is_platform_admin` aqui. Quem não é admin da plataforma não tem
