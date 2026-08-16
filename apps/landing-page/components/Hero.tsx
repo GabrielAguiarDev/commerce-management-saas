@@ -56,9 +56,12 @@ const WASH =
 /**
  * A primeira dobra.
  *
- * CLARA, e o texto escuro em cima dela. Era um degradê petrol com texto branco;
- * o que mudou de lugar foi só a cor — a composição centralizada, a copy e as
- * duas chamadas são as mesmas.
+ * CLARA, e o texto escuro em cima dela. Era um degradê petrol com texto branco.
+ *
+ * A DOBRA ABRE NA MANCHETE. Não há mais selo acima dela; o primeiro que a página
+ * diz é a promessa inteira, em corpo grande, e não uma etiqueta miúda antes.
+ * Manchete, parágrafo, as duas chamadas e a linha de confiança — nessa ordem, e
+ * mais nada.
  *
  * O TEXTO E O PAINEL NÃO TÊM MAIS A MESMA LARGURA, e isso é o ponto. O texto
  * para nos 720px em que a manchete quebra em duas linhas cheias; o painel passa
@@ -89,24 +92,27 @@ export function Hero() {
              Módulos e Planos já usam para se separar das vizinhas; é o
              vocabulário que a página tinha, não um recurso novo. */
           "border-bottom:1px solid var(--rule);" +
-          "padding:clamp(48px,7vw,88px) 20px clamp(56px,8vw,96px)",
+          /* A FOLGA DE CIMA ENCOLHEU (era `clamp(48px,7vw,88px)`). Ela e o selo
+             que saiu daqui somavam ~79px de nada entre o cabeçalho e a manchete,
+             e eram os 79px que empurravam o painel para fora da tela em janela
+             baixa — num notebook de 1440x800 real, com barra de abas e dock,
+             sobra bem menos altura do que os 900px em que a gente mede. */
+          "padding:clamp(32px,4.2vw,60px) 20px clamp(56px,8vw,96px)",
       )}
     >
       {/* 720px é a medida da MANCHETE, não a do parágrafo: é onde o título de
           54px quebra em duas linhas cheias em vez de três curtas. O texto
           corrido tem o limite dele, mais estreito, logo abaixo. */}
       <div style={css("max-width:720px;margin:0 auto;text-align:center")}>
-        <div
-          style={css(
-            "display:inline-flex;align-items:center;gap:8px;" +
-              "border:1px solid rgba(27,154,189,.32);background:rgba(27,154,189,.08);" +
-              "border-radius:999px;padding:6px 13px;" +
-              "font-size:12.5px;letter-spacing:.02em;color:var(--petrol);margin-bottom:22px",
-          )}
-        >
-          {COPY.hero.badge}
-        </div>
+        {/* O SELO SAIU DAQUI. Era a pílula "Tudo num lugar só", logo acima da
+            manchete. Ela e a folga dela custavam ~51px de altura para dizer, em
+            miúdo, o que a manchete já diz em 54px — e eram 51px cobrados na
+            parte mais cara da página, a que decide se o painel aparece ou não
+            antes de rolar.
 
+            O TEXTO CONTINUA NO DICIONÁRIO, em `COPY.hero.badge`. Não apaguei de
+            lá de propósito: assim voltar atrás é colar este bloco de novo, sem
+            precisar reescrever a frase nem a tradução em inglês. */}
         <h1
           id="hero-title"
           style={css(
