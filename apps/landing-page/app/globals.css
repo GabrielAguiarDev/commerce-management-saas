@@ -501,11 +501,12 @@ section[id] {
 /* ---------------------------------------------------------------------------
    A vitrine dos módulos: índice parado à esquerda, painéis passando à direita.
 
-   É O TERCEIRO E ÚLTIMO BREAKPOINT DA PÁGINA — os outros dois são os do painel
-   da primeira dobra, logo acima, e todos existem pelo mesmo motivo. (Esta linha
-   já disse "o único"; se você acrescentar um quarto, corrija-a de novo — um
-   comentário que mente é pior do que comentário nenhum.) O resto do site se
-   reparte sozinho com `auto-fit`, sem media query em lugar nenhum. Aqui não
+   É O TERCEIRO DOS QUATRO BREAKPOINTS DA PÁGINA — dois são os do painel da
+   primeira dobra, logo acima, e o quarto é o da dobra dos números, logo abaixo.
+   (Esta linha já disse "o único" e já disse "o terceiro e último"; se você
+   acrescentar um quinto, corrija-a de novo — um comentário que mente é pior do
+   que comentário nenhum.) O resto do site se reparte sozinho com `auto-fit`,
+   sem media query em lugar nenhum. Aqui não
    dá: "coluna que gruda" e "pilha que rola" não são a mesma caixa em larguras
    diferentes, são dois arranjos distintos, e `auto-fit` não sabe desligar um
    `position:sticky`. O corte é em 768px — abaixo disso o índice não cabe sem
@@ -603,5 +604,95 @@ section[id] {
      protegia o fallback saiu junto. */
   .lp-panel + .lp-panel {
     margin-top: 112px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   A DOBRA DOS NÚMEROS: quatro contagens separadas por divisórias.
+
+   É O QUARTO E ÚLTIMO BREAKPOINT DA PÁGINA. Os outros três estão acima — dois
+   no painel da primeira dobra e um na vitrine dos módulos, cujo comentário
+   conta quantos são; se você mexer aqui, confira lá.
+
+   POR QUE `auto-fit` NÃO SERVE, sendo que ele resolve todas as outras grades
+   do site: com quatro itens e um mínimo de ~200px, a faixa entre ~640px e
+   ~840px cai em TRÊS colunas — três números numa linha e o quarto sozinho
+   embaixo. Numa grade de cards isso é aceitável; num placar, não: o quarto
+   número deixa de ser comparável com os outros e vira uma sobra. Aqui os
+   arranjos válidos são exatamente dois, 4 e 2, e nenhum `auto-fit` sabe pular
+   o 3.
+
+   NO CELULAR É 2×2, E NÃO UMA PILHA. Quatro números empilhados viram quatro
+   parágrafos curtos que se leem em sequência, e o que faz esta dobra funcionar
+   é comparar os quatro de uma olhada só — cinco módulos, zero real, dois
+   minutos, cem por cento é UMA frase, não quatro. O 2×2 também mantém a dobra
+   dentro de uma tela de celular, o que a pilha não faria.
+
+   AS DIVISÓRIAS SÃO BORDAS DOS PRÓPRIOS ITENS, escolhidas por `nth-child`, e
+   não um pseudo-elemento nem um separador desenhado à mão. No 2×2 a linha que
+   parte as duas colunas e a que parte as duas fileiras são a mesma ideia virada
+   de lado, e assim as duas saem de duas regras. A vertical sozinha no celular
+   não bastaria: sem a horizontal, as quatro caixas leriam como duas colunas
+   altas em vez de uma tabela de quatro números.
+
+   `--rule` e não `--border`: é a mesma linha fina que já separa uma dobra da
+   outra nesta página, e a divisória entre duas colunas é o mesmo gesto.
+--------------------------------------------------------------------------- */
+
+.lp-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.lp-stat {
+  padding: 22px 14px;
+}
+
+/* Coluna da direita do 2×2. */
+.lp-stat:nth-child(2n) {
+  border-left: 1px solid var(--rule);
+}
+
+/* Fileira de baixo do 2×2. */
+.lp-stat:nth-child(n + 3) {
+  border-top: 1px solid var(--rule);
+}
+
+/* ---------------------------------------------------------------------------
+   As quatro numa linha.
+
+   O CORTE É 820px, e a conta é a da COLUNA e não a da tela: a faixa tem 20px de
+   respiro de cada lado, então 820px de janela dão 780px de faixa e 195px por
+   coluna. Tirando os 22px de respiro de cada lado do item, sobram ~150px para
+   "Módulos disponíveis" e para a frase de três linhas embaixo. Abaixo disso a
+   frase começa a quebrar em quatro e cinco linhas e as colunas desencontram de
+   altura, que é quando o placar deixa de ler como placar.
+
+   A BORDA DE CIMA É DESLIGADA COM O MESMO SELETOR QUE A LIGOU, e não com um
+   `.lp-stat` pelado. MEDIA QUERY NÃO SOMA ESPECIFICIDADE: `.lp-stat` vale
+   0-1-0 e perderia para o `.lp-stat:nth-child(n+3)` lá de cima, que vale 0-2-0,
+   por mais embaixo que estivesse na folha. O terceiro e o quarto números
+   ficariam com um risco em cima deles na linha de quatro. Repetir o seletor
+   empata a especificidade e a ordem decide, que é a mesma manobra do bloco de
+   `prefers-reduced-motion` mais acima neste arquivo.
+
+   A borda ESQUERDA não precisa de nada disso: a regra do 2×2 já a dava aos
+   itens 2 e 4, e esta aqui só estende aos 2, 3 e 4 com o mesmo valor.
+--------------------------------------------------------------------------- */
+@media (min-width: 820px) {
+  .lp-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .lp-stat {
+    padding: 6px 22px;
+  }
+
+  .lp-stat:nth-child(n + 3) {
+    border-top: 0;
+  }
+
+  .lp-stat:not(:first-child) {
+    border-left: 1px solid var(--rule);
   }
 }

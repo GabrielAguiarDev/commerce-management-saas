@@ -191,6 +191,64 @@ const pt = {
     },
   },
 
+  /**
+   * A dobra dos números, que hoje ocupa o lugar de `how` na página.
+   *
+   * TEXTO PROVISÓRIO — TODO ELE. Os quatro rótulos e as quatro frases são os
+   * marcadores combinados; o olho-mágico, a manchete e o subtítulo foram
+   * escritos para a dobra não ficar sem abertura, já que toda outra dobra da
+   * página tem uma. Nada aqui é definitivo.
+   *
+   * O NÚMERO É UM NÚMERO, e não um pedaço da string. `prefix` e `suffix` são o
+   * que NÃO anima: só `value` sobe de zero. É o que permite "R$ 0" e "2 min"
+   * contarem sem que a formatação se desmonte — ver `components/CountUp.tsx`.
+   *
+   * `value: 5` é o número de módulos de `modules.items` logo acima. Se um
+   * módulo entrar ou sair de lá, este 5 muda junto: a página não pode prometer
+   * cinco e listar seis.
+   */
+  numbers: {
+    eyebrow: "Em números",
+    title: "O que você tem no primeiro dia",
+    subtitle:
+      "Sem contrato, sem cartão e sem instalar nada. O que está aqui embaixo vale a partir do minuto em que você criar a conta.",
+    items: [
+      {
+        prefix: "",
+        value: 5,
+        suffix: "",
+        label: "Módulos disponíveis",
+        text: "Ative só o que o seu comércio precisa",
+      },
+      {
+        prefix: "R$ ",
+        value: 0,
+        suffix: "",
+        label: "Para começar",
+        text: "Plano gratuito para sempre, sem cartão",
+      },
+      {
+        prefix: "",
+        value: 2,
+        suffix: " min",
+        label: "Para configurar",
+        text: "Cadastre o negócio e comece a vender",
+      },
+      {
+        prefix: "",
+        value: 100,
+        suffix: "%",
+        label: "No celular",
+        text: "Funciona no balcão, na rua ou em casa",
+      },
+    ],
+  },
+
+  /**
+   * FORA DA PÁGINA desde a dobra dos números. O componente continua no
+   * repositório e este texto continua aqui, de propósito: voltar atrás é uma
+   * linha em `app/page.tsx`. Ver a nota no topo de `components/HowItWorks.tsx`.
+   */
   how: {
     eyebrow: "Como funciona",
     title: "Em pé no mesmo dia, em três passos",
@@ -441,6 +499,43 @@ const en: Dic = {
         alt: "Illustration of the till: opening float and cash sales adding up to the expected amount, the amount counted at the end of the shift, and the count matching with no difference.",
       },
     },
+  },
+
+  numbers: {
+    eyebrow: "In numbers",
+    title: "What you get on day one",
+    subtitle:
+      "No contract, no card and nothing to install. Everything below applies from the minute you create your account.",
+    items: [
+      {
+        prefix: "",
+        value: 5,
+        suffix: "",
+        label: "Modules available",
+        text: "Turn on only what your shop needs",
+      },
+      {
+        prefix: "R$ ",
+        value: 0,
+        suffix: "",
+        label: "To get started",
+        text: "Free plan forever, no card",
+      },
+      {
+        prefix: "",
+        value: 2,
+        suffix: " min",
+        label: "To set it up",
+        text: "Register the business and start selling",
+      },
+      {
+        prefix: "",
+        value: 100,
+        suffix: "%",
+        label: "On your phone",
+        text: "Works at the counter, on the road or at home",
+      },
+    ],
   },
 
   how: {

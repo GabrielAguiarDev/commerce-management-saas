@@ -72,22 +72,36 @@ export function Container({
  * O `id` vai no `<h2>` e não na `<section>` — é ele que a seção aponta com
  * `aria-labelledby`, e é assim que a dobra ganha nome na lista de regiões de um
  * leitor de tela.
+ *
+ * `center` é a exceção, não o padrão: só a dobra dos números pede, porque as
+ * quatro colunas dela são simétricas em torno do eixo do meio. Toda outra dobra
+ * abre à esquerda, que é onde a leitura começa. Note que centralizar é
+ * `margin:0 auto` E `text-align:center` — a caixa tem 620px e sem o `auto` ela
+ * ficaria encostada à esquerda com o texto centralizado dentro.
  */
 export function SectionIntro({
   id,
   eyebrow,
   title,
   lead,
+  center = false,
   marginBottom = 36,
 }: {
   id: string;
   eyebrow: string;
   title: string;
   lead?: string;
+  center?: boolean;
   marginBottom?: number;
 }) {
   return (
-    <div style={css(SECTION_INTRO + `margin-bottom:${marginBottom}px`)}>
+    <div
+      style={css(
+        SECTION_INTRO +
+          `margin-bottom:${marginBottom}px` +
+          (center ? ";margin-left:auto;margin-right:auto;text-align:center" : ""),
+      )}
+    >
       <div style={css(EYEBROW)}>{eyebrow}</div>
       <h2 id={id} style={css(H2 + (lead ? "margin-bottom:14px" : ""))}>
         {title}

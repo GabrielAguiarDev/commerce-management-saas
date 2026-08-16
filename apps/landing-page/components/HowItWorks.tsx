@@ -6,6 +6,17 @@ import { HOW } from "@/lib/links";
 import { CARD, CARD_TEXT, grid, DISPLAY, SECTION } from "@/lib/styleKit";
 
 /**
+ * ===========================================================================
+ * FORA DA PÁGINA. Este componente NÃO é renderizado hoje: `<Numbers>` ocupa a
+ * posição que era dele em `app/page.tsx`. Ele fica aqui de propósito, e o texto
+ * dele continua em `COPY.how` — voltar atrás é trocar uma linha na página.
+ *
+ * SE VOLTAR, RESOLVA A ÂNCORA PRIMEIRO: `<Numbers>` herdou o `id="como"`, que é
+ * para onde a chamada secundária da primeira dobra aponta. As duas dobras não
+ * podem declarar o mesmo `id` na mesma página — ou uma abre mão dele, ou
+ * `lib/links.ts` ganha uma âncora nova para a outra.
+ * ===========================================================================
+ *
  * "Como funciona" — três passos.
  *
  * O número do último passo é o teal de chamada, e não o petrol dos outros dois:
