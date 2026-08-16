@@ -2,83 +2,164 @@ import { css } from "@aguiar/ui";
 import { DashboardPreview } from "@/components/DashboardPreview";
 import { COPY } from "@/lib/dictionary";
 import { HOW, SIGNUP } from "@/lib/links";
-import { CONTAINER, CTA_GHOST, ctaPrimary } from "@/lib/styleKit";
+import { CTA_GHOST, ctaPrimary } from "@/lib/styleKit";
+
+/**
+ * O VÉU DE COR DA PRIMEIRA DOBRA.
+ *
+ * Duas manchas do azul da marca nos cantos de cima, sobre branco, que morrem
+ * antes do meio da dobra — daí para baixo é branco puro, que é onde o painel
+ * pousa. Um painel claro sobre um fundo tingido perde a borda; sobre branco ele
+ * flutua.
+ *
+ * AS OPACIDADES SÃO BAIXAS DE PROPÓSITO (12% e 10% no ponto mais forte, e esse
+ * ponto fica FORA DA TELA). É véu, não cor de fundo: a intenção é que se note
+ * que o branco não é chapado, sem que se consiga apontar onde começa o azul.
+ *
+ * `at 10% -12%` põe o centro da elipse ACIMA da borda de cima. Só a saia da
+ * mancha entra na tela, e é isso que evita o "olho" — um círculo de cor com
+ * centro visível, que é o que denuncia um degradê radial mal colocado.
+ *
+ * `rgba(27,154,189,0)` e NÃO `transparent` no fim de cada parada. `transparent`
+ * é preto com alfa zero, e alguns navegadores interpolam passando pelo cinza:
+ * a mancha ganharia um halo sujo na borda. Terminar na mesma cor com alfa zero
+ * interpola dentro do mesmo tom.
+ *
+ * Sem imagem, sem `filter:blur` e sem animação. Um `blur` num elemento do
+ * tamanho desta dobra é uma textura em GPU a cada pintura, e o público desta
+ * página está em celular popular; o degradê radial é resolvido pelo rasterizador
+ * uma vez e não custa quadro nenhum.
+ */
+const WASH =
+  "background:" +
+  /* Canto de cima à ESQUERDA. Pico em 55%. */
+  "radial-gradient(60% 62% at 1% -6%," +
+  "rgba(27,154,189,.55) 0%," +
+  "rgba(27,154,189,.40) 20%," +
+  "rgba(27,154,189,.24) 38%," +
+  "rgba(27,154,189,.12) 54%," +
+  "rgba(27,154,189,.05) 68%," +
+  "rgba(27,154,189,.015) 80%," +
+  "rgba(27,154,189,0) 90%)," +
+  /* Canto de cima à DIREITA. Um degrau abaixo — duas manchas de peso idêntico
+     em espelho leem como um desenho, e não como luz. */
+  "radial-gradient(58% 58% at 100% -3%," +
+  "rgba(27,154,189,.50) 0%," +
+  "rgba(27,154,189,.36) 20%," +
+  "rgba(27,154,189,.22) 38%," +
+  "rgba(27,154,189,.11) 54%," +
+  "rgba(27,154,189,.045) 68%," +
+  "rgba(27,154,189,.013) 80%," +
+  "rgba(27,154,189,0) 90%)," +
+  "#fff;";
 
 /**
  * A primeira dobra.
  *
- * Duas colunas que viram uma sozinhas: `auto-fit` com mínimo de 320px, que é a
- * largura abaixo da qual a ilustração do painel deixa de ser legível. Não há
- * breakpoint em lugar nenhum da página pelo mesmo motivo.
+ * CLARA, e o texto escuro em cima dela. Era um degradê petrol com texto branco;
+ * o que mudou de lugar foi só a cor — a composição centralizada, a copy e as
+ * duas chamadas são as mesmas.
+ *
+ * O TEXTO E O PAINEL NÃO TÊM MAIS A MESMA LARGURA, e isso é o ponto. O texto
+ * para nos 720px em que a manchete quebra em duas linhas cheias; o painel passa
+ * de 1160px da faixa e vai a 1360px, mais largo do que qualquer outra coisa da
+ * página. Ele é a tela do produto: sangrar para fora da coluna de leitura é o
+ * que faz a diferença entre "uma figura ao lado do texto" e "o produto".
+ *
+ * ELE COMEÇA LOGO DEPOIS DA LINHA DE CONFIANÇA. O vão era de 96px e sobrava
+ * dobra para uma faixa fina do painel; agora são ~40px e mais de dois terços
+ * dele cabem na tela antes de rolar. O que passa da borda continua cortado de
+ * propósito — uma tela inteira visível diz "acabou", uma cortada diz "tem mais".
+ *
+ * NADA AQUI COMEÇA INVISÍVEL. Esta dobra não usa `<Reveal>`, e não é
+ * esquecimento: a manchete e o painel são o LCP da página. Escondê-los para
+ * animar depois adia a métrica pelo tempo da animação e, no 4G instável que é a
+ * conexão deste público, mostra uma tela vazia enquanto o pacote não chega. O
+ * movimento começa na dobra seguinte.
  */
 export function Hero() {
   return (
     <section
       aria-labelledby="hero-title"
       style={css(
-        "background:linear-gradient(180deg,var(--petrol) 0%,var(--petrol2) 100%);color:#fff;" +
+        WASH +
+          /* A EMENDA COM A DOBRA SEGUINTE. Branco contra o `#f7f9fa` do
+             Audiences dá 1.06:1 — o olho não resolve essa diferença, as duas
+             faixas encostam e viram uma só. Esta linha de 1px é a mesma que
+             Módulos e Planos já usam para se separar das vizinhas; é o
+             vocabulário que a página tinha, não um recurso novo. */
+          "border-bottom:1px solid var(--rule);" +
           "padding:clamp(48px,7vw,88px) 20px clamp(56px,8vw,96px)",
       )}
     >
-      <div
-        style={css(
-          CONTAINER +
-            "display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));" +
-            "gap:clamp(32px,5vw,56px);align-items:center",
-        )}
-      >
-        <div>
-          <div
-            style={css(
-              "display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.2);" +
-                "background:rgba(255,255,255,.06);border-radius:999px;padding:6px 13px;" +
-                "font-size:12.5px;letter-spacing:.02em;color:var(--on-petrol3);margin-bottom:22px",
-            )}
-          >
-            {COPY.hero.badge}
-          </div>
-
-          <h1
-            id="hero-title"
-            style={css(
-              "font-size:clamp(34px,5.2vw,54px);line-height:1.06;font-weight:800;" +
-                "letter-spacing:-.025em;margin-bottom:20px",
-            )}
-          >
-            {COPY.hero.title}
-          </h1>
-
-          {/* `46ch` e não uma largura em pixels: o limite de leitura confortável
-              é medido em caracteres por linha, não em milímetros de tela. */}
-          <p
-            style={css(
-              "font-size:clamp(16px,1.6vw,19px);line-height:1.55;color:var(--on-petrol2);" +
-                "max-width:46ch;margin:0 0 30px",
-            )}
-          >
-            {COPY.hero.subtitle}
-          </p>
-
-          <div
-            style={css(
-              "display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:22px",
-            )}
-          >
-            <a className="lp-cta" href={SIGNUP} style={css(ctaPrimary(16, "15px 26px"))}>
-              {COPY.hero.ctaPrimary}
-            </a>
-            <a className="lp-on-petrol" href={HOW} style={css(CTA_GHOST)}>
-              {COPY.hero.ctaSecondary}
-            </a>
-          </div>
-
-          {/* As três objeções respondidas antes de serem feitas: custa?, pede
-              cartão?, funciona no meu celular? */}
-          <p style={css("margin:0;font-size:13.5px;color:var(--on-petrol-muted)")}>
-            {COPY.hero.note}
-          </p>
+      {/* 720px é a medida da MANCHETE, não a do parágrafo: é onde o título de
+          54px quebra em duas linhas cheias em vez de três curtas. O texto
+          corrido tem o limite dele, mais estreito, logo abaixo. */}
+      <div style={css("max-width:720px;margin:0 auto;text-align:center")}>
+        <div
+          style={css(
+            "display:inline-flex;align-items:center;gap:8px;" +
+              "border:1px solid rgba(27,154,189,.32);background:rgba(27,154,189,.08);" +
+              "border-radius:999px;padding:6px 13px;" +
+              "font-size:12.5px;letter-spacing:.02em;color:var(--petrol);margin-bottom:22px",
+          )}
+        >
+          {COPY.hero.badge}
         </div>
 
+        <h1
+          id="hero-title"
+          style={css(
+            "font-size:clamp(34px,5.2vw,54px);line-height:1.06;font-weight:800;" +
+              "letter-spacing:-.025em;margin-bottom:20px;color:var(--petrol)",
+          )}
+        >
+          {COPY.hero.title}
+        </h1>
+
+        {/* `54ch` e não uma largura em pixels: o limite de leitura confortável
+            é medido em caracteres por linha, não em milímetros de tela.
+
+            A COR É `--text3` E NÃO O `--text2` DE CORPO DA PÁGINA. Medido:
+            sobre o ponto mais forte do véu, `--text2` dá 4.48:1 — erra o AA por
+            dois centésimos. `--text3` é um degrau mais escuro e dá 5.55:1 no
+            mesmo ponto. Dois centésimos não são margem de segurança nenhuma. */}
+        <p
+          style={css(
+            "font-size:clamp(16px,1.6vw,19px);line-height:1.55;color:var(--text3);" +
+              "max-width:54ch;margin:0 auto 30px",
+          )}
+        >
+          {COPY.hero.subtitle}
+        </p>
+
+        <div
+          style={css(
+            "display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;" +
+              "margin-bottom:22px",
+          )}
+        >
+          <a className="lp-cta" href={SIGNUP} style={css(ctaPrimary(16, "15px 26px"))}>
+            {COPY.hero.ctaPrimary}
+          </a>
+          {/* `lp-link` e não `lp-on-petrol`: o hover daquela abre para o BRANCO,
+              porque ela serve o rodapé e a última dobra, que continuam escuros.
+              Sobre claro o link sumiria ao ser apontado. */}
+          <a className="lp-link" href={HOW} style={css(CTA_GHOST)}>
+            {COPY.hero.ctaSecondary}
+          </a>
+        </div>
+
+        {/* As três objeções respondidas antes de serem feitas: custa?, pede
+            cartão?, funciona no meu celular? */}
+        <p style={css("margin:0;font-size:13.5px;color:var(--text2)")}>{COPY.hero.note}</p>
+      </div>
+
+      {/* O PAINEL, FORA DA FAIXA DE 1160px. Ele tem a própria medida — daí não
+          estar dentro de um `CONTAINER` como o resto da página. Os 20px de
+          `padding` da seção continuam valendo, então em telas menores que
+          1400px ele encolhe junto e nunca encosta na borda. */}
+      <div style={css("max-width:1360px;margin:clamp(24px,3vw,40px) auto 0")}>
         <DashboardPreview />
       </div>
     </section>

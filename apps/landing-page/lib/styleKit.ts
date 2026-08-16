@@ -67,9 +67,20 @@ export const ctaPrimary = (size: number, padding: string) =>
   `font-size:${size}px;padding:${padding};border-radius:12px;` +
   "box-shadow:0 6px 20px var(--accent-glow);display:inline-block;";
 
-/** A chamada secundária sobre petrol: só texto. Vem com a classe `lp-on-petrol`. */
+/**
+ * A chamada secundária ao lado do botão: só texto, sem caixa. Vem com a classe
+ * `lp-link`.
+ *
+ * Era `--on-petrol` de quando a primeira dobra era escura. Sobre o claro de
+ * agora quem serve é `--petrol`, e não o `--teal` que a página usa em link:
+ * medido, o teal dá 4.39:1 no ponto mais forte do véu da dobra e não alcança o
+ * AA. O petrol dá 10.54:1 no mesmo ponto.
+ *
+ * Só o Hero usa esta constante — a última dobra, que também tem uma chamada
+ * secundária, escreve a dela inline porque continua sobre petrol.
+ */
 export const CTA_GHOST =
-  "color:var(--on-petrol);font-size:15px;font-weight:500;padding:15px 6px;display:inline-block;";
+  "color:var(--petrol);font-size:15px;font-weight:500;padding:15px 6px;display:inline-block;";
 
 /** O selo de plano de um card de módulo. */
 export const moduleTag = (free: boolean) =>

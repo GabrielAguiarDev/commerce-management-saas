@@ -308,10 +308,204 @@ section[id] {
 }
 
 /* ---------------------------------------------------------------------------
+   O PAINEL DA PRIMEIRA DOBRA, em duas montagens.
+
+   Ele deixou de acompanhar o texto numa coluna ao lado e passou a vir ABAIXO
+   dele, na largura inteira da faixa. Dobrar a largura de 552px para 1160px sem
+   mexer no miolo não daria um painel maior, daria o MESMO painel esticado: três
+   ladrilhos de 350px com um número de 90px dentro, sete barras mais largas do
+   que altas e uma fileira de pílulas com 700px de vazio ao lado. Largura é
+   metade do trabalho; a outra metade é ter o que pôr nela.
+
+   Então em telas largas o painel vira uma TELA DE PRODUTO — barra lateral com
+   os módulos, gráfico alto à esquerda, os três números empilhados à direita —
+   e no celular volta a ser exatamente o que era: uma coluna só, ladrilhos lado
+   a lado, gráfico baixo. O painel de 350px do celular nunca foi o problema.
+
+   O QUE MORA AQUI é só o que MUDA entre as duas montagens. Cor, borda, raio e
+   tipografia continuam inline nos componentes, como no resto da página; se
+   estivessem aqui, o `style` inline venceria a media query e o desktop nunca
+   chegaria (regra da cascata, não gosto pessoal).
+
+   SÃO DOIS DEGRAUS, não um: em 768px o miolo se reparte em duas colunas, e só
+   em 1000px entra a barra lateral. O porquê de cada um está escrito no bloco
+   dele, logo abaixo.
+
+   O MOBILE É O PADRÃO: sem media query nenhuma o que sai é a pilha, que é o
+   arranjo que funciona em qualquer largura.
+--------------------------------------------------------------------------- */
+
+.lp-panel-body,
+.lp-panel-content,
+.lp-panel-tiles {
+  display: grid;
+}
+
+.lp-panel-body,
+.lp-panel-content {
+  gap: 12px;
+}
+
+.lp-panel-tiles {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.lp-panel-tile {
+  padding: 13px;
+}
+
+.lp-panel-value {
+  font-size: 21px;
+}
+
+.lp-panel-bars {
+  height: 96px;
+  gap: 8px;
+}
+
+/* A barra do celular não tem teto: com sete barras numa coluna de 320px, `flex:1`
+   já as deixa estreitas o bastante. O teto é problema de tela larga. */
+.lp-panel-bar {
+  max-width: none;
+}
+
+/* A barra lateral não existe no celular. Não é corte por falta de espaço — é que
+   um menu de cinco itens numa ilustração de 350px vira cinco linhas de texto
+   miúdo que ninguém lê e que roubam a altura do gráfico, que é o que a pessoa
+   veio ver. */
+.lp-panel-rail {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   DEGRAU 2 (768px): o MIOLO se reparte, a barra lateral ainda não.
+
+   São duas perguntas diferentes e por isso são dois cortes. "Cabe repartir o
+   miolo em duas colunas?" precisa de ~560px de painel; "cabe uma barra lateral
+   de 210px ANTES disso?" precisa de mil. Tratar as duas como uma só foi o erro
+   da primeira montagem, e ele tinha cara: entre 768px e 1000px o painel ficava
+   com quase 1000px de largura e o miolo numa coluna só — sete barras de 96px de
+   altura por 150px de largura, e três ladrilhos de 310px com um número de 90px
+   dentro. Exatamente o "esticado" que esta dobra existe para não ter, só que na
+   largura de um iPad em pé, que é gente de verdade.
+
+   Daqui para cima, então: gráfico e pílulas na coluna larga, os três números
+   empilhados na estreita, barras altas e com teto. */
+@media (min-width: 768px) {
+  .lp-panel-content {
+    grid-template-columns: 1fr 250px;
+    gap: 16px;
+  }
+
+  /* A ordem no HTML é a do celular (números, gráfico, pílulas) e é ela que
+     manda em tela estreita. Aqui as três caixas são colocadas à mão: gráfico e
+     pílulas empilhados na coluna larga, os números ocupando a coluna estreita
+     inteira ao lado. Trocar de lugar pelo CSS e não pelo HTML é o que evita ter
+     duas árvores do mesmo painel. */
+  .lp-panel-chart {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .lp-panel-chips {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .lp-panel-tiles {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    grid-template-columns: 1fr;
+    /* `space-between` e não `stretch`: esticado, cada ladrilho fica do tamanho
+       de um terço da coluna e o número flutua no topo com um palmo de ar
+       embaixo — o mesmo defeito que esta dobra existe para consertar, virado na
+       vertical. Assim eles guardam a altura do próprio conteúdo e a sobra vai
+       para os vãos. */
+    align-content: space-between;
+    gap: 14px;
+  }
+
+  .lp-panel-tile {
+    padding: 18px;
+  }
+
+  .lp-panel-value {
+    font-size: 28px;
+  }
+
+  /* O GRÁFICO ALTO, e o teto da barra. 96px de altura numa caixa de 450px de
+     largura dava barras mais largas do que altas — deixa de ler como gráfico e
+     passa a ler como blocos empilhados. 200px devolve a proporção.
+
+     O teto de 72px é o par disso: sem ele, `flex:1` engorda cada barra até
+     ~86px na tela larga e o gráfico vira sete tijolos. Com o teto, a sobra de
+     largura vai para os vãos via `space-between`, que é o que um gráfico de
+     verdade faz. Abaixo deste corte o teto não existe porque nunca chega a
+     valer: em 350px de painel a barra tem 39px. */
+  .lp-panel-bars {
+    height: 200px;
+    justify-content: space-between;
+  }
+
+  .lp-panel-bar {
+    max-width: 72px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   DEGRAU 3 (1000px): entra a barra lateral, e tudo cresce um pouco.
+
+   A conta do corte é a da barra: ela come 210px mais o vão, e o que sobra tem
+   de comportar o gráfico E a coluna dos números. Em 768px sobrariam ~260px para
+   o gráfico e sete barras de 200px de altura em 260px de largura seriam um
+   pente. Em 1000px sobram ~460px, que é onde as barras alcançam o teto de 72px
+   e param de engordar — conferido nas duas bordas, 999px e 1000px. */
+@media (min-width: 1000px) {
+  .lp-panel-body {
+    grid-template-columns: 210px 1fr;
+    gap: 18px;
+  }
+
+  .lp-panel-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  /* Ladrilho de tela larga: mais folga e um número bem maior. São três números
+     numa coluna de 250px — se ficassem nos 21px do celular, seriam três frases
+     miúdas perdidas numa faixa alta. */
+  .lp-panel-tile {
+    padding: 22px;
+  }
+
+  .lp-panel-value {
+    font-size: 34px;
+  }
+
+  .lp-panel-bars {
+    height: 260px;
+  }
+
+  /* O TETO DA BARRA SOBE JUNTO COM O PAINEL. Ele saiu da faixa de 1160px e vai
+     a 1360px, o que dá ~840px para o gráfico; com o teto de 72px do degrau
+     anterior sobrariam 50px de vão entre barras de 72px, e um vão maior que dois
+     terços da barra lê como sete colunas soltas, não como uma semana. Em 84px o
+     vão cai para ~37px. */
+  .lp-panel-bar {
+    max-width: 84px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    A vitrine dos módulos: índice parado à esquerda, painéis passando à direita.
 
-   ESTE É O ÚNICO BREAKPOINT DA PÁGINA, e vale dizer por quê. O resto do site
-   se reparte sozinho com `auto-fit`, sem media query em lugar nenhum. Aqui não
+   É O TERCEIRO E ÚLTIMO BREAKPOINT DA PÁGINA — os outros dois são os do painel
+   da primeira dobra, logo acima, e todos existem pelo mesmo motivo. (Esta linha
+   já disse "o único"; se você acrescentar um quarto, corrija-a de novo — um
+   comentário que mente é pior do que comentário nenhum.) O resto do site se
+   reparte sozinho com `auto-fit`, sem media query em lugar nenhum. Aqui não
    dá: "coluna que gruda" e "pilha que rola" não são a mesma caixa em larguras
    diferentes, são dois arranjos distintos, e `auto-fit` não sabe desligar um
    `position:sticky`. O corte é em 768px — abaixo disso o índice não cabe sem
