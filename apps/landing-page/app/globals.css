@@ -332,9 +332,12 @@ section[id] {
   gap: 28px;
 }
 
-/* No celular o índice some: cada painel já carrega o próprio título, e uma
-   coluna parada numa tela de 6" gasta metade da largura sem dizer nada. */
-.lp-showcase-index {
+/* NO CELULAR SOME A LISTA, NÃO A COLUNA — e a diferença passou a importar. A
+   coluna carrega a abertura da dobra e o link dos planos, que precisam existir
+   nas duas larguras; o que não faz sentido sem o sticky é só o índice, porque
+   cada painel já leva o próprio título logo abaixo. Ali a coluna vira o que
+   sempre foi no celular: o texto de abertura, e os módulos empilhados embaixo. */
+.lp-showcase-list {
   display: none;
 }
 
@@ -350,7 +353,10 @@ section[id] {
 
 @media (min-width: 768px) {
   .lp-showcase {
-    grid-template-columns: minmax(190px, 250px) 1fr;
+    /* Mais larga do que era (250px): a coluna deixou de ser só uma lista de
+       nomes e passou a segurar a manchete da dobra, que é `clamp(…,38px)`. Em
+       250px aquele título viraria uma coluna de duas palavras por linha. */
+    grid-template-columns: minmax(280px, 360px) 1fr;
     gap: 56px;
     /* `start` e não o `stretch` padrão: um item esticado até a altura da linha
        fica do tamanho do contêiner e não sobra folga nenhuma para deslizar. É
@@ -358,40 +364,50 @@ section[id] {
     align-items: start;
   }
 
-  .lp-showcase-index {
+  .lp-showcase-list {
     display: block;
+  }
+
+  .lp-showcase-index {
     position: sticky;
-    /* A altura da barra do topo mais folga — o mesmo 76px que as âncoras da
-       página já usam em `scroll-margin-top`. */
-    top: 76px;
+    /* A ALTURA DO OLHAR, não a borda de cima. Colado no cabeçalho o índice fica
+       na quina da tela e some da atenção; aqui ele pousa no terço superior, que
+       é onde o olho já está quando lê.
+
+       É o número mais fácil de mexer desta dobra: subir aproxima do cabeçalho,
+       descer aproxima do centro. Fica em px e não em `svh` de propósito — em
+       px o valor é o mesmo em toda tela e dá para ajustar no olho de uma vez,
+       em vez de acertar em uma altura de janela e errar na outra.
+
+       A ALTERNATIVA, se preferir o índice no CENTRO exato da tela: troque as
+       três linhas abaixo por
+
+           top: 50svh;
+           transform: translateY(-50%);
+
+       Gruda no meio da altura e sobe metade de si mesmo, sem número mágico. O
+       preço está medido na conta que acompanha esta entrega: o índice começa a
+       ir embora cerca de 300px de rolagem mais cedo, porque o sticky solta
+       quando o PÉ DA CAIXA alcança o fim do contêiner, e a caixa passa a
+       começar 340px mais abaixo. Na prática o quinto módulo perde parte do
+       destaque. */
+    top: 140px;
   }
 
-  .lp-panel {
-    /* NÃO É `dvh` DE PROPÓSITO: `dvh` é justamente a unidade que RECALCULA
-       enquanto a barra do navegador sobe e desce, e recalcular a altura de
-       cinco painéis no meio da rolagem é o salto que se quer evitar. `svh` é a
-       viewport menor, a de barra visível: nunca muda de valor, e o painel cabe
-       inteiro mesmo no pior caso. Isto só alcança tablet — abaixo de 768px
-       nenhum painel tem altura de viewport e o problema não existe.
+  /* O VÃO ENTRE OS PAINÉIS, e o fim do `min-height`.
+     Cada painel tinha 78svh e ficava com o conteúdo centralizado dentro dessa
+     tela inteira — o que sobrava virava vão, e no vão o índice ficava sozinho
+     na tela ao lado de nada. Agora cada painel tem a altura do próprio
+     conteúdo e o respiro é este espaçamento, igual entre todos.
 
-       O fallback vem antes, em `vh`. NÃO DÁ PARA DECLARAR AS DUAS SEGUIDAS:
-       o minificador (Lightning CSS) enxerga duas declarações da mesma
-       propriedade, conclui que a primeira é morta e apaga o fallback — foi o
-       que aconteceu na primeira tentativa. `@supports` é uma condição, e
-       condição ele não tem como resolver na compilação. */
-    min-height: 78vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
+     O efeito não dependia daquela altura: o que segura o sticky é o CONTÊINER
+     ser mais alto que a coluna, e cinco painéis mais quatro vãos passam de
+     3000px contra os ~215px do índice. Sobra de sobra.
 
-  @supports (height: 1svh) {
-    .lp-panel {
-      min-height: 78svh;
-    }
-  }
-
+     Efeito colateral bem-vindo: sem altura de viewport em painel nenhum, a
+     escolha entre `svh`, `dvh` e `vh` deixou de existir e o `@supports` que
+     protegia o fallback saiu junto. */
   .lp-panel + .lp-panel {
-    margin-top: 0;
+    margin-top: 112px;
   }
 }

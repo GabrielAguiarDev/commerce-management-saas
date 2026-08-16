@@ -36,11 +36,17 @@ export function ModuleShowcase({
   items,
   freeTag,
   paidTag,
+  intro,
+  footer,
   children,
 }: {
   items: readonly { title: string; text: string; free: boolean }[];
   freeTag: string;
   paidTag: string;
+  /** A abertura da dobra, que mora no alto da coluna parada. */
+  intro?: React.ReactNode;
+  /** O que fecha a coluna, embaixo da lista. */
+  footer?: React.ReactNode;
   /** Uma ilustração por item, na mesma ordem. */
   children: React.ReactNode;
 }) {
@@ -80,28 +86,43 @@ export function ModuleShowcase({
 
   return (
     <div className="lp-showcase">
-      {/* O índice é decoração: os mesmos nomes estão logo ao lado, como `h3` de
-          cada painel, e um leitor de tela que lesse os dois leria a dobra
-          inteira em dobro. Aqui ele não tem link nem foco — é um marcador de
-          onde a leitura está, e nada mais. */}
-      <ol className="lp-showcase-index" aria-hidden="true" style={css("list-style:none;margin:0;padding:0")}>
-        {items.map((item, i) => (
-          <li
-            key={item.title}
-            className="lp-index-item"
-            style={css(
-              `font-family:${DISPLAY};font-size:15px;padding:11px 0 11px 16px;` +
-                "border-left:2px solid " +
-                (i === active ? "var(--accent);" : "var(--rule);") +
-                (i === active
-                  ? "color:var(--petrol);font-weight:700;"
-                  : "color:var(--text2);font-weight:600;"),
-            )}
-          >
-            {item.title}
-          </li>
-        ))}
-      </ol>
+      {/* A coluna parada. Ela carrega TRÊS coisas, e só a do meio é decoração:
+          a abertura da dobra em cima, o índice no meio, o link dos planos
+          embaixo. O `aria-hidden` fica no `<ol>` e em mais nada — o título e o
+          link precisam continuar existindo para quem ouve a página, e o link
+          ainda por cima recebe foco. */}
+      <div className="lp-showcase-index">
+        {intro}
+
+        {/* O índice é decoração: os mesmos nomes estão logo ao lado, como `h3`
+            de cada painel, e um leitor de tela que lesse os dois leria a dobra
+            inteira em dobro. Aqui ele não tem link nem foco — é um marcador de
+            onde a leitura está, e nada mais. */}
+        <ol
+          className="lp-showcase-list"
+          aria-hidden="true"
+          style={css("list-style:none;margin:0;padding:0")}
+        >
+          {items.map((item, i) => (
+            <li
+              key={item.title}
+              className="lp-index-item"
+              style={css(
+                `font-family:${DISPLAY};font-size:15px;padding:11px 0 11px 16px;` +
+                  "border-left:2px solid " +
+                  (i === active ? "var(--accent);" : "var(--rule);") +
+                  (i === active
+                    ? "color:var(--petrol);font-weight:700;"
+                    : "color:var(--text2);font-weight:600;"),
+              )}
+            >
+              {item.title}
+            </li>
+          ))}
+        </ol>
+
+        {footer}
+      </div>
 
       {/* O `<Reveal>` fica DENTRO do painel, e não É o painel. `[data-panel]`
           é a caixa que o observador acima mede para decidir qual nome acende;

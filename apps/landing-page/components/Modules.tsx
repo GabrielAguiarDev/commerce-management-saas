@@ -10,10 +10,18 @@ import { EYEBROW, H2, LEAD, SECTION } from "@/lib/styleKit";
 /**
  * "Módulos" — a dobra que sustenta a promessa de montar o sistema.
  *
- * A abertura aqui não usa `SectionIntro`: é a única da página com um link
- * alinhado à direita do texto, empurrado para o pé da coluna por
- * `align-items:flex-end`, e essa exceção não vale um parâmetro no componente
- * compartilhado.
+ * A ABERTURA NÃO ABRE MAIS A DOBRA EM LARGURA INTEIRA: o olho-mágico, a
+ * manchete e o parágrafo entram na COLUNA PARADA, acima da lista de módulos, e
+ * ficam na tela durante a seção toda. Nenhuma palavra mudou de texto — mudou
+ * de lugar. É o que resolve a coluna que sobrava vazia embaixo do índice, sem
+ * inventar conteúdo para preencher.
+ *
+ * O link dos planos desceu junto, para o pé da coluna. Ele era a última coisa
+ * da abertura, vista uma vez e perdida; agora acompanha os cinco módulos, que
+ * é exatamente quando a pergunta "e o que vem em cada plano?" aparece.
+ *
+ * Por isso a dobra continua sem usar `SectionIntro`: a abertura daqui não é
+ * mais um bloco no topo da faixa, é o cabeçalho de uma coluna.
  *
  * Os cinco módulos não são mais uma grade de cards: são uma VITRINE de coluna
  * fixa. O índice à esquerda fica parado enquanto os painéis passam à direita,
@@ -40,32 +48,30 @@ export function Modules() {
       )}
     >
       <Container>
-        <Reveal
-          style={css(
-            "display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;" +
-              "justify-content:space-between;margin-bottom:36px",
-          )}
-        >
-          <div style={css("max-width:620px")}>
-            <div style={css(EYEBROW)}>{COPY.modules.eyebrow}</div>
-            <h2 id="modules-title" style={css(H2 + "margin-bottom:14px")}>
-              {COPY.modules.title}
-            </h2>
-            <p style={css(LEAD)}>{COPY.modules.subtitle}</p>
-          </div>
-          <a
-            className="lp-link"
-            href={PLANS}
-            style={css("font-size:15px;font-weight:600;color:var(--teal)")}
-          >
-            {COPY.modules.link}
-          </a>
-        </Reveal>
-
         <ModuleShowcase
           items={COPY.modules.items}
           freeTag={COPY.modules.freeTag}
           paidTag={COPY.modules.paidTag}
+          intro={
+            <Reveal>
+              <div style={css(EYEBROW)}>{COPY.modules.eyebrow}</div>
+              <h2 id="modules-title" style={css(H2 + "margin-bottom:14px")}>
+                {COPY.modules.title}
+              </h2>
+              <p style={css(LEAD + "margin-bottom:28px")}>{COPY.modules.subtitle}</p>
+            </Reveal>
+          }
+          footer={
+            <a
+              className="lp-link"
+              href={PLANS}
+              style={css(
+                "display:inline-block;margin-top:24px;font-size:15px;font-weight:600;color:var(--teal)",
+              )}
+            >
+              {COPY.modules.link}
+            </a>
+          }
         >
           {MODULE_PANELS.map((Panel, i) => (
             <Panel key={i} />

@@ -14,7 +14,17 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3002](http://localhost:3002) with your browser to see the result.
+
+> **A porta 3002 é fixa de propósito, e não é preferência.** O `portal-client` é
+> um PWA e registra um service worker na porta 3000; service worker vale para a
+> ORIGEM inteira, não para uma aplicação. Rodando esta página em 3000 ela herda
+> aquele worker, que passa a servir os `/_next/static/*` dela do cache do
+> portal — e o sintoma é um erro de hidratação teimoso, com o servidor
+> entregando código novo e o navegador rodando o antigo, que sobrevive a
+> reiniciar o dev server porque a cópia velha está no navegador. Cada app do
+> monorepo tem porta própria por isso: 3000 portal-client, 3001 portal-admin,
+> 3002 esta página.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
