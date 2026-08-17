@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, type ActionResult } from "@/lib/autorizacao";
+import { revalidarLanding } from "@/lib/revalidarLanding";
 
 /**
  * Edição do catálogo de planos — grava em `plans` de verdade.
@@ -9,6 +10,21 @@ import { requireAdmin, type ActionResult } from "@/lib/autorizacao";
  * Antes isto mexia só na memória do navegador e um reload desfazia. Agora a
  * oferta é dado, e mudar um preço aqui muda o que o cadastro de cliente vai
  * cobrar (ver `app/clientes/actions.ts`, que lê a mesma tabela).
+ *
+ * ┌─ POR QUE MEXER EM `plans` AVISA A LANDING ─────────────────────────────┐
+ * │ A view `plan_showcase_public` publica `plans.name`, `plans.description` │
+ * │ e `plans.price` — o título, a frase e o número dos cartões do site NÃO  │
+ * │ são cópias, são estas colunas lidas na hora (ver a migration            │
+ * │ 20260817000000). Editar um plano AQUI é editar o que o site publica.    │
+ * │                                                                        │
+ * │ A tela de Vitrine já chamava `revalidarLanding` e esta não — o que      │
+ * │ deixava um preço corrigido no console esperando a revalidação por       │
+ * │ tempo para chegar ao ar. Salvar e publicar são a mesma ação, então o    │
+ * │ aviso é daqui também.                                                  │
+ * │                                                                        │
+ * │ Ela nunca derruba a gravação: o dado já está salvo quando ela roda      │
+ * │ (ver `lib/revalidarLanding.ts`).                                        │
+ * └────────────────────────────────────────────────────────────────────────┘
  */
 
 /** "R$ 149,90" → 149.9. O formulário guarda o valor já formatado. */
@@ -70,6 +86,7 @@ export async function savePlan(
   }
 
   revalidatePath("/", "layout");
+  await revalidarLanding();
   return { ok: true };
 }
 
@@ -172,6 +189,8 @@ export async function createPlan(
   }
 
   revalidatePath("/", "layout");
+  // Um plano novo já nasce no site — todo plano ativo é um cartão.
+  await revalidarLanding();
   return { ok: true };
 }
 
@@ -254,5 +273,7 @@ export async function deletePlan(key: string): Promise<ActionResult> {
   }
 
   revalidatePath("/", "layout");
+  // O cartão sai do site junto com o plano; sem o aviso ele continuaria no ar.
+  await revalidarLanding();
   return { ok: true };
 }

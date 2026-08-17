@@ -146,6 +146,26 @@ export function AdminProvider({
   // A comparação é por assinatura, e não pela identidade do array: as listas
   // chegam como arrays novos a cada render, e só os campos abaixo mudam por
   // fora. Sem isso, todo render reescreveria o estado.
+  //
+  // ┌─ A REGRA DA ASSINATURA ────────────────────────────────────────────┐
+  // │ TODO CAMPO QUE UMA SERVER ACTION CONSEGUE GRAVAR PRECISA ESTAR     │
+  // │ AQUI. Um campo de fora é um campo que o servidor salva, relê e     │
+  // │ manda de volta — e que a tela ignora, porque a assinatura não      │
+  // │ mudou. O sintoma é o pior possível: "salvou" na tela, o valor      │
+  // │ antigo continuando na frente do usuário, e o banco certo.          │
+  // │                                                                     │
+  // │ Foi exatamente o que acontecia com os CATÁLOGOS: `plans` entrava   │
+  // │ por `k:price:mods` (renomear um plano ou trocar a descrição não    │
+  // │ mexia em nenhum dos três) e `modules` entrava só pela chave —      │
+  // │ enquanto `salvarModulo` grava a DESCRIÇÃO, que nunca era vista.    │
+  // └─────────────────────────────────────────────────────────────────────┘
+  //
+  // Por isso os três catálogos vão SERIALIZADOS INTEIROS, e não por um punhado
+  // de campos escolhidos à mão. São listas curtas — planos, módulos e ajustes
+  // contam-se em dezenas — e o custo de as serializar por render não se compara
+  // ao de manter a lista de campos em dia a cada coluna nova. Clientes,
+  // chamados e pagamentos seguem por campos porque crescem sem teto, e nesses
+  // três a lista abaixo cobre tudo que as Actions gravam.
   // ───────────────────────────────────────────────────────────────────
   const signature =
     initialCustomers
@@ -156,16 +176,19 @@ export function AdminProvider({
     initialTickets.map((t) => `${t.id}:${t.status}:${t.messages.length}`).join("|") +
     `#${ticketsError ?? ""}` +
     "@" +
-    initialModules.map((m) => m.k).join("|") +
+    JSON.stringify(initialModules) +
     `#${modulesError ?? ""}#${adminName ?? ""}` +
     "@" +
-    initialPlans.map((p) => `${p.k}:${p.price}:${p.mods.join(",")}`).join("|") +
+    JSON.stringify(initialPlans) +
+    `#${plansError ?? ""}` +
     "@" +
     Object.entries(initialPayments)
       .map(([k, v]) => `${k}:${v.status}:${v.latest}`)
       .join("|") +
+    `#${billingError ?? ""}` +
     "@" +
-    initialSettings.map((c) => `${c.id}:${String(c.value)}`).join("|");
+    JSON.stringify(initialSettings) +
+    `#${settingsError ?? ""}`;
   const [appliedSignature, setAssinaturaAplicada] = useState(signature);
 
   if (signature !== appliedSignature) {
