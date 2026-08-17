@@ -273,6 +273,11 @@ const pt = {
     title: "Comece grátis, cresça quando fizer sentido",
     subtitle: "Sem contrato longo. Você pode mudar de plano ou sair quando quiser.",
     recommended: "Recomendado",
+    /* Aparece no lugar do número em dois casos: um cartão ligado ao plano sob
+       medida, que é negociado por cliente, e o socorro de `lib/vitrine.ts`,
+       quando a consulta ao banco falha e a página publica a copy do código —
+       que de propósito não carrega preço nenhum. */
+    priceOnRequest: "Sob consulta",
     free: {
       name: "Gratuito",
       pitch: "Para quem quer organizar as vendas e enxergar o lucro.",
@@ -562,6 +567,7 @@ const en: Dic = {
     title: "Start free, grow when it makes sense",
     subtitle: "No long contract. You can change plan or leave whenever you want.",
     recommended: "Recommended",
+    priceOnRequest: "On request",
     free: {
       name: "Free",
       pitch: "For anyone who wants to organise sales and see the profit.",

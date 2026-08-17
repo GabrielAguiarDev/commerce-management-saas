@@ -10,6 +10,8 @@ export const ROUTES = {
   support: "/suporte",
   plans: "/planos",
   modules: "/modulos",
+  /** A copy dos cartões de plano da landing page — vitrine, não acesso. */
+  showcase: "/vitrine",
   settings: "/configuracoes",
   login: "/login",
   /** Pede o link de recuperação por e-mail. */

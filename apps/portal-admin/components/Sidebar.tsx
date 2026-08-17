@@ -16,6 +16,7 @@ import {
   SairIcone,
   SuporteIcone,
   VisaoIcone,
+  VitrineIcone,
 } from "@/lib/icons";
 import { ROUTES, isActiveRoute } from "@/lib/rotas";
 import { headerHeight, navStyle } from "@/lib/styleKit";
@@ -233,6 +234,9 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
         <span style={css(group)}>{L.catalogo}</span>
         {item(ROUTES.plans, L.plans, <PlanosIcone />)}
         {item(ROUTES.modules, L.modules, <ModulosIcone />)}
+        {/* Vizinha de Planos porque fala do mesmo assunto, e depois dela
+            porque é derivada: primeiro existe a oferta, depois o anúncio. */}
+        {item(ROUTES.showcase, L.showcase, <VitrineIcone />)}
 
         <span style={css(group)}>{L.system}</span>
         {item(ROUTES.settings, L.settings, <ConfigIcone />)}

@@ -223,6 +223,24 @@ export function LixeiraIcone({ size = 14 }: IconProps) {
   );
 }
 
+/**
+ * A vitrine: uma janela de navegador com dois cartões dentro.
+ *
+ * Deliberadamente parecida com uma PÁGINA, e não com o gráfico de barras de
+ * `PlanosIcone` — as duas entradas ficam coladas no menu, e o que as separa
+ * é justamente que uma é a estrutura comercial e a outra é o site.
+ */
+export function VitrineIcone({ size = 17 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none">
+      <rect x="2" y="3" width="14" height="12" rx="2.2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M2 6.5h14" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="4.2" y="8.4" width="4" height="4.4" rx="1" fill="currentColor" opacity=".5" />
+      <rect x="9.8" y="8.4" width="4" height="4.4" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 /** Phone outline that marks the "mobile access" module. */
 export function AcessoIcone() {
   return (

@@ -56,6 +56,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     [ROUTES.support]: [L.tituloSuporte[0], L.tituloSuporte[1]],
     [ROUTES.plans]: [L.tituloPlanos[0], L.tituloPlanos[1]],
     [ROUTES.modules]: [L.tituloModulos[0], L.tituloModulos[1]],
+    [ROUTES.showcase]: [L.tituloVitrine[0], L.tituloVitrine[1]],
     [ROUTES.settings]: [L.tituloConfig[0], L.tituloConfig[1]],
     [ROUTES.financeiro]: [L.tituloFinanceiro[0], L.tituloFinanceiro[1]],
   };

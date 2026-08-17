@@ -27,6 +27,23 @@ import { Testimonial } from "@/components/Testimonial";
  * aplicação — o contador —, e mesmo ela manda o número final no HTML: o resto
  * da página continua sendo HTML e CSS e nada mais.
  */
+/**
+ * A REDE DE SEGURANÇA DO CACHE — uma hora.
+ *
+ * A página é gerada uma vez e servida como HTML pronto; nenhuma visita
+ * consulta o banco. Quem normalmente traz uma mudança da vitrine para cá é o
+ * console, que chama `/api/revalidate` no instante em que alguém salva — este
+ * número é só o que acontece se aquela chamada não chegar (deploy sem a
+ * variável, landing fora do ar no momento do save, rede).
+ *
+ * Uma hora porque é o maior atraso que ainda é aceitável para um PREÇO: se o
+ * aviso se perder, o valor errado fica no ar por no máximo uma hora, e o custo
+ * é uma consulta por hora por região. Um dia seria barato demais para o
+ * estrago; cinco minutos, caro sem motivo, já que o caminho normal é
+ * instantâneo.
+ */
+export const revalidate = 3600;
+
 export default function Home() {
   return (
     <>

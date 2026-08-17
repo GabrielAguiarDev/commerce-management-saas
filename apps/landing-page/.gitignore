@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# O exemplo É para ser versionado: é ele que documenta a configuração.
+!.env.local.example
+
 # vercel
 .vercel
 

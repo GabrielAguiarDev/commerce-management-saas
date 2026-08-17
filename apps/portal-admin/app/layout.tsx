@@ -1,6 +1,6 @@
 import { BRAND } from "@aguiar/ui";
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Public_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Manrope, Public_Sans } from "next/font/google";
 import { AdminProvider } from "@/components/AdminProvider";
 import { AdminShell } from "@/components/AdminShell";
 import { listTickets } from "@/lib/chamados";
@@ -27,6 +27,34 @@ const mono = IBM_Plex_Mono({
   variable: "--font-mono",
   weight: ["400", "500", "600"],
   subsets: ["latin"],
+});
+
+/**
+ * A fonte do SITE, carregada aqui só por causa de uma tela.
+ *
+ * O console não a usa em lugar nenhum da própria interface — quem manda nela é
+ * `Public_Sans`. A Manrope existe neste layout para que a prévia da tela de
+ * Vitrine (`components/VitrinePreviewCard.tsx`) desenhe o card de plano com a
+ * mesma letra que a landing page usa. Sem ela, o "R$ 89" da prévia sairia em
+ * Public Sans: mesmo tamanho, mesmo peso, outro desenho — e uma prévia que
+ * erra a tipografia do elemento mais visível do card não está fazendo o
+ * trabalho para o qual foi feita.
+ *
+ * DOIS PESOS SÓ, e não a família inteira: 800 para o preço, 700 para o botão e
+ * para o selo "Recomendado". É tudo que aquele card desenha.
+ */
+const display = Manrope({
+  variable: "--font-display",
+  weight: ["700", "800"],
+  subsets: ["latin"],
+  display: "swap",
+  // `preload: false` porque ela serve a UMA tela — e, dentro dela, só quando o
+  // formulário de um cartão está aberto. As outras fontes são precarregadas
+  // porque toda página do console as desenha na primeira pintura; esta não, e
+  // um `<link rel="preload">` em todas as telas gastaria banda de quem nunca
+  // vai abrir a Vitrine. Sem o preload, o navegador a busca quando encontrar o
+  // primeiro texto que a usa, e o `swap` cobre esse instante.
+  preload: false,
 });
 
 /**
@@ -94,7 +122,7 @@ export default async function RootLayout({
   ]);
 
   return (
-    <html lang="pt-BR" className={`${sans.variable} ${mono.variable} h-full`}>
+    <html lang="pt-BR" className={`${sans.variable} ${mono.variable} ${display.variable} h-full`}>
       {/* `data-tema` is flipped client-side by the console; seeding it here
           keeps the server markup and the first client paint in agreement. */}
       <body data-theme="light">

@@ -20,6 +20,7 @@ const pt = {
   customers: "Clientes",
   plans: "Planos",
   modules: "Módulos",
+  showcase: "Vitrine",
   support: "Suporte",
   settings: "Configurações",
   colapsar: "Recolher menu",
@@ -37,6 +38,7 @@ const pt = {
   tituloSuporte: ["Suporte", "Chamados abertos pelos clientes da plataforma"],
   tituloPlanos: ["Planos", "Estrutura comercial e distribuição da base"],
   tituloModulos: ["Módulos", "Funcionalidades disponíveis e adoção por cliente"],
+  tituloVitrine: ["Vitrine do site", "Os cartões de plano publicados em aguiarone.com"],
   tituloConfig: ["Configurações", "Preferências globais da plataforma"],
   tituloDetalhe: "Ficha do cliente e controle de módulos",
   exportar: "Exportar dados",
@@ -298,6 +300,48 @@ const pt = {
   toastPago: "Pagamento registrado",
   toastConfig: "Preferência atualizada",
   toastPlanoSalvo: "Plano salvo",
+
+  /* ---- Vitrine do site -------------------------------------------------
+     A tela que edita a copy dos cartões de plano da landing page. Ela NÃO
+     edita preço nem módulos — e vários destes textos existem justamente
+     para dizer isso a quem chegou pela entrada errada do menu. */
+  vitrineIntro:
+    "Aqui se edita a APRESENTAÇÃO dos planos no site — os itens de cada cartão, " +
+    "o texto do botão, o destaque e a ordem. Título, descrição e preço vêm da " +
+    "tela de Planos, e os módulos também: nada nesta tela muda o que um cliente " +
+    "consegue acessar, nem o que o site diz que o plano é.",
+  vitrineBotao: "Texto do botão",
+  vitrineUnidade: "Texto ao lado do preço",
+  vitrinePrecoVemDoPlano: "O número vem do plano e não se edita aqui — só o que aparece ao lado dele.",
+  vitrineFeatures: "Itens do cartão",
+  vitrineFeaturesNota: "Um por linha. Linha em branco é ignorada.",
+  vitrineFeaturesDesencontro:
+    "As listas em português e inglês têm quantidades diferentes de itens. O site mostra cada idioma como está — confira se é proposital.",
+  vitrineDestaque: "Cartão em destaque",
+  vitrineDestaqueNota: 'Ganha a etiqueta "Recomendado" e o fundo escuro no site.',
+  vitrineDestaqueBadge: "Destaque",
+  vitrineVisivel: "Publicar ou ocultar no site",
+  vitrineNoAr: "No ar",
+  vitrineOculto: "Oculto",
+  vitrinePrecoLanding: "Preço no site",
+  vitrineDescricaoSite: "Descrição no site",
+  vitrineVemDePlanos:
+    "Título, descrição e preço vêm da tela de Planos — mudar lá muda aqui e no site, de uma vez.",
+  vitrinePreview: "Prévia — como fica no site",
+  /* Os dois textos abaixo são desenhados DENTRO da prévia, e por isso são os
+     do site e não os do console. Ficam no dicionário porque a prévia segue o
+     idioma da tela: com o console em inglês, ela mostra os campos `_en` do
+     cartão, e o selo tem de acompanhar. Os mesmos textos existem em
+     `apps/landing-page/lib/dictionary.ts` (`plans.recommended` e
+     `plans.priceOnRequest`) — se mudarem lá, mudam aqui. */
+  vitrinePreviewRecomendado: "Recomendado",
+  vitrineSobConsulta: "Sob consulta",
+  vitrineSubir: "Mover para cima",
+  vitrineDescer: "Mover para baixo",
+  toastVitrineSalva: "Cartão salvo",
+  toastVitrinePublicada: "Cartão publicado no site",
+  toastVitrineOculta: "Cartão tirado do site",
+  toastVitrineOrdem: "Ordem atualizada",
   toastPlanoExcluido: "Plano excluído",
   toastModuloSalvo: "Módulo salvo",
   toastResposta: "Resposta enviada ao cliente",
@@ -426,6 +470,7 @@ const en: Dic = {
   customers: "Customers",
   plans: "Plans",
   modules: "Modules",
+  showcase: "Showcase",
   support: "Support",
   settings: "Settings",
   colapsar: "Collapse menu",
@@ -440,6 +485,7 @@ const en: Dic = {
   tituloSuporte: ["Support", "Tickets opened by platform customers"],
   tituloPlanos: ["Plans", "Commercial structure and base distribution"],
   tituloModulos: ["Modules", "Available features and adoption per customer"],
+  tituloVitrine: ["Site showcase", "The plan cards published on aguiarone.com"],
   tituloConfig: ["Settings", "Global platform preferences"],
   tituloDetalhe: "Customer record and module control",
   exportar: "Export data",
@@ -690,6 +736,39 @@ const en: Dic = {
   toastPago: "Payment registered",
   toastConfig: "Preference updated",
   toastPlanoSalvo: "Plan saved",
+
+  /* ---- Site showcase ---------------------------------------------------- */
+  vitrineIntro:
+    "This screen edits how the plans are PRESENTED on the site — each card's " +
+    "items, the button text, the highlight and the order. Title, description " +
+    "and price come from the Plans screen, and so do each plan's modules: " +
+    "nothing here changes what a customer can access.",
+  vitrineBotao: "Button text",
+  vitrineUnidade: "Text next to the price",
+  vitrinePrecoVemDoPlano: "The number comes from the plan and is not editable here — only what sits beside it.",
+  vitrineFeatures: "Card items",
+  vitrineFeaturesNota: "One per line. Blank lines are ignored.",
+  vitrineFeaturesDesencontro:
+    "The Portuguese and English lists have different numbers of items. The site shows each language as it is — check whether that is intended.",
+  vitrineDestaque: "Featured card",
+  vitrineDestaqueNota: 'Gets the "Recommended" tag and the dark background on the site.',
+  vitrineDestaqueBadge: "Featured",
+  vitrineVisivel: "Publish or hide on the site",
+  vitrineNoAr: "Live",
+  vitrineOculto: "Hidden",
+  vitrinePrecoLanding: "Price on the site",
+  vitrineDescricaoSite: "Description on the site",
+  vitrineVemDePlanos:
+    "Title, description and price come from the Plans screen — changing them there changes this screen and the site at once.",
+  vitrinePreview: "Preview — how it looks on the site",
+  vitrinePreviewRecomendado: "Recommended",
+  vitrineSobConsulta: "On request",
+  vitrineSubir: "Move up",
+  vitrineDescer: "Move down",
+  toastVitrineSalva: "Card saved",
+  toastVitrinePublicada: "Card published on the site",
+  toastVitrineOculta: "Card removed from the site",
+  toastVitrineOrdem: "Order updated",
   toastPlanoExcluido: "Plan deleted",
   toastModuloSalvo: "Module saved",
   toastResposta: "Reply sent to the customer",
