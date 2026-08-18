@@ -25,10 +25,10 @@ export const CONTAINER_NARROW = "max-width:1000px;margin:0 auto;";
  */
 export const SECTION = "padding:clamp(56px,7vw,88px) 20px;";
 
-/** O rótulo miúdo em teal que abre cada dobra. */
+/** O rótulo miúdo, na primária escrita, que abre cada dobra. */
 export const EYEBROW =
   `font-family:${DISPLAY};font-size:12.5px;font-weight:700;letter-spacing:.09em;` +
-  "text-transform:uppercase;color:var(--teal);margin-bottom:12px;";
+  "text-transform:uppercase;color:var(--accent-text);margin-bottom:12px;";
 
 /** A manchete de dobra. */
 export const H2 =
@@ -61,7 +61,7 @@ export const CARD_TEXT = "font-size:15px;line-height:1.6;color:var(--text2);marg
 export const grid = (min: number, gap: number) =>
   `display:grid;grid-template-columns:repeat(auto-fit,minmax(${min}px,1fr));gap:${gap}px;`;
 
-/** A chamada para ação, no teal vivo. Vem sempre com a classe `lp-cta`. */
+/** A chamada para ação, na primária viva. Vem sempre com a classe `lp-cta`. */
 export const ctaPrimary = (size: number, padding: string) =>
   `background:var(--accent);color:#fff;font-family:${DISPLAY};font-weight:700;` +
   `font-size:${size}px;padding:${padding};border-radius:12px;` +
@@ -72,9 +72,9 @@ export const ctaPrimary = (size: number, padding: string) =>
  * `lp-link`.
  *
  * Era `--on-petrol` de quando a primeira dobra era escura. Sobre o claro de
- * agora quem serve é `--petrol`, e não o `--teal` que a página usa em link:
- * medido, o teal dá 4.39:1 no ponto mais forte do véu da dobra e não alcança o
- * AA. O petrol dá 10.54:1 no mesmo ponto.
+ * agora quem serve é `--petrol`, e não o `--accent-text` que a página usa em
+ * link: medido, a primária escrita dá ~4.4:1 no ponto mais forte do véu da
+ * dobra e não alcança o AA. O petrol dá 10.54:1 no mesmo ponto.
  *
  * Só o Hero usa esta constante — a última dobra, que também tem uma chamada
  * secundária, escreve a dela inline porque continua sobre petrol.

@@ -1,7 +1,8 @@
 import { css } from "@aguiar/ui";
 import { DashboardPreview } from "@/components/DashboardPreview";
 import { COPY } from "@/lib/dictionary";
-import { HOW, SIGNUP } from "@/lib/links";
+import { HOW } from "@/lib/links";
+import { ctaLink, fetchWhatsapp } from "@/lib/whatsapp";
 import { CTA_GHOST, ctaPrimary } from "@/lib/styleKit";
 
 /**
@@ -80,7 +81,11 @@ const WASH =
  * conexão deste público, mostra uma tela vazia enquanto o pacote não chega. O
  * movimento começa na dobra seguinte.
  */
-export function Hero() {
+export async function Hero() {
+  // A chamada principal da página: abre o WhatsApp com a frase da primeira
+  // dobra, que é a mais geral das cinco.
+  const cta = ctaLink(await fetchWhatsapp(), COPY.cta.whatsapp.hero);
+
   return (
     <section
       aria-labelledby="hero-title"
@@ -145,7 +150,7 @@ export function Hero() {
               "margin-bottom:22px",
           )}
         >
-          <a className="lp-cta" href={SIGNUP} style={css(ctaPrimary(16, "15px 26px"))}>
+          <a className="lp-cta" {...cta} style={css(ctaPrimary(16, "15px 26px"))}>
             {COPY.hero.ctaPrimary}
           </a>
           {/* `lp-link` e não `lp-on-petrol`: o hover daquela abre para o BRANCO,

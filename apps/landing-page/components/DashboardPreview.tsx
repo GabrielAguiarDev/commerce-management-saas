@@ -133,9 +133,12 @@ export function DashboardPreview() {
           >
             {/* O MESMO `icon.png`, no MESMO tamanho que o cabeçalho pede. Igual
                 em pixel significa a mesma URL otimizada, que o navegador já
-                baixou lá em cima — a ilustração não custa uma requisição. */}
+                baixou lá em cima — a ilustração não custa uma requisição.
+
+                A marca é transparente, então aqui ela pousa no petrol da barra
+                — que é exatamente como o console a mostra na coluna dele. */}
             <div style={css("display:flex;align-items:center;gap:9px;padding:0 6px 14px")}>
-              <Logo size={28} radius={8} />
+              <Logo size={28} />
               <span
                 style={css(
                   `font-family:${DISPLAY};font-weight:700;font-size:14px;` +

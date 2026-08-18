@@ -3,7 +3,7 @@ import { CountUp } from "@/components/CountUp";
 import { Reveal } from "@/components/Reveal";
 import { Container, SectionIntro } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
-import { HOW } from "@/lib/links";
+import { HOW_ID } from "@/lib/links";
 import { DISPLAY, SECTION } from "@/lib/styleKit";
 
 /**
@@ -36,7 +36,7 @@ import { DISPLAY, SECTION } from "@/lib/styleKit";
 export function Numbers() {
   return (
     <section
-      id={HOW.slice(1)}
+      id={HOW_ID}
       aria-labelledby="numbers-title"
       style={css(SECTION + "background:var(--bg)")}
     >
