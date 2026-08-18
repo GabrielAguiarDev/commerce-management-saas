@@ -11,7 +11,8 @@
    tema escuro inteiro que esta página não usa.
 
    O que é COMPARTILHADO é a MARCA e o método. As cores de identidade — o azul
-   primário, o petrol, o teal de apoio, o verde de positivo — são as MESMAS dos
+   primário e o degrau de texto dele, o petrol, o verde de positivo — são as
+   MESMAS dos
    portais e do app, valor por valor, e estão anotadas abaixo com a origem de
    cada uma. O que é próprio daqui são as superfícies claras e as bordas, que
    servem ao ritmo da página. Do método vêm as convenções: cor vira variável,
@@ -80,28 +81,48 @@
      fecha demais e o texto some. */
   --on-petrol-accent: #4cc4e6;
 
-  /* Teal de apoio: o olho-mágico das seções, os links e o botão do topo.
-     `press` é o hover do botão, `hi` o dos links.
-
-     É o teal da marca — o `palette.tealLight` do app, o mesmo tom para o qual
-     os portais trocam o accent no tema escuro. Ele existe separado da primária
-     porque é TEXTO sobre fundo claro: a primária, chapada, não alcança o
-     contraste que um link precisa ter. */
-  --teal: #0e7c86;
-  --teal-hi: #0a5f66;
-  --teal-press: #0a656b;
-  --teal-soft: #e0f1f2;
-
   /* A PRIMÁRIA DA MARCA: o azul do "A" do logo, `#1b9abd`. É o mesmo
-     `--accent` dos portais e o `palette.brandPrimary` do app.
+     `--brand`/`--accent` dos portais (`packages/ui/src/tokens.css`) e o
+     `palette.brandPrimary` do app.
 
-     Aqui ela é reservada às chamadas para ação e ao que precisa ser visto
-     primeiro — é o tom mais vivo da página, e por isso o mais raro. Sempre
-     como FUNDO, com branco por cima; para texto sobre claro quem serve é o
-     `--teal` acima. */
+     ┌─ UMA MATIZ SÓ, EM DOIS DEGRAUS ────────────────────────────────────┐
+     │ A página TINHA DUAS primárias: esta e uma família `--teal`         │
+     │ (`#0e7c86`), que pintava o olho-mágico, os links, as formas da     │
+     │ dobra "Para quem é" e o botão do cabeçalho. Aquele tom é matiz     │
+     │ 187° — puxado para o verde —, e o token compartilhado dos portais  │
+     │ proíbe o desvio pelo nome: "everything accent-colored is this hue  │
+     │ — 193° — and nothing else… blue is the brand; green is money".     │
+     │ Com dois azuis-esverdeados diferentes brigando pela mesma função,  │
+     │ o visitante lia duas marcas.                                       │
+     │                                                                     │
+     │ Agora é uma matiz (193°) em DOIS DEGRAUS, que é a divisão que os   │
+     │ portais fazem, e pelo mesmo motivo — contraste:                     │
+     │                                                                     │
+     │   PREENCHIDO ou DESENHADO → `--accent`. Fundo grande, com branco   │
+     │     por cima: chamada da primeira dobra, cartão de plano, forma.    │
+     │   ESCRITO → `--accent-text`. É `#0e7590`, o `--accent-text` dos    │
+     │     portais, valor por valor. A primária chapada dá 3.3:1 sobre    │
+     │     branco e não é texto; este degrau dá 5.3:1 e é.                 │
+     │                                                                     │
+     │ O botão do cabeçalho fica no degrau ESCRITO, e não no vivo: ele    │
+     │ tem 14px, e branco sobre `--accent` daria 3.3:1 num alvo pequeno.  │
+     │ Mesma matiz da chamada grande, um degrau abaixo.                    │
+     └─────────────────────────────────────────────────────────────────────┘
+
+     Os `hi` são os hovers, e nesta página eles ESCURECEM — ao contrário dos
+     portais, que abrem o tom para cima porque precisam servir também ao tema
+     escuro. Aqui não há tema escuro: sobre o claro, escurecer é o que mantém
+     o contraste subindo em vez de cair no meio da interação. */
   --accent: #1b9abd;
   --accent-hi: #157e9b;
   --accent-glow: rgba(27, 154, 189, 0.28);
+
+  /* O degrau de TEXTO da primária, e o hover dele. `soft` é a lavagem de
+     fundo — o ladrilho de ícone da dobra "Para quem é" —, e é o
+     `--accent-soft` dos portais, valor por valor. */
+  --accent-text: #0e7590;
+  --accent-text-hi: #0b5b70;
+  --accent-soft: #e4f3f7;
 
   /* Positivo: lucro, item incluído no plano, variação para cima.
      `pos-on-petrol` é a versão que sobrevive sobre o card escuro.
@@ -162,7 +183,7 @@ p {
 }
 
 a {
-  color: var(--teal);
+  color: var(--accent-text);
   text-decoration: none;
 }
 
@@ -198,7 +219,7 @@ section[id] {
   color: var(--petrol) !important;
 }
 
-/* Botão de chamada — o teal vivo escurece ao ser apontado. */
+/* Botão de chamada — a primária viva escurece ao ser apontada. */
 .lp-cta {
   transition: background 0.12s;
 }
@@ -207,22 +228,23 @@ section[id] {
   background: var(--accent-hi) !important;
 }
 
-/* Botão do cabeçalho, no teal de apoio. */
+/* Botão do cabeçalho, no degrau escrito da primária. */
 .lp-cta-soft {
   transition: background 0.12s;
 }
 
 .lp-cta-soft:hover {
-  background: var(--teal-press) !important;
+  background: var(--accent-text-hi) !important;
 }
 
-/* Link em teal no meio do texto claro. */
+/* Link no meio do texto claro: a primária escrita, que escurece ao ser
+   apontada. */
 .lp-link {
   transition: color 0.12s;
 }
 
 .lp-link:hover {
-  color: var(--teal-hi) !important;
+  color: var(--accent-text-hi) !important;
 }
 
 /* Link sobre petrol: abre para o branco. */
@@ -234,7 +256,7 @@ section[id] {
   color: #fff !important;
 }
 
-/* Card de módulo: a borda acende no teal de chamada. */
+/* Card de módulo: a borda acende na primária. */
 .lp-card {
   transition: border-color 0.12s;
 }

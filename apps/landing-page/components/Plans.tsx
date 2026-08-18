@@ -2,9 +2,11 @@ import { css } from "@aguiar/ui";
 import { Reveal } from "@/components/Reveal";
 import { Check, Container, SectionIntro } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
-import { PLANS, SIGNUP } from "@/lib/links";
+import { PLANS_ID } from "@/lib/links";
+import { ctaLink, fetchWhatsapp } from "@/lib/whatsapp";
 import { DISPLAY, SECTION } from "@/lib/styleKit";
 import { fetchPlanCards, type PlanCard } from "@/lib/vitrine";
+import type { CtaLink } from "@/lib/whatsapp";
 
 const PRICE = `font-family:${DISPLAY};font-weight:800;font-size:38px;letter-spacing:-.02em;`;
 const PLAN_NAME = "font-size:20px;font-weight:700;margin-bottom:6px;";
@@ -25,16 +27,20 @@ const PLAN_CTA =
  * A página SEGUE ESTÁTICA. A leitura acontece no build e na revalidação, nunca
  * na visita — ver o `revalidate` em `app/page.tsx`.
  *
- * As chamadas levam todas ao MESMO lugar, o cadastro gratuito — inclusive a do
- * plano pago. É de propósito: ninguém digita cartão antes de ver o sistema
- * funcionando, e é isso que "começar grátis e testar" está dizendo.
+ * As chamadas dos cartões abrem a CONVERSA NO WHATSAPP, como as outras quatro
+ * da página — e cada uma leva o nome do plano em que a pessoa clicou dentro da
+ * primeira mensagem. Sem isso, o botão do cartão em destaque e o do cartão
+ * gratuito chegariam do outro lado indistinguíveis, e a primeira pergunta da
+ * conversa teria de ser "qual plano você viu?".
  */
 export async function Plans() {
-  const cards = await fetchPlanCards();
+  // As duas leituras viajam juntas: nenhuma depende da outra, e esperar uma
+  // para começar a outra dobraria o tempo desta dobra no build.
+  const [cards, whatsapp] = await Promise.all([fetchPlanCards(), fetchWhatsapp()]);
 
   return (
     <section
-      id={PLANS.slice(1)}
+      id={PLANS_ID}
       aria-labelledby="plans-title"
       style={css(SECTION + "background:var(--surface);border-top:1px solid var(--rule)")}
     >
@@ -85,7 +91,14 @@ export async function Plans() {
             // O atraso escalona a entrada da esquerda para a direita, e o teto
             // impede que o quarto cartão de uma fileira apareça meio segundo
             // depois do primeiro.
-            <PlanBox key={card.id} card={card} delay={Math.min(i, 3) * 80} />
+            <PlanBox
+              key={card.id}
+              card={card}
+              delay={Math.min(i, 3) * 80}
+              // A conversa começa com o nome do plano em que a pessoa clicou —
+              // é o único dos cinco textos que muda por botão.
+              cta={ctaLink(whatsapp, COPY.cta.whatsapp.plan.replace("{plano}", card.name))}
+            />
           ))}
         </div>
       </Container>
@@ -118,7 +131,7 @@ export async function Plans() {
  * em mais de um cartão funciona sem quebrar nada (só enfraquece o recado, e é
  * por isso que a tela do console avisa em vez de impedir).
  */
-function PlanBox({ card, delay }: { card: PlanCard; delay: number }) {
+function PlanBox({ card, delay, cta }: { card: PlanCard; delay: number; cta: CtaLink }) {
   const dark = card.featured;
 
   return (
@@ -184,7 +197,7 @@ function PlanBox({ card, delay }: { card: PlanCard; delay: number }) {
 
       <a
         className={dark ? "lp-cta" : "lp-outline"}
-        href={SIGNUP}
+        {...cta}
         style={css(
           PLAN_CTA +
             (dark
