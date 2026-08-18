@@ -24,6 +24,7 @@ import {
   changeEmployeeRole as acaoMudarPapel,
   removeRole as acaoRemoverPapel,
   saveBusinessData,
+  saveFiscalData,
   saveRole as acaoSalvarPapel,
 } from "@/app/configuracoes/actions";
 import { deleteCost as acaoExcluirCusto, saveCost as acaoSalvarCusto } from "@/app/custos/actions";
@@ -34,6 +35,7 @@ import {
   deleteProduct as acaoExcluirProduto,
   saveProduct as acaoSalvarProduto,
 } from "@/app/produtos/actions";
+import { resendDocument as acaoReenviarNota } from "@/app/notas/actions";
 import { signOut as acaoSair } from "@/app/sair/actions";
 import {
   openTicket,
@@ -57,6 +59,7 @@ import {
   EMPTY_ROLE_FORM,
   EMPTY_PRODUCT_FORM,
   EMPTY_REPLY_FORM,
+  fiscalForm,
   TOAST_MS,
   TOAST_OUT_MS,
   toast,
@@ -99,7 +102,7 @@ export function PortalProvider({
 }) {
   const router = useRouter();
   const [, iniciarTransicao] = useTransition();
-  const [s, setS] = useState<PortalState>(() => initialState(data.data));
+  const [s, setS] = useState<PortalState>(() => initialState(data.data, data.fiscal));
 
   // O retrato do servidor NÃO entra no estado: ele é lido direto da prop, e o
   // `router.refresh()` do laço de escrita traz a versão nova. Duas cópias
@@ -131,6 +134,16 @@ export function PortalProvider({
   if (saved !== salvoAnterior) {
     setSalvoAnterior(saved);
     setS((x) => ({ ...x, draftData: { ...data.data } }));
+  }
+
+  // O rascunho fiscal segue exatamente a mesma regra, pelas mesmas duas razões.
+  // Note que `fiscalForm()` zera o campo do token do CSC a cada ressincronia:
+  // um segredo digitado não deve continuar na tela depois de gravado.
+  const savedFiscal = JSON.stringify(data.fiscal);
+  const [fiscalAnterior, setFiscalAnterior] = useState(savedFiscal);
+  if (savedFiscal !== fiscalAnterior) {
+    setFiscalAnterior(savedFiscal);
+    setS((x) => ({ ...x, draftFiscal: fiscalForm(data.fiscal) }));
   }
 
   const set = useCallback((p: Patch) => setS((x) => ({ ...x, ...p })), []);
@@ -357,16 +370,18 @@ export function PortalProvider({
     await run(
       () =>
         editing
-          ? acaoEditarVenda(editing, items, s.currentMethod)
-          : acaoRegistrarVenda(items, s.currentMethod),
+          ? acaoEditarVenda(editing, items, s.currentMethod, s.customerDocument)
+          : acaoRegistrarVenda(items, s.currentMethod, s.customerDocument),
       editing ? "Venda atualizada" : "Venda registrada",
       (ok) => {
         if (!ok) return;
-        setS((x) => ({ ...x, cart: [], editingSale: null, cartOpen: false }));
+        // O documento sai junto com o carrinho: o CPF é de UMA venda, e deixá-lo
+        // no campo colaria o cliente anterior na nota do próximo.
+        setS((x) => ({ ...x, cart: [], editingSale: null, cartOpen: false, customerDocument: "" }));
         router.push(ROUTES.sales);
       },
     );
-  }, [s.saving, s.cart, s.currentMethod, s.editingSale, run, router]);
+  }, [s.saving, s.cart, s.currentMethod, s.editingSale, s.customerDocument, run, router]);
 
   const editSale = useCallback(
     (id: string) => {
@@ -437,6 +452,10 @@ export function PortalProvider({
               stock: p.stock == null ? "" : String(p.stock),
               minimum: p.minimum == null ? "" : String(p.minimum),
               unit: p.unit,
+              // O que está gravado NO PRODUTO, sem herdar: o campo em branco é
+              // a informação de que ele segue o padrão do negócio, e o modal
+              // mostra esse padrão como placeholder.
+              fiscal: { ...p.fiscal },
               submitted: false,
             }
           : { ...EMPTY_PRODUCT_FORM },
@@ -469,6 +488,7 @@ export function PortalProvider({
           active: f.active,
           fav: f.fav,
           service: f.service,
+          fiscal: f.fiscal,
         }),
       f.id ? "Produto atualizado" : "Produto cadastrado",
       (ok) => ok && set({ modal: null, productForm: { ...EMPTY_PRODUCT_FORM } }),
@@ -707,6 +727,35 @@ export function PortalProvider({
     [d.data],
   );
 
+  /**
+   * Salva o cadastro fiscal.
+   *
+   * `submitted` sobe ANTES de qualquer coisa: é o que faz os campos mal
+   * preenchidos se pintarem de vermelho de uma vez, em vez de a pessoa
+   * descobrir um erro por vez a cada tentativa.
+   */
+  const saveFiscal = useCallback(() => {
+    setS((x) => ({ ...x, draftFiscal: { ...x.draftFiscal, submitted: true } }));
+    return run(() => saveFiscalData(s.draftFiscal), "Dados fiscais salvos");
+  }, [s.draftFiscal, run]);
+
+  const discardFiscal = useCallback(
+    () => setS((x) => ({ ...x, draftFiscal: fiscalForm(d.fiscal) })),
+    [d.fiscal],
+  );
+
+  /**
+   * Reenvia uma nota recusada.
+   *
+   * Não há atualização otimista aqui, como em nenhuma escrita deste portal: o
+   * status de um documento fiscal é o que a SEFAZ respondeu, e pintar
+   * "autorizada" na tela antes de ela responder seria inventar um fato legal.
+   */
+  const resendDocument = useCallback(
+    (id: string) => run(() => acaoReenviarNota(id), "Nota reenviada"),
+    [run],
+  );
+
   const toggleMethod = useCallback((f: PaymentMethod) => {
     setS((x) => {
       const on = x.acceptedMethods.includes(f);
@@ -908,6 +957,9 @@ export function PortalProvider({
       reopenRegister,
       saveData,
       discardData,
+      saveFiscal,
+      discardFiscal,
+      resendDocument,
       toggleMethod,
       openRole,
       saveRole,
@@ -927,7 +979,7 @@ export function PortalProvider({
       editSale, refundSale, undoRefund, openProduct, saveProduct, toggleFav,
       toggleActive, deleteProduct, openMovement, saveMovement, undoMovement, openCost, saveCost,
       deleteCost, openRegister, recordRegisterMovement, undoRegisterMovement, closeRegister, reopenRegister,
-      saveData, discardData, toggleMethod, openRole, saveRole, removeRole,
+      saveData, discardData, saveFiscal, discardFiscal, resendDocument, toggleMethod, openRole, saveRole, removeRole,
       toggleEmployee, changeEmployeeRole, openNewTicket, sendTicket,
       replyToTicket, resolveTicket, reopenTicket, markRead,
     ],

@@ -45,6 +45,14 @@ const DASHES: Record<ModuleKey, Dash[]> = {
     ["rect", { x: 10.8, y: 8, width: 3.6, height: 9, rx: 1 }],
     ["rect", { x: 16.1, y: 4.5, width: 3.6, height: 12.5, rx: 1 }],
   ],
+  // Nota fiscal: a folha com o canto dobrado e as linhas do documento. Ainda
+  // não tem item de menu — o módulo libera a aba de Configurações — mas o
+  // ícone existe porque `MODULES` e o selo do tipo de acesso já o pedem.
+  fiscal: [
+    ["path", { d: "M6 3h7.5L19 8.5V21H6Z" }],
+    ["path", { d: "M13.5 3v5.5H19" }],
+    ["path", { d: "M9 12.5h6M9 16h4" }],
+  ],
   support: [
     ["path", { d: "M20.5 11.5a8.5 8.5 0 1 1-3.6-6.93" }],
     ["path", { d: "M20.5 11.5A8.5 8.5 0 0 1 7.2 18.6L3.5 19.8l1.2-3.7" }],

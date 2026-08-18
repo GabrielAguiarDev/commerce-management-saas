@@ -8,6 +8,7 @@ import {
 import { authorFromDb, protocolOf, statusFromDb } from "@/lib/dados/chamados";
 import { costTypeFromDb } from "@/lib/dados/custos";
 import { roleModules } from "@/lib/dados/equipe";
+import { EMPTY_FISCAL } from "@/lib/dados/fiscal";
 import { movementFromDb } from "@/lib/dados/estoque";
 import { paymentFromDb, SALE_STATUS } from "@/lib/dados/vendas";
 import { tenantModules, PORTAL_TO_DB } from "@/lib/modulos";
@@ -19,13 +20,17 @@ import type {
   Cost,
   BusinessData,
   Employee,
+  FiscalData,
   ModuleKey,
   RegisterMovement,
   StockMovement,
   Business,
   Role,
+  FiscalDocument,
+  FiscalStatus,
   Product,
   Sale,
+  TaxRegime,
 } from "@/types/types";
 
 /**
@@ -124,8 +129,12 @@ function initials(name: string): string {
 export async function readProducts(supabase: Customer): Promise<Product[]> {
   const { data } = await supabase
     .from("products")
+    // UMA string literal, sem concatenação: o tipo do PostgREST analisa este
+    // texto para saber o formato da linha, e `"a" + "b"` já chega lá como
+    // `string` — o resultado vira `GenericStringError` e todo o `map` abaixo
+    // perde o tipo.
     .select(
-      "id, name, price, cost, category, barcode, unit, is_service, is_favorite, is_active, stock_quantity, stock_min, tracks_stock",
+      "id, name, price, cost, category, barcode, unit, is_service, is_favorite, is_active, stock_quantity, stock_min, tracks_stock, ncm, cest, origin, gtin, tax_unit, cfop, icms_code, pis_cst, cofins_cst",
     )
     .order("name");
 
@@ -144,6 +153,147 @@ export async function readProducts(supabase: Customer): Promise<Product[]> {
     minimum: p.tracks_stock ? numberOrNull(p.stock_min) : null,
     unit: p.unit ?? "un",
     service: !!p.is_service,
+    // Nulo do banco vira string vazia, e vazio quer dizer "usa o padrão do
+    // negócio" — não "faltando". Quem resolve a herança é a tela, que tem os
+    // padrões à mão; resolvê-la aqui esconderia do cadastro de produto a
+    // diferença entre um NCM próprio e um herdado.
+    fiscal: {
+      ncm: p.ncm ?? "",
+      cest: p.cest ?? "",
+      origin: p.origin == null ? "" : String(p.origin),
+      gtin: p.gtin ?? "",
+      taxUnit: p.tax_unit ?? "",
+      cfop: p.cfop ?? "",
+      icmsCode: p.icms_code ?? "",
+      pisCst: p.pis_cst ?? "",
+      cofinsCst: p.cofins_cst ?? "",
+    },
+  }));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Cadastro fiscal                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * O cadastro fiscal do negócio.
+ *
+ * SÃO DUAS LEITURAS porque são duas tabelas com regras de acesso opostas:
+ * `tenant_fiscal_settings` o dono lê inteira; `fiscal_credentials` NINGUÉM com
+ * sessão lê — o que existe é a view `v_fiscal_credentials_status`, que devolve
+ * o Id do CSC (que não é segredo: viaja no QR Code da nota) e um booleano
+ * dizendo se o token está gravado. O token em si nunca sai do banco.
+ *
+ * Nenhuma das duas existe para um cliente que ainda não abriu a tela — daí o
+ * `maybeSingle()` e o retrato vazio. Ausência aqui é o estado inicial normal,
+ * não erro.
+ *
+ * RECEBE A PROMESSA DO NEGÓCIO, como `readRegister` recebe a das vendas, e por
+ * um motivo parecido: quem NÃO tem o módulo `fiscal` não deve pagar duas
+ * consultas por navegação por uma tela que nem enxerga. O custo é esta leitura
+ * começar depois de `readBusiness` — uma ida a mais, e só para quem emite nota.
+ */
+export async function readFiscal(
+  supabase: Customer,
+  business: Promise<{ business: Business }>,
+): Promise<FiscalData> {
+  const { business: b } = await business;
+  if (!b.modules.includes("fiscal")) return EMPTY_FISCAL;
+
+  const [{ data: s }, { data: c }] = await Promise.all([
+    supabase
+      .from("tenant_fiscal_settings")
+      // Uma string literal só, pelo mesmo motivo de `readProducts`.
+      .select(
+        "legal_name, tax_id, state_registration, state_registration_exempt, city_registration, tax_regime, street, street_number, complement, district, zip_code, city_name, state_code, city_ibge_code, environment, nfce_series, default_ncm, default_cfop, default_icms_code, default_pis_cst, default_cofins_cst, default_origin",
+      )
+      .maybeSingle(),
+    supabase
+      .from("v_fiscal_credentials_status")
+      .select("csc_id, csc_token_set, certificate_set, certificate_expires_at")
+      .maybeSingle(),
+  ]);
+
+  const regime = s?.tax_regime == null ? null : (Number(s.tax_regime) as TaxRegime);
+
+  return {
+    legalName: s?.legal_name ?? "",
+    taxId: s?.tax_id ?? "",
+    stateRegistration: s?.state_registration ?? "",
+    stateRegistrationExempt: !!s?.state_registration_exempt,
+    cityRegistration: s?.city_registration ?? "",
+    regime: regime && regime >= 1 && regime <= 4 ? regime : null,
+
+    street: s?.street ?? "",
+    streetNumber: s?.street_number ?? "",
+    complement: s?.complement ?? "",
+    district: s?.district ?? "",
+    zipCode: s?.zip_code ?? "",
+    cityName: s?.city_name ?? "",
+    stateCode: s?.state_code ?? "",
+    cityIbgeCode: s?.city_ibge_code ?? "",
+
+    // Sem linha no banco, o negócio está em homologação: é o estado em que
+    // todo emitente começa, e o que a tela deve mostrar antes do primeiro save.
+    environment: s?.environment === "production" ? "production" : "homologation",
+    nfceSeries: s?.nfce_series == null ? 1 : Number(s.nfce_series),
+
+    defaultNcm: s?.default_ncm ?? "",
+    defaultCfop: s?.default_cfop ?? "",
+    defaultIcmsCode: s?.default_icms_code ?? "",
+    defaultPisCst: s?.default_pis_cst ?? "",
+    defaultCofinsCst: s?.default_cofins_cst ?? "",
+    defaultOrigin: s?.default_origin == null ? "0" : String(s.default_origin),
+
+    cscId: c?.csc_id ?? "",
+    cscTokenSet: !!c?.csc_token_set,
+    certificateSet: !!c?.certificate_set,
+    certificateExpiresAt: c?.certificate_expires_at ?? "",
+  };
+}
+
+/**
+ * Os documentos fiscais emitidos (ou tentados).
+ *
+ * Mesmo corte de 180 dias das vendas, e pelo mesmo motivo: a lista cresce junto
+ * com o negócio e a tela mais longa não olha mais para trás do que isso.
+ *
+ * Também recebe a promessa do negócio — sem o módulo `fiscal`, a tela não
+ * existe e a consulta não deve acontecer.
+ */
+export async function readFiscalDocuments(
+  supabase: Customer,
+  business: Promise<{ business: Business }>,
+  days = 180,
+): Promise<FiscalDocument[]> {
+  const { business: b } = await business;
+  if (!b.modules.includes("fiscal")) return [];
+
+  const since = new Date(hoje0() - days * MS_DAY).toISOString();
+
+  const { data } = await supabase
+    .from("fiscal_documents")
+    .select(
+      "id, sale_id, model, environment, status, series, number, access_key, rejection_reason, xml_url, danfe_url, created_at, attempts",
+    )
+    .gte("created_at", since)
+    .order("created_at", { ascending: false });
+
+  return (data ?? []).map((f) => ({
+    id: f.id,
+    saleId: f.sale_id,
+    model: f.model,
+    environment: f.environment === "production" ? "production" : "homologation",
+    status: f.status as FiscalStatus,
+    series: numberOrNull(f.series),
+    number: numberOrNull(f.number),
+    accessKey: f.access_key ?? "",
+    rejectionReason: f.rejection_reason ?? "",
+    xmlUrl: f.xml_url ?? "",
+    danfeUrl: f.danfe_url ?? "",
+    d: daysAgo(f.created_at),
+    time: timeOf(f.created_at),
+    attempts: Number(f.attempts ?? 0),
   }));
 }
 

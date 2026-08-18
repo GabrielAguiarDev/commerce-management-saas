@@ -11,7 +11,10 @@ import type {
   StockMovement,
   Business,
   Role,
+  FiscalData,
+  FiscalDocument,
   Product,
+  ProductFiscal,
   Theme,
   CostType,
   RegisterMovementType,
@@ -116,6 +119,29 @@ export interface ProductForm {
   stock: string;
   minimum: string;
   unit: string;
+  /**
+   * Os campos fiscais do produto, como texto de formulário.
+   *
+   * Vazio continua querendo dizer "usa o padrão do negócio". A tela mostra o
+   * padrão herdado como PLACEHOLDER, e não como valor preenchido: preencher
+   * congelaria uma cópia do padrão no produto, e mudar o padrão depois deixaria
+   * de valer para o catálogo inteiro.
+   */
+  fiscal: ProductFiscal;
+  submitted: boolean;
+}
+
+/** Rascunho do cadastro fiscal do negócio, editável enquanto se digita. */
+export interface FiscalForm extends FiscalData {
+  /**
+   * O token do CSC digitado agora.
+   *
+   * NÃO faz parte de `FiscalData` porque nunca é LIDO do banco — o portal só
+   * sabe se existe (`cscTokenSet`). Este campo existe só no caminho de ida:
+   * vazio significa "mantém o que já está gravado", e é o que permite salvar o
+   * resto da tela sem redigitar um segredo que ela nunca recebeu.
+   */
+  cscTokenInput: string;
   submitted: boolean;
 }
 
@@ -178,7 +204,8 @@ export interface ReplyForm {
 export type SalesPeriod = "today" | "7" | "30" | "all";
 export type ReportPeriod = "today" | "7" | "30" | "90";
 export type StockTab = "items" | "movements";
-export type SettingsTab = "data" | "prefs" | "team" | "account";
+/** `fiscal` só aparece para quem tem o módulo — ver `TABS` em `ConfigView`. */
+export type SettingsTab = "data" | "fiscal" | "prefs" | "team" | "account";
 
 export interface SalesFilters {
   period: SalesPeriod;
@@ -234,6 +261,13 @@ export interface SupportFilters {
 export interface PortalData {
   business: Business;
   data: BusinessData;
+  /**
+   * O cadastro fiscal. Vem vazio (`EMPTY_FISCAL`) para quem não tem o módulo
+   * `fiscal` — nesse caso a leitura nem consulta o banco.
+   */
+  fiscal: FiscalData;
+  /** Vazio para quem não tem o módulo — a leitura nem consulta o banco. */
+  fiscalDocuments: FiscalDocument[];
   products: Product[];
   sales: Sale[];
   movements: StockMovement[];
@@ -291,6 +325,12 @@ export interface PortalState {
    */
   draftData: BusinessData;
 
+  /**
+   * Rascunho do cadastro fiscal. Mesma razão do `draftData`: o salvo vive no
+   * retrato do servidor, este é só o que está sendo digitado.
+   */
+  draftFiscal: FiscalForm;
+
   /* PDV */
   cart: CartItem[];
   currentMethod: PaymentMethod;
@@ -299,6 +339,13 @@ export interface PortalState {
   cartOpen: boolean;
   /** Venda em edição no PDV — `null` quando é uma venda nova. */
   editingSale: string | null;
+  /**
+   * O "CPF na nota", digitado no PDV.
+   *
+   * Vazio é o caso NORMAL: consumidor não identificado é perfeitamente válido
+   * numa NFC-e. Só aparece na tela para quem tem o módulo `fiscal`.
+   */
+  customerDocument: string;
 
   /* Filtros */
   fVendas: SalesFilters;
@@ -395,6 +442,11 @@ export interface PortalActions {
   /* Configurações */
   saveData: () => Promise<void>;
   discardData: () => void;
+  saveFiscal: () => Promise<void>;
+  discardFiscal: () => void;
+
+  /* Notas fiscais */
+  resendDocument: (id: string) => Promise<void>;
   toggleMethod: (f: PaymentMethod) => void;
   openRole: (id: string | null) => void;
   saveRole: () => Promise<void>;

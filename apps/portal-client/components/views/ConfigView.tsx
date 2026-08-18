@@ -18,6 +18,7 @@ import {
 import type { ReactNode } from "react";
 import { roleSummary } from "@/components/modais/EquipeModais";
 import { usePortal } from "@/components/PortalProvider";
+import { FiscalTab } from "@/components/views/ConfigFiscal";
 import { RowMenu } from "@/components/ui";
 import { MODULES, PERMISSION_MODULES } from "@/lib/dados/perfis";
 import { categoriesOf } from "@/lib/dados/produtos";
@@ -28,8 +29,14 @@ import { ROUTES } from "@/lib/rotas";
 import type { SettingsTab } from "@/types/estado";
 import type { BusinessData, ModuleKey } from "@/types/types";
 
-const TABS: { key: SettingsTab; name: string }[] = [
+/**
+ * As abas. `fiscal` entra só para quem tem o módulo — ver `tabsFor` abaixo.
+ * Ela vem logo depois de "Dados do negócio" porque é a continuação natural
+ * daquela: uma diz quem o cliente conhece, a outra diz quem a Receita conhece.
+ */
+const TABS: { key: SettingsTab; name: string; module?: ModuleKey }[] = [
   { key: "data", name: "Dados do negócio" },
+  { key: "fiscal", name: "Dados fiscais", module: "fiscal" },
   { key: "prefs", name: "Preferências" },
   { key: "team", name: "Equipe e acessos" },
   { key: "account", name: "Conta e plano" },
@@ -43,8 +50,13 @@ const TABS: { key: SettingsTab; name: string }[] = [
  * A última é só leitura de propósito — mudar plano é conversa com o suporte.
  */
 export function ConfigView() {
-  const { s, a } = usePortal();
-  const tab = s.fConfig.tab;
+  const { s, a, has } = usePortal();
+  const tabs = TABS.filter((t) => !t.module || has(t.module));
+
+  // Um cliente pode perder o módulo com a aba fiscal aberta — na troca de
+  // plano, ou trocando de aparelho com o filtro guardado. Cair na primeira aba
+  // é melhor do que renderizar uma tela que ele já não tem.
+  const tab = tabs.some((t) => t.key === s.fConfig.tab) ? s.fConfig.tab : "data";
 
   return (
     <div>
@@ -57,13 +69,14 @@ export function ConfigView() {
 
       <div style={css("margin-bottom:16px")}>
         <PillGroup<SettingsTab>
-          options={TABS}
+          options={tabs}
           current={tab}
           onPick={(v) => a.set({ fConfig: { ...s.fConfig, tab: v } })}
         />
       </div>
 
       {tab === "data" && <DataTab />}
+      {tab === "fiscal" && <FiscalTab />}
       {tab === "prefs" && <PreferencesTab />}
       {tab === "team" && <TeamTab />}
       {tab === "account" && <AccountTab />}
@@ -109,7 +122,7 @@ const FIELDS: { key: keyof BusinessData; label: string; placeholder: string }[] 
 ];
 
 function DataTab() {
-  const { s, a, isMobile, d } = usePortal();
+  const { s, a, has, isMobile, d } = usePortal();
   const r = s.draftData;
   const dirty = dataDirty(s, d.data);
   const cols = isMobile ? "1fr" : "1fr 1fr";
@@ -177,10 +190,36 @@ function DataTab() {
           })}
         </div>
 
-        <UnsavedNotice>
-          CNPJ/CPF e endereço completo ainda não têm onde ser guardados. Até lá, informe-os ao
-          support para constarem na nota.
-        </UnsavedNotice>
+        {/*
+          O aviso "em breve" que ficava aqui dizia que CNPJ e endereço não
+          tinham onde ser guardados. Agora têm — na aba Dados fiscais, que é o
+          lugar certo: o endereço da nota é o do ESTABELECIMENTO, e nem sempre
+          é o mesmo endereço de contato que esta aba guarda.
+        */}
+        {has("fiscal") ? (
+          <div
+            style={css(
+              "display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--border2);" +
+                "border-radius:12px;background:var(--surface2)",
+            )}
+          >
+            <p style={css(`margin:0;font:500 12px/1.5 ${SANS};color:var(--text2)`)}>
+              CNPJ, inscrição estadual e endereço do estabelecimento ficam na aba{" "}
+              <Button
+                onClick={() => a.set({ fConfig: { ...s.fConfig, tab: "fiscal" } })}
+                style={css(`font:600 12px ${SANS};color:var(--accent);text-decoration:underline`)}
+              >
+                Dados fiscais
+              </Button>
+              , porque é o endereço de onde a mercadoria sai — nem sempre o mesmo daqui.
+            </p>
+          </div>
+        ) : (
+          <UnsavedNotice>
+            CNPJ/CPF e endereço completo entram com o módulo de Nota Fiscal. Até lá, informe-os ao
+            suporte para constarem na nota.
+          </UnsavedNotice>
+        )}
       </div>
 
       <div

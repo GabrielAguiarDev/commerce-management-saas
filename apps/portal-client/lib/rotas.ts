@@ -15,6 +15,12 @@ export const ROUTES: Record<ModuleKey, string> = {
   reports: "/relatorios",
   settings: "/configuracoes",
   support: "/suporte",
+  /**
+   * A lista de documentos emitidos. O CADASTRO fiscal continua em
+   * Configurações › Dados fiscais — é configuração, não operação; aqui é o
+   * dia a dia: o que saiu, o que foi recusado e por quê.
+   */
+  fiscal: "/notas",
 };
 
 /** O PDV é filho de Vendas: entra por "Nova venda" e volta para a lista. */

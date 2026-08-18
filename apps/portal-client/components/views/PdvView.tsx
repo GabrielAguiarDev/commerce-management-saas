@@ -3,6 +3,7 @@
 import { usePortal } from "@/components/PortalProvider";
 import { Button, field, css, MONO, NUM, PANEL, SANS, Select } from "@aguiar/ui";
 import { brl } from "@/lib/formato";
+import { isValidCpf } from "@/lib/dados/fiscal";
 import { PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { ROUTES } from "@/lib/rotas";
 import type { Product } from "@/types/types";
@@ -32,6 +33,11 @@ export function PdvView() {
   const showFavorites = favorites.length > 0 && !search && !s.code.trim();
 
   const total = s.cart.reduce((x, c) => x + c.qtd * c.price, 0);
+
+  // AVISO, não erro: um CPF pela metade não impede a venda — ela sai com o
+  // consumidor não identificado, que é válido. Travar o balcão por causa de um
+  // campo opcional seria pior do que a nota sair sem o número.
+  const invalidDocument = s.customerDocument.trim() !== "" && !isValidCpf(s.customerDocument);
   const items = s.cart.reduce((x, c) => x + c.qtd, 0);
 
   // No celular o carrinho é uma folha sobre o catálogo; no desktop, a coluna
@@ -326,6 +332,48 @@ export function PdvView() {
                   </option>
                 ))}
               </Select>
+
+              {/*
+                O "CPF na nota" — o campo mais visível da NFC-e para quem está
+                do outro lado do balcão.
+
+                VAZIO É O NORMAL, e é por isso que ele não é obrigatório nem
+                pinta de vermelho: consumidor não identificado é perfeitamente
+                válido numa NFC-e. Ele só aparece para quem tem o módulo, senão
+                seria um campo que ninguém sabe para que serve.
+              */}
+              {has("fiscal") && (
+                <div style={css("margin-top:11px")}>
+                  <label
+                    style={css(
+                      `display:block;margin-bottom:7px;font:600 11px ${SANS};color:var(--text2)`,
+                    )}
+                  >
+                    CPF na nota{" "}
+                    <span style={css("font-weight:500;color:var(--muted)")}>(opcional)</span>
+                  </label>
+                  <input
+                    value={s.customerDocument}
+                    onChange={(e) => a.set({ customerDocument: e.target.value })}
+                    placeholder="000.000.000-00"
+                    inputMode="numeric"
+                    aria-label="CPF do cliente na nota fiscal"
+                    style={css(
+                      field().replace("padding:13px 14px", "padding:12px 12px") +
+                        `;font:500 13.5px ${MONO}`,
+                    )}
+                  />
+                  {invalidDocument && (
+                    <div
+                      style={css(
+                        `margin-top:5px;font:600 11px ${SANS};color:var(--warn)`,
+                      )}
+                    >
+                      Confira o CPF — a nota sai sem ele se estiver incompleto.
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div
                 style={css(
