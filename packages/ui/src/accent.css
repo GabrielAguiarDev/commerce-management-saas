@@ -1,0 +1,116 @@
+/* ---------------------------------------------------------------------------
+   ACCENT PRÓPRIO — o portal que quer se distinguir dos outros.
+
+   NÃO ESTÁ EM USO HOJE. Está pronto para o dia em que o console precisar de uma
+   cor que diga, de relance, "você está no admin e não no portal do cliente".
+
+   ┌─ O QUE MUDA, E O QUE NUNCA MUDA ───────────────────────────────────────┐
+   │ MUDA o ACCENT: o botão, o link, a borda em foco, o selo — a cor com    │
+   │ que ESTE produto se pinta.                                             │
+   │                                                                        │
+   │ NÃO MUDA A MARCA. `--brand` continua o azul do "A" em todos os apps: o │
+   │ logo na barra lateral, o ícone instalado, o `theme_color` da janela, o │
+   │ splash. É a mesma empresa, e o mesmo dono entra nos dois portais no    │
+   │ mesmo dia. Trocar a marca por produto não distinguiria o admin — daria │
+   │ a impressão de duas empresas.                                          │
+   │                                                                        │
+   │ É por isso que `tokens.css` sempre separou `--brand` de `--accent`,    │
+   │ com `--accent: var(--brand)` como padrão. Este arquivo só desfaz esse  │
+   │ apelidamento; não inventa camada nenhuma.                              │
+   └────────────────────────────────────────────────────────────────────────┘
+
+   ┌─ COMO LIGAR (três linhas, no app) ─────────────────────────────────────┐
+   │  1. no `globals.css` do app, depois de `tokens.css`:                   │
+   │         @import "@aguiar/ui/accent.css";                               │
+   │                                                                        │
+   │  2. no mesmo arquivo, a semente — UM hexadecimal, e só ele:            │
+   │         body { --accent-seed: #7c5cd6; }                               │
+   │                                                                        │
+   │  3. no `<body>` do `layout.tsx`, o interruptor:                        │
+   │         <body data-accent>                                             │
+   └────────────────────────────────────────────────────────────────────────┘
+
+   ┌─ POR QUE O INTERRUPTOR, E NÃO UM FALLBACK ─────────────────────────────┐
+   │ Daria para escrever `var(--accent-seed, var(--brand))` e dispensar o   │
+   │ `data-accent`. Seria pior: o caminho PADRÃO — o de todo mundo — passaria│
+   │ a ser calculado, e os tons da marca no `tokens.css` foram afinados na   │
+   │ mão, com contraste medido um a um (5,3:1 do `--accent-text` sobre       │
+   │ branco, 7,1:1 do accent escuro sobre o card). Uma fórmula chegaria     │
+   │ PERTO deles e não neles, e trocaria uma coisa verificada por uma        │
+   │ aproximada sem ninguém pedir.                                          │
+   │                                                                        │
+   │ Com o atributo, quem não o põe continua com a rampa da marca, byte por │
+   │ byte. Só quem escolheu sair dela é que é calculado.                    │
+   └────────────────────────────────────────────────────────────────────────┘
+
+   ┌─ ⚠  O QUE CONFERIR ANTES DE PUBLICAR UMA SEMENTE NOVA ─────────────────┐
+   │ Os `L` abaixo são os degraus que a própria marca ocupa em OKLCH        │
+   │ (`--brand` está em L .638, `--brand-text` em .522, o accent escuro em  │
+   │ .721). Isso acerta a LUMINOSIDADE PERCEBIDA, que é o que mantém a      │
+   │ rampa com a mesma forma em qualquer matiz.                             │
+   │                                                                        │
+   │ Só que contraste WCAG não é luminosidade percebida: no mesmo L, um     │
+   │ amarelo tem muito mais luminância relativa que um azul. Em azul, L .52 │
+   │ dá os 5,3:1 sobre branco; em outra matiz pode dar bem menos.           │
+   │                                                                        │
+   │ Então, para cada semente nova, MEÇA duas coisas e ajuste o L se        │
+   │ precisar:                                                              │
+   │   · `--accent-text` sobre `--surface` e sobre `--bg`  → ≥ 4,5:1        │
+   │   · `--accent-ink` sobre `--accent`                   → ≥ 4,5:1        │
+   │                                                                        │
+   │ `--accent-ink` está em branco, que serve a qualquer semente MÉDIA OU   │
+   │ ESCURA. Semente clara (um âmbar, um lima) precisa de tinta escura — e  │
+   │ aí o app sobrescreve `--accent-ink` junto com a semente.               │
+   └────────────────────────────────────────────────────────────────────────┘
+
+   Sintaxe: `oklch(from …)` (relative color) e `color-mix()`. Ambas são
+   Baseline desde 2024 — Chrome 119, Safari 16.4, Firefox 128 — e nenhum
+   navegador que roda um portal Next 16 fica de fora.
+--------------------------------------------------------------------------- */
+
+body[data-accent] {
+  /* Preenchido e desenhado: o botão cheio, a borda em foco, o traço do ícone.
+     É a semente, chapada. */
+  --accent: var(--accent-seed);
+
+  /* A tinta ESCRITA sobre o accent. Ver o aviso acima: branco só serve a
+     semente média ou escura. */
+  --accent-ink: #ffffff;
+
+  /* Lavagens: o fundo do selo e a borda que combina com ele. 12% e 25% sobre
+     branco, os mesmos da marca. `in oklab` mistura sem passar por cinza no
+     meio, que é o que `in srgb` faz com azul e verde. */
+  --accent-soft: color-mix(in oklab, var(--accent-seed) 12%, white);
+  --accent-line: color-mix(in oklab, var(--accent-seed) 25%, white);
+
+  /* O hover do desenhado: um degrau acima, como `--brand-bright` está acima
+     de `--brand`. */
+  --accent-hi: oklch(from var(--accent-seed) 0.73 c h);
+
+  /* O accent QUANDO É PALAVRA — rótulo, link, número em evidência. Fechado
+     para poder ser lido sobre superfície clara, onde a semente chapada não
+     costuma passar de 3,3:1. É o degrau que mais precisa de medição. */
+  --accent-text: oklch(from var(--accent-seed) 0.52 c h);
+  --accent-text-hi: var(--accent-seed);
+}
+
+body[data-theme="dark"][data-accent] {
+  /* No escuro a semente sobe, e só a luminosidade sobe: mesma matiz, aberta
+     até carregar sobre o card petrol. */
+  --accent: oklch(from var(--accent-seed) 0.72 c h);
+  --accent-hi: oklch(from var(--accent-seed) 0.77 c h);
+
+  /* Aqui as lavagens são sobre o CHÃO do tema, não sobre branco — misturar
+     com branco no escuro devolveria um borrão claro no meio da tela. */
+  --accent-soft: color-mix(in oklab, var(--accent-seed) 22%, var(--bg));
+  --accent-line: color-mix(in oklab, var(--accent-seed) 38%, var(--bg));
+
+  /* Sobre este chão a semente aberta já se lê como rótulo: o degrau escrito
+     aponta para o desenhado, como faz o tema escuro da marca. */
+  --accent-text: var(--accent);
+  --accent-text-hi: var(--accent-hi);
+
+  /* A tinta sobre o accent aberto é escura, não branca — o mesmo que
+     `tokens.css` faz com `--accent-ink` no escuro. */
+  --accent-ink: oklch(from var(--accent-seed) 0.18 c h);
+}

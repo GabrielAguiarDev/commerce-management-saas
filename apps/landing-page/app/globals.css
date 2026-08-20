@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@aguiar/ui/brand.css";
 
 /* ---------------------------------------------------------------------------
    Design tokens — Aguiar One, site de entrada.
@@ -11,13 +12,19 @@
    tema escuro inteiro que esta página não usa.
 
    O que é COMPARTILHADO é a MARCA e o método. As cores de identidade — o azul
-   primário e o degrau de texto dele, o petrol, o verde de positivo — são as
-   MESMAS dos
-   portais e do app, valor por valor, e estão anotadas abaixo com a origem de
-   cada uma. O que é próprio daqui são as superfícies claras e as bordas, que
-   servem ao ritmo da página. Do método vêm as convenções: cor vira variável,
-   superfície clicável carrega o estilo base inline e o hover vem de uma classe
-   (ver o bloco no fim do arquivo). O helper `css()` é o mesmo, de `@aguiar/ui`.
+   primário e o degrau de texto dele, o petrol, o verde de positivo — não são
+   mais COPIADAS dos portais: entram por `@aguiar/ui/brand.css`, gerado de
+   `@aguiar/brand`, que é o mesmo arquivo que os portais e o app mobile leem.
+   Elas aparecem abaixo como `var(--brand…)`, e nenhuma delas tem hex aqui.
+
+   O que é PRÓPRIO daqui são as superfícies claras e as bordas, que servem ao
+   ritmo da página — e elas continuam com valor literal, porque são decisão
+   desta página sobre o chão dela. A régua é essa: identidade vem de fora,
+   superfície é de quem a pisa.
+
+   Do método vêm as convenções: cor vira variável, superfície clicável carrega
+   o estilo base inline e o hover vem de uma classe (ver o bloco no fim do
+   arquivo). O helper `css()` é o mesmo, de `@aguiar/ui`.
 
    Não há tema escuro. A página tem uma composição fixa de dobras claras e
    escuras alternadas; deixá-la seguir o sistema desmontaria esse ritmo.
@@ -47,11 +54,12 @@
   /* Texto sobre claro, do mais forte ao mais apagado. `petrol` é o título;
      `ink` é o corpo.
 
-     `petrol` é o petrol da marca, o mesmo `--petrol` dos portais e o
-     `palette.petrolLight` do app. Além do título, ele é o fundo de tudo que
-     nesta página é escuro e pequeno: o ladrilho de ícone dos módulos, o card do
-     plano em destaque, a última dobra. */
-  --petrol: #123c4a;
+     `petrol` é o petrol da marca — o mesmo que os portais chamam de `--petrol`
+     e o app de `palette.petrolLight`, porque os três apontam para o mesmo
+     `--brand-petrol`. Além do título, ele é o fundo de tudo que nesta página é
+     escuro e pequeno: o ladrilho de ícone dos módulos, o card do plano em
+     destaque, a última dobra. */
+  --petrol: var(--brand-petrol);
   --ink: #16232b;
   --text2: #5b7280;
   --text3: #4c6470;
@@ -61,12 +69,17 @@
   /* As duas dobras escuras: a primeira é um degradê de `petrol` para
      `petrol2`, o rodapé é `petrol-deep`.
 
-     É a MESMA descida da tela de entrada do app mobile: `petrol2` é o
-     `palette.authMid` e `petrol-deep` é o `palette.authBase` — que é o
-     secundário da marca, o fundo do ícone e a barra lateral do console. O
-     rodapé do site é, literalmente, o chão da marca. */
+     `petrol-deep` é `--brand-ink`: o secundário da marca, o fundo do arquivo do
+     ícone, o splash do app e a barra lateral do console. O rodapé do site é,
+     literalmente, o chão da marca — não uma cor parecida com ele.
+
+     `petrol2` é o degrau intermediário desta descida e só existe aqui, então
+     fica com valor literal. (Ele já foi anotado como sendo o `palette.authMid`
+     do app; deixou de ser em 2026-08-13, quando a entrada do app passou a ser
+     clara. A anotação ficou para trás — é o tipo de deriva que este arquivo
+     não tem mais como sofrer nas cores que vêm de `brand.css`.) */
   --petrol2: #072634;
-  --petrol-deep: #020e18;
+  --petrol-deep: var(--brand-ink);
 
   /* Texto sobre petrol, do mais forte ao mais apagado. São lavagens de branco
      escolhidas para o fundo escuro — nenhuma delas é um cinza neutro. */
@@ -75,15 +88,15 @@
   --on-petrol3: #bfd4d9;
   --on-petrol-muted: #8faab2;
   --on-petrol-faint: #6e8b94;
-  /* O azul que sobrevive sobre o petrol. É o `palette.logoTop` do app — o topo
-     do degradê do próprio "A" —, e o mesmo tom que os portais usam como accent
-     vivo no tema escuro. A primária chapada não serve aqui: sobre o petrol ela
-     fecha demais e o texto some. */
-  --on-petrol-accent: #4cc4e6;
+  /* O azul que sobrevive sobre o petrol: `--brand-hi`, o topo do degradê do
+     próprio "A" — o mesmo tom que o app usa como `logoTop` e que os portais
+     usam como accent vivo no tema escuro. A primária chapada não serve aqui:
+     sobre o petrol ela fecha demais e o texto some. */
+  --on-petrol-accent: var(--brand-hi);
 
-  /* A PRIMÁRIA DA MARCA: o azul do "A" do logo, `#1b9abd`. É o mesmo
-     `--brand`/`--accent` dos portais (`packages/ui/src/tokens.css`) e o
-     `palette.brandPrimary` do app.
+  /* A PRIMÁRIA DA MARCA: o azul do "A" do logo. Ela não tem valor escrito
+     aqui — é `--brand`, que chega de `@aguiar/ui/brand.css`, o mesmo de onde
+     saem o `--accent` dos portais e o `palette.brandPrimary` do app.
 
      ┌─ UMA MATIZ SÓ, EM DOIS DEGRAUS ────────────────────────────────────┐
      │ A página TINHA DUAS primárias: esta e uma família `--teal`         │
@@ -100,9 +113,9 @@
      │                                                                     │
      │   PREENCHIDO ou DESENHADO → `--accent`. Fundo grande, com branco   │
      │     por cima: chamada da primeira dobra, cartão de plano, forma.    │
-     │   ESCRITO → `--accent-text`. É `#0e7590`, o `--accent-text` dos    │
-     │     portais, valor por valor. A primária chapada dá 3.3:1 sobre    │
-     │     branco e não é texto; este degrau dá 5.3:1 e é.                 │
+     │   ESCRITO → `--accent-text`. É `--brand-text`, o mesmo degrau que  │
+     │     os portais chamam de `--accent-text`. A primária chapada dá     │
+     │     3.3:1 sobre branco e não é texto; este degrau dá 5.3:1 e é.     │
      │                                                                     │
      │ O botão do cabeçalho fica no degrau ESCRITO, e não no vivo: ele    │
      │ tem 14px, e branco sobre `--accent` daria 3.3:1 num alvo pequeno.  │
@@ -112,26 +125,36 @@
      Os `hi` são os hovers, e nesta página eles ESCURECEM — ao contrário dos
      portais, que abrem o tom para cima porque precisam servir também ao tema
      escuro. Aqui não há tema escuro: sobre o claro, escurecer é o que mantém
-     o contraste subindo em vez de cair no meio da interação. */
-  --accent: #1b9abd;
+     o contraste subindo em vez de cair no meio da interação. Por serem uma
+     descida que só esta página faz, os dois `hi` ficam com valor literal.
+
+     `glow` é o halo sob a chamada da primeira dobra: a própria marca a 28%.
+     Ela sai de `--brand-rgb`, os canais da marca separados, e não de um
+     `rgba(27,154,189,.28)` escrito à mão — naquela forma ninguém reconhecia o
+     azul do logo, e uma troca de marca deixaria o halo para trás. (Não é
+     `color-mix`: o Lightning CSS gera para ele um fallback com a cor chapada,
+     e um halo de 28% chapado é um borrão azul. Ver `brand.css`.) */
+  --accent: var(--brand);
   --accent-hi: #157e9b;
-  --accent-glow: rgba(27, 154, 189, 0.28);
+  --accent-glow: rgba(var(--brand-rgb), 0.28);
 
   /* O degrau de TEXTO da primária, e o hover dele. `soft` é a lavagem de
-     fundo — o ladrilho de ícone da dobra "Para quem é" —, e é o
-     `--accent-soft` dos portais, valor por valor. */
-  --accent-text: #0e7590;
+     fundo — o ladrilho de ícone da dobra "Para quem é". Os dois primeiros vêm
+     da marca; o hover é desta página, pelo motivo do bloco acima. */
+  --accent-text: var(--brand-text);
   --accent-text-hi: #0b5b70;
-  --accent-soft: #e4f3f7;
+  --accent-soft: var(--brand-soft);
 
   /* Positivo: lucro, item incluído no plano, variação para cima.
-     `pos-on-petrol` é a versão que sobrevive sobre o card escuro.
 
-     São o verde dos portais e do app (`--pos` / `palette.greenLight`) e o do
-     tema escuro (`palette.greenDark`) — não um verde de vitrine. O lucro tem
-     que ter a mesma cor no anúncio e na dashboard que ele abre depois. */
-  --pos: #17795e;
-  --pos-soft: #e2f2ec;
+     `--pos` e `--pos-soft` NÃO ESTÃO AQUI: chegam de `brand.css`, iguais aos
+     dos portais e ao `palette.greenLight` do app. Não é um verde de vitrine —
+     o lucro tem que ter a mesma cor no anúncio e na dashboard que o anúncio
+     abre depois.
+
+     `pos-on-petrol` é a versão que sobrevive sobre o card escuro, e essa sim é
+     desta página: o verde que os portais abrem no tema escuro (`--pos-dark`)
+     foi afinado para o chão deles, que não é este. */
   --pos-on-petrol: #43c193;
 
   /* Neutro lavado: o selo do módulo que NÃO está no plano grátis. Ele é o
