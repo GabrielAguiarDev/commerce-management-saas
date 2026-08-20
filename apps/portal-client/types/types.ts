@@ -25,6 +25,19 @@ export type ModuleKey =
   | "settings"
   | "support";
 
+/**
+ * Um módulo do catálogo, já traduzido para o vocabulário do portal.
+ *
+ * É só APRESENTAÇÃO: chave, nome e a frase que explica para que serve. Nunca
+ * carrega dado do módulo — o cliente que não tem Estoque continua sem ver
+ * saldo nenhum, porque não há saldo nenhum aqui dentro.
+ */
+export interface CatalogModule {
+  key: ModuleKey;
+  name: string;
+  benefit: string;
+}
+
 export type Theme = "light" | "dark";
 
 export type PaymentMethod = "cash" | "pix" | "debit" | "credit";
@@ -57,6 +70,13 @@ export interface Business {
   type: string;
   user: User;
   modules: ModuleKey[];
+  /**
+   * Todo módulo vendável, ativo ou não — só nome e frase, nunca dado.
+   *
+   * É o que permite oferecer o que falta sem consultar nada do módulo que o
+   * cliente não tem: o cartão de sugestão do dashboard lê daqui.
+   */
+  catalog: CatalogModule[];
 }
 
 /* -------------------------------------------------------------------------- */

@@ -10,7 +10,7 @@ import { costTypeFromDb } from "@/lib/dados/custos";
 import { roleModules } from "@/lib/dados/equipe";
 import { movementFromDb } from "@/lib/dados/estoque";
 import { paymentFromDb, SALE_STATUS } from "@/lib/dados/vendas";
-import { tenantModules, PORTAL_TO_DB } from "@/lib/modulos";
+import { moduleCatalog, tenantModules, PORTAL_TO_DB } from "@/lib/modulos";
 import type { Session } from "@/lib/sessao";
 import type {
   OpenRegister,
@@ -84,9 +84,23 @@ export async function readBusiness(
   tenantId: string,
   nomeUsuario: string,
 ): Promise<{ business: Business; data: BusinessData }> {
-  const [{ data: tenant }, { data: mods }] = await Promise.all([
+  const [{ data: tenant }, { data: mods }, { data: catalog }] = await Promise.all([
     supabase.from("tenants").select("id, name, segment, phone, city").eq("id", tenantId).single(),
     supabase.from("v_active_modules").select("key, is_access"),
+
+    /**
+     * O CATÁLOGO — o que existe para vender, e não o que este cliente tem.
+     *
+     * Só nome e descrição: nenhuma linha de dado de um módulo que o plano não
+     * liga passa por aqui, e não passaria mesmo se quiséssemos — o RLS de cada
+     * tabela continua sendo a fechadura. Isto é a lista de produtos, não o
+     * estoque de ninguém.
+     *
+     * Pode voltar vazia: `modules` nasceu como tabela do painel administrativo
+     * e talvez o RLS do tenant não a alcance. Não é erro — `catalogoModulos`
+     * cai para o catálogo em código, e o único prejuízo é o texto vir de lá.
+     */
+    supabase.from("modules").select("key, name, description, is_access"),
   ]);
 
   const name = tenant?.name ?? "Seu negócio";
@@ -99,6 +113,7 @@ export async function readBusiness(
       type: tenant?.segment ?? "Comércio",
       user: { name: nomeUsuario, initials: initials(nomeUsuario) },
       modules: tenantModules(mods ?? []),
+      catalog: moduleCatalog(catalog),
     },
     data: {
       name,
