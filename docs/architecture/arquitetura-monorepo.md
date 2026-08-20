@@ -40,6 +40,16 @@ aguiar-one-saas/
 └── (config do monorepo)
 ```
 
+### A demonstração da landing copia telas do portal — e não se atualiza sozinha
+
+A primeira dobra da `landing-page` (`components/DemoStage.tsx`) é uma
+**reprodução visual** de três telas do `portal-client` — `DashboardView`,
+`PdvView` e `VendasView` — remontada com o CSS da landing e dados fixos. Não
+importa componente nenhum do portal e não fala com o Supabase: é maquete, não
+o produto embutido. **Quando aquelas telas mudarem, esta não muda junto e nada
+avisa** — revise `DemoStage.tsx` no mesmo commit, ou a landing passa a
+prometer uma tela que não existe mais.
+
 ### Atualização dos dados no portal do cliente
 
 O portal **não tem polling nem realtime**: o retrato do negócio é montado uma
