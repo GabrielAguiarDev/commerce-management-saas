@@ -278,6 +278,109 @@ section[id] {
 }
 
 /* ---------------------------------------------------------------------------
+   O CABEÇALHO EM CELULAR, E O VÉU DA PRIMEIRA DOBRA.
+
+   Os dois arranjos de repouso são inline, em `Header.tsx` e `Hero.tsx`, e são
+   os de tela larga. Este bloco é o degrau de celular dos dois — e precisa de
+   `!important` pela mesma razão que o bloco de hover logo acima: quem carrega
+   a aparência de repouso é um `style`, e classe não ganha de estilo inline.
+--------------------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  /* NADA NO CABEÇALHO PODE QUEBRAR EM DUAS LINHAS — a marca menos ainda. Somados
+     nos tamanhos de tela larga, a marca, os dois links e o botão passam de
+     440px, e numa faixa de 390px o nome da empresa cai para a linha de baixo,
+     que é o pior lugar possível para o olho encontrar um nome de marca.
+
+     O CONSERTO É TIRAR DE TODOS UM POUCO, e não esconder um deles: os dois
+     links são a navegação inteira da página e o botão é a chamada que
+     acompanha as sete dobras. O que sai são pixels de sobra — tipo, vão e
+     folga —, e o `nowrap` garante que, se ainda assim faltar largura em algum
+     aparelho estreito, o que acontece é a barra ficar apertada, nunca um texto
+     partido no meio. */
+  .lp-header {
+    padding: 11px 14px !important;
+    gap: 8px !important;
+  }
+
+  .lp-header a,
+  .lp-header span {
+    white-space: nowrap;
+  }
+
+  .lp-brand span {
+    font-size: 15px !important;
+  }
+
+  .lp-brand img {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  /* O vão entre o "A" e o nome, dentro do `Wordmark`. */
+  .lp-brand > a > div {
+    gap: 7px !important;
+  }
+
+  .lp-header-nav {
+    gap: 10px !important;
+  }
+
+  .lp-nav {
+    font-size: 13px !important;
+  }
+
+  .lp-cta-soft {
+    font-size: 13px !important;
+    padding: 9px 11px !important;
+  }
+
+  /* UMA MANCHA SÓ, DE CIMA PARA BAIXO. As duas manchas de canto de tela larga,
+     numa faixa estreita, se encostam e deixam um poço branco no meio: em vez
+     de luz entrando pelos cantos, lê-se uma faixa azul furada. Aqui a cor
+     entra pelo topo inteiro e morre em pixels, não em porcentagem — a dobra do
+     celular tem mais de 1200px de altura, e uma parada em `%` espalharia o
+     azul por baixo da demonstração. Ela acaba nos ~540px, antes do painel, que
+     é a mesma intenção do arranjo largo: o painel pousa em branco. */
+  .lp-hero {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(27, 154, 189, 0.2) 0,
+        rgba(27, 154, 189, 0.13) 120px,
+        rgba(27, 154, 189, 0.07) 250px,
+        rgba(27, 154, 189, 0.03) 380px,
+        rgba(27, 154, 189, 0.01) 470px,
+        rgba(27, 154, 189, 0) 540px
+      ),
+      #fff !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   ABAIXO DE 360px A NAVEGAÇÃO SAI, e ficam a marca e a chamada.
+
+   Encolher tem fim. No degrau acima, os quatro elementos cabem numa faixa de
+   360px com pouco mais de dez pixels de sobra; em 320px — o iPhone SE de
+   primeira geração, e o que sobrou de aparelho estreito em uso — faltam
+   quarenta, e não existe tamanho de fonte que resolva isso sem deixar os links
+   ilegíveis.
+
+   O QUE FICA É O QUE NÃO PODE FALTAR: quem é a empresa e como falar com ela.
+   Os dois links não somem da página — "Módulos" e "Planos" são âncoras para
+   dobras da mesma rolagem, e o rodapé tem as duas. Perde-se o atalho, não o
+   destino, e é por isso que dá para cortá-los aqui sem trocar por um menu
+   sanduíche, que custaria JavaScript, foco, `aria-expanded` e uma gaveta —
+   tudo para levar a um lugar que está a um deslize de distância.
+--------------------------------------------------------------------------- */
+
+@media (max-width: 359px) {
+  .lp-header-nav {
+    display: none !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Revelação ao entrar na viewport.
 
    O ESTADO ESCONDIDO MORA ATRÁS DE `js-reveal`, e essa classe só existe se o
@@ -517,6 +620,1817 @@ section[id] {
      vão cai para ~37px. */
   .lp-panel-bar {
     max-width: 84px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   A DEMONSTRAÇÃO ENCENADA DA PRIMEIRA DOBRA.
+
+   A coreografia inteira mora AQUI. `DemoStage.tsx` manda o HTML das três telas
+   com todos os estados dentro dele, e `DemoDriver.tsx` só escreve na raiz os
+   `data-*` do quadro atual — o que cada atributo significa está em `lib/demo.ts`.
+   Não há uma linha de JavaScript que decida cor, posição ou opacidade.
+
+   ┌─ A REGRA QUE MANDA NESTE BLOCO ────────────────────────────────────────┐
+   │ SEM NENHUM ATRIBUTO, o que este arquivo pinta é o PAINEL DEPOIS DA     │
+   │ VENDA, parado: R$ 1.240 no dia, a venda das 14:32 no topo da lista.    │
+   │ Esse é o HTML que o servidor manda, é o que fica na tela se o          │
+   │ JavaScript não chegar, e é o mesmo painel que a página tinha antes     │
+   │ desta demo existir.                                                    │
+   │                                                                        │
+   │ Toda regra abaixo, então, é o que ACONTECE POR CIMA disso quando o     │
+   │ roteiro roda — `[data-before]` rebobina o dia, `[data-cart]` acende o  │
+   │ carrinho. Nunca o contrário. Uma regra que precise apagar algo para o  │
+   │ primeiro quadro ficar certo é uma regra escrita ao contrário.          │
+   └────────────────────────────────────────────────────────────────────────┘
+
+   O QUE SE ANIMA são `opacity` e `transform`, mais `background-color` em dois
+   destaques (que o compositor resolve na pintura, sem recalcular layout).
+   Largura, altura e posição de caixa nenhuma se movem: as três telas ficam
+   empilhadas em `position:absolute` dentro de um palco de altura fixa, e a
+   linha nova das listas entra fora do fluxo, empurrando as de baixo por
+   `translateY` em vez de fazer a caixa se refazer.
+
+   A ÚNICA EXCEÇÃO DELIBERADA é o texto sendo digitado, que aparece caractere a
+   caractere por `display`. Com `opacity` os cinco caracteres já ocupariam a
+   largura da palavra inteira desde o começo, e o cursor de texto ficaria parado
+   no fim dela enquanto as letras acendem atrás — que é exatamente a aparência
+   que denuncia a encenação. O campo tem largura reservada, então o que se mexe
+   não sai de dentro dele.
+--------------------------------------------------------------------------- */
+
+/* --- A moldura, igual à das outras ilustrações da página ------------------ */
+
+.lp-demo-frame {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow:
+    0 28px 56px -16px rgba(18, 60, 74, 0.2),
+    0 6px 16px -6px rgba(18, 60, 74, 0.1);
+}
+
+.lp-demo-chrome {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 4px 12px;
+}
+
+.lp-demo-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--chrome);
+}
+
+.lp-demo-caption {
+  margin-left: auto;
+  display: inline-grid;
+  justify-items: end;
+  font-family: var(--display-stack);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted2);
+}
+
+.lp-demo-caption > span {
+  grid-area: 1/1;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* O padrão da legenda é o painel — ver a regra que manda neste bloco. */
+.lp-demo-caption > [data-c="dash"] {
+  opacity: 1;
+}
+
+.lp-demo[data-screen] .lp-demo-caption > span {
+  opacity: 0;
+}
+
+.lp-demo[data-screen="dash"] .lp-demo-caption > [data-c="dash"],
+.lp-demo[data-screen="pdv"] .lp-demo-caption > [data-c="pdv"],
+.lp-demo[data-screen="sales"] .lp-demo-caption > [data-c="sales"] {
+  opacity: 1;
+}
+
+/* --- O menu lateral ------------------------------------------------------- */
+
+/* `lp-panel-rail` (mais acima) é quem decide se ela existe: escondida no
+   celular, coluna a partir de 1000px. Aqui só vai o que é da demo. */
+.lp-demo-rail {
+  background: var(--petrol);
+  border-radius: 12px;
+  padding: 14px 10px;
+}
+
+.lp-demo-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 6px 12px;
+  font-family: var(--display-stack);
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+/* O peso NÃO muda entre aceso e apagado, só a cor e o fundo: mudar a fonte de
+   500 para 600 reflui a linha, e uma linha que reflui a cada troca de tela é
+   um tremor que o olho pega mesmo sem saber o que viu. */
+.lp-demo-rail-item {
+  padding: 13px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--on-petrol-muted);
+  background: rgba(255, 255, 255, 0);
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease;
+}
+
+.lp-demo-rail-item[data-on="dash"] {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+
+.lp-demo[data-screen] .lp-demo-rail-item {
+  background: rgba(255, 255, 255, 0);
+  color: var(--on-petrol-muted);
+}
+
+.lp-demo[data-screen="dash"] .lp-demo-rail-item[data-on="dash"],
+.lp-demo[data-screen="pdv"] .lp-demo-rail-item[data-on="sales"],
+.lp-demo[data-screen="sales"] .lp-demo-rail-item[data-on="sales"] {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+
+/* --- O palco e a barra de topo -------------------------------------------- */
+
+/* `overflow:hidden` porque o ponteiro é uma caixa do tamanho do palco que se
+   desloca: sem isto, ela empurraria a página para o lado. */
+.lp-demo-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.lp-demo-topbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 46px;
+  padding: 0 10px 0 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.lp-demo-topbar-num {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lp-demo-topbar-label {
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.lp-demo-topbar-num strong {
+  font-family: var(--display-stack);
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-demo-btn-new {
+  position: relative;
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--display-stack);
+  font-weight: 700;
+  font-size: 12.5px;
+  white-space: nowrap;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+/* O portal esconde "Nova venda" quando já se está no PDV. */
+.lp-demo[data-screen="pdv"] .lp-demo-btn-new {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* --- As três telas empilhadas --------------------------------------------- */
+
+.lp-demo-screens {
+  position: relative;
+  flex: none;
+  /* A ALTURA É FIXA, e é ela que segura o CLS: as três telas ficam empilhadas
+     aqui dentro e nenhuma troca mexe na altura da dobra.
+
+     A MEDIDA É A DE UMA TELA DE VERDADE, e não a do menor retângulo em que o
+     conteúdo cabe. Espremida, a demo cabia — mas com o gráfico sem barra, a
+     lista mostrando uma linha e meia e o carrinho encostado no botão de
+     cobrar: parecia uma maquete, não o produto. Cada degrau tem a folga do
+     arranjo que roda nele.
+
+     MEXEU AQUI? AS COORDENADAS DO PONTEIRO ENVELHECERAM JUNTO — elas são
+     fração desta altura. Ver o comentário delas, mais abaixo. */
+  height: 500px;
+}
+
+.lp-demo-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  visibility: hidden;
+  transition:
+    opacity 0.34s ease,
+    transform 0.34s ease,
+    visibility 0s linear 0.34s;
+}
+
+.lp-demo-screen[data-s="dash"],
+.lp-demo[data-screen="dash"] .lp-demo-screen[data-s="dash"],
+.lp-demo[data-screen="pdv"] .lp-demo-screen[data-s="pdv"],
+.lp-demo[data-screen="sales"] .lp-demo-screen[data-s="sales"] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.lp-demo[data-screen] .lp-demo-screen {
+  opacity: 0;
+  transform: translateY(10px);
+  visibility: hidden;
+  transition-delay: 0s, 0s, 0.34s;
+}
+
+/* --- Vocabulário comum: cabeçalho, cartão, número que troca --------------- */
+
+.lp-demo-head {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lp-demo-title {
+  font-family: var(--display-stack);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.lp-demo-sub {
+  margin-top: 3px;
+  display: block;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+/* O "‹" que volta para a lista, como no cabeçalho do PDV. */
+.lp-demo-back {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.lp-demo-back-btn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.lp-demo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.lp-demo-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.lp-demo-card-title {
+  font-family: var(--display-stack);
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.lp-demo-card-note {
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.lp-demo-ghost {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent-text);
+  white-space: nowrap;
+}
+
+/* Os dois valores de um número que muda, empilhados na mesma célula: a caixa
+   nasce com a largura do mais largo e a troca não empurra o vizinho. */
+.lp-demo-swap {
+  display: inline-grid;
+}
+
+.lp-demo-swap > span {
+  grid-area: 1/1;
+  white-space: nowrap;
+  transition: opacity 0.45s ease;
+}
+
+.lp-demo-swap-before {
+  opacity: 0;
+}
+
+.lp-demo[data-before] .lp-demo-swap-before {
+  opacity: 1;
+}
+
+.lp-demo[data-before] .lp-demo-swap-after {
+  opacity: 0;
+}
+
+/* O mesmo empilhamento para o que depende da QUANTIDADE do carrinho. Sem
+   `data-qty`, vale o de um item. */
+.lp-demo-money,
+.lp-demo-qty,
+.lp-demo-cart-count,
+.lp-demo-cart-line,
+.lp-demo-total-value,
+.lp-demo-tile-badge {
+  display: inline-grid;
+  justify-items: center;
+}
+
+.lp-demo-money > [data-q],
+.lp-demo-qty > [data-q],
+.lp-demo-cart-count > [data-q],
+.lp-demo-cart-line > [data-q],
+.lp-demo-total-value > [data-q],
+.lp-demo-tile-badge > [data-q] {
+  grid-area: 1/1;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* O CARRINHO VAZIO NÃO MENTE. Enquanto não há item, a contagem, o total e o
+   rótulo do botão mostram o zero e o botão fica apagado — que é o que o portal
+   faz (`disabled={!s.cart.length}` em `PdvView`). Sem esta regra a demo
+   anunciaria "1 item · R$ 32,00" com a caixa ainda vazia. */
+.lp-demo:not([data-cart]) [data-q="0"] {
+  opacity: 1;
+}
+
+.lp-demo:not([data-cart]) .lp-demo-cart-count > [data-q="1"],
+.lp-demo:not([data-cart]) .lp-demo-total-value > [data-q="1"],
+.lp-demo:not([data-cart]) .lp-demo-money > [data-q="1"] {
+  opacity: 0;
+}
+
+.lp-demo:not([data-cart]) .lp-demo-confirm {
+  opacity: 0.45;
+}
+
+.lp-demo [data-q="1"] {
+  opacity: 1;
+}
+
+.lp-demo[data-qty="2"] [data-q="1"] {
+  opacity: 0;
+}
+
+.lp-demo[data-qty="2"] [data-q="2"] {
+  opacity: 1;
+}
+
+/* --- TELA 1: o resumo de hoje --------------------------------------------- */
+
+.lp-demo-dash {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto auto 1fr;
+}
+
+.lp-demo-kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.lp-demo-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  min-width: 0;
+}
+
+.lp-demo-kpi-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lp-demo-dash-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--pos);
+}
+
+.lp-demo-dash-dot[data-i="1"] {
+  background: var(--dashed);
+}
+
+.lp-demo-dash-dot[data-i="2"],
+.lp-demo-dash-dot[data-i="3"] {
+  background: var(--accent);
+}
+
+.lp-demo-kpi-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lp-demo-kpi-value {
+  font-family: var(--display-stack);
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* O lucro é o único em verde — é o número que a página inteira promete. */
+.lp-demo-kpi-value[data-pos] {
+  color: var(--pos);
+}
+
+.lp-demo-kpi-note {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* No celular o terceiro cartão ocupa a linha inteira em vez de sobrar um vão. */
+.lp-demo-kpi[data-i="2"] {
+  grid-column: span 2;
+}
+
+.lp-demo-chart {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.lp-demo-bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: 0;
+}
+
+.lp-demo-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  min-width: 0;
+}
+
+.lp-demo-bar-value {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lp-demo-bar-slot {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.lp-demo-bar {
+  width: 100%;
+  border-radius: 5px 5px 3px 3px;
+  background: var(--bar);
+}
+
+.lp-demo-bar[data-on] {
+  background: var(--accent);
+}
+
+/* A barra de hoje é a única que a venda mexe: 1.208/1.240 = 0,974. É `scaleY`
+   e não `height` — o compositor resolve, o layout não se refaz. */
+.lp-demo-bar-today {
+  transform-origin: bottom;
+  transition: transform 0.5s ease;
+}
+
+.lp-demo[data-before] .lp-demo-bar-today {
+  transform: scaleY(0.974);
+}
+
+.lp-demo-bar-label {
+  flex: none;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.lp-demo-bar-label[data-on] {
+  color: var(--accent-text);
+}
+
+.lp-demo-latest {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* --- As listas, e a linha que entra --------------------------------------- */
+
+/* `--rowh` é a altura de uma linha, e é a MESMA medida que o bloco de baixo
+   desce quando a venda nova entra. Trocar uma sem a outra descola a lista. */
+.lp-demo-rows {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  --rowh: 46px;
+}
+
+.lp-demo-row,
+.lp-demo-trow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--rowh);
+  padding: 0 10px;
+  border-top: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.lp-demo-row-new {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-top: 0;
+  border-radius: 8px;
+  background: rgba(228, 243, 247, 0);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease,
+    background-color 0.5s ease;
+}
+
+.lp-demo-shift {
+  transform: translateY(var(--rowh));
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.lp-demo[data-before] .lp-demo-row-new {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.lp-demo[data-before] .lp-demo-shift {
+  transform: none;
+}
+
+/* O destaque de um instante, quando a venda acaba de cair na lista. */
+.lp-demo[data-hl] .lp-demo-row-new {
+  background: var(--accent-soft);
+}
+
+.lp-demo-row-time {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-demo-row-items {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lp-demo-row-total {
+  flex: none;
+  font-family: var(--display-stack);
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-demo-badge {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--neutral-soft);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+/* --- TELA 2: o balcão ----------------------------------------------------- */
+
+.lp-demo-pdv {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: grid;
+  gap: 10px;
+}
+
+.lp-demo-catalog {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 10px;
+}
+
+.lp-demo-search {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.lp-demo-search-icon {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* A caixa do texto tem a largura do placeholder, que é o mais longo dos dois —
+   é o que segura o campo parado enquanto a palavra é digitada dentro dele. */
+.lp-demo-search-text {
+  display: grid;
+  min-width: 0;
+}
+
+.lp-demo-ph,
+.lp-demo-typed {
+  grid-area: 1/1;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.lp-demo-ph {
+  color: var(--muted2);
+  transition: opacity 0.15s ease;
+}
+
+.lp-demo-typed {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.lp-demo[data-typed] .lp-demo-ph {
+  opacity: 0;
+}
+
+.lp-demo-chars > span {
+  display: none;
+}
+
+.lp-demo[data-typed="1"] .lp-demo-chars > span:nth-child(-n + 1),
+.lp-demo[data-typed="2"] .lp-demo-chars > span:nth-child(-n + 2),
+.lp-demo[data-typed="3"] .lp-demo-chars > span:nth-child(-n + 3),
+.lp-demo[data-typed="4"] .lp-demo-chars > span:nth-child(-n + 4),
+.lp-demo[data-typed="5"] .lp-demo-chars > span:nth-child(-n + 5) {
+  display: inline;
+}
+
+.lp-demo-caret {
+  display: none;
+  width: 1.5px;
+  height: 13px;
+  margin-left: 1px;
+  vertical-align: -2px;
+  background: var(--accent);
+}
+
+.lp-demo[data-cursor="search"] .lp-demo-caret {
+  display: inline-block;
+  animation: lp-demo-caret 1s steps(1) infinite;
+}
+
+@keyframes lp-demo-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.lp-demo-cat {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.lp-demo-cat-all,
+.lp-demo-cat-res {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.3s ease;
+}
+
+.lp-demo-cat-res {
+  opacity: 0;
+}
+
+.lp-demo[data-results] .lp-demo-cat-all {
+  opacity: 0;
+}
+
+.lp-demo[data-results] .lp-demo-cat-res {
+  opacity: 1;
+}
+
+.lp-demo-eyebrow {
+  margin-bottom: 6px;
+  font-family: var(--display-stack);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.lp-demo-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.lp-demo-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 5px;
+  min-height: 56px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.lp-demo-tile[data-fav] {
+  min-height: 60px;
+  border-width: 1.5px;
+}
+
+.lp-demo-tile-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.lp-demo-tile-price {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* O selo redondo com a quantidade, que o portal põe no canto do card quando o
+   produto já está no carrinho. */
+.lp-demo-tile-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  min-width: 19px;
+  height: 19px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 19px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.lp-demo[data-cart] .lp-demo-tile-badge {
+  opacity: 1;
+  transform: none;
+}
+
+.lp-demo[data-cart] .lp-demo-cat-res .lp-demo-tile {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* --- O carrinho ----------------------------------------------------------- */
+
+.lp-demo-cart {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lp-demo-cart-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lp-demo-cart-count {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.lp-demo-cart-body {
+  position: relative;
+  flex: 1;
+  min-height: 88px;
+  padding: 10px;
+}
+
+/* OS DOIS ESTADOS DO CARRINHO OCUPAM O MESMO CANTO, e por isso são absolutos:
+   um cruza com o outro sem que a coluna mude de altura. Ancorados só no topo —
+   `bottom` livre —, cada um tem a altura do próprio conteúdo, como no portal,
+   onde a lista do carrinho é uma coluna que rola e o item não estica. */
+.lp-demo-cart-empty,
+.lp-demo-cart-item {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.lp-demo-cart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 14px;
+  border: 1px dashed var(--dashed);
+  border-radius: 10px;
+  background: var(--surface2);
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--muted);
+}
+
+.lp-demo-cart-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface2);
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.lp-demo[data-cart] .lp-demo-cart-empty {
+  opacity: 0;
+}
+
+.lp-demo[data-cart] .lp-demo-cart-item {
+  opacity: 1;
+  transform: none;
+}
+
+.lp-demo-cart-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.lp-demo-cart-unit {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-demo-stepper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.lp-demo-stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+
+.lp-demo-step {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text3);
+  transition: background-color 0.2s ease;
+}
+
+.lp-demo-qty {
+  min-width: 24px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-demo-cart-line,
+.lp-demo-total-value {
+  justify-items: end;
+  font-family: var(--display-stack);
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-demo-cart-line {
+  font-size: 12.5px;
+}
+
+.lp-demo-cart-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 9px 12px 10px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.lp-demo-pay-label {
+  margin-bottom: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text3);
+}
+
+.lp-demo-select {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.lp-demo-select-value {
+  display: inline-grid;
+}
+
+.lp-demo-select-value > span {
+  grid-area: 1/1;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.lp-demo-select-value > [data-v="cash"] {
+  opacity: 1;
+}
+
+.lp-demo[data-pay="pix"] .lp-demo-select-value > [data-v="cash"] {
+  opacity: 0;
+}
+
+.lp-demo[data-pay="pix"] .lp-demo-select-value > [data-v="pix"] {
+  opacity: 1;
+}
+
+.lp-demo-select-arrow {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* A lista aberta FLUTUA sobre o rodapé: no fluxo, ela empurraria o botão de
+   confirmar para fora da caixa a cada abertura. */
+.lp-demo-options {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 12px 28px -8px rgba(18, 60, 74, 0.28);
+  opacity: 0;
+  transform: translateY(6px) scaleY(0.94);
+  transform-origin: bottom;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    visibility 0s linear 0.2s;
+}
+
+.lp-demo[data-pay="open"] .lp-demo-options {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.lp-demo-option {
+  padding: 7px 9px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text2);
+}
+
+.lp-demo-option[data-on] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.lp-demo-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--border);
+}
+
+.lp-demo-total-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text3);
+}
+
+.lp-demo-total-value {
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.lp-demo-confirm {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--display-stack);
+  font-weight: 700;
+  font-size: 12.5px;
+  box-shadow: 0 6px 18px var(--accent-glow);
+  transition:
+    transform 0.15s ease,
+    opacity 0.3s ease;
+}
+
+.lp-demo-confirm-idle,
+.lp-demo-confirm-saving {
+  grid-area: 1/1;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
+}
+
+.lp-demo-confirm-saving {
+  opacity: 0;
+}
+
+.lp-demo[data-saving] .lp-demo-confirm-idle {
+  opacity: 0;
+}
+
+.lp-demo[data-saving] .lp-demo-confirm-saving {
+  opacity: 1;
+}
+
+/* --- TELA 3: o histórico -------------------------------------------------- */
+
+.lp-demo-kpis[data-four] {
+  grid-template-columns: 1fr 1fr;
+}
+
+.lp-demo-history {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+
+.lp-demo-pills {
+  flex: none;
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface2);
+  align-self: flex-start;
+}
+
+.lp-demo-pill {
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text2);
+}
+
+.lp-demo-pill[data-on] {
+  background: var(--surface);
+  color: var(--accent-text);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(18, 60, 74, 0.12);
+}
+
+.lp-demo-table {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.lp-demo-thead {
+  display: none;
+}
+
+.lp-demo-rows[data-table] {
+  --rowh: 42px;
+}
+
+.lp-demo-trow {
+  font-size: 11.5px;
+}
+
+.lp-demo-row-qty {
+  display: none;
+}
+
+.lp-demo-c {
+  text-align: center;
+}
+
+.lp-demo-r {
+  text-align: right;
+}
+
+/* --- O ponteiro e o anel de toque ----------------------------------------- */
+
+/* A caixa tem o tamanho do palco, e por isso um `translate` em PORCENTAGEM é
+   porcentagem do palco — que é o que permite mirar os alvos sem medir pixel e
+   sem uma media query por passo. O ponteiro fica no canto de cima dela. */
+.lp-demo-cursor-box {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transform: translate(var(--cx, 50%), var(--cy, 50%));
+  transition: transform 0.55s cubic-bezier(0.33, 0, 0.2, 1);
+}
+
+.lp-demo-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(18, 60, 74, 0.35));
+  opacity: 0;
+  transform: scale(1);
+  transition:
+    opacity 0.25s ease,
+    transform 0.12s ease;
+}
+
+.lp-demo[data-cursor] .lp-demo-cursor {
+  opacity: 1;
+}
+
+.lp-demo[data-click] .lp-demo-cursor {
+  transform: scale(0.82);
+}
+
+/* Onde o ponteiro pousa em cada passo. São as ÚNICAS coordenadas da demo, e
+   NÃO SÃO CHUTE: cada par é o centro do alvo medido no DOM, em porcentagem da
+   caixa do palco, com a média das duas larguras de tela larga (900px e 1400px)
+   — as duas concordam dentro de uns poucos pixels, que é o que permite um
+   conjunto só de coordenadas em vez de uma media query por passo.
+
+   MEXEU NA ALTURA DO PALCO OU NO MIOLO DE UMA TELA? ESTES NÚMEROS ENVELHECERAM.
+   Eles são fração da altura, então crescer o palco desloca todos os alvos de
+   baixo. Meça de novo em vez de ajustar no olho — um ponteiro que erra o botão
+   por dez pixels é exatamente o que faz a demo parecer encenada. */
+.lp-demo[data-cursor="new"] .lp-demo-cursor-box {
+  --cx: 93.7%;
+  --cy: 4.3%;
+}
+
+.lp-demo[data-cursor="search"] .lp-demo-cursor-box {
+  --cx: 12%;
+  --cy: 26.5%;
+}
+
+.lp-demo[data-cursor="card"] .lp-demo-cursor-box {
+  --cx: 9.3%;
+  --cy: 41.4%;
+}
+
+.lp-demo[data-cursor="plus"] .lp-demo-cursor-box {
+  --cx: 71%;
+  --cy: 43%;
+}
+
+.lp-demo[data-cursor="minus"] .lp-demo-cursor-box {
+  --cx: 65.3%;
+  --cy: 43%;
+}
+
+.lp-demo[data-cursor="pay"] .lp-demo-cursor-box {
+  --cx: 80.6%;
+  --cy: 78%;
+}
+
+.lp-demo[data-cursor="confirm"] .lp-demo-cursor-box {
+  --cx: 80.6%;
+  --cy: 94.4%;
+}
+
+/* O anel do clique é UM elemento só, compartilhado por todos os passos: quando
+   dois cliques se seguem, o mesmo `data-click` continua no lugar e a animação
+   não recomeçaria. Alternar o nome pela paridade do passo é o que garante que
+   todo clique dispare — ver o comentário de `DemoDriver`. */
+.lp-demo-cursor-ring {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.lp-demo[data-click][data-tick="0"] .lp-demo-cursor-ring {
+  animation: lp-demo-ping-a 0.42s ease-out;
+}
+
+.lp-demo[data-click][data-tick="1"] .lp-demo-cursor-ring {
+  animation: lp-demo-ping-b 0.42s ease-out;
+}
+
+@keyframes lp-demo-ping-a {
+  from {
+    opacity: 0.9;
+    transform: scale(0.35);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes lp-demo-ping-b {
+  from {
+    opacity: 0.9;
+    transform: scale(0.35);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+/* O anel de toque nasce DENTRO do alvo: acerta o botão em qualquer largura, sem
+   coordenada nenhuma. É o que substitui o ponteiro no celular. */
+.lp-demo-tap {
+  position: absolute;
+  inset: -3px;
+  border: 2px solid var(--accent);
+  border-radius: inherit;
+  opacity: 0;
+  transform: scale(0.92);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.lp-demo[data-cursor="new"][data-click] [data-tap="new"],
+.lp-demo[data-cursor="search"][data-click] [data-tap="search"],
+.lp-demo[data-cursor="card"][data-click] [data-tap="card"],
+.lp-demo[data-cursor="plus"][data-click] [data-tap="plus"],
+.lp-demo[data-cursor="minus"][data-click] [data-tap="minus"],
+.lp-demo[data-cursor="pay"][data-click] [data-tap="pay"],
+.lp-demo[data-cursor="confirm"][data-click] [data-tap="confirm"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* O alvo apontado acende, como acenderia sob o mouse de verdade. */
+.lp-demo[data-cursor="card"] .lp-demo-cat-res .lp-demo-tile,
+.lp-demo[data-cursor="search"] .lp-demo-search,
+.lp-demo[data-cursor="pay"] .lp-demo-select {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.lp-demo[data-cursor="plus"] .lp-demo-step[data-t="plus"],
+.lp-demo[data-cursor="minus"] .lp-demo-step[data-t="minus"] {
+  background: var(--accent-soft);
+}
+
+/* --- O aviso de sucesso --------------------------------------------------- */
+
+.lp-demo-toast {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 250px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 14px 30px -10px rgba(18, 60, 74, 0.3);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.lp-demo[data-toast] .lp-demo-toast {
+  opacity: 1;
+  transform: none;
+}
+
+.lp-demo-toast-mark {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  border-radius: 999px;
+  background: var(--pos-soft);
+  color: var(--pos);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 19px;
+  text-align: center;
+}
+
+.lp-demo-toast-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* A barrinha do tempo que resta, igual à do portal. */
+.lp-demo-toast-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--pos);
+  opacity: 0.45;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.lp-demo[data-toast] .lp-demo-toast-bar {
+  transform: scaleX(1);
+  transition: transform 3.1s linear;
+}
+
+/* ---------------------------------------------------------------------------
+   DEGRAU 2 (768px): o miolo se reparte, e a demo deixa de ser um celular.
+
+   É o MESMO CORTE do painel estático, de propósito — a demo herda os degraus
+   que a página já tinha em vez de inventar os dela.
+--------------------------------------------------------------------------- */
+
+@media (min-width: 768px) {
+  /* MENOR QUE O DO CELULAR, DE PROPÓSITO. Aqui o miolo se reparte em duas
+     colunas — gráfico ao lado da lista, catálogo ao lado do carrinho — e o que
+     no celular era uma pilha de quatro blocos passa a caber em dois. A altura
+     acompanha o arranjo, não o tamanho da tela. */
+  .lp-demo-screens {
+    height: 452px;
+  }
+
+  .lp-demo-title {
+    font-size: 17px;
+  }
+
+  .lp-demo-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lp-demo-kpi[data-i="2"] {
+    grid-column: auto;
+  }
+
+  .lp-demo-kpi-value {
+    font-size: 21px;
+  }
+
+  .lp-demo-dash {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "k k"
+      "c l";
+  }
+
+  .lp-demo-kpis {
+    grid-area: k;
+  }
+
+  .lp-demo-chart {
+    grid-area: c;
+  }
+
+  .lp-demo-latest {
+    grid-area: l;
+  }
+
+  .lp-demo-pdv {
+    grid-template-columns: minmax(0, 1.5fr) minmax(220px, 1fr);
+  }
+
+  .lp-demo-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Filtrado, o resultado é UM card — e um card esticado em três colunas leria
+     como uma faixa, não como um produto. */
+  .lp-demo-cat-res .lp-demo-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lp-demo-kpis[data-four] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  /* A tabela de verdade, com cabeçalho de coluna. */
+  .lp-demo-thead,
+  .lp-demo-trow {
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr) 44px 88px 84px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .lp-demo-thead {
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--display-stack);
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .lp-demo-row-qty {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text2);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   DEGRAU 3 (1000px): entra a barra lateral e a demo respira.
+--------------------------------------------------------------------------- */
+
+@media (min-width: 1000px) {
+  .lp-demo-screens {
+    height: 512px;
+  }
+
+  .lp-demo-title {
+    font-size: 18px;
+  }
+
+  .lp-demo-sub,
+  .lp-demo-card-title {
+    font-size: 12.5px;
+  }
+
+  .lp-demo-kpi {
+    padding: 12px 13px;
+  }
+
+  .lp-demo-kpi-value {
+    font-size: 24px;
+  }
+
+  .lp-demo-kpi-label,
+  .lp-demo-card-note,
+  .lp-demo-kpi-note {
+    font-size: 11px;
+  }
+
+  .lp-demo-bar-value,
+  .lp-demo-bar-label {
+    font-size: 10.5px;
+  }
+
+  .lp-demo-row-items,
+  .lp-demo-trow {
+    font-size: 12.5px;
+  }
+
+  .lp-demo-pdv {
+    grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+    gap: 12px;
+  }
+
+  .lp-demo-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .lp-demo-cat-res .lp-demo-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .lp-demo-thead,
+  .lp-demo-trow {
+    grid-template-columns: 110px minmax(0, 1fr) 56px 104px 96px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .lp-demo-toast {
+    right: 14px;
+    bottom: 14px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   CELULAR: o carrinho é uma folha que sobe do rodapé.
+
+   É o que o portal faz de verdade em tela estreita (`isMobile` no `PdvView`),
+   e não uma adaptação da vitrine: o catálogo fica com a tela inteira e o
+   carrinho só ocupa espaço quando tem alguma coisa dentro.
+--------------------------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  .lp-demo-cart {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 7;
+    max-height: 78%;
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -12px 30px -12px rgba(18, 60, 74, 0.3);
+    transform: translateY(101%);
+    transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+
+  .lp-demo[data-cart] .lp-demo-cart {
+    transform: none;
+  }
+
+  /* Sem carrinho na tela, o vazio dele não precisa ser desenhado. */
+  .lp-demo-cart-empty {
+    display: none;
+  }
+
+  .lp-demo-cart-body {
+    min-height: 84px;
+  }
+
+  /* EM TELA DE TOQUE NÃO EXISTE PONTEIRO. Quem marca o toque é o anel que
+     pulsa no próprio alvo — a seta é o vocabulário do mouse e, num celular,
+     entrega que a cena é encenada. O `data-cursor` continua nos quadros: é
+     ele que diz em qual alvo o anel acende. */
+  .lp-demo-cursor,
+  .lp-demo-cursor-ring {
+    display: none;
+  }
+
+  /* O aviso sobe acima da folha, como no portal. */
+  .lp-demo[data-cart] .lp-demo-toast {
+    bottom: auto;
+    top: 10px;
+  }
+
+  /* O VALOR EM CIMA DE CADA BARRA SAI NO CELULAR. Sete preços em 330px de
+     largura encostam um no outro e viram uma faixa cinza ilegível; o eixo de
+     baixo (Qua…Hoje) já diz qual barra é qual, e sem eles a barra ganha os
+     doze pixels de altura que faltavam para ela existir. */
+  .lp-demo-bar-value {
+    display: none;
+  }
+
+  /* Sem um piso, a barra fica com a sobra do grid — que no celular é quase
+     nada — e o gráfico vira uma linha de rótulos sem gráfico nenhum. */
+  .lp-demo-bars {
+    min-height: 68px;
+  }
+
+  /* "Valores em R$ · média R$ 842 / dia" quebra o título do gráfico em duas
+     linhas e come a altura da lista de baixo. A média não é o que a demo está
+     provando aqui; as barras são. */
+  .lp-demo-chart .lp-demo-card-note {
+    display: none;
+  }
+
+  .lp-demo-rows {
+    --rowh: 46px;
+  }
+
+  /* DUAS LINHAS, E O RESTO É FOLGA DE PROPÓSITO. Em 330px de largura o aviso
+     de "Venda registrada" atravessa a coluna inteira: com a lista ocupando
+     tudo, ele cortava a última venda no meio. Com duas linhas — a que acabou
+     de entrar e a de baixo, que é o que a cena precisa provar — sobra a faixa
+     em que o aviso pousa sem cobrir número nenhum. */
+  .lp-demo-rows[data-table] {
+    --rowh: 52px;
+    flex: none;
+    height: 104px;
+  }
+
+  /* A LISTA DO PAINEL FECHA EM LINHA CHEIA. Deixada com a sobra do grid, ela
+     parava no meio da segunda venda — e meia linha cortada rente à borda do
+     cartão parece defeito, não rolagem. Fixando duas linhas (2 × 46 + o
+     cabeçalho), quem cresce é o gráfico, que aguenta qualquer altura. */
+  .lp-demo-dash {
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .lp-demo-latest {
+    height: 156px;
+  }
+
+  /* No celular a linha da tabela vira cartão: a quantidade sai e o pagamento
+     desce para a segunda linha, que é o arranjo do portal. */
+  .lp-demo-trow {
+    flex-wrap: wrap;
+    align-content: center;
+    padding: 0 10px;
+  }
+}
+
+/* Quem pediu menos movimento recebe a tela parada — e a que fica é a mesma que
+   o servidor mandou. A trava também está no JavaScript, que nem monta o
+   relógio; esta aqui cobre quem trocar a preferência com a página aberta. */
+@media (prefers-reduced-motion: reduce) {
+  .lp-demo *,
+  .lp-demo *::before,
+  .lp-demo *::after {
+    transition: none !important;
+    animation: none !important;
   }
 }
 

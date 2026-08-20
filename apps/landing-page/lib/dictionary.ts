@@ -76,6 +76,188 @@ const pt = {
       /* Lido por leitor de tela no lugar da ilustração inteira. */
       alt: "Ilustração do painel do Aguiar One, mostrando vendas, custos e lucro do dia e um gráfico dos últimos sete dias.",
     },
+
+    /**
+     * A DEMONSTRAÇÃO ENCENADA — o texto das três telas que ela percorre.
+     *
+     * Irmã de `panel` logo acima (que continua aqui porque
+     * `DashboardPreview.tsx` continua no repositório) e com a mesma regra:
+     * nenhum número vem de lugar nenhum, e todos conversam entre si.
+     *
+     * A CONTA QUE AMARRA A PÁGINA INTEIRA. O dia começa em R$ 1.208; a venda
+     * que a demo registra — 1× Combo executivo, R$ 32,00, em Pix, às 14:32 —
+     * leva o total para R$ 1.240. É o MESMO R$ 1.240 de
+     * `modules.panels.sales.totalValue`, cinco dobras abaixo, e a linha das
+     * 14:32 é palavra por palavra a primeira daquela lista. A demo é COMO
+     * aquela venda foi parar lá.
+     *
+     * Mexeu num valor? Confira os derivados: lucro (faturamento − custos),
+     * margem, média do gráfico, ticket médio, contagem de vendas e de itens.
+     *
+     * `after` E `noteAfter` SÃO O ESTADO DEPOIS DA VENDA. String vazia quer
+     * dizer "não muda" — e aí o componente desenha um valor só, em vez de dois
+     * empilhados trocando por opacidade.
+     */
+    demo: {
+      caption: {
+        dash: "Painel · Hoje",
+        pdv: "Nova venda",
+        sales: "Vendas · Hoje",
+      },
+      /* Lido no lugar da demo inteira, que é `aria-hidden`. Descreve o que a
+         sequência mostra — não quadro a quadro, que seria ilegível de ouvir. */
+      alt: "Demonstração do Aguiar One: o painel do dia, o registro de uma venda de um combo executivo de R$ 32,00 em Pix, e a venda aparecendo no histórico com o total do dia subindo de R$ 1.208 para R$ 1.240.",
+      topbar: { label: "Vendas de hoje", newSale: "Nova venda" },
+
+      dash: {
+        title: "Resumo de hoje",
+        /* O portal escreve aqui a saudação e a data de hoje, pelo relógio de
+           quem está olhando. Numa página estática uma data fixa envelhece em
+           24 horas, então a demo troca a data por uma frase que não vence. */
+        subtitle: "Tudo o que entrou e saiu hoje, atualizado a cada venda.",
+        kpis: [
+          {
+            label: "Faturamento hoje",
+            value: "R$ 1.208",
+            after: "R$ 1.240",
+            note: "Em 11 vendas",
+            noteAfter: "Em 12 vendas",
+          },
+          {
+            label: "Custos de hoje",
+            value: "R$ 480",
+            after: "",
+            note: "Lançados por você",
+            noteAfter: "",
+          },
+          {
+            label: "Lucro hoje",
+            value: "R$ 728",
+            after: "R$ 760",
+            note: "Margem de 60%",
+            noteAfter: "Margem de 61%",
+          },
+        ],
+        chartTitle: "Vendas dos últimos 7 dias",
+        chartNote: "Valores em R$ · média R$ 838 / dia",
+        chartNoteAfter: "Valores em R$ · média R$ 842 / dia",
+        /* Seis dias fechados e o de hoje, que é o único que a venda mexe. As
+           ALTURAS não estão aqui — são desenho, e moram no componente, como o
+           `WEEK` de `DashboardPreview`. */
+        days: [
+          { label: "Qua", value: "R$ 545" },
+          { label: "Qui", value: "R$ 744" },
+          { label: "Sex", value: "R$ 471" },
+          { label: "Sáb", value: "R$ 893" },
+          { label: "Dom", value: "R$ 694" },
+          { label: "Seg", value: "R$ 1.310" },
+          { label: "Hoje", value: "R$ 1.208" },
+        ],
+        todayAfter: "R$ 1.240",
+        listTitle: "Últimas vendas de hoje",
+        listAll: "Ver todas",
+      },
+
+      pdv: {
+        title: "Nova venda",
+        subtitle: "Toque nos produtos ou bipe o código de barras.",
+        counter: "8 de 8 produtos",
+        counterAfter: "1 de 8 produtos",
+        searchPlaceholder: "Buscar produto pelo nome",
+        /* O que a demo digita, um caractere por passo. Mexer no tamanho desta
+           palavra muda o número de passos do roteiro — ver `lib/demo.ts`. */
+        typed: "combo",
+        favorites: "Mais vendidos",
+        all: "Todos os produtos",
+        results: "Resultados",
+        /* Os três primeiros são os "mais vendidos"; o resto é o catálogo. Oito
+           produtos de lanchonete, que é o mesmo comércio das outras telas. */
+        products: [
+          { name: "Combo executivo", price: "R$ 32,00" },
+          { name: "Marmita média", price: "R$ 22,00" },
+          { name: "Prato feito", price: "R$ 18,00" },
+          { name: "Suco natural", price: "R$ 9,00" },
+          { name: "Salgado assado", price: "R$ 8,00" },
+          { name: "Refrigerante lata", price: "R$ 6,00" },
+          { name: "Água mineral", price: "R$ 4,00" },
+          { name: "Café", price: "R$ 3,50" },
+        ],
+        cartTitle: "Itens desta venda",
+        cartEmpty: "Nenhum item ainda. Busque ou toque em um produto.",
+        each: "cada",
+        /* `zero` é o carrinho vazio: o portal escreve "0 itens" e desliga o
+           botão de cobrar. Sem ele a demo diria "1 item" e "R$ 32,00" com o
+           carrinho ainda vazio — a contradição mais cara que ela poderia ter. */
+        zero: "0 itens",
+        one: "1 item",
+        two: "2 itens",
+        payLabel: "Forma de pagamento",
+        payments: ["Dinheiro", "Pix", "Débito", "Crédito"],
+        totalLabel: "Total",
+        /* O portal põe o valor no rótulo do botão, e ele acompanha a
+           quantidade: R$ 32,00 com um item, R$ 64,00 com dois. */
+        confirm: "Registrar venda de",
+        saving: "Registrando…",
+      },
+
+      sales: {
+        title: "Vendas",
+        subtitle: "Registre no balcão e consulte tudo o que já foi vendido.",
+        periods: ["Hoje", "7 dias", "30 dias", "Tudo"],
+        kpis: [
+          {
+            label: "Faturamento",
+            value: "R$ 1.208",
+            after: "R$ 1.240",
+            note: "11 vendas no período",
+            noteAfter: "12 vendas no período",
+          },
+          {
+            label: "Ticket médio",
+            value: "R$ 109,82",
+            after: "R$ 103,33",
+            note: "Por venda",
+            noteAfter: "",
+          },
+          {
+            label: "Itens vendidos",
+            value: "17",
+            after: "18",
+            note: "Somando as quantidades",
+            noteAfter: "",
+          },
+          {
+            label: "Estornadas",
+            value: "0",
+            after: "",
+            note: "Nenhuma no período",
+            noteAfter: "",
+          },
+        ],
+        panelTitle: "Histórico de vendas",
+        count: "11 de 11 vendas",
+        countAfter: "12 de 12 vendas",
+        cols: { when: "Quando", items: "Itens", qty: "Qtd", pay: "Pagamento", total: "Total" },
+      },
+
+      /* As quatro vendas do dia que as listas mostram. A PRIMEIRA é a que a
+         demo registra: antes da confirmação ela não existe, e quando entra
+         empurra a lista para baixo e a última sai pelo pé da caixa. */
+      rows: [
+        { time: "14:32", items: "Combo executivo", qty: "1", pay: "Pix", total: "R$ 32,00" },
+        { time: "14:05", items: "Prato feito", qty: "1", pay: "Dinheiro", total: "R$ 18,00" },
+        { time: "13:20", items: "2× Marmita média", qty: "2", pay: "Pix", total: "R$ 44,00" },
+        {
+          time: "12:55",
+          items: "Combo executivo, Refrigerante lata",
+          qty: "2",
+          pay: "Débito",
+          total: "R$ 38,00",
+        },
+      ],
+      today: "Hoje",
+      toast: "Venda registrada",
+    },
   },
 
   /**
@@ -653,6 +835,147 @@ const en: Dic = {
       tagCosts: "Costs enabled",
       tagStock: "+ Inventory",
       alt: "Illustration of the Aguiar One dashboard, showing the day's sales, costs and profit and a chart of the last seven days.",
+    },
+
+    demo: {
+      caption: {
+        dash: "Dashboard · Today",
+        pdv: "New sale",
+        sales: "Sales · Today",
+      },
+      alt: "Aguiar One walkthrough: the day's dashboard, a R$ 32.00 combo meal being rung up and paid by Pix, and the sale showing up in the history as the day's total rises from R$ 1,208 to R$ 1,240.",
+      topbar: { label: "Sales today", newSale: "New sale" },
+
+      dash: {
+        title: "Today's summary",
+        subtitle: "Everything that came in and went out today, updated with every sale.",
+        kpis: [
+          {
+            label: "Revenue today",
+            value: "R$ 1.208",
+            after: "R$ 1.240",
+            note: "Across 11 sales",
+            noteAfter: "Across 12 sales",
+          },
+          {
+            label: "Costs today",
+            value: "R$ 480",
+            after: "",
+            note: "Entered by you",
+            noteAfter: "",
+          },
+          {
+            label: "Profit today",
+            value: "R$ 728",
+            after: "R$ 760",
+            note: "60% margin",
+            noteAfter: "61% margin",
+          },
+        ],
+        chartTitle: "Sales over the last 7 days",
+        chartNote: "Amounts in R$ · average R$ 838 / day",
+        chartNoteAfter: "Amounts in R$ · average R$ 842 / day",
+        days: [
+          { label: "Wed", value: "R$ 545" },
+          { label: "Thu", value: "R$ 744" },
+          { label: "Fri", value: "R$ 471" },
+          { label: "Sat", value: "R$ 893" },
+          { label: "Sun", value: "R$ 694" },
+          { label: "Mon", value: "R$ 1.310" },
+          { label: "Today", value: "R$ 1.208" },
+        ],
+        todayAfter: "R$ 1.240",
+        listTitle: "Today's latest sales",
+        listAll: "See all",
+      },
+
+      pdv: {
+        title: "New sale",
+        subtitle: "Tap the products or scan the barcode.",
+        counter: "8 of 8 products",
+        counterAfter: "1 of 8 products",
+        searchPlaceholder: "Search products by name",
+        typed: "combo",
+        favorites: "Best sellers",
+        all: "All products",
+        results: "Results",
+        products: [
+          { name: "Combo executivo", price: "R$ 32,00" },
+          { name: "Marmita média", price: "R$ 22,00" },
+          { name: "Prato feito", price: "R$ 18,00" },
+          { name: "Suco natural", price: "R$ 9,00" },
+          { name: "Salgado assado", price: "R$ 8,00" },
+          { name: "Refrigerante lata", price: "R$ 6,00" },
+          { name: "Água mineral", price: "R$ 4,00" },
+          { name: "Café", price: "R$ 3,50" },
+        ],
+        cartTitle: "Items in this sale",
+        cartEmpty: "No items yet. Search or tap a product.",
+        each: "each",
+        zero: "0 items",
+        one: "1 item",
+        two: "2 items",
+        payLabel: "Payment method",
+        payments: ["Cash", "Pix", "Debit", "Credit"],
+        totalLabel: "Total",
+        confirm: "Take payment of",
+        saving: "Saving…",
+      },
+
+      sales: {
+        title: "Sales",
+        subtitle: "Ring them up at the counter and look up everything you have sold.",
+        periods: ["Today", "7 days", "30 days", "All"],
+        kpis: [
+          {
+            label: "Revenue",
+            value: "R$ 1.208",
+            after: "R$ 1.240",
+            note: "11 sales in the period",
+            noteAfter: "12 sales in the period",
+          },
+          {
+            label: "Average ticket",
+            value: "R$ 109,82",
+            after: "R$ 103,33",
+            note: "Per sale",
+            noteAfter: "",
+          },
+          {
+            label: "Items sold",
+            value: "17",
+            after: "18",
+            note: "Quantities added up",
+            noteAfter: "",
+          },
+          {
+            label: "Refunded",
+            value: "0",
+            after: "",
+            note: "None in the period",
+            noteAfter: "",
+          },
+        ],
+        panelTitle: "Sales history",
+        count: "11 of 11 sales",
+        countAfter: "12 of 12 sales",
+        cols: { when: "When", items: "Items", qty: "Qty", pay: "Payment", total: "Total" },
+      },
+
+      rows: [
+        { time: "14:32", items: "Combo executivo", qty: "1", pay: "Pix", total: "R$ 32,00" },
+        { time: "14:05", items: "Prato feito", qty: "1", pay: "Cash", total: "R$ 18,00" },
+        { time: "13:20", items: "2× Marmita média", qty: "2", pay: "Pix", total: "R$ 44,00" },
+        {
+          time: "12:55",
+          items: "Combo executivo, Refrigerante lata",
+          qty: "2",
+          pay: "Debit",
+          total: "R$ 38,00",
+        },
+      ],
+      today: "Today",
+      toast: "Sale recorded",
     },
   },
 

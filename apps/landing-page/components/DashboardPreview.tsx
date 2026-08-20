@@ -1,3 +1,19 @@
+/**
+ * ┌─ FORA DE USO DESDE A DEMONSTRAÇÃO ENCENADA ─────────────────────────────┐
+ * │ Este é o painel PARADO que abria a primeira dobra. Quem abre hoje é     │
+ * │ `DemoStage.tsx`, que encena o registro de uma venda em laço.            │
+ * │                                                                         │
+ * │ ELE FICA AQUI DE PROPÓSITO, e não por esquecimento: o primeiro quadro   │
+ * │ da demo é este painel, valor por valor (R$ 1.240 / R$ 480 / R$ 760).    │
+ * │ Se a demo não convencer, voltar é trocar uma linha em `Hero.tsx` —      │
+ * │ `<DemoStage />` por `<DashboardPreview />` — e nada mais. O texto dele  │
+ * │ continua em `COPY.hero.panel`, intocado.                                │
+ * │                                                                         │
+ * │ Enquanto estiver fora de uso, ele não recebe manutenção. Se voltar,     │
+ * │ confira antes se os números ainda batem com os do resto da página.      │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ */
+
 import { css } from "@aguiar/ui";
 import { Logo } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
