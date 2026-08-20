@@ -113,6 +113,7 @@ export const EMPTY_DATA: PortalData = {
     type: "",
     user: { name: "Você", initials: "?" },
     modules: ["dashboard", "settings"],
+    catalog: [],
   },
   data: { name: "", type: "", phone: "", city: "" },
   products: [],
