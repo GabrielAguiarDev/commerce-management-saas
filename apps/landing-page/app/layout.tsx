@@ -1,3 +1,4 @@
+import { BRAND } from "@aguiar/ui";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, Manrope } from "next/font/google";
 import { COPY } from "@/lib/dictionary";
@@ -50,9 +51,13 @@ export const metadata: Metadata = {
  * topo da página (o cabeçalho é claro): a barra do sistema é a primeira cor do
  * produto que a pessoa vê, antes de qualquer pixel, e ela é a mesma no site, no
  * portal e no celular.
+ *
+ * É um dos poucos lugares que precisam do LITERAL e não da variável CSS: o
+ * navegador lê este valor antes de existir folha de estilo. Daí `BRAND`, e não
+ * `var(--brand-ink)`.
  */
 export const viewport: Viewport = {
-  themeColor: "#020e18",
+  themeColor: BRAND.ink,
 };
 
 /**

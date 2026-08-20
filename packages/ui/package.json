@@ -8,9 +8,12 @@
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./tokens.css": "./src/tokens.css"
+    "./tokens.css": "./src/tokens.css",
+    "./brand.css": "./src/brand.css",
+    "./accent.css": "./src/accent.css"
   },
   "dependencies": {
+    "@aguiar/brand": "workspace:*",
     "@floating-ui/react": "^0.27.20"
   },
   "peerDependencies": {

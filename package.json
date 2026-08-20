@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "brand:sync": "node scripts/sync-brand.mjs",
+    "brand:check": "node scripts/sync-brand.mjs --check",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
