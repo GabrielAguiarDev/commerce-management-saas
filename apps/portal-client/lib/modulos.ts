@@ -18,6 +18,7 @@ const DB_TO_PORTAL: Record<string, ModuleKey> = {
   cash: "register",
   costs: "costs",
   reports: "reports",
+  fiscal: "fiscal",
   support: "support",
 };
 
@@ -43,6 +44,7 @@ const ORDER: ModuleKey[] = [
   "stock",
   "costs",
   "reports",
+  "fiscal",
   "settings",
   "support",
 ];
