@@ -10,6 +10,60 @@ depende de código. O que existe aqui é tudo o que dava para construir sem eles
 
 ---
 
+## 0. O módulo está DESLIGADO — "Em breve" (25/08/2026)
+
+Enquanto os três itens acima não existirem, o módulo `fiscal` não se vende e
+não se liga para ninguém. A decisão mora em **uma lista, em dois arquivos**:
+
+| Arquivo | Constante | O que ela desliga |
+|---|---|---|
+| `apps/portal-admin/lib/planos.ts` | `COMING_SOON_MODULES` | o lado de quem VENDE |
+| `apps/portal-client/lib/modulos.ts` | `COMING_SOON_MODULES` | o lado de quem USA |
+
+**No portal-admin**, com a chave na lista:
+
+- `listModules` separa o módulo do catálogo vendável e o devolve em
+  `comingSoon`. Como `s.modules` deixa de o conter, ele some **sozinho** da
+  grade do cadastro, da ficha do cliente, dos chips de composição do plano, dos
+  padrões da plataforma e de todas as contagens — nenhuma tela precisou de um
+  `if`.
+- A tela **Módulos** é a única que junta as duas listas de volta: o módulo
+  aparece lá com a etiqueta **Em breve**, "Clientes ativos" em `—` e
+  "Disponível em" como *Indisponível*. Nome e descrição continuam editáveis.
+- As escritas filtram de novo, no servidor: `resolveModules` (as duas escritas
+  de módulo de um cliente), `sellableModules` em `app/planos/actions.ts`
+  (`plans.module_keys`) e `defaultModules` (`platform_settings`). Um plano
+  antigo que ainda carregue a chave, ou uma requisição forjada, morre ali.
+
+**No portal-client a regra é outra, e mais dura: o cliente não pode saber que
+existe nota fiscal aqui dentro.** Não há etiqueta "Em breve" deste lado — "em
+breve" é uma promessa, e a data depende de um certificado que ainda não foi
+comprado. O que o cliente não vê, ele não pergunta no suporte.
+
+| Onde | O que acontece |
+|---|---|
+| `lib/modulos.ts` → `tenantModules` | descarta a chave antes de montar o menu. Cobre o tenant que já tivesse o módulo em `v_active_modules` |
+| Menu lateral | sem o item *Nota Fiscal* em Gestão |
+| Configurações | sem a aba *Dados fiscais*, e **sem o aviso que a citava** — um field que ninguém sente falta não precisa de legenda |
+| PDV | sem o campo "CPF na nota" |
+| Produtos | sem a seção fiscal (NCM, CFOP, CSOSN…) do modal |
+| Equipe | *Nota Fiscal* não aparece como permissão de tipo de acesso |
+| `/notas` | **404** (`app/notas/page.tsx`), não uma tela de aviso — a rota fica indistinguível de uma que nunca existiu |
+| `readFiscal` / `readFiscalDocuments` | devolvem vazio sem consultar o banco |
+| `recordSale` | não enfileira documento nenhum |
+| Suporte | a categoria Financeiro dizia "Cobrança, plano ou nota fiscal" — virou "…ou pagamento". Ali a palavra significava a fatura DA PLATAFORMA, mas o cliente não tinha como saber disso |
+
+**Nada foi removido.** `NotasView`, `ConfigFiscal`, a seção fiscal do
+`ProdutoModal`, `lib/dados/fiscal.ts`, `lib/dados/notas.ts`, os tipos, as RPCs
+e as Edge Functions estão inteiros e compilando. O que existe é uma chave numa
+lista, e o desligamento é consequência dela.
+
+**Para religar: tirar `"fiscal"` das duas listas.** É a última linha do
+checklist do §8, e é literalmente isso — o resto deste documento volta a valer
+sem mais nenhuma edição de código.
+
+---
+
 ## 1. Decisões tomadas
 
 | Decisão | Valor | Onde isso aparece |
@@ -195,12 +249,29 @@ caminhos existem, o que falta é o documento do outro lado.
 ```
 1. rodar 20260817120000_fiscal_cadastro.sql   (fase 1, se ainda não rodou)
 2. rodar 20260817140000_fiscal_emissao.sql    (esta fase)
-3. ligar o módulo `fiscal` para o tenant, na ficha do cliente do portal-admin
 ```
 
 Não há CLI do Supabase configurada no repositório (`supabase/` só tem
 `migrations/` e `functions/`), então a execução é manual no painel, como as
 anteriores.
+
+### 6.2-b Religar o módulo no código — a ÚNICA edição que falta
+
+Enquanto isto não for feito, o módulo não existe para ninguém: ele não aparece
+na ficha do cliente do portal-admin (então não há como ligar para o tenant) e
+o portal-client o esconde inteiro. Ver §0.
+
+```
+apps/portal-admin/lib/planos.ts    COMING_SOON_MODULES = ["fiscal"]  →  []
+apps/portal-client/lib/modulos.ts  COMING_SOON_MODULES = ["fiscal"]  →  []
+```
+
+Depois disso, `fiscal` volta ao catálogo vendável e a ficha do cliente no
+portal-admin passa a oferecer o módulo — é ali que ele se liga para o tenant.
+
+**Faça isto por último, e só depois do 6.1 e do 6.3.** Religar antes do
+certificado devolve ao cliente uma tela `/notas` que aceita vendas e acumula
+documentos `pending` que ninguém emite.
 
 ### 6.3 Nas Edge Functions
 
@@ -227,6 +298,8 @@ documento depois de 8 tentativas.
 
 ### 6.4 O primeiro teste, em ordem
 
+0. Módulo `fiscal` fora das duas listas (§6.2-b) e ligado para o tenant na
+   ficha do cliente do portal-admin.
 1. Cadastro fiscal completo, **em homologação**, com CSC de homologação.
 2. NCM padrão do negócio preenchido (ou NCM nos produtos).
 3. Registrar uma venda de um produto.
@@ -250,16 +323,44 @@ documento depois de 8 tentativas.
 
 ---
 
-## 8. Checklist de continuidade
+## 8. Checklist para concluir a feature
 
-- [ ] Certificado A1 comprado
-- [ ] Credenciamento na SEFAZ e CSC de homologação
-- [ ] Conta na Focus NFe e certificado enviado lá
-- [ ] As duas migrations rodadas
-- [ ] Módulo `fiscal` ligado para o tenant
-- [ ] Secrets e deploy das Edge Functions; cron da `fiscal-retry`
-- [ ] `deno check` nas functions
-- [ ] Primeira nota autorizada em homologação
-- [ ] **Ligar `create_sale`** em `recordSale` (§5)
-- [ ] Ramificar `refundSale` / `editSale` para cancelamento (§5)
-- [ ] Trocar para produção
+Está na ordem em que precisa ser feito. Os quatro primeiros não dependem de
+código e são o que demora — comece por eles.
+
+**Fora do repositório**
+
+- [ ] Certificado digital A1 e-CNPJ comprado (~R$ 200/ano, leva dias) — §6.1
+- [ ] Credenciamento de NFC-e na SEFAZ do estado + CSC de homologação — §6.1
+- [ ] Conta na Focus NFe, certificado enviado lá, os dois tokens em mãos — §6.1
+- [ ] Contador definiu regime, CFOP, CSOSN e NCM padrão — §6.1
+
+**Infraestrutura**
+
+- [ ] `20260817120000_fiscal_cadastro.sql` rodada no painel do Supabase — §6.2
+- [ ] `20260817140000_fiscal_emissao.sql` rodada no painel do Supabase — §6.2
+- [ ] `deno check supabase/functions/**/*.ts` (nunca foram compiladas) — §7
+- [ ] Secrets `FOCUS_NFE_TOKEN_HOMOLOGATION` / `_PRODUCTION` — §6.3
+- [ ] `fiscal-emit` e `fiscal-retry` deployadas — §6.3
+- [ ] Cron da `fiscal-retry` a cada 10–15 min — §6.3
+
+**Religar o módulo** (a única edição de código obrigatória)
+
+- [ ] Esvaziar `COMING_SOON_MODULES` nos dois arquivos — §6.2-b
+- [ ] Ligar o módulo `fiscal` para o tenant, na ficha do cliente do
+      portal-admin (só aparece lá depois do item acima)
+
+**Validar**
+
+- [ ] Cadastro fiscal completo em **homologação**, com o CSC de homologação
+- [ ] Primeira nota **autorizada** em homologação — §6.4
+- [ ] Trocar para produção (o servidor recusa a troca com cadastro incompleto)
+
+**Entrega própria, depois da primeira nota autorizada**
+
+- [ ] **Ligar `create_sale`** em `recordSale` — hoje são duas escritas em
+      sequência, e a função existe pronta na migration — §5
+- [ ] Ramificar `refundSale` / `editSale` para cancelamento: `editSale` estorna
+      e recria, o que **fica ilegal** com nota autorizada em jogo — §5
+- [ ] Rever as limitações do §7 com o contador (sem contingência offline, uma
+      forma de pagamento por venda, sem desconto, CSOSN 201/202/500)

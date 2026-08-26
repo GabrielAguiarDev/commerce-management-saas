@@ -2,7 +2,7 @@
 
 import { useAdmin } from "@/components/AdminProvider";
 import { Button, css, MONO } from "@aguiar/ui";
-import { AccessTag } from "@/components/shared";
+import { AccessTag, ComingSoonTag } from "@/components/shared";
 import { moduleIcon, planName, panelBadge } from "@/lib/styleKit";
 
 const GRID =
@@ -31,6 +31,25 @@ export function ModulosView() {
         <span style={css("font-size:12px;color:var(--text2);line-height:1.5")}>{L.modulosFixos}</span>
       </div>
 
+      {/* Só aparece enquanto houver algum. Quando o último for liberado, o
+          aviso some sozinho — não há lista em tela para manter em dia. */}
+      {s.comingSoonModules.length > 0 && (
+        <div
+          style={css(
+            "display:flex;align-items:center;gap:9px;padding:12px 16px;" +
+              "border:1px solid var(--warn-line);background:var(--warn-soft);border-radius:10px",
+          )}
+        >
+          <span
+            style={css("width:6px;height:6px;flex:none;border-radius:99px;background:var(--warn)")}
+          />
+          <span style={css("font-size:12px;color:var(--text2);line-height:1.5")}>
+            <strong style={css("color:var(--warn);font-weight:600")}>{L.modulosEmBreve}: </strong>
+            {L.modulosEmBreveTexto}
+          </span>
+        </div>
+      )}
+
       <section
         style={css(
           "background:var(--surface);border:1px solid var(--border);border-radius:12px;" +
@@ -55,14 +74,18 @@ export function ModulosView() {
           </div>
         )}
 
-        {s.modules.map((m) => {
+        {/* Os "em breve" entram no fim da mesma tabela, e não numa seção
+            separada: quem abre esta tela quer o catálogo inteiro de uma vez —
+            o que se vende e o que ainda não. A etiqueta é que os distingue. */}
+        {[...s.modules, ...s.comingSoonModules].map((m) => {
+          const soon = !!m.comingSoon;
           const n = cs.filter((x) => x.mods.includes(m.k)).length;
           // A module offered on every plan needs no plan list, just a marker.
           const all = m.plans.length >= s.plans.length;
 
           const identity = (
             <div style={css("display:flex;align-items:center;gap:11px;min-width:0")}>
-              <div style={css(moduleIcon(true))}>{m.initials}</div>
+              <div style={css(moduleIcon(!soon))}>{m.initials}</div>
               <div style={css("display:flex;flex-direction:column;gap:3px;min-width:0")}>
                 <span style={css("font-size:13.5px;font-weight:500;color:var(--text)")}>
                   {m.name[id] || m.name.pt}
@@ -70,6 +93,7 @@ export function ModulosView() {
                 {m.type === "acesso" && (
                   <AccessTag label={L.tagAcesso} ajuda={L.acessoAjuda} bloco />
                 )}
+                {soon && <ComingSoonTag label={L.tagEmBreve} ajuda={L.emBreveAjuda} bloco />}
               </div>
             </div>
           );
@@ -80,13 +104,18 @@ export function ModulosView() {
             </span>
           );
 
-          const adoption = (
+          const adoption = soon ? (
+            // Nem "0 de 12": zero é um número, e aqui não há o que contar.
+            <span style={css("font-size:12.5px;color:var(--muted)")}>—</span>
+          ) : (
             <span style={css(`font-family:${MONO};font-size:12.5px;color:var(--text)`)}>
               {n + (id === "pt" ? " de " : " of ") + cs.length}
             </span>
           );
 
-          const availability = (
+          const availability = soon ? (
+            <span style={css(panelBadge("warn"))}>{L.emBreveIndisponivel}</span>
+          ) : (
             <span style={css(all ? panelBadge("neutral") : panelBadge("acc"))}>
               {all ? L.todosOsPlanos : m.plans.map((k) => planName(s.plans, k, id)).join(" · ")}
             </span>
@@ -114,7 +143,8 @@ export function ModulosView() {
                 key={m.k}
                 style={css(
                   "display:flex;flex-direction:column;gap:12px;padding:14px;" +
-                    "border-bottom:1px solid var(--border-soft)",
+                    "border-bottom:1px solid var(--border-soft)" +
+                    (soon ? ";background:var(--surface2)" : ""),
                 )}
               >
                 <div style={css("display:flex;align-items:flex-start;gap:10px")}>
@@ -140,7 +170,9 @@ export function ModulosView() {
             <div
               key={m.k}
               style={css(
-                GRID + "align-items:center;padding:14px 20px;border-bottom:1px solid var(--border-soft);",
+                GRID +
+                  "align-items:center;padding:14px 20px;border-bottom:1px solid var(--border-soft);" +
+                  (soon ? "background:var(--surface2);" : ""),
               )}
             >
               {identity}

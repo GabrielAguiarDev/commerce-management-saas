@@ -106,7 +106,7 @@ export default async function RootLayout({
   const [
     { customers, error },
     { tickets, error: ticketsError },
-    { modules, error: modulesError },
+    { modules, comingSoon: comingSoonModules, error: modulesError },
     { payments, revenue, error: billingError },
     { settings, error: settingsError },
     perfil,
@@ -134,6 +134,7 @@ export default async function RootLayout({
           initialTickets={tickets}
           ticketsError={ticketsError}
           initialModules={modules}
+          initialComingSoon={comingSoonModules}
           modulesError={modulesError}
           initialPlans={plans}
           plansError={plansError}

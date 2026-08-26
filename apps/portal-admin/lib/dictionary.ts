@@ -111,6 +111,13 @@ const pt = {
   tagAcesso: "Acesso mobile",
   acessoAjuda:
     "Módulo de acesso — não é uma seção do sistema. Ligado, o cliente pode baixar o app e entrar; desligado, continua usando o sistema web normalmente.",
+  tagEmBreve: "Em breve",
+  emBreveAjuda:
+    "Módulo em construção. Não pode ser incluído em plano nem ligado para um cliente até a liberação.",
+  emBreveIndisponivel: "Indisponível",
+  modulosEmBreve: "Em breve",
+  modulosEmBreveTexto:
+    "Módulos já construídos, mas ainda não liberados para venda. Não aparecem na composição dos planos nem na ficha do cliente.",
   module: "Módulo",
   description: "Descrição",
   clientesAtivos: "Clientes ativos",
@@ -558,6 +565,13 @@ const en: Dic = {
   tagAcesso: "Mobile access",
   acessoAjuda:
     "Access module — not a system section. When on, the customer can install the app and sign in; when off, they keep using the web system normally.",
+  tagEmBreve: "Coming soon",
+  emBreveAjuda:
+    "Module under construction. It cannot be added to a plan or turned on for a customer until it ships.",
+  emBreveIndisponivel: "Unavailable",
+  modulosEmBreve: "Coming soon",
+  modulosEmBreveTexto:
+    "Modules already built, but not released for sale yet. They show up neither in plan composition nor on the customer record.",
   module: "Module",
   description: "Description",
   clientesAtivos: "Active customers",

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { MOVEMENT_DB } from "@/lib/dados/estoque";
 import { onlyDigits } from "@/lib/dados/fiscal";
+import { isComingSoon } from "@/lib/modulos";
 import { PAYMENT_DB, SALE_STATUS } from "@/lib/dados/vendas";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 import type { PaymentMethod } from "@/types/types";
@@ -121,6 +122,12 @@ async function enqueueFiscalDocument(
   supabase: Extract<Awaited<ReturnType<typeof requireCustomer>>, { ok: true }>["supabase"],
   saleId: string,
 ) {
+  // Módulo em espera: nem enfileira. O `enqueue_fiscal_document` já devolveria
+  // `null` para quem não tem cadastro fiscal, mas um tenant que TENHA cadastro
+  // e a chave antiga ficaria acumulando documentos numa fila que ninguém emite.
+  // Ver `COMING_SOON_MODULES` em `lib/modulos.ts`.
+  if (isComingSoon("fiscal")) return;
+
   let documentId: string | null = null;
 
   try {

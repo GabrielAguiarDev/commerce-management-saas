@@ -195,8 +195,13 @@ function DataTab() {
           tinham onde ser guardados. Agora têm — na aba Dados fiscais, que é o
           lugar certo: o endereço da nota é o do ESTABELECIMENTO, e nem sempre
           é o mesmo endereço de contato que esta aba guarda.
+
+          SEM O MÓDULO, NÃO HÁ AVISO NENHUM. O texto que ficava aqui explicava a
+          ausência citando "o módulo de Nota Fiscal" — ou seja, anunciava uma
+          função que este cliente não tem e sobre a qual não temos data. Um
+          field que ninguém sente falta não precisa de legenda.
         */}
-        {has("fiscal") ? (
+        {has("fiscal") && (
           <div
             style={css(
               "display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--border2);" +
@@ -214,11 +219,6 @@ function DataTab() {
               , porque é o endereço de onde a mercadoria sai — nem sempre o mesmo daqui.
             </p>
           </div>
-        ) : (
-          <UnsavedNotice>
-            CNPJ/CPF e endereço completo entram com o módulo de Nota Fiscal. Até lá, informe-os ao
-            suporte para constarem na nota.
-          </UnsavedNotice>
         )}
       </div>
 

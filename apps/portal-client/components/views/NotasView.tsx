@@ -37,6 +37,11 @@ import type { FiscalDocument, FiscalStatus } from "@/types/types";
  * A COLUNA MAIS IMPORTANTE É O MOTIVO DA RECUSA. Uma nota recusada sem
  * explicação vira chamado de suporte; com o texto da SEFAZ na tela, quase
  * sempre é o próprio cliente que corrige o NCM e reenvia.
+ *
+ * ESTA TELA NÃO ESTÁ NO AR. Enquanto `fiscal` estiver em `COMING_SOON_MODULES`
+ * (`lib/modulos.ts`), `app/notas/page.tsx` devolve 404 e nada aqui renderiza.
+ * O componente fica intacto de propósito — é o que estará pronto no dia em que
+ * a chave sair da lista. Ver `docs/fiscal/fase-2-emissao.md`.
  */
 
 type Filter = "all" | FiscalStatus;

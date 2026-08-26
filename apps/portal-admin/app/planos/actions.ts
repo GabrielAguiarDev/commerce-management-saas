@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, type ActionResult } from "@/lib/autorizacao";
 import { revalidarLanding } from "@/lib/revalidarLanding";
+import { isComingSoon } from "@/lib/planos";
 
 /**
  * Edição do catálogo de planos — grava em `plans` de verdade.
@@ -38,6 +39,18 @@ function toNumber(amount: string): number | null {
       .replace(",", "."),
   );
   return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/**
+ * A composição que de fato vai para `plans.module_keys`.
+ *
+ * Módulos "Em breve" caem aqui e não no navegador: a tela já não os oferece,
+ * mas um plano só pode prometer o que existe hoje — um `module_keys` com uma
+ * chave que `resolveModules` vai ignorar na ativação é um plano que anuncia
+ * uma coisa e entrega outra. Ver `COMING_SOON_MODULES` em `lib/planos.ts`.
+ */
+function sellableModules(keys: string[]): string[] {
+  return [...new Set(keys)].filter((k) => !isComingSoon(k));
 }
 
 export async function savePlan(
@@ -76,7 +89,7 @@ export async function savePlan(
       price: price,
       // O customizado não tem composição fixa; gravar módulos nele seria
       // contradizer o próprio conceito do plano.
-      module_keys: current.is_custom ? [] : [...new Set(moduloKeys)],
+      module_keys: current.is_custom ? [] : sellableModules(moduloKeys),
     })
     .eq("key", key);
 
@@ -172,7 +185,7 @@ export async function createPlan(
     description: description.trim() || null,
     price: price,
     is_custom: false,
-    module_keys: [...new Set(moduloKeys)],
+    module_keys: sellableModules(moduloKeys),
     is_active: true,
     sort_order: (latest?.sort_order ?? 0) + 1,
   });

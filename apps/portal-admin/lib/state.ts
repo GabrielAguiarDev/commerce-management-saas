@@ -37,6 +37,7 @@ export const INITIAL_STATE: AdminState = {
   settings: [],
   settingsError: null,
   modules: [],
+  comingSoonModules: [],
   modulesError: null,
   plans: [],
   plansError: null,
