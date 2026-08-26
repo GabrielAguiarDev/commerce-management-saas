@@ -177,6 +177,7 @@ export function LabeledField({
   error,
   message,
   note,
+  noteColor,
   inputMode,
   mono,
 }: {
@@ -187,6 +188,8 @@ export function LabeledField({
   error?: boolean;
   message?: string;
   note?: string;
+  /** Paints the note — a warning that is not yet an error. */
+  noteColor?: string;
   inputMode?: "numeric" | "decimal";
   mono?: boolean;
 }) {
@@ -201,7 +204,7 @@ export function LabeledField({
         aria-invalid={error || undefined}
         style={css(field(error) + (mono ? `;font:500 13.5px ${MONO}` : ""))}
       />
-      <FieldNote error={error} message={message} note={note} />
+      <FieldNote error={error} message={message} note={note} noteColor={noteColor} />
     </div>
   );
 }

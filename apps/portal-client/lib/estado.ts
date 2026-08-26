@@ -1,5 +1,7 @@
+import { EMPTY_FISCAL } from "@/lib/dados/fiscal";
 import { METHODS } from "@/lib/dados/vendas";
 import type {
+  FiscalForm,
   PortalData,
   RegisterForm,
   TicketForm,
@@ -57,8 +59,39 @@ export const EMPTY_PRODUCT_FORM: ProductForm = {
   stock: "",
   minimum: "",
   unit: "un",
+  // Vazio em tudo: o produto novo herda o padrão fiscal do negócio, e é isso
+  // que a tela mostra como placeholder.
+  fiscal: {
+    ncm: "",
+    cest: "",
+    origin: "",
+    gtin: "",
+    taxUnit: "",
+    cfop: "",
+    icmsCode: "",
+    pisCst: "",
+    cofinsCst: "",
+  },
   submitted: false,
 };
+
+/**
+ * O rascunho fiscal vazio.
+ *
+ * `cscTokenInput` nasce vazio SEMPRE, inclusive quando já há token gravado:
+ * vazio quer dizer "mantém o que está no banco". O portal nunca recebeu o
+ * token para poder devolvê-lo ao campo.
+ */
+export const EMPTY_FISCAL_FORM: FiscalForm = {
+  ...EMPTY_FISCAL,
+  cscTokenInput: "",
+  submitted: false,
+};
+
+/** O rascunho fiscal a partir do que o servidor entregou. */
+export function fiscalForm(f: PortalData["fiscal"]): FiscalForm {
+  return { ...f, cscTokenInput: "", submitted: false };
+}
 
 export const EMPTY_COST_FORM: CostForm = {
   id: null,
@@ -116,6 +149,8 @@ export const EMPTY_DATA: PortalData = {
     catalog: [],
   },
   data: { name: "", type: "", phone: "", city: "" },
+  fiscal: EMPTY_FISCAL,
+  fiscalDocuments: [],
   products: [],
   sales: [],
   movements: [],
@@ -137,6 +172,7 @@ export const EMPTY_DATA: PortalData = {
  */
 export function initialState(
   data: BusinessData,
+  fiscal: PortalData["fiscal"],
   manter?: { theme: Theme; screenWidth: number; collapsed: boolean },
 ): PortalState {
   return {
@@ -156,6 +192,7 @@ export function initialState(
     pedirCliente: false,
 
     draftData: { ...data },
+    draftFiscal: fiscalForm(fiscal),
 
     cart: [],
     currentMethod: "cash",
@@ -163,6 +200,7 @@ export function initialState(
     code: "",
     cartOpen: false,
     editingSale: null,
+    customerDocument: "",
 
     fVendas: { period: "today", payment: "Todas as formas", product: "Todos os produtos", search: "" },
     fProdutos: { search: "", cat: "Todas as categorias", status: "Todos", onlyLow: false },
@@ -201,5 +239,19 @@ export function initialState(
 export function dataDirty(s: PortalState, saved: BusinessData): boolean {
   return (Object.keys(saved) as (keyof BusinessData)[]).some(
     (k) => saved[k] !== s.draftData[k],
+  );
+}
+
+/**
+ * Rascunho fiscal diferente do que está salvo.
+ *
+ * `cscTokenInput` conta como alteração por si só — é o único campo cujo valor
+ * salvo o portal não conhece, então qualquer coisa digitada nele é, por
+ * definição, algo ainda não gravado.
+ */
+export function fiscalDirty(s: PortalState, saved: PortalData["fiscal"]): boolean {
+  if (s.draftFiscal.cscTokenInput.trim() !== "") return true;
+  return (Object.keys(saved) as (keyof PortalData["fiscal"])[]).some(
+    (k) => saved[k] !== s.draftFiscal[k],
   );
 }

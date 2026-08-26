@@ -18,6 +18,7 @@ const DB_TO_PORTAL: Record<string, ModuleKey> = {
   cash: "register",
   costs: "costs",
   reports: "reports",
+  fiscal: "fiscal",
   support: "support",
 };
 
@@ -28,6 +29,26 @@ export const PORTAL_TO_DB: Partial<Record<ModuleKey, string>> = Object.fromEntri
 
 /** Módulos que todo cliente tem, sem depender do plano. */
 export const BASE_MODULES: ModuleKey[] = ["dashboard", "settings"];
+
+/**
+ * Módulos construídos mas ainda NÃO liberados — o espelho de
+ * `COMING_SOON_MODULES` no portal-admin, que é onde a decisão é tomada.
+ *
+ * `fiscal` está aqui desde 25/08/2026: a emissão de NFC-e está escrita de ponta
+ * a ponta (banco, Edge Functions, telas), mas nenhuma nota foi emitida — falta
+ * o certificado digital A1, o credenciamento na SEFAZ e a conta na Focus NFe.
+ * Ver `docs/fiscal/fase-2-emissao.md`.
+ *
+ * A lista se repete nos dois portais de propósito: o admin já não vende a
+ * chave, mas um tenant que a tenha recebido ANTES continuaria com a linha em
+ * `v_active_modules` — e veria um menu que leva a uma tela que não emite nada.
+ * Este filtro é o que garante que a tela só apareça quando a nota funcionar.
+ */
+export const COMING_SOON_MODULES: ModuleKey[] = ["fiscal"];
+
+export function isComingSoon(k: ModuleKey): boolean {
+  return COMING_SOON_MODULES.includes(k);
+}
 
 /**
  * Converte as linhas de `v_active_modules` na lista que o menu e as telas leem.
@@ -43,6 +64,7 @@ const ORDER: ModuleKey[] = [
   "stock",
   "costs",
   "reports",
+  "fiscal",
   "settings",
   "support",
 ];
@@ -53,7 +75,7 @@ export function tenantModules(rows: { key: string; is_access: boolean | null }[]
   for (const l of rows) {
     if (l.is_access) continue; // 'app' e afins não são tela do portal.
     const k = DB_TO_PORTAL[l.key];
-    if (k) active.add(k);
+    if (k && !isComingSoon(k)) active.add(k);
   }
 
   return ORDER.filter((k) => active.has(k));

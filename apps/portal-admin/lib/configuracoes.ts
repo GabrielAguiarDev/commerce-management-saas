@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isComingSoon } from "@/lib/planos";
 import { createClient } from "@/lib/supabase/server";
 import type { SettingItem, Loc } from "@/types/types";
 
@@ -127,6 +128,10 @@ export async function listSettings(): Promise<SettingsResult> {
 /**
  * Módulos que um cliente novo recebe quando o plano não define composição.
  * Lido pela Server Action de cadastro — antes era uma lista fixa em código.
+ *
+ * Módulos "Em breve" saem da lista: o ajuste é um valor gravado em
+ * `platform_settings` e pode ter sido salvo antes de o módulo entrar em espera.
+ * Ver `COMING_SOON_MODULES` em `lib/planos.ts`.
  */
 export async function defaultModules(): Promise<string[]> {
   const supabase = await createClient();
@@ -137,5 +142,5 @@ export async function defaultModules(): Promise<string[]> {
     .maybeSingle();
 
   if (error || !data || !Array.isArray(data.value)) return [];
-  return data.value as string[];
+  return (data.value as string[]).filter((k) => !isComingSoon(k));
 }

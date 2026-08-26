@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# O modelo, sim: é ele que diz quais variáveis o app precisa. Mesma exceção do
+# portal-admin e da landing-page.
+!.env.local.example
+
 # vercel
 .vercel
 

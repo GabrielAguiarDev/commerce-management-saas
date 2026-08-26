@@ -1,6 +1,6 @@
 import "server-only";
 
-import { MODULE_INITIALS } from "@/lib/planos";
+import { isComingSoon, MODULE_INITIALS } from "@/lib/planos";
 import { createClient } from "@/lib/supabase/server";
 import type { Module, Plan } from "@/types/types";
 
@@ -31,6 +31,7 @@ function toModule(linha: ModuleRow, plans: Plan[]): Module {
   return {
     k: linha.key,
     ...(linha.is_access ? { type: "acesso" as const } : {}),
+    ...(isComingSoon(linha.key) ? { comingSoon: true as const } : {}),
     name: umTexto(name),
     // Um módulo novo no banco, ainda sem sigla escolhida, cai nas duas
     // primeiras letras do nome em vez de aparecer sem ícone.
@@ -46,7 +47,10 @@ function toModule(linha: ModuleRow, plans: Plan[]): Module {
 }
 
 export interface ModulesResult {
+  /** O catálogo vendável — sem os módulos em breve. */
   modules: Module[];
+  /** Os módulos em breve, à parte. Ver `COMING_SOON_MODULES` em `lib/planos.ts`. */
+  comingSoon: Module[];
   error: string | null;
 }
 
@@ -64,7 +68,7 @@ export interface ModulesResult {
  */
 export async function listModules(plans: Plan[] | Promise<Plan[]>): Promise<ModulesResult> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return { modules: [], error: "Supabase não configurado." };
+    return { modules: [], comingSoon: [], error: "Supabase não configurado." };
   }
 
   const supabase = await createClient();
@@ -76,15 +80,30 @@ export async function listModules(plans: Plan[] | Promise<Plan[]>): Promise<Modu
 
   if (error) {
     console.error("[listarModulos] falha ao ler modules:", error.message);
-    return { modules: [], error: `Não foi possível carregar os módulos: ${error.message}` };
+    return {
+      modules: [],
+      comingSoon: [],
+      error: `Não foi possível carregar os módulos: ${error.message}`,
+    };
   }
 
-  const modules = (data as ModuleRow[]).map((l) => toModule(l, planList));
+  const catalog = (data as ModuleRow[]).map((l) => toModule(l, planList));
+
+  // A separação acontece aqui, na leitura, e não em cada tela: assim `modulos`
+  // é sempre o que se pode vender, e nenhuma grade, contagem ou chip precisa se
+  // lembrar de filtrar. Ver `COMING_SOON_MODULES` em `lib/planos.ts`.
+  const modules = catalog.filter((m) => !m.comingSoon);
+  const comingSoon = catalog.filter((m) => m.comingSoon);
 
   // Um plano que aponta para um módulo inexistente só apareceria no cadastro,
   // como erro da função `admin_create_tenant`. Melhor gritar aqui, no log do
   // servidor, na primeira vez que alguém abre o painel.
-  const keys = new Set(modules.map((m) => m.k));
+  //
+  // A conferência é contra o CATÁLOGO INTEIRO: um plano que ainda inclua um
+  // módulo em breve não é um plano quebrado — é um plano cuja chave vai ser
+  // ignorada na hora de ativar (`resolveModules`), e avisar de órfão aqui só
+  // produziria ruído no log.
+  const keys = new Set(catalog.map((m) => m.k));
   const orphans = planList.flatMap((p) => p.mods).filter((k) => !keys.has(k));
   if (orphans.length > 0) {
     console.error(
@@ -93,5 +112,5 @@ export async function listModules(plans: Plan[] | Promise<Plan[]>): Promise<Modu
     );
   }
 
-  return { modules, error: null };
+  return { modules, comingSoon, error: null };
 }

@@ -251,4 +251,20 @@ export function AcessoIcone() {
   );
 }
 
+/** Relógio da etiqueta "Em breve". Mesma medida do ícone de acesso. */
+export function EmBreveIcone() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2" />
+      <path
+        d="M7 3.8V7l2.1 1.6"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Seta do select. Herda a cor de quem a contém, então acompanha o tema. */

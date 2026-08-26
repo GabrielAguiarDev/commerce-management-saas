@@ -2,7 +2,7 @@
 
 import { css, initials, MONO } from "@aguiar/ui";
 import { useAdmin } from "@/components/AdminProvider";
-import { AcessoIcone } from "@/lib/icons";
+import { AcessoIcone, EmBreveIcone } from "@/lib/icons";
 import { avatar, METRIC_CARD } from "@/lib/styleKit";
 import type { Customer, Language, Plan } from "@/types/types";
 
@@ -115,6 +115,38 @@ export function BusinessCell({
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * Pill marking a module that is built but not released yet.
+ *
+ * Mesma forma da etiqueta de acesso — as duas convivem no mesmo cartão —, mas
+ * na cor de atenção: "em breve" é uma restrição, e restrição precisa saltar.
+ */
+export function ComingSoonTag({
+  label,
+  ajuda,
+  bloco,
+}: {
+  label: string;
+  ajuda: string;
+  bloco?: boolean;
+}) {
+  return (
+    <span
+      title={ajuda}
+      style={css(
+        "display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:600;" +
+          "letter-spacing:.05em;text-transform:uppercase;color:var(--warn);" +
+          "border:1px solid var(--warn-line);background:var(--warn-soft);" +
+          "border-radius:99px;padding:2px 7px 2px 5px;" +
+          (bloco ? "width:fit-content;" : "flex:none;"),
+      )}
+    >
+      <EmBreveIcone />
+      {label}
+    </span>
   );
 }
 
