@@ -34,7 +34,7 @@ export const SP_STATUS: Record<
 export const SP_CATEGORIES: [string, string][] = [
   ["Dúvida", "Não sei como fazer algo no portal"],
   ["Problema técnico", "Algo travou, sumiu ou deu erro"],
-  ["Financeiro", "Cobrança, plano ou nota fiscal"],
+  ["Financeiro", "Cobrança, plano ou pagamento"],
   ["Sugestão", "Uma ideia para melhorar o sistema"],
 ];
 

@@ -68,6 +68,7 @@ export function AdminProvider({
   initialTickets = [],
   ticketsError = null,
   initialModules = [],
+  initialComingSoon = [],
   modulesError = null,
   initialPlans = [],
   plansError = null,
@@ -86,8 +87,10 @@ export function AdminProvider({
   /** Chamados de suporte lidos do Supabase pelo layout (server component). */
   initialTickets?: Ticket[];
   ticketsError?: string | null;
-  /** Catálogo de módulos lido da tabela `modules` pelo layout. */
+  /** Catálogo de módulos VENDÁVEIS, lido da tabela `modules` pelo layout. */
   initialModules?: Module[];
+  /** Os módulos "Em breve" — separados na leitura, ver `lib/modulos.ts`. */
+  initialComingSoon?: Module[];
   modulesError?: string | null;
   /** Catálogo de planos lido da tabela `plans`. */
   initialPlans?: Plan[];
@@ -114,6 +117,7 @@ export function AdminProvider({
     tickets: initialTickets,
     ticketsError,
     modules: initialModules,
+    comingSoonModules: initialComingSoon,
     modulesError,
     adminName,
     payments: initialPayments,
@@ -177,6 +181,7 @@ export function AdminProvider({
     `#${ticketsError ?? ""}` +
     "@" +
     JSON.stringify(initialModules) +
+    JSON.stringify(initialComingSoon) +
     `#${modulesError ?? ""}#${adminName ?? ""}` +
     "@" +
     JSON.stringify(initialPlans) +
@@ -200,6 +205,7 @@ export function AdminProvider({
       tickets: initialTickets,
       ticketsError,
       modules: initialModules,
+      comingSoonModules: initialComingSoon,
       modulesError,
       adminName,
       payments: initialPayments,
@@ -490,7 +496,10 @@ export function AdminProvider({
   };
 
   const openModuleForm = (k: string) => {
-    const m = state.modules.find((x) => x.k === k);
+    // Nos dois catálogos: um módulo "Em breve" não se vende, mas o nome e a
+    // descrição dele continuam editáveis — é o texto que o cliente vai ler
+    // quando ele for liberado.
+    const m = [...state.modules, ...state.comingSoonModules].find((x) => x.k === k);
     if (!m) return;
     const id = state.language;
     set({

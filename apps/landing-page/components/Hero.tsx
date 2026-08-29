@@ -1,7 +1,8 @@
 import { css } from "@aguiar/ui";
-import { DashboardPreview } from "@/components/DashboardPreview";
+import { DemoStage } from "@/components/DemoStage";
 import { COPY } from "@/lib/dictionary";
-import { HOW, SIGNUP } from "@/lib/links";
+import { HOW } from "@/lib/links";
+import { ctaLink, fetchWhatsapp } from "@/lib/whatsapp";
 import { CTA_GHOST, ctaPrimary } from "@/lib/styleKit";
 
 /**
@@ -29,6 +30,12 @@ import { CTA_GHOST, ctaPrimary } from "@/lib/styleKit";
  * tamanho desta dobra é uma textura em GPU a cada pintura, e o público desta
  * página está em celular popular; o degradê radial é resolvido pelo rasterizador
  * uma vez e não custa quadro nenhum.
+ *
+ * EM CELULAR AS DUAS MANCHAS VIRAM UMA SÓ, DE CIMA PARA BAIXO. Numa faixa de
+ * 390px os dois cantos se encostam e deixam um poço branco no meio da testa da
+ * página — o que era luz nos cantos vira uma faixa azul com um buraco. A troca
+ * está em `globals.css`, na classe `lp-hero`; aqui fica o arranjo de tela
+ * larga, que é onde as duas manchas têm espaço para existir separadas.
  */
 const WASH =
   "background:" +
@@ -69,6 +76,12 @@ const WASH =
  * página. Ele é a tela do produto: sangrar para fora da coluna de leitura é o
  * que faz a diferença entre "uma figura ao lado do texto" e "o produto".
  *
+ * O PAINEL PARADO VIROU UMA DEMONSTRAÇÃO. No lugar de `DashboardPreview` — que
+ * continua no repositório, com uma nota no topo — entra `DemoStage`, que encena
+ * uma venda sendo registrada, em laço. O PRIMEIRO QUADRO DELA É O PAINEL QUE
+ * ESTAVA AQUI, valor por valor, e vem pintado do servidor: a troca não custou
+ * um milissegundo de LCP, e sem JavaScript a dobra é exatamente a de antes.
+ *
  * ELE COMEÇA LOGO DEPOIS DA LINHA DE CONFIANÇA. O vão era de 96px e sobrava
  * dobra para uma faixa fina do painel; agora são ~40px e mais de dois terços
  * dele cabem na tela antes de rolar. O que passa da borda continua cortado de
@@ -80,9 +93,14 @@ const WASH =
  * conexão deste público, mostra uma tela vazia enquanto o pacote não chega. O
  * movimento começa na dobra seguinte.
  */
-export function Hero() {
+export async function Hero() {
+  // A chamada principal da página: abre o WhatsApp com a frase da primeira
+  // dobra, que é a mais geral das cinco.
+  const cta = ctaLink(await fetchWhatsapp(), COPY.cta.whatsapp.hero);
+
   return (
     <section
+      className="lp-hero"
       aria-labelledby="hero-title"
       style={css(
         WASH +
@@ -145,7 +163,7 @@ export function Hero() {
               "margin-bottom:22px",
           )}
         >
-          <a className="lp-cta" href={SIGNUP} style={css(ctaPrimary(16, "15px 26px"))}>
+          <a className="lp-cta" {...cta} style={css(ctaPrimary(16, "15px 26px"))}>
             {COPY.hero.ctaPrimary}
           </a>
           {/* `lp-link` e não `lp-on-petrol`: o hover daquela abre para o BRANCO,
@@ -166,7 +184,7 @@ export function Hero() {
           `padding` da seção continuam valendo, então em telas menores que
           1400px ele encolhe junto e nunca encosta na borda. */}
       <div style={css("max-width:1360px;margin:clamp(24px,3vw,40px) auto 0")}>
-        <DashboardPreview />
+        <DemoStage />
       </div>
     </section>
   );

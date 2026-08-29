@@ -25,8 +25,32 @@ export const MODULE_INITIALS: Record<string, string> = {
   costs: "CT",
   reports: "RL",
   support: "SP",
+  fiscal: "NF",
   app: "AP",
 };
+
+// =====================================================================
+// EM BREVE
+// =====================================================================
+
+/**
+ * Módulos que existem no catálogo mas ainda NÃO podem ser vendidos.
+ *
+ * `fiscal` está aqui desde 25/08/2026. O caminho inteiro da NFC-e está escrito
+ * — banco, Edge Functions, telas —, mas nenhuma nota foi emitida: falta o
+ * certificado digital A1, o credenciamento na SEFAZ e a conta na Focus NFe, e
+ * nenhum dos três depende de código. Ver `docs/fiscal/fase-2-emissao.md`.
+ *
+ * Enquanto a chave estiver nesta lista, o módulo aparece no catálogo com a
+ * etiqueta "Em breve" e some de todo lugar em que se ESCOLHE módulo: a grade
+ * do cadastro, a ficha do cliente, a composição dos planos e os padrões da
+ * plataforma. Ligar de volta é tirar a chave daqui — uma linha.
+ */
+export const COMING_SOON_MODULES: readonly string[] = ["fiscal"];
+
+export function isComingSoon(k: string): boolean {
+  return COMING_SOON_MODULES.includes(k);
+}
 
 // =====================================================================
 // REGRAS
@@ -42,15 +66,23 @@ export const MODULE_INITIALS: Record<string, string> = {
  *
  * Num plano de pacote fechado, `escolhidos` é ignorado: mesmo que alguém
  * forjasse a requisição marcando módulos extras, o pacote do plano prevalece.
+ *
+ * Em qualquer um dos dois casos, módulos em `COMING_SOON_MODULES` saem da lista.
  */
 export function resolveModules(
   ehCustom: boolean,
   planModules: readonly string[],
   picked: readonly string[] = [],
 ): string[] {
-  if (!ehCustom) return [...planModules];
+  // O filtro de "em breve" fica AQUI, e não na interface: esta função é o
+  // ponto por onde passam as duas escritas de módulo de um cliente (cadastro e
+  // ficha). Um plano antigo que ainda carregue a chave no `module_keys`, ou uma
+  // requisição forjada, morre neste ponto em vez de ligar uma tela inacabada.
+  const vendavel = (k: string) => !isComingSoon(k);
+
+  if (!ehCustom) return planModules.filter(vendavel);
   // Customizado: só o que foi marcado, sem repetição.
-  return [...new Set(picked)];
+  return [...new Set(picked)].filter(vendavel);
 }
 
 /** Plano de pacote fechado — a grade de módulos fica só de leitura. */

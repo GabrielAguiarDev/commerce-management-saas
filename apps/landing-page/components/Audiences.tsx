@@ -8,13 +8,12 @@ import { CARD, CARD_TEXT, CARD_TITLE, grid, SECTION } from "@/lib/styleKit";
  * Os três ícones da dobra: um quadrado, um círculo e um losango.
  *
  * São formas e não pictogramas de propósito — nenhum desenho serve igualmente
- * bem para "acarajé, lanches e food" e para "barbearia, mercadinho, ateliê,
- * oficina". Elas marcam que os três cards são coisas diferentes sem afirmar o
+ * bem para "comida e bebida" e para "barbearia, salão, ateliê, oficina". Elas marcam que os três cards são coisas diferentes sem afirmar o
  * que cada uma é; o título ao lado já faz isso.
  */
 const SHAPES = [
-  "width:14px;height:14px;border-radius:4px;background:var(--teal)",
-  "width:14px;height:14px;border-radius:50%;background:var(--teal)",
+  "width:14px;height:14px;border-radius:4px;background:var(--accent)",
+  "width:14px;height:14px;border-radius:50%;background:var(--accent)",
   "width:14px;height:14px;background:var(--accent);transform:rotate(45deg)",
 ];
 
@@ -60,7 +59,7 @@ export function Audiences() {
                   style={css(
                     "width:38px;height:38px;border-radius:11px;display:flex;align-items:center;" +
                       "justify-content:center;margin-bottom:16px;background:" +
-                      (dark ? "rgba(255,255,255,.12)" : "var(--teal-soft)"),
+                      (dark ? "rgba(255,255,255,.12)" : "var(--accent-soft)"),
                   )}
                 >
                   <div style={css(SHAPES[i] ?? SHAPES[0])} />

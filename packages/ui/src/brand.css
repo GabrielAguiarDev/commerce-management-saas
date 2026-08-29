@@ -1,0 +1,40 @@
+/* ---------------------------------------------------------------------------
+   A MARCA — ARQUIVO GERADO. NÃO EDITE.
+
+   Sai de `packages/brand/src/index.ts` por `pnpm brand:sync`. Editar aqui é
+   perder a edição no próximo sync, e pior: é criar um segundo lugar onde a
+   marca está escrita, que é exatamente o que este arquivo existe para acabar.
+
+   O QUE ELE TEM: a identidade e nada mais — o azul da marca em cada
+   luminosidade, o petrol e as três cores de estado. Sem superfície, sem borda,
+   sem cinza, sem tema. Cada produto mapeia estes nomes para o vocabulário dele:
+   os portais em `tokens.css`, o site no `globals.css` dele.
+
+   COMO ENTRA:  @import "@aguiar/ui/brand.css";
+--------------------------------------------------------------------------- */
+
+:root {
+  /* A marca */
+  --brand: #1b9abd;
+  --brand-rgb: 27, 154, 189;
+  --brand-ink: #020e18;
+  --brand-lifted: #35b5da;
+  --brand-text: #0e7590;
+  --brand-hi: #4cc4e6;
+  --brand-bright: #38b7de;
+  --brand-soft: #e4f3f7;
+  --brand-petrol: #123c4a;
+
+  /* Estados, sobre fundo claro */
+  --pos: #17795e;
+  --pos-soft: #e2f2ec;
+  --warn: #a9700f;
+  --warn-soft: #fbf0dc;
+  --danger: #c4453c;
+  --danger-soft: #fbe9e7;
+
+  /* Estados, sobre fundo escuro — quem tem tema escuro aponta para estes */
+  --pos-dark: #3fc98c;
+  --warn-dark: #e0a950;
+  --danger-dark: #e3736a;
+}

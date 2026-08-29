@@ -4,3 +4,75 @@
    `@aguiar/ui`, o mesmo arquivo que o painel importa. As fontes entram por
    `--font-sans` / `--font-mono`, carregadas em `layout.tsx`. */
 @import "@aguiar/ui/tokens.css";
+
+/* -------------------------------------------------------------------------- */
+/* A grade de números do resumo de hoje                                        */
+/* -------------------------------------------------------------------------- */
+
+/*
+   POR QUE ISTO NÃO É ESTILO INLINE, como o resto do portal.
+
+   A quantidade de cartões varia com o plano do cliente, e o número de colunas
+   varia com ela — três, quatro ou duas — para que a última linha nunca fique
+   pela metade. Quem calcula isso é `lib/grid.ts`, no servidor, sem medir nada.
+
+   O problema é ESCOLHER entre a conta do desktop e a do celular. O portal
+   resolve breakpoint por `isMobile`, que nasce de um `screenWidth` medido num
+   efeito depois da montagem: no celular o primeiro quadro sairia com a grade do
+   desktop e saltaria de quatro colunas para duas no quadro seguinte. Aqui isso
+   não seria uma piscada de espaçamento, seria a estrutura da tela mudando na
+   frente de quem abriu a página.
+
+   Então o servidor manda AS DUAS contas — `--cols-d`/`--cols-m` no container e
+   `--span-d`/`--span-m` em cada cartão — e a escolha fica com a media query,
+   que resolve antes do primeiro pixel. Media query não existe em atributo
+   `style`, e é só por isso que estas regras moram num arquivo CSS.
+
+   O limiar é o mesmo `MOBILE_BREAKPOINT = 900` de `styleKit.ts`; se um mudar,
+   o outro tem de mudar junto.
+*/
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols-d), minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.kpi-grid > * {
+  grid-column: span var(--span-d);
+}
+
+/*
+   O cabeçalho do cartão: rótulo e valor empilhados quando o cartão tem a
+   largura de uma coluna, lado a lado quando recebeu mais que isso.
+
+   `--dir-d`/`--dir-m` vêm do mesmo `span` que decidiu a largura, e chegam aqui
+   por herança — são declaradas no cartão, que é o pai. As outras duas
+   propriedades servem às duas direções sem precisar variar:
+   `justify-content` não tem espaço livre para distribuir na vertical e vira
+   no-op, e `align-items: baseline` alinha as linhas de base na horizontal e cai
+   para o início na vertical.
+*/
+.kpi-head {
+  display: flex;
+  flex-direction: var(--dir-d);
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+@media (max-width: 899.98px) {
+  .kpi-grid {
+    grid-template-columns: repeat(var(--cols-m), minmax(0, 1fr));
+  }
+
+  .kpi-grid > * {
+    grid-column: span var(--span-m);
+  }
+
+  .kpi-head {
+    flex-direction: var(--dir-m);
+  }
+}

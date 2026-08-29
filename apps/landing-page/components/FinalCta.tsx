@@ -1,7 +1,8 @@
 import { css } from "@aguiar/ui";
 import { Reveal } from "@/components/Reveal";
 import { COPY } from "@/lib/dictionary";
-import { PLANS, SIGNUP } from "@/lib/links";
+import { CTA_ID, PLANS } from "@/lib/links";
+import { ctaLink, fetchWhatsapp } from "@/lib/whatsapp";
 import { ctaPrimary } from "@/lib/styleKit";
 
 /**
@@ -9,10 +10,12 @@ import { ctaPrimary } from "@/lib/styleKit";
  * inteira. Centralizada e sem nada em volta — não há mais nada para comparar,
  * só para decidir.
  */
-export function FinalCta() {
+export async function FinalCta() {
+  const cta = ctaLink(await fetchWhatsapp(), COPY.cta.whatsapp.final);
+
   return (
     <section
-      id="cta"
+      id={CTA_ID}
       aria-labelledby="cta-title"
       style={css("padding:clamp(56px,7vw,92px) 20px;background:var(--petrol);color:#fff")}
     >
@@ -39,7 +42,7 @@ export function FinalCta() {
         <div
           style={css("display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center")}
         >
-          <a className="lp-cta" href={SIGNUP} style={css(ctaPrimary(16.5, "16px 30px"))}>
+          <a className="lp-cta" {...cta} style={css(ctaPrimary(16.5, "16px 30px"))}>
             {COPY.finalCta.primary}
           </a>
           <a

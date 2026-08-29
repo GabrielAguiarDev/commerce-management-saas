@@ -7,14 +7,15 @@
  * app's `components/`, built on top of these pieces.
  *
  * The tokens live in `@aguiar/ui/tokens.css` and are imported once by each
- * app's `globals.css`.
+ * app's `globals.css`. The brand itself is one layer under them, in
+ * `@aguiar/brand`, and reaches CSS as `@aguiar/ui/brand.css`.
  *
  * Everything here speaks English. Text the customer reads is never hardcoded in
  * this library: it arrives as a prop, already translated by the app's
  * dictionary.
  */
 
-export { BRAND } from "./brand";
+export { BRAND, type BrandColor } from "./brand";
 export { css, font, MONO, SANS } from "./css";
 export { ChevronDownIcon, CloseIcon, SearchIcon, type IconProps } from "./icons";
 

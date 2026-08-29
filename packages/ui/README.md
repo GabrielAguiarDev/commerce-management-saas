@@ -54,7 +54,7 @@ Um vocabulário só, claro e escuro, trocado por `data-tema="escuro"` no `<body>
 
 | Grupo       | Tokens                                                          |
 | ----------- | --------------------------------------------------------------- |
-| Marca       | `--brand` `--brand-ink` (e `BRAND` em JS, para o que não lê CSS) |
+| Marca       | `--brand` `--brand-rgb` `--brand-ink` `--brand-lifted` `--brand-text` `--brand-hi` `--brand-bright` `--brand-soft` `--brand-petrol` (e `BRAND` em JS, para o que não lê CSS) |
 | Superfícies | `--bg` `--surface` `--surface2` `--surface3` `--surface-hover`   |
 | Bordas      | `--border-soft` `--border` `--border2`                           |
 | Texto       | `--text` `--text2` `--muted`                                     |
@@ -62,11 +62,23 @@ Um vocabulário só, claro e escuro, trocado por `data-tema="escuro"` no `<body>
 | Estados     | `--pos` `--warn` `--danger`, cada um com `-soft` e `-line`       |
 | Lateral     | `--side` `--side-card` `--side-text` `--side-text2` `--side-border` |
 
-**A marca mora em `--brand`, e em nenhum outro lugar.** `--accent` é ela nos
-dois temas — apontando direto no claro, e com a luminosidade aberta no escuro,
-sempre no mesmo matiz (193°). Trocar a marca é trocar `--brand`, o par escuro
-logo abaixo dele e `brand.ts`. O azul jamais vira verde no escuro: verde é
-`--pos`, e é só de lucro.
+**A marca não mora aqui.** Ela mora em `packages/brand/src/index.ts`, o único
+arquivo do monorepo onde a identidade tem valor literal, e chega ao CSS por
+`brand.css` — gerado dali, importado por `tokens.css` e também pelo site.
+`--accent` é a marca nos dois temas: aponta para `--brand` no claro e para
+`--brand-lifted` no escuro, sempre no mesmo matiz (193°).
+
+**Trocar a marca é editar `packages/brand/src/index.ts` e rodar `pnpm
+brand:sync`.** O script reescreve `brand.css` e o `app.json` do Expo, e falha
+apontando os arquivos de ARTE (os SVGs de ícone, o `offline.html`) que ficaram
+para trás — esses são na mão, porque a cor está dentro do desenho. Rode
+`pnpm brand:check` para só conferir, sem escrever.
+
+O azul jamais vira verde no escuro: verde é `--pos`, e é só de lucro.
+
+**Accent próprio por app** — o console numa cor que o distinga do portal do
+cliente — está pronto e desligado em `accent.css`. A marca continua a mesma em
+todos: o que muda é o destaque, nunca o logo. Ver o cabeçalho daquele arquivo.
 
 Destaque **desenhado** (preenchimento, borda, traço de ícone) usa `--accent`;
 destaque **escrito** (rótulo, link, número em evidência) usa `--accent-text`,

@@ -4,7 +4,8 @@ import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { Reveal } from "@/components/Reveal";
 import { Container } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
-import { MODULES, PLANS, SIGNUP } from "@/lib/links";
+import { MODULES_ID, PLANS } from "@/lib/links";
+import { ctaLink, fetchWhatsapp } from "@/lib/whatsapp";
 import { EYEBROW, H2, LEAD, SECTION } from "@/lib/styleKit";
 
 /**
@@ -35,12 +36,14 @@ import { EYEBROW, H2, LEAD, SECTION } from "@/lib/styleKit";
  * existe para dizer. A borda tracejada continua sendo o que anuncia isso antes
  * de alguém ler o título.
  */
-export function Modules() {
+export async function Modules() {
+  const cta = ctaLink(await fetchWhatsapp(), COPY.cta.whatsapp.modules);
+
   // O `id` sai da MESMA constante que o menu do topo aponta — assim renomear a
   // âncora não pode deixar o link do menu apontando para lugar nenhum.
   return (
     <section
-      id={MODULES.slice(1)}
+      id={MODULES_ID}
       aria-labelledby="modules-title"
       style={css(
         SECTION +
@@ -66,7 +69,7 @@ export function Modules() {
               className="lp-link"
               href={PLANS}
               style={css(
-                "display:inline-block;margin-top:24px;font-size:15px;font-weight:600;color:var(--teal)",
+                "display:inline-block;margin-top:24px;font-size:15px;font-weight:600;color:var(--accent-text)",
               )}
             >
               {COPY.modules.link}
@@ -96,8 +99,8 @@ export function Modules() {
             </p>
             <a
               className="lp-link"
-              href={SIGNUP}
-              style={css("font-size:14.5px;font-weight:600;color:var(--teal)")}
+              {...cta}
+              style={css("font-size:14.5px;font-weight:600;color:var(--accent-text)")}
             >
               {COPY.modules.custom.cta}
             </a>

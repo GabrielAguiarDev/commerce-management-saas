@@ -16,6 +16,12 @@ export interface Module {
   k: string;
   /** `acesso` modules unlock a channel (the mobile app) rather than a section. */
   type?: "acesso";
+  /**
+   * Módulo construído mas ainda não liberado — aparece no catálogo com a
+   * etiqueta "Em breve" e não pode ser escolhido em lugar nenhum.
+   * A lista mora em `lib/planos.ts` (`COMING_SOON_MODULES`).
+   */
+  comingSoon?: true;
   name: Loc;
   initials: string;
   desc: Loc;
@@ -220,7 +226,14 @@ export interface AdminState {
   payments: Record<string, Payment>;
   /** Falha ao ler `platform_payments`. */
   billingError: string | null;
+  /** O catálogo VENDÁVEL: tudo que pode ser ligado para um cliente hoje. */
   modules: Module[];
+  /**
+   * Os módulos "Em breve" — fora de `modules` de propósito, para que nenhuma
+   * grade, contagem ou chip precise se lembrar de os excluir. Só a tela de
+   * Módulos os junta de volta, para os mostrar com a etiqueta.
+   */
+  comingSoonModules: Module[];
   /** Falha ao ler o catálogo de módulos no Supabase. */
   modulesError: string | null;
   plans: Plan[];

@@ -2,9 +2,13 @@
 
 import { usePortal } from "@/components/PortalProvider";
 import { Button, css, MONO, NUM, PANEL, SANS, PANEL_TITLE, SCREEN_TITLE } from "@aguiar/ui";
+import { MetricCard, type MetricCardProps } from "@/components/dashboard/MetricCard";
+import { SuggestedModuleCard } from "@/components/dashboard/SuggestedModuleCard";
 import { MODULES } from "@/lib/dados/perfis";
 import { PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { brl, shortBrl, longDate, weekday, dateLabel, greeting, totalV } from "@/lib/formato";
+import { layoutDaGrade } from "@/lib/grid";
+import { suggestedModule } from "@/lib/modulos";
 import { POS_ROUTE, ROUTES } from "@/lib/rotas";
 import {
   costOfSales,
@@ -15,14 +19,6 @@ import {
   costsTotal,
 } from "@/lib/selectors";
 import type { ModuleKey } from "@/types/types";
-
-interface KpiCard {
-  label: string;
-  value: string;
-  note: string;
-  color: string;
-  dot: string;
-}
 
 /**
  * O resumo de hoje.
@@ -42,7 +38,21 @@ export function DashboardView() {
   const month = totalRevenue(d.sales.filter((v) => v.d < 30));
   const outOfStock = productsOutOfStock(d.products);
 
-  const kpis: KpiCard[] = [
+  /**
+   * A ORDEM DESTE ARRAY É DECISÃO DE LAYOUT, não só de leitura.
+   *
+   * A grade fecha a última linha esticando os ÚLTIMOS itens (ver
+   * `distribuirSpans`), então o fim do array é onde a largura extra cai. Por
+   * isso: as métricas que a pessoa vem buscar primeiro — Faturamento e Lucro —
+   * ficam no começo, onde a largura é a de sempre e a leitura começa; e o fim
+   * fica reservado para quem aproveita largura, o cartão de sugestão quando ele
+   * existe e, na falta dele, um cartão textual como "Estoque baixo", que tem
+   * nomes de produto para mostrar em vez de um número só.
+   *
+   * Mover um item daqui muda quem estica. Antes de reordenar, olhe a tabela de
+   * `lib/grid.ts` para a contagem em questão.
+   */
+  const kpis: MetricCardProps[] = [
     {
       label: "Faturamento hoje",
       value: brl(revenueToday),
@@ -138,7 +148,36 @@ export function DashboardView() {
 
   const latest = today.slice(0, 4);
 
-  const kpiCols = isMobile ? "1fr 1fr" : "repeat(auto-fit,minmax(200px,1fr))";
+  /**
+   * O módulo que este cliente ainda não tem, e que vale oferecer.
+   *
+   * `null` para quem já tem tudo — e aí a grade fica só com os números, que
+   * fecham a última linha entre si do mesmo jeito. Sai de uma ordem de
+   * prioridade fixa, e não de um sorteio: o cartão não pode trocar de módulo a
+   * cada navegação.
+   */
+  const suggestion = suggestedModule(d.business.catalog, d.business.modules);
+
+  /**
+   * A grade, calculada aqui e escolhida pelo CSS.
+   *
+   * A sugestão conta como mais um item: a última linha se fecha sobre o total,
+   * e não sobre os números com um apêndice depois. `layoutDaGrade` devolve as
+   * DUAS contas — desktop e celular — porque a largura da janela só é conhecida
+   * no navegador, e escolher aqui faria a grade saltar de quatro colunas para
+   * duas no segundo quadro. As variáveis descem para o CSS, e a media query de
+   * `globals.css` decide antes do primeiro pixel.
+   *
+   * NÃO HÁ RAMO `grid-column: 1 / -1` PARA A SUGESTÃO, e não é esquecimento. Ele
+   * existiria para o caso em que os números fecham a linha exata e a sugestão
+   * sobraria sozinha na seguinte — mas isso é `total % colunas === 1`, que é
+   * justamente a fração de 100% que `melhorNumeroDeColunas` evita ao escolher
+   * entre quatro e três colunas. E se acontecesse, `span` já seria igual ao
+   * número de colunas, que renderiza exatamente igual a `1 / -1`. O ramo seria
+   * código morto com cara de regra.
+   */
+  const grade = layoutDaGrade(kpis.length + (suggestion ? 1 : 0));
+
   const panelCols = isMobile ? "1fr" : "minmax(0,1.6fr) minmax(0,1fr)";
 
   return (
@@ -158,29 +197,24 @@ export function DashboardView() {
       </div>
 
       <div
-        style={css(`display:grid;grid-template-columns:${kpiCols};grid-auto-rows:1fr;gap:12px;align-items:stretch`)}
+        className="kpi-grid"
+        style={css(`--cols-d:${grade.colunasDesktop};--cols-m:${grade.colunasMobile}`)}
       >
-        {kpis.map((k) => (
-          <div
+        {kpis.map((k, i) => (
+          <MetricCard
             key={k.label}
-            style={css(`display:flex;flex-direction:column;height:100%;min-height:132px;padding:16px;${PANEL}`)}
-          >
-            <div style={css("display:flex;align-items:center;gap:8px")}>
-              <span style={css(`width:8px;height:8px;border-radius:3px;background:${k.dot}`)} />
-              <span style={css(`font:500 12px ${SANS};color:var(--muted)`)}>{k.label}</span>
-            </div>
-            <div
-              style={css(
-                `margin-top:10px;font:700 clamp(19px,2.1vw,26px)/1.15 ${SANS};${NUM};letter-spacing:-.02em;white-space:nowrap;color:${k.color}`,
-              )}
-            >
-              {k.value}
-            </div>
-            <div style={css(`margin-top:auto;padding-top:8px;font:500 11.5px/1.35 ${SANS};color:var(--muted)`)}>
-              {k.note}
-            </div>
-          </div>
+            {...k}
+            spanDesktop={grade.spansDesktop[i]}
+            spanMobile={grade.spansMobile[i]}
+          />
         ))}
+        {suggestion && (
+          <SuggestedModuleCard
+            module={suggestion}
+            spanDesktop={grade.spansDesktop[kpis.length]}
+            spanMobile={grade.spansMobile[kpis.length]}
+          />
+        )}
       </div>
 
       <div style={css(`display:grid;grid-template-columns:${panelCols};gap:12px;margin-top:12px`)}>

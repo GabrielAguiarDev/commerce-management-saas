@@ -120,7 +120,7 @@ parece salvar e não salva é pior do que um que se assume incompleto.
 | O que | Onde aparece | O que falta |
 |---|---|---|
 | Preferências de uso | Configurações › Preferências | tabela `tenant_settings` (imprimir comprovante, pedir cliente, formas aceitas, tema) |
-| Documento e endereço | Configurações › Dados | colunas em `tenants` (CNPJ/CPF, logradouro, número, bairro, CEP) |
+| ~~Documento e endereço~~ | Configurações › **Dados fiscais** | ✅ resolvido na fase 1 da nota fiscal — foi para `tenant_fiscal_settings`, e não para colunas em `tenants`; o motivo está em `docs/fiscal/emissao-nota-fiscal.md` §12 |
 | Log de auditoria | Configurações › Equipe | tabela `activity_log` (quem, o quê, quando, sobre qual registro) |
 | Categorias | Produtos, Custos | hoje são texto livre em `products.category` / `costs.category`; criar, renomear e excluir não persistem |
 | Anexos do suporte | Suporte | bucket no Storage + upload; hoje só o nome do arquivo é gravado |
@@ -172,6 +172,13 @@ sucesso com zero linhas, igual a um `id` inexistente, e sem contá-las a tela
 diria "salvo" para uma escrita recusada. O app já fazia
 (`tenantApi.updateTenant`); o portal **não fazia** e passou a fazer no mesmo dia
 (`app/configuracoes/actions.ts`, com `.select("id")`).
+
+> **Resolvido em `supabase/migrations/20260817120000_fiscal_cadastro.sql`** (a
+> migration da fase 1 da nota fiscal). A restrição de colunas foi feita com
+> `revoke update` seguido de `grant update (name, segment, phone, city)`: RLS
+> decide quais LINHAS podem ser escritas e não sabe dizer "esta coluna não", e
+> um GRANT de coluna soma ao de tabela inteira se houver um — daí o `revoke`
+> antes. Falta rodar a migration no banco.
 
 ---
 

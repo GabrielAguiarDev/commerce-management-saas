@@ -2,7 +2,7 @@ import { css } from "@aguiar/ui";
 import { Reveal } from "@/components/Reveal";
 import { Container, SectionIntro } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
-import { HOW } from "@/lib/links";
+import { HOW_ID } from "@/lib/links";
 import { CARD, CARD_TEXT, grid, DISPLAY, SECTION } from "@/lib/styleKit";
 
 /**
@@ -19,7 +19,7 @@ import { CARD, CARD_TEXT, grid, DISPLAY, SECTION } from "@/lib/styleKit";
  *
  * "Como funciona" — três passos.
  *
- * O número do último passo é o teal de chamada, e não o petrol dos outros dois:
+ * O número do último passo é a primária, e não o petrol dos outros dois:
  * é onde a pessoa chega, e o único dos três que descreve o sistema já em uso.
  */
 export function HowItWorks() {
@@ -27,7 +27,7 @@ export function HowItWorks() {
 
   return (
     <section
-      id={HOW.slice(1)}
+      id={HOW_ID}
       aria-labelledby="how-title"
       style={css(SECTION + "background:var(--bg)")}
     >

@@ -9,6 +9,7 @@ export const MODULES: Record<ModuleKey, { initials: string; name: string }> = {
   register: { initials: "CX", name: "Caixa" },
   costs: { initials: "CU", name: "Custos" },
   reports: { initials: "RL", name: "Relatórios" },
+  fiscal: { initials: "NF", name: "Nota Fiscal" },
   settings: { initials: "CF", name: "Configurações" },
   support: { initials: "SP", name: "Suporte" },
 };
@@ -17,7 +18,7 @@ export const MODULES: Record<ModuleKey, { initials: string; name: string }> = {
 export const GROUPS: { title: string; items: ModuleKey[] }[] = [
   { title: "Operação", items: ["dashboard", "sales", "register"] },
   { title: "Catálogo", items: ["products", "stock"] },
-  { title: "Gestão", items: ["costs", "reports"] },
+  { title: "Gestão", items: ["costs", "reports", "fiscal"] },
   { title: "Sistema", items: ["settings", "support"] },
 ];
 
@@ -35,4 +36,7 @@ export const PERMISSION_MODULES: ModuleKey[] = [
   "register",
   "costs",
   "reports",
+  // Quem vê a nota vê o CNPJ do negócio e o histórico fiscal inteiro. Não é
+  // tela de balconista por padrão — por isso é permissão, e não item base.
+  "fiscal",
 ];

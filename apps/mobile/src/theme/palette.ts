@@ -1,3 +1,5 @@
+import { BRAND } from '@aguiar/brand';
+
 /**
  * Cores brutas do Aguiar One.
  *
@@ -6,30 +8,53 @@
  *
  * Os valores vêm literalmente do protótipo de design (`design.html`, variáveis
  * CSS das linhas 29 e 848). Não "arredonde" nenhum deles.
+ *
+ * O QUE NÃO É MAIS ESCRITO AQUI: a identidade. O azul da marca em cada
+ * luminosidade, o petrol e as três cores de estado chegam de `@aguiar/brand` —
+ * o mesmo arquivo de onde saem os tokens dos portais e do site. Trocar a marca
+ * é mexer lá, uma vez, e não aqui e em mais quatro lugares. O que continua
+ * sendo deste app são as SUPERFÍCIES (o chão, o card, o campo) e as telas de
+ * entrada, que são decisão do app sobre o app.
  */
+
+/**
+ * A mesma cor, lavada.
+ *
+ * O React Native não tem `color-mix`, então uma cor com alfa tem que ser
+ * escrita por extenso. Sem este helper ela era escrita EM DECIMAL —
+ * `rgba(53,181,218,0.16)` —, e naquela forma ninguém reconhece a marca: eram
+ * sete cópias do azul e do petrol que nenhuma busca por `#35b5da` encontrava, e
+ * que uma troca de marca deixaria para trás em silêncio.
+ */
+const alpha = (hex: string, a: number) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+};
 
 /**
  * As duas cores da MARCA, lidas do arquivo do logo: o azul do "A" e o petrol
  * quase preto em que ele se assenta.
  *
- * Estão fora do objeto, e não escritas quatro vezes dentro dele, porque
- * aparecem em mais de um papel — a primária é também a base do degradê do
- * próprio "A"; o secundário é também o fim do degradê da entrada e o fundo do
- * ícone do app. Escritas uma vez, esses papéis não têm como divergir.
+ * Ganham um apelido local — em vez de `BRAND.primary` repetido pelo objeto
+ * inteiro — porque cada uma tem MAIS DE UM PAPEL aqui: a primária é a cor do
+ * tema claro e também a base do degradê do próprio "A" e o fim do degradê do
+ * botão "Entrar"; o secundário é o fundo do ícone e o chão do tema escuro.
+ * Nomeados, esses papéis se leem no lugar onde são usados.
  *
- * São os mesmos valores de `--brand` e `--brand-ink` em `@aguiar/ui`, e os
- * mesmos que `app.json` pinta no splash e no ícone adaptativo.
+ * O VALOR não é decidido aqui: vem de `@aguiar/brand`, e é o mesmo que
+ * `--brand` / `--brand-ink` levam para os portais e para o site, e que
+ * `pnpm brand:sync` escreve no `app.json` do splash e do ícone adaptativo.
  */
-const BRAND_PRIMARY = '#1B9ABD';
-const BRAND_SECONDARY = '#020E18';
+const BRAND_PRIMARY = BRAND.primary;
+const BRAND_SECONDARY = BRAND.ink;
 
 /**
  * A marca nos dois outros pontos de luminosidade de que os temas precisam.
  *
  * As duas são o MESMO AZUL — matiz 193°, o do "A" — e só isso: uma é a marca
  * aberta para sobreviver sobre o fundo escuro, a outra é a marca fechada para
- * poder ser LIDA sobre o fundo claro. Derivam de `BRAND_PRIMARY` e não existem
- * sozinhas; trocar a marca é trocar as três, e nada mais.
+ * poder ser LIDA sobre o fundo claro. Não existem sozinhas: são degraus da
+ * primária, e por isso moram junto com ela, em `@aguiar/brand`.
  *
  * O que NÃO pode voltar a acontecer: a primária do tema escuro escorregar para
  * o teal (`#2fb3ba`, matiz 183°). Foi o que estava aqui, e o problema não era
@@ -42,8 +67,8 @@ const BRAND_SECONDARY = '#020E18';
  * chapada dá 3,3:1 — suficiente para um botão ou uma borda, não para uma
  * palavra.
  */
-const BRAND_PRIMARY_DARK = '#35b5da';
-const BRAND_PRIMARY_TEXT = '#0e7590';
+const BRAND_PRIMARY_DARK = BRAND.lifted;
+const BRAND_PRIMARY_TEXT = BRAND.text;
 
 /**
  * A TINTA do tema claro — o petrol quase preto em que todo texto é escrito
@@ -63,20 +88,20 @@ export const palette = {
   bgLight: '#eef2f4',
   surfaceLight: '#ffffff',
   surface2Light: '#f4f8f9',
-  lineLight: 'rgba(15,42,54,0.11)',
+  lineLight: alpha(INK, 0.11),
   textLight: INK,
   mutedLight: '#5f7783',
   /** A marca ESCRITA sobre superfície clara — ver `BRAND_PRIMARY_TEXT`. */
   primaryTextLight: BRAND_PRIMARY_TEXT,
   /** A marca lavada em branco a 12%. Fundo de avatar, chip e ícone destacado. */
-  primarySoftLight: '#e4f3f7',
-  greenLight: '#17795e',
-  greenSoftLight: '#e2f2ec',
-  redLight: '#c4453c',
-  redSoftLight: '#fbe9e7',
-  amberLight: '#a9700f',
-  amberSoftLight: '#fbf0dc',
-  petrolLight: '#123c4a',
+  primarySoftLight: BRAND.soft,
+  greenLight: BRAND.pos,
+  greenSoftLight: BRAND.posSoft,
+  redLight: BRAND.danger,
+  redSoftLight: BRAND.dangerSoft,
+  amberLight: BRAND.warn,
+  amberSoftLight: BRAND.warnSoft,
+  petrolLight: BRAND.petrol,
   onPetrolLight: '#eaf4f5',
 
   // ── Escuro ───────────────────────────────────────────────────────────────
@@ -92,14 +117,14 @@ export const palette = {
   textDark: '#e9f2f4',
   mutedDark: '#94aeb8',
   primaryDark: BRAND_PRIMARY_DARK,
-  primarySoftDark: 'rgba(53,181,218,0.16)',
+  primarySoftDark: alpha(BRAND_PRIMARY_DARK, 0.16),
   /** Verde de lucro, um passo mais verde para não vizinhar com o azul. */
-  greenDark: '#3fc98c',
-  greenSoftDark: 'rgba(63,201,140,0.15)',
-  redDark: '#e3736a',
-  redSoftDark: 'rgba(227,115,106,0.15)',
-  amberDark: '#e0a950',
-  amberSoftDark: 'rgba(224,169,80,0.14)',
+  greenDark: BRAND.posDark,
+  greenSoftDark: alpha(BRAND.posDark, 0.15),
+  redDark: BRAND.dangerDark,
+  redSoftDark: alpha(BRAND.dangerDark, 0.15),
+  amberDark: BRAND.warnDark,
+  amberSoftDark: alpha(BRAND.warnDark, 0.14),
   petrolDark: '#061a28',
   onPetrolDark: '#e9f2f4',
 
@@ -163,12 +188,12 @@ export const palette = {
    * Pill "Aberto às 08:12" do card de caixa aberto. Fica sobre o card petrol,
    * nos dois temas — daí ser a marca aberta, e não o `primary` do tema.
    */
-  shiftPillBg: 'rgba(53,181,218,0.22)',
+  shiftPillBg: alpha(BRAND_PRIMARY_DARK, 0.22),
   shiftPillFg: '#8ad4ea',
 
   /** Borda do card de alerta de estoque (âmbar com alpha). */
-  amberBorder: 'rgba(169,112,15,0.2)',
-  amberIconBg: 'rgba(169,112,15,0.14)',
+  amberBorder: alpha(BRAND.warn, 0.2),
+  amberIconBg: alpha(BRAND.warn, 0.14),
 
   // ── Telas de ENTRADA ─────────────────────────────────────────────────────
   // Fixas nos dois temas, como o toast: a entrada é sempre CLARA. Ela acontece
@@ -181,7 +206,7 @@ export const palette = {
   // tinta e o azul que está no fundo, lavado.
 
   /** O "A" da marca, do topo claro à base na cor primária. */
-  logoTop: '#4cc4e6',
+  logoTop: BRAND.hi,
   logoBottom: BRAND_PRIMARY,
 
   /**
@@ -222,11 +247,11 @@ export const palette = {
 
   /** Campo e cartão: branco chapado sobre o degradê, com borda de contorno. */
   authSurface: '#ffffff',
-  authBorder: 'rgba(15,42,54,0.10)',
+  authBorder: alpha(INK, 0.1),
   /** O quadrado atrás do ícone do cartão de suporte, e o aviso do mock. */
   authPill: '#eef4f7',
   /** As réguas do separador "ou". */
-  authLine: 'rgba(15,42,54,0.09)',
+  authLine: alpha(INK, 0.09),
 
   /**
    * O azul ESCRITO da entrada — "Esqueceu a senha?", "Fale com o suporte".
@@ -246,7 +271,7 @@ export const palette = {
   authBrand: BRAND_PRIMARY,
 
   /** O gradiente do botão "Entrar" — termina na marca chapada. */
-  ctaTop: '#38b7de',
+  ctaTop: BRAND.bright,
   ctaBottom: BRAND_PRIMARY,
 } as const;
 

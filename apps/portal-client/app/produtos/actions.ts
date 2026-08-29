@@ -1,7 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  gtinAccepted,
+  isValidCest,
+  isValidCfop,
+  isValidNcm,
+  NO_GTIN,
+  onlyDigits,
+} from "@/lib/dados/fiscal";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
+import type { ProductFiscal } from "@/types/types";
 
 export interface ProductToSave {
   id: string | null;
@@ -17,6 +26,12 @@ export interface ProductToSave {
   active: boolean;
   fav: boolean;
   service: boolean;
+  /**
+   * Campo fiscal VAZIO grava `null`, e nulo quer dizer "usa o padrão do
+   * negócio" — não "faltando". Gravar uma cópia do padrão aqui congelaria o
+   * valor: mudar o padrão depois deixaria de valer para este produto.
+   */
+  fiscal: ProductFiscal;
 }
 
 export async function saveProduct(p: ProductToSave): Promise<ActionResult> {
@@ -25,6 +40,27 @@ export async function saveProduct(p: ProductToSave): Promise<ActionResult> {
 
   if (!p.name.trim()) return { ok: false, message: "O produto precisa de um nome." };
   if (!(p.price > 0)) return { ok: false, message: "Informe um preço maior que zero." };
+
+  const ncm = onlyDigits(p.fiscal.ncm);
+  const cest = onlyDigits(p.fiscal.cest);
+  const cfop = onlyDigits(p.fiscal.cfop);
+  const gtin = p.fiscal.gtin.trim().toUpperCase();
+
+  // Só o que foi PREENCHIDO é checado: vazio herda o padrão do negócio e é um
+  // estado legítimo, não um erro de digitação.
+  if (ncm && !isValidNcm(ncm)) return { ok: false, message: "O NCM precisa ter 8 dígitos." };
+  if (cest && !isValidCest(cest)) return { ok: false, message: "O CEST precisa ter 7 dígitos." };
+  if (cfop && !isValidCfop(cfop)) return { ok: false, message: "O CFOP precisa ter 4 dígitos." };
+
+  // O dígito verificador do GTIN é a rejeição mais cara do cadastro: o código
+  // interno da balança passa em qualquer campo de texto e reprova a nota
+  // inteira. Quem não tem código de barras grava o literal "SEM GTIN".
+  if (!gtinAccepted(gtin)) {
+    return {
+      ok: false,
+      message: `Este código de barras não é um GTIN válido. Confira os dígitos ou informe "${NO_GTIN}".`,
+    };
+  }
 
   const { supabase, tenantId } = session;
 
@@ -41,6 +77,16 @@ export async function saveProduct(p: ProductToSave): Promise<ActionResult> {
     tracks_stock: p.stock != null,
     stock_quantity: p.stock,
     stock_min: p.minimum,
+
+    ncm: ncm || null,
+    cest: cest || null,
+    origin: p.fiscal.origin === "" ? null : Number(p.fiscal.origin),
+    gtin: gtin || null,
+    tax_unit: p.fiscal.taxUnit.trim().toUpperCase() || null,
+    cfop: cfop || null,
+    icms_code: p.fiscal.icmsCode.trim() || null,
+    pis_cst: p.fiscal.pisCst.trim() || null,
+    cofins_cst: p.fiscal.cofinsCst.trim() || null,
   };
 
   const { error } = p.id

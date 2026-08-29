@@ -35,6 +35,10 @@ yarn-error.log*
 # ...menos o modelo, que não tem segredo nenhum e serve de documentação.
 !.env.local.example
 
+# O modelo, sim: é ele que diz quais variáveis o app precisa. Mesma exceção do
+# portal-admin e da landing-page.
+!.env.local.example
+
 # vercel
 .vercel
 

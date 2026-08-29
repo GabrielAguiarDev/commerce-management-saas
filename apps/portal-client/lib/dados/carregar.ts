@@ -4,6 +4,8 @@ import {
   readRegister,
   readTickets,
   readCosts,
+  readFiscal,
+  readFiscalDocuments,
   readTeam,
   readStockMovements,
   readBusiness,
@@ -41,10 +43,25 @@ export async function loadPortal(): Promise<PortalData> {
 
   try {
     const salesPromise = readSales(supabase);
+    // Mesma ideia do caixa: `readFiscal` precisa saber se este cliente tem o
+    // módulo `fiscal` antes de gastar consulta com ele, e quem sabe isso é a
+    // leitura do negócio. Recebendo a promessa, ele entra no mesmo bloco em vez
+    // de esperar todas as outras leituras terminarem.
+    const businessPromise = readBusiness(supabase, tenantId, name);
 
-    const [{ business, data }, products, sales, movements, costs, team, tickets, register] =
-      await Promise.all([
-        readBusiness(supabase, tenantId, name),
+    const [
+      { business, data },
+      products,
+      sales,
+      movements,
+      costs,
+      team,
+      tickets,
+      register,
+      fiscal,
+      fiscalDocuments,
+    ] = await Promise.all([
+        businessPromise,
         readProducts(supabase),
         salesPromise,
         readStockMovements(supabase),
@@ -52,11 +69,15 @@ export async function loadPortal(): Promise<PortalData> {
         readTeam(supabase),
         readTickets(supabase),
         readRegister(supabase, salesPromise),
+        readFiscal(supabase, businessPromise),
+        readFiscalDocuments(supabase, businessPromise),
       ]);
 
     return {
       business,
       data,
+      fiscal,
+      fiscalDocuments,
       products,
       sales,
       movements,
