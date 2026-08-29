@@ -118,16 +118,23 @@ export async function listActivities(tenantId: string): Promise<ActivityAPI[]> {
 /**
  * Salvar nome e telefone do negócio.
  *
- * ⚠️ HOJE ISTO FALHA POR FALTA DE POLÍTICA. Não existe policy de UPDATE em
- * `tenants` para o dono — verificado no levantamento do portal: a escrita passa
- * sem erro e afeta ZERO linhas. Por isso a checagem explícita abaixo: sem ela,
- * a tela diria "salvo" e o nome voltaria ao antigo no próximo carregamento, que
- * é o pior desfecho possível.
+ * FUNCIONA DESDE 26/08/2026. Até então não existia policy de UPDATE em
+ * `tenants` para o dono: a escrita passava sem erro e afetava ZERO linhas, e a
+ * tela avisava em vez de fingir que salvou. Quem destravou foi a migration
+ * `20260826000000_tenant_update_policy.sql`.
  *
- * A correção é no banco, não aqui:
- *   create policy "dono atualiza o próprio negócio" on tenants
- *     for update using (id = current_tenant_id())
- *     with check (id = current_tenant_id());
+ * A CHECAGEM DE ZERO LINHAS ABAIXO FICA. Ela não era um remendo para a
+ * política ausente — é o que separa "o banco recusou" de "salvou", e o
+ * PostgREST não distingue os dois sozinho: RLS que barra um UPDATE devolve
+ * sucesso com zero linhas, igualzinho a um `id` que não existe. Sem ela,
+ * qualquer recusa futura (uma policy revista, um tenant trocado na sessão)
+ * voltaria a aparecer como "salvo" e o nome voltaria ao antigo na carga
+ * seguinte — o pior desfecho possível, e o mais difícil de rastrear.
+ *
+ * O QUE O BANCO NÃO DEIXA MAIS MEXER: `plan`, `monthly_fee` e `status`. Um
+ * trigger os devolve aos valores antigos quando quem escreve é o comércio, e
+ * não a plataforma. Mandar um deles daqui não dá erro — simplesmente não tem
+ * efeito.
  */
 export async function updateTenant(
   tenantId: string,

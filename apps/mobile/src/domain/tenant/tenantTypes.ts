@@ -75,9 +75,12 @@ export interface Activity {
 }
 
 /**
- * `forbidden` = o banco recusou a escrita (RLS), não é falha de rede. Hoje é o
- * caso de salvar os dados do negócio: falta a política de UPDATE em `tenants`.
- * Ver o comentário em `tenantApi.updateTenant`.
+ * `forbidden` = o banco recusou a escrita (RLS), não é falha de rede.
+ *
+ * Ele NÃO tem mais um caso conhecido: a policy de UPDATE em `tenants` existe
+ * desde 26/08/2026. Continua no tipo porque é o desfecho que a checagem de
+ * zero linhas em `tenantApi.updateTenant` existe para nomear — e um dia em que
+ * ele volte a aparecer é um dia em que o RLS mudou sem ninguém avisar.
  */
 export type TenantErrorCode = 'not_found' | 'forbidden' | 'network' | 'unknown';
 

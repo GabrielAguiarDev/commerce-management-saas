@@ -55,9 +55,10 @@ export const en = {
     tenant: {
       not_found: 'We could not find your business data.',
       // Deliberately does NOT say "you lack permission": the owner has every
-      // reason to expect to edit their own business. The missing UPDATE policy
-      // on `tenants` is our bug, not their mistake.
-      forbidden: 'Saving the business details is not available yet. Contact support.',
+      // reason to expect to edit their own business, and since 2026-08-26 they
+      // can. If this line shows up it is our bug, not their mistake — hence
+      // "try again" before it sends anyone to support.
+      forbidden: 'We could not save the business details. Try again; if it persists, contact support.',
       network: 'Could not save right now. Try again.',
       unknown: 'Something went wrong with your business data.',
     } as Record<TenantErrorCode, string>,

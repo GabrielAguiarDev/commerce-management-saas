@@ -1,0 +1,55 @@
+// O grafo de tarefas do monorepo.
+//
+// POR QUE ELE PASSOU A EXISTIR: o `turbo` estava nas devDependencies da raiz
+// desde o primeiro dia e nunca teve arquivo de configuração. Sem ele não havia
+// um `pnpm lint` que alcançasse os quatro apps — cada verificação era um `cd`
+// de cada vez, à mão, e foi assim que o repositório chegou até aqui sem CI.
+//
+// Comentários são permitidos aqui: o Turbo lê este arquivo como JSONC.
+{
+  "$schema": "https://turborepo.com/schema.json",
+
+  "ui": "tui",
+
+  "tasks": {
+    "build": {
+      // `^build` = "antes de mim, o build das minhas dependências". Hoje isso
+      // não dispara nada — `@aguiar/ui` é consumido como TypeScript cru, sem
+      // passo de build (ver `transpilePackages` no next.config de cada app).
+      // A dependência fica declarada para o dia em que o pacote ganhar um.
+      "dependsOn": ["^build"],
+
+      // `.next/cache` fora dos outputs: é o cache do próprio Next, e guardá-lo
+      // dentro do artefato do Turbo faz o artefato inchar a cada build.
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+
+    // Sem `dependsOn`: nenhum app depende de tipos GERADOS por outro.
+    "typecheck": {
+      "outputs": []
+    },
+
+    // Sem outputs: `test` não gera artefato. A cobertura sai por
+    // `test:cov`, que é script de máquina de quem está depurando e não
+    // uma tarefa do grafo.
+    "test": {
+      "outputs": []
+    },
+
+    // Nunca cacheado e nunca encerrado: é um servidor. `persistent` é o que
+    // impede o Turbo de tratar o processo vivo como tarefa pendurada.
+    //
+    // `pnpm dev` na raiz sobe os TRÊS apps Next de uma vez (3000 cliente, 3001
+    // console, 3002 landing). O app mobile não entra — o `expo start` quer o
+    // terminal para si, com o QR code e os atalhos de tecla. Para ele:
+    // `pnpm --filter mobile start`.
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

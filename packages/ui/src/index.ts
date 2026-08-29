@@ -55,6 +55,8 @@ export {
 
 export { Button, Spinner, type ButtonProps } from "./components/Button";
 
+export { ErrorPanel } from "./components/ErrorState";
+
 export {
   Field,
   Labeled,

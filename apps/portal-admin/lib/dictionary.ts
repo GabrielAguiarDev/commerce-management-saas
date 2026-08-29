@@ -457,6 +457,22 @@ const pt = {
   issueDuplicateInFile: "Repetido no próprio arquivo",
   issueDuplicateName: "O cliente já tem um produto com este nome",
   issueDuplicateBarcode: "O cliente já tem um produto com este código de barras",
+
+  /* Os limites de erro do roteador — `app/error.tsx`, `app/not-found.tsx` e
+     `app/global-error.tsx`. A mensagem do erro NUNCA entra aqui: o que a tela
+     mostra é o `digest`, e a razão está escrita em `app/error.tsx`. */
+  erroTitulo: "Algo deu errado nesta tela",
+  erroTexto:
+    "A falha é do console, não do que você fez. Tente de novo; se continuar, o código abaixo identifica o ocorrido no log.",
+  erroTentar: "Tentar de novo",
+  erroInicio: "Ir para a visão geral",
+  erroCodigo: "Código do erro:",
+  erroGlobalTitulo: "O console não conseguiu abrir",
+  erroGlobalTexto:
+    "Isto é uma falha nossa. Tente de novo em alguns instantes — nenhum dado de cliente foi afetado.",
+  naoEncontradoTitulo: "Esta tela não existe",
+  naoEncontradoTexto:
+    "O endereço pode ter mudado ou o registro pode ter sido excluído. Use o menu ao lado para continuar.",
 };
 
 export type Dic = typeof pt;
@@ -884,6 +900,19 @@ const en: Dic = {
   issueDuplicateInFile: "Repeated within the file itself",
   issueDuplicateName: "The customer already has a product with this name",
   issueDuplicateBarcode: "The customer already has a product with this barcode",
+
+  erroTitulo: "Something went wrong on this screen",
+  erroTexto:
+    "The failure is the console's, not something you did. Try again; if it persists, the code below identifies the incident in the log.",
+  erroTentar: "Try again",
+  erroInicio: "Go to the overview",
+  erroCodigo: "Error code:",
+  erroGlobalTitulo: "The console could not open",
+  erroGlobalTexto:
+    "This is a failure on our side. Try again in a moment — no customer data was affected.",
+  naoEncontradoTitulo: "This screen does not exist",
+  naoEncontradoTexto:
+    "The address may have changed, or the record may have been deleted. Use the menu to carry on.",
 };
 
 export const DIC: Record<Language, Dic> = { pt, en };

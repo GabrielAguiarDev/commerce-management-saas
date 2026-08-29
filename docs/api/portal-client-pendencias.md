@@ -142,26 +142,42 @@ do dono (exatamente o que o portal faz). Resultado:
 | `support_tickets` INSERT | ✅ |
 | `roles` INSERT | ✅ |
 | RPC `apply_stock_movement`, `expected_cash_for_register`, `close_cash_register` | ✅ |
-| **`tenants` UPDATE** | ❌ **bloqueado — 0 linhas afetadas** |
+| **`tenants` UPDATE** | ✅ **resolvido em 26/08/2026** — era ❌ bloqueado, 0 linhas |
 
-**A única política que falta é o UPDATE de `tenants` pelo dono.** É o que a aba
-Configurações › Dados do negócio salva. Hoje a tela avisa "Não foi possível
-salvar, fale com o suporte" em vez de fingir sucesso, mas o certo é a política:
+### `tenants` UPDATE — RESOLVIDO
 
-```sql
-create policy "dono atualiza o próprio negócio" on tenants
-  for update using (id = current_tenant_id())
-  with check (id = current_tenant_id());
-```
+Era a única coisa quebrada para o cliente: Configurações › Dados do negócio não
+salvava, no portal e no app. A migration
+`supabase/migrations/20260826000000_tenant_update_policy.sql` criou a política.
 
-(Convém restringir as colunas — nome, ramo, telefone e cidade — para o cliente
-não conseguir mexer em `plan`, `monthly_fee` ou `status`.)
+**A restrição de colunas não saiu como `grant` por coluna, e o motivo importa.**
+O administrador da plataforma escreve `tenants.status` pela **mesma role
+`authenticated`** que o dono do comércio — `setCustomerStatus`, em
+`apps/portal-admin/app/clientes/actions.ts`, usa o cliente de sessão que
+`requireAdmin` devolve, e não o de `service_role`. Privilégio por coluna vale
+para a role inteira e não sabe distinguir os dois: `revoke update ... from
+authenticated` teria quebrado o suspender/reativar do console.
+
+Dentro da policy também não cabia: `WITH CHECK` enxerga a linha nova, nunca a
+antiga, e "as colunas comerciais não mudaram" é uma comparação com `OLD`.
+
+O que ficou foi um trigger `BEFORE UPDATE` que devolve `id`, `plan`,
+`monthly_fee`, `status` e `created_at` aos valores antigos quando quem escreve
+não é a plataforma. Escrever um deles pelo portal ou pelo app **não dá erro —
+simplesmente não tem efeito**.
+
+**A checagem de zero linhas continua nos dois clientes, e deve continuar.** Ela
+nunca foi remendo para a política ausente: um UPDATE barrado pelo RLS devolve
+sucesso com zero linhas, igual a um `id` inexistente, e sem contá-las a tela
+diria "salvo" para uma escrita recusada. O app já fazia
+(`tenantApi.updateTenant`); o portal **não fazia** e passou a fazer no mesmo dia
+(`app/configuracoes/actions.ts`, com `.select("id")`).
 
 ---
 
 ## 4. Ordem sugerida
 
-1. **Política de UPDATE em `tenants`** — é a única coisa quebrada hoje.
+1. ~~**Política de UPDATE em `tenants`**~~ — feita em 26/08/2026.
 2. **CHECK (ou enum) nas colunas de estado**, com o vocabulário de
    `lib/dados/*.ts`, antes que admin e portal divirjam.
 3. **Decidir de que lado fica a baixa de estoque** e documentar o trigger.

@@ -13,7 +13,13 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "ignoreDeprecations": "6.0",
+
+    // A chave `ignoreDeprecations` ficava aqui, com o valor "6.0", e o
+    // TypeScript instalado (5.9.3) não o aceita: o `tsc` parava com
+    // `TS5103` antes de compilar uma linha, e com ele parava o `pnpm test`
+    // deste app — o que quebrava o `turbo run test` do monorepo inteiro.
+    // Nada neste tsconfig usa opção depreciada, então a chave saiu em vez
+    // de trocar de valor.
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,

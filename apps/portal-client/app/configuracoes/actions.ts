@@ -12,6 +12,15 @@ import type { BusinessData, ModuleKey } from "@/types/types";
  * Só `name`, `segment`, `phone` e `city` existem em `tenants`. Documento
  * (CNPJ/CPF) e endereço completo ainda não têm coluna — ver a análise do que
  * falta criar.
+ *
+ * FUNCIONA DESDE 26/08/2026, quando a policy de UPDATE em `tenants` entrou
+ * (migration `20260826000000_tenant_update_policy.sql`). Antes dela a escrita
+ * passava e afetava zero linhas.
+ *
+ * `plan`, `monthly_fee` e `status` NÃO são alcançáveis daqui: um trigger no
+ * banco os devolve aos valores antigos quando quem escreve é o comércio. Não é
+ * preciso filtrar nada nesta função — mas acrescentar um deles ao `update`
+ * acima seria escrever uma linha que nunca tem efeito.
  */
 export async function saveBusinessData(d: BusinessData): Promise<ActionResult> {
   const session = await requireCustomer("alterar os dados do negócio");
@@ -19,7 +28,20 @@ export async function saveBusinessData(d: BusinessData): Promise<ActionResult> {
 
   if (!d.name.trim()) return { ok: false, message: "O negócio precisa de um nome." };
 
-  const { error } = await session.supabase
+  // ┌─ O `.select("id")` NÃO É DECORAÇÃO ────────────────────────────────────┐
+  // │ Um UPDATE barrado pelo RLS não devolve erro: o PostgREST responde      │
+  // │ sucesso com ZERO linhas, exatamente como responderia a um `id` que não │
+  // │ existe. Sem pedir as linhas de volta e contá-las, esta função diria    │
+  // │ "salvo" para uma escrita que o banco recusou, e o valor antigo         │
+  // │ reapareceria na carga seguinte — o pior desfecho possível, porque a    │
+  // │ pessoa só descobre depois e não tem como saber o que aconteceu.        │
+  // │                                                                        │
+  // │ É a mesma checagem que `tenantApi.updateTenant` faz no app desde       │
+  // │ sempre; o portal é que estava sem ela. Hoje a policy existe e o caminho │
+  // │ feliz é o normal — a checagem é o que garante que uma mudança futura no │
+  // │ RLS apareça como erro, e não como dado que some.                       │
+  // └────────────────────────────────────────────────────────────────────────┘
+  const { data, error } = await session.supabase
     .from("tenants")
     .update({
       name: d.name.trim(),
@@ -27,14 +49,17 @@ export async function saveBusinessData(d: BusinessData): Promise<ActionResult> {
       phone: d.phone.trim() || null,
       city: d.city.trim() || null,
     })
-    .eq("id", session.tenantId);
+    .eq("id", session.tenantId)
+    .select("id");
 
-  if (error) {
-    // O RLS pode recusar a escrita se a política de `tenants` for só de
-    // leitura para o dono — ver a análise.
+  if (error || !data || data.length === 0) {
+    console.error(
+      "[saveBusinessData] a escrita não pegou:",
+      error?.message ?? "zero linhas afetadas — o RLS recusou em silêncio.",
+    );
     return {
       ok: false,
-      message: "Não foi possível salvar. Fale com o suporte para alterar os dados do negócio.",
+      message: "Não foi possível salvar os dados do negócio. Tente de novo; se continuar, fale com o suporte.",
     };
   }
 

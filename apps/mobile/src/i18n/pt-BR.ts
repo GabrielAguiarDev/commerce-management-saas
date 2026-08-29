@@ -33,9 +33,10 @@ export const ptBR: Messages = {
     tenant: {
       not_found: 'Não encontramos os dados do seu negócio.',
       // De propósito NÃO diz "você não tem permissão": o dono tem toda razão em
-      // esperar editar o próprio negócio. A política de UPDATE que falta em
-      // `tenants` é bug nosso, não erro dele.
-      forbidden: 'Salvar os dados do negócio ainda não está disponível. Fale com o suporte.',
+      // esperar editar o próprio negócio, e desde 26/08/2026 ele consegue. Se
+      // esta frase aparecer, é bug nosso — não erro dele —, e por isso ela pede
+      // para tentar de novo antes de mandar procurar o suporte.
+      forbidden: 'Não conseguimos salvar os dados do negócio. Tente de novo; se continuar, fale com o suporte.',
       network: 'Não deu para salvar agora. Tente de novo.',
       unknown: 'Algo deu errado com os dados do seu negócio.',
     },

@@ -341,6 +341,28 @@ const pt = {
     description:
       "Registre vendas, controle custos e veja o lucro do seu comércio todo dia. Comece grátis, sem cartão de crédito, e ative só os módulos que o seu negócio usa.",
   },
+
+  /**
+   * As duas telas que não são a página: o endereço que não existe
+   * (`app/not-found.tsx`) e a falha na geração (`app/error.tsx`).
+   *
+   * Elas são a PRIMEIRA impressão de quem chegou por um link quebrado, e é por
+   * isso que trazem o mesmo botão das outras dobras em vez de um "voltar" seco:
+   * um 404 numa vitrine ainda é uma chance de mostrar a vitrine.
+   */
+  notFound: {
+    code: "404",
+    title: "Esta página não existe",
+    text: "O endereço pode ter mudado desde que você o guardou. A página inicial continua no mesmo lugar.",
+    cta: "Ir para a página inicial",
+  },
+
+  error: {
+    code: "Erro",
+    title: "A página não carregou",
+    text: "A falha é nossa e é temporária. Tente de novo — o Aguiar One continua no ar.",
+    cta: "Tentar de novo",
+  },
 };
 
 export type Dic = typeof pt;
@@ -626,6 +648,20 @@ const en: Dic = {
     title: "Aguiar One · Simple, complete management for your shop",
     description:
       "Record sales, track costs and see your shop's profit every day. Start free, no credit card, and enable only the modules your business uses.",
+  },
+
+  notFound: {
+    code: "404",
+    title: "This page does not exist",
+    text: "The address may have changed since you saved it. The home page is still in the same place.",
+    cta: "Go to the home page",
+  },
+
+  error: {
+    code: "Error",
+    title: "The page did not load",
+    text: "The failure is ours and it is temporary. Try again — Aguiar One is still up.",
+    cta: "Try again",
   },
 };
 

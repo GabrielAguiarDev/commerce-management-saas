@@ -1,0 +1,50 @@
+# O portão de qualidade do monorepo.
+#
+# POR QUE ELE PASSOU A EXISTIR: até aqui, `typecheck`, `lint` e `test` eram
+# rodados à mão, um `cd` de cada vez, e nada impedia um PR de quebrar um app
+# sem ninguém perceber. O `apps/mobile/DEVELOPMENT.md` pedia isto na lista de
+# melhorias desde a fase 4.
+#
+# O QUE ELE NÃO FAZ: `build`. O `next build` dos três portais lê variáveis de
+# ambiente do Supabase, e quem as tem é a Vercel — que já roda o build a cada
+# push. Repetir aqui exigiria colocar credenciais num segredo do GitHub para
+# provar algo que o deploy já prova.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Um push novo no mesmo branch cancela a execução anterior: o que importa é o
+# último commit, e dois runners na mesma fila só atrasam a fila.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: typecheck · lint · test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # A versão vem do `packageManager` da raiz — sem `version:` aqui, para
+      # não existir um segundo lugar onde ela pode ficar para trás.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # `--frozen-lockfile`: um lockfile desatualizado é erro de CI, não algo
+      # que o runner conserta em silêncio.
+      - run: pnpm install --frozen-lockfile
+
+      # As três tarefas de uma vez, pelo grafo do `turbo.json`. O Turbo as roda
+      # em paralelo e devolve um resumo só; se qualquer pacote falhar, o job
+      # falha. Ver o script `check` na raiz.
+      - run: pnpm check

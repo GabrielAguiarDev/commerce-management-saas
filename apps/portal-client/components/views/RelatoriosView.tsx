@@ -3,7 +3,14 @@
 import { usePortal } from "@/components/PortalProvider";
 import { Button, ScreenHeader, css, PILL_GROUP, MONO, NUM, pill, KPI_LABEL, SANS, Empty } from "@aguiar/ui";
 import { METHODS, PAYMENT_LABEL } from "@/lib/dados/vendas";
+import {
+  downloadBlob,
+  reportFileName,
+  reportPdfBlob,
+  reportXlsxBlob,
+} from "@/lib/exportar";
 import { brl, shortBrl, ddmm, weekday, qtdV, totalV } from "@/lib/formato";
+import { buildReport } from "@/lib/relatorio";
 import {
   costOfSales,
   PERIOD_DAYS,
@@ -21,6 +28,11 @@ import type { ReportPeriod } from "@/types/estado";
 import type { Sale } from "@/types/types";
 
 const PERIODS: ReportPeriod[] = ["today", "7", "30", "90"];
+
+/** Os dois botões de exportar são o mesmo botão; só o formato muda. */
+const EXPORT_BUTTON =
+  "padding:11px 16px;border-radius:10px;border:1px solid var(--border2);" +
+  `background:var(--surface);color:var(--text2);font:600 13px ${SANS}`;
 
 const PAYMENT_COLOR: Record<string, string> = {
   cash: "var(--pos)",
@@ -70,6 +82,30 @@ export function RelatoriosView() {
 
   const set = (p: Partial<typeof f>) => a.set({ fRel: { ...f, ...p } });
 
+  /**
+   * Gera e baixa o relatório do período que está na tela.
+   *
+   * Os números não são recontados a partir do que foi desenhado: `buildReport`
+   * é a mesma fonte que esta view usa, então o arquivo não pode divergir do
+   * gráfico. Período vazio não gera arquivo — um PDF só com cabeçalhos
+   * pareceria uma exportação que deu errado, e o aviso diz o que houve.
+   */
+  const exportReport = (format: "pdf" | "xlsx") => {
+    const report = buildReport(d, f, has);
+    if (report.isEmpty) {
+      return a.notify("Não há movimento neste período para exportar", "warn");
+    }
+    try {
+      downloadBlob(
+        format === "pdf" ? reportPdfBlob(report) : reportXlsxBlob(report),
+        reportFileName(report, format),
+      );
+      a.notify(format === "pdf" ? "PDF do período baixado" : "Planilha do período baixada");
+    } catch {
+      a.notify("Não foi possível gerar o arquivo", "error");
+    }
+  };
+
   const summary = [
     {
       label: "Vendas",
@@ -117,20 +153,16 @@ export function RelatoriosView() {
         action={
           <div style={css("display:flex;gap:8px")}>
             <Button
-              onClick={() => a.notify("O PDF do período foi preparado para download")}
+              onClick={() => exportReport("pdf")}
               className="hv-acc-borda"
-              style={css(
-                `padding:11px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font:600 13px ${SANS}`,
-              )}
+              style={css(EXPORT_BUTTON)}
             >
               Salvar em PDF
             </Button>
             <Button
-              onClick={() => a.notify("A planilha do período foi preparada para download")}
+              onClick={() => exportReport("xlsx")}
               className="hv-acc-borda"
-              style={css(
-                `padding:11px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font:600 13px ${SANS}`,
-              )}
+              style={css(EXPORT_BUTTON)}
             >
               Baixar planilha
             </Button>

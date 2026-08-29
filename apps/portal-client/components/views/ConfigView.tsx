@@ -179,7 +179,7 @@ function DataTab() {
 
         <UnsavedNotice>
           CNPJ/CPF e endereço completo ainda não têm onde ser guardados. Até lá, informe-os ao
-          support para constarem na nota.
+          suporte para constarem na nota.
         </UnsavedNotice>
       </div>
 

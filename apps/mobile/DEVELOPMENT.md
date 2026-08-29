@@ -1016,19 +1016,27 @@ virou uma função SQL única. Ver a armadilha 17.
 
 ## 12. O que o banco precisa (descoberto na integração)
 
-Ordenado por quanto dói. Os dois primeiros são visíveis para o cliente hoje.
+Ordenado por quanto dói. O primeiro era o único visível para o cliente e **foi
+resolvido**; o de `activity_log` continua de pé.
 
-**1. Falta a política de UPDATE em `tenants`.** Configurações › Negócio **não
-salva**. A escrita passa sem erro e afeta zero linhas — por isso o
-`tenantApi.updateTenant` confere a contagem e devolve `null`, que vira o erro
-`forbidden` e um toast honesto. Sem essa checagem, a tela diria "salvo" e o nome
-voltaria ao antigo na carga seguinte.
+**1. ~~Falta a política de UPDATE em `tenants`~~ — RESOLVIDO em 26/08/2026.**
+Configurações › Negócio não salvava: a escrita passava sem erro e afetava zero
+linhas. A migration `supabase/migrations/20260826000000_tenant_update_policy.sql`
+criou a policy.
 
-```sql
-create policy "dono atualiza o próprio negócio" on tenants
-  for update using (id = current_tenant_id())
-  with check (id = current_tenant_id());
-```
+Junto dela veio um trigger `BEFORE UPDATE` que congela `id`, `plan`,
+`monthly_fee`, `status` e `created_at` quando quem escreve é o comércio. Foi
+preciso trigger porque `grant` por coluna teria quebrado o console — o
+administrador da plataforma escreve `tenants.status` pela **mesma role
+`authenticated`** — e porque `WITH CHECK` não enxerga `OLD`. Mandar uma dessas
+colunas daqui não dá erro: simplesmente não tem efeito.
+
+**A checagem de zero linhas em `tenantApi.updateTenant` FICA.** Ela nunca foi
+remendo para a política ausente: um UPDATE barrado pelo RLS devolve sucesso com
+zero linhas, igual a um `id` inexistente, e o PostgREST não distingue os dois.
+Sem ela, qualquer recusa futura voltaria a aparecer como "salvo" e o nome
+voltaria ao antigo na carga seguinte. O portal do cliente **não tinha** essa
+checagem e passou a ter no mesmo dia.
 
 **2. Não existe `activity_log`.** O feed de atividades em Configurações vem
 **sempre vazio**. `listActivities` devolve `[]` de propósito: sintetizar

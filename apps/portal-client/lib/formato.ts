@@ -105,6 +105,18 @@ export function weekday(d: number): string {
   return d === 0 ? "Hoje" : DAYS[dayOf(d).getDay()];
 }
 
+/** "02/08/2026" — a data por extenso que um arquivo exportado precisa carregar. */
+export function fullDate(d: number): string {
+  const x = dayOf(d);
+  return (
+    String(x.getDate()).padStart(2, "0") +
+    "/" +
+    String(x.getMonth() + 1).padStart(2, "0") +
+    "/" +
+    x.getFullYear()
+  );
+}
+
 /** "sábado, 2 de agosto" — o carimbo do topo. */
 export function longDate(): string {
   return new Date().toLocaleDateString("pt-BR", {
