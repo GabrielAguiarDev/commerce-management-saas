@@ -1,9 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { AuthScreen, Box, Button, CodeInput, Text, Touchable } from '@components';
 import { ROUTES } from '@domain/navigation/routes';
-import { CODE_LENGTH, RESEND_SECONDS, RecoveryError, conferirCodigo } from '@domain/session';
+import {
+  CODE_LENGTH,
+  RESEND_SECONDS,
+  RecoveryError,
+  conferirCodigo,
+  reenviarCodigo,
+} from '@domain/session';
 import { useTranslation } from '@i18n';
 import { useUIStore } from '@store/uiStore';
 import { RAIO_PILULA } from '@theme';
@@ -11,12 +17,14 @@ import { RAIO_PILULA } from '@theme';
 /**
  * Passo 2 de 3: o código de verificação.
  *
- * ⚠️ SIMULAÇÃO — o código que vale é o `DEMO_CODE`, anunciado na tela anterior.
+ * As caixas são UM campo só (ver `CodeInput`), com o teclado do sistema: é ele
+ * que traz o preenchimento automático do código no iOS e o colar. O estado é
+ * uma string simples que só cresce até `CODE_LENGTH` — não um array de campos
+ * com foco pulando entre eles.
  *
- * As quatro caixas são UM campo só (ver `CodeInput`), com o teclado do sistema:
- * é ele que traz o preenchimento automático do código no iOS e o colar. O
- * estado é uma string simples que só cresce até `CODE_LENGTH` — não um array de
- * quatro campos com foco pulando entre eles.
+ * ⚠️ CONFIRMAR AQUI JÁ ABRE UMA SESSÃO no Supabase — é assim que o `verifyOtp`
+ * funciona. Quem a derruba é o passo 3, no fim do fluxo ou na desistência; ver
+ * `recoveryService`.
  */
 export default function VerifyCodeScreen() {
   const t = useTranslation();
@@ -28,9 +36,20 @@ export default function VerifyCodeScreen() {
 
   const [code, setCode] = useState('');
   const [conferindo, setConferindo] = useState(false);
-  const segundos = useContagemRegressiva(RESEND_SECONDS);
+  const [segundos, reiniciarContagem] = useContagemRegressiva(RESEND_SECONDS);
 
   const completo = code.length === CODE_LENGTH;
+
+  async function reenviar() {
+    try {
+      await reenviarCodigo();
+      showToast(t.toasts.recoveryCodeReady);
+    } catch (error) {
+      if (error instanceof RecoveryError) {
+        showToast(t.errors.recovery[error.code], { tone: 'erro' });
+      }
+    }
+  }
 
   async function confirmar() {
     setConferindo(true);
@@ -86,10 +105,18 @@ export default function VerifyCodeScreen() {
         ) : (
           <Touchable
             accessibilityLabel={t.auth.code.resend}
-            // Na simulação reenviar não tem o que fazer além de dizer que o
-            // código continua o mesmo. O aviso é honesto: o botão existe, e a
-            // contagem regressiva que ele reinicia é real.
-            onPress={() => showToast(t.toasts.recoveryCodeReady)}
+            // Pede outro e-mail para o MESMO endereço, sem voltar ao passo 1 —
+            // quem guarda esse endereço é o service. O código anterior deixa de
+            // valer no servidor, e é por isso que o campo é limpo junto: deixar
+            // os dígitos velhos na tela convidaria a confirmar o código errado.
+            onPress={() => {
+              setCode('');
+              // A contagem reinicia ANTES da rede: o Supabase recusa dois
+              // e-mails para o mesmo endereço dentro de um minuto, e um botão
+              // que continuasse tocável renderia só erro de limite.
+              reiniciarContagem();
+              void reenviar();
+            }}
             padding="s6"
           >
             <Text variant="titleSm" color="authLink">
@@ -103,7 +130,7 @@ export default function VerifyCodeScreen() {
 }
 
 /**
- * A contagem regressiva do reenvio, em segundos.
+ * A contagem regressiva do reenvio, em segundos, e a função que a reinicia.
  *
  * Uma corrente de `setTimeout` (um por segundo, cada um agendando o próximo) e
  * não um `setInterval`: no zero ela simplesmente para de se reagendar, sem
@@ -113,7 +140,7 @@ export default function VerifyCodeScreen() {
  * Fica aqui, e não em `@hooks`, porque é a única tela do app com contagem
  * regressiva; se aparecer uma segunda, aí muda de lugar.
  */
-function useContagemRegressiva(inicial: number): number {
+function useContagemRegressiva(inicial: number): [number, () => void] {
   const [segundos, setSegundos] = useState(inicial);
 
   useEffect(() => {
@@ -122,5 +149,7 @@ function useContagemRegressiva(inicial: number): number {
     return () => clearTimeout(id);
   }, [segundos]);
 
-  return segundos;
+  const reiniciar = useCallback(() => setSegundos(inicial), [inicial]);
+
+  return [segundos, reiniciar];
 }

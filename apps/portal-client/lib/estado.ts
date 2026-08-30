@@ -14,7 +14,7 @@ import type {
   Toast,
   ToastTone,
 } from "@/types/estado";
-import type { BusinessData, Theme } from "@/types/types";
+import type { BusinessData, Settings, Theme } from "@/types/types";
 
 /**
  * Quanto tempo cada aviso fica na tela.
@@ -138,17 +138,34 @@ export const EMPTY_TICKET_FORM: TicketForm = {
 export const EMPTY_REPLY_FORM: ReplyForm = { text: "", attachment: "" };
 
 /** O retrato vazio, usado enquanto a leitura falha ou o ambiente não tem banco. */
+/**
+ * O que vale quando o negócio nunca abriu Preferências.
+ *
+ * São os MESMOS defaults das colunas de `tenant_settings` — de propósito: a
+ * ausência de linha e uma linha recém-criada precisam se comportar igual,
+ * senão a tela muda de comportamento no dia em que alguém mexer no primeiro
+ * interruptor.
+ */
+export const DEFAULT_SETTINGS: Settings = {
+  acceptedMethods: METHODS.slice(),
+  printReceipt: true,
+  askCustomer: false,
+};
+
 export const EMPTY_DATA: PortalData = {
   business: {
     id: "",
     name: "Seu negócio",
     initials: "?",
+    logoPath: null,
     type: "",
     user: { name: "Você", initials: "?" },
     modules: ["dashboard", "settings"],
     catalog: [],
   },
   data: { name: "", type: "", phone: "", city: "" },
+  settings: DEFAULT_SETTINGS,
+  theme: null,
   fiscal: EMPTY_FISCAL,
   fiscalDocuments: [],
   products: [],
@@ -160,6 +177,7 @@ export const EMPTY_DATA: PortalData = {
   roles: [],
   team: [],
   tickets: [],
+  activity: [],
   error: null,
 };
 
@@ -173,10 +191,16 @@ export const EMPTY_DATA: PortalData = {
 export function initialState(
   data: BusinessData,
   fiscal: PortalData["fiscal"],
+  /** O tema salvo desta pessoa. `null` = nunca escolheu, e aí vale o claro. */
+  savedTheme: Theme | null = null,
   manter?: { theme: Theme; screenWidth: number; collapsed: boolean },
 ): PortalState {
   return {
-    theme: manter?.theme ?? "light",
+    // A ordem importa: o que a sessão já tinha na tela ganha do que veio do
+    // banco. `manter` só existe quando o estado está sendo REMONTADO (troca de
+    // idioma, remontagem do provider), e nesse instante o tema salvo pode
+    // estar velho — a pessoa acabou de mudar e a gravação ainda está indo.
+    theme: manter?.theme ?? savedTheme ?? "light",
     screenWidth: manter?.screenWidth ?? 1440,
     // Só o login levanta isto. Nascendo falso, um documento novo — F5, ou um
     // link colado na barra — abre direto no portal, sem tela de espera.
@@ -186,10 +210,6 @@ export function initialState(
     notificationsOpen: false,
     signOutOpen: false,
     hint: null,
-
-    acceptedMethods: METHODS.slice(),
-    imprimirComprovante: true,
-    pedirCliente: false,
 
     draftData: { ...data },
     draftFiscal: fiscalForm(fiscal),

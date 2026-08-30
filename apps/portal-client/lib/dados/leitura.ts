@@ -11,9 +11,11 @@ import { roleModules } from "@/lib/dados/equipe";
 import { EMPTY_FISCAL } from "@/lib/dados/fiscal";
 import { movementFromDb } from "@/lib/dados/estoque";
 import { paymentFromDb, SALE_STATUS } from "@/lib/dados/vendas";
+import { DEFAULT_SETTINGS } from "@/lib/estado";
 import { moduleCatalog, tenantModules, PORTAL_TO_DB } from "@/lib/modulos";
 import type { Session } from "@/lib/sessao";
 import type {
+  ActivityEntry,
   OpenRegister,
   ClosedRegister,
   Ticket,
@@ -28,6 +30,8 @@ import type {
   Role,
   FiscalDocument,
   FiscalStatus,
+  Settings,
+  Theme,
   Product,
   Sale,
   TaxRegime,
@@ -90,7 +94,11 @@ export async function readBusiness(
   nomeUsuario: string,
 ): Promise<{ business: Business; data: BusinessData }> {
   const [{ data: tenant }, { data: mods }, { data: catalog }] = await Promise.all([
-    supabase.from("tenants").select("id, name, segment, phone, city").eq("id", tenantId).single(),
+    supabase
+      .from("tenants")
+      .select("id, name, segment, phone, city, logo_path")
+      .eq("id", tenantId)
+      .single(),
     supabase.from("v_active_modules").select("key, is_access"),
 
     /**
@@ -115,6 +123,7 @@ export async function readBusiness(
       id: tenantId,
       name,
       initials: initials(name),
+      logoPath: tenant?.logo_path ?? null,
       type: tenant?.segment ?? "Comércio",
       user: { name: nomeUsuario, initials: initials(nomeUsuario) },
       modules: tenantModules(mods ?? []),
@@ -135,6 +144,54 @@ function initials(name: string): string {
     .filter((t) => /^[\p{L}]/u.test(t));
   if (!p.length) return "?";
   return ((p[0][0] || "") + ((p[1] || "")[0] || "")).toUpperCase();
+}
+
+/* -------------------------------------------------------------------------- */
+/* Preferências                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * As preferências de uso (`tenant_settings`) e o tema desta pessoa.
+ *
+ * LINHA AUSENTE NÃO É ERRO. Um negócio que nunca abriu a tela de Preferências
+ * não tem linha nenhuma, e isso quer dizer "tudo no padrão" — exatamente o que
+ * `DEFAULT_SETTINGS` descreve, com os mesmos valores que os DEFAULT das
+ * colunas. Por isso o `maybeSingle()`: `single()` trataria a ausência como
+ * falha e derrubaria a carga do portal inteiro por causa de um interruptor.
+ *
+ * O TEMA VEM DE `profiles`, não daqui: ele é de cada pessoa. As duas leituras
+ * ficam na mesma função porque a tela de Configurações mostra as duas coisas
+ * lado a lado, e separá-las só somaria uma ida e volta.
+ */
+export async function readSettings(
+  supabase: Customer,
+  tenantId: string,
+  userId: string,
+): Promise<{ settings: Settings; theme: Theme | null }> {
+  const [{ data: row }, { data: profile }] = await Promise.all([
+    supabase
+      .from("tenant_settings")
+      .select("accepted_payment_methods, print_receipt, ask_customer")
+      .eq("tenant_id", tenantId)
+      .maybeSingle(),
+    supabase.from("profiles").select("ui_theme").eq("id", userId).maybeSingle(),
+  ]);
+
+  // Uma lista vazia cai no padrão em vez de virar um PDV sem forma de
+  // pagamento. O CHECK do banco já impede gravar vazio; isto cobre a linha
+  // antiga que porventura exista de antes dele.
+  const methods = ((row?.accepted_payment_methods as string[] | null) ?? [])
+    .map(paymentFromDb)
+    .filter((m, i, all) => all.indexOf(m) === i);
+
+  return {
+    settings: {
+      acceptedMethods: methods.length ? methods : DEFAULT_SETTINGS.acceptedMethods,
+      printReceipt: row?.print_receipt ?? DEFAULT_SETTINGS.printReceipt,
+      askCustomer: row?.ask_customer ?? DEFAULT_SETTINGS.askCustomer,
+    },
+    theme: profile?.ui_theme === "dark" || profile?.ui_theme === "light" ? profile.ui_theme : null,
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -602,4 +659,39 @@ export async function readTickets(supabase: Customer): Promise<Ticket[]> {
       messages,
     };
   });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Histórico                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * As últimas ações do negócio.
+ *
+ * O TETO DE 60 É A TELA, não o banco. `activity_log` só cresce, e uma listagem
+ * sem limite ficaria mais pesada a cada mês até a carga do portal inteiro
+ * sentir — sendo que ninguém rola sessenta linhas de histórico numa tela de
+ * configurações. Quando fizer falta ver mais, o lugar é uma tela própria com
+ * paginação, não este `select`.
+ *
+ * Sem filtro por tenant no `where`: quem filtra é o RLS. Repetir aqui daria a
+ * impressão de que a segurança está na consulta, quando está na policy.
+ */
+export async function readActivity(supabase: Customer): Promise<ActivityEntry[]> {
+  const { data } = await supabase
+    .from("activity_log")
+    .select("id, action, actor_name, summary, created_at")
+    .order("created_at", { ascending: false })
+    .limit(60);
+
+  return (data ?? []).map((a) => ({
+    id: a.id,
+    action: a.action,
+    // Autor nulo é o funcionário que foi removido depois — o registro do que
+    // ele fez fica, e a tela precisa dizer alguma coisa no lugar do nome.
+    actor: a.actor_name ?? "Alguém da equipe",
+    summary: a.summary ?? "",
+    d: daysAgo(a.created_at),
+    time: timeOf(a.created_at),
+  }));
 }

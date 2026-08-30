@@ -1,21 +1,25 @@
 export type { AuthErrorCode, Session, User } from './sessionTypes';
 export { AuthError } from './sessionTypes';
-export { SENHA_MINIMA, isValidEmail, recuperarSenha, validateCredentials } from './sessionService';
+export { SENHA_MINIMA, isValidEmail, validateCredentials } from './sessionService';
 
-// A recuperação de senha é uma SIMULAÇÃO — ver o cabeçalho do arquivo.
-export type { RecoveryErrorCode } from './passwordRecovery';
+// Recuperação de senha: regras puras num arquivo, a conversa com o Supabase
+// noutro — ver os cabeçalhos de `recoveryRules` e `recoveryService`.
+export type { RecoveryErrorCode } from './recoveryRules';
 export {
   CODE_LENGTH,
-  DEMO_CODE,
   RESEND_SECONDS,
   RecoveryError,
-  conferirCodigo,
   mascararEmail,
-  pedirCodigo,
-  redefinirSenha,
   validarCodigo,
   validarNovaSenha,
-} from './passwordRecovery';
+} from './recoveryRules';
+export {
+  cancelarRecuperacao,
+  conferirCodigo,
+  pedirCodigo,
+  redefinirSenha,
+  reenviarCodigo,
+} from './recoveryService';
 export { sessionKeys, useAppAccess } from './useCases/useAppAccess';
 
 /**

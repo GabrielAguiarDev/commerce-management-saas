@@ -99,20 +99,35 @@ export async function listTeam(tenantId: string): Promise<TeamMemberAPI[]> {
 }
 
 /**
- * O feed de atividades.
+ * O feed de atividades — `activity_log`.
  *
- * ⚠️ SEMPRE VAZIO HOJE: a tabela `activity_log` (quem, o quê, quando, sobre
- * qual registro) ainda não existe no banco — está na lista do que falta criar
- * em `docs/api/portal-client-pendencias.md` §3.3.
- *
- * Devolver lista vazia é honesto: a tela mostra o estado vazio dela. A
- * alternativa — sintetizar "atividades" a partir de vendas e movimentações —
- * pareceria um log de auditoria sem ser um, e alguém acabaria confiando nisso
+ * FUNCIONA DESDE 28/08/2026. Antes devolvia lista vazia porque a tabela não
+ * existia, e sintetizar "atividades" a partir de vendas e movimentações
+ * pareceria um log de auditoria sem ser um — alguém acabaria confiando nisso
  * para saber quem fez o quê.
+ *
+ * As linhas vêm do MESMO log que o portal escreve e lê. Uma venda feita no
+ * balcão pelo app e uma feita no portal entram com a mesma chave de ação e
+ * aparecem nas duas telas.
+ *
+ * SEM `.eq('tenant_id', ...)`: quem isola é o RLS. O `tenantId` fica no
+ * parâmetro porque é ele que compõe a chave do cache no react-query — trocar
+ * de negócio precisa trocar de cache.
+ *
+ * O teto de 30 é a TELA: `activity_log` só cresce, e esta é uma aba de
+ * configurações, não um relatório de auditoria.
  */
 export async function listActivities(tenantId: string): Promise<ActivityAPI[]> {
   void tenantId;
-  return [];
+
+  const { data, error } = await supabase
+    .from('activity_log')
+    .select('id, action, actor_name, summary, created_at')
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  if (error) throw error;
+  return (data ?? []) as ActivityAPI[];
 }
 
 /**

@@ -11,9 +11,160 @@ import {
   onlyDigits,
   UFS,
 } from "@/lib/dados/fiscal";
+import { isOwnPath, LOGO_BUCKET } from "@/lib/buckets";
+import { logActivity } from "@/lib/historico";
 import { PORTAL_TO_DB } from "@/lib/modulos";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
-import type { BusinessData, FiscalData, ModuleKey } from "@/types/types";
+import { PAYMENT_DB } from "@/lib/dados/vendas";
+import type { BusinessData, FiscalData, ModuleKey, Settings, Theme } from "@/types/types";
+
+/* -------------------------------------------------------------------------- */
+/* Preferências de uso                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Salva as preferências do negócio — `tenant_settings`.
+ *
+ * `upsert` e não `update`: um negócio que nunca abriu esta tela não tem linha,
+ * e a primeira mexida no interruptor é justamente quem a cria. Com `update`, a
+ * primeira gravação de todo cliente afetaria zero linhas e a tela diria
+ * "salvo" sem salvar.
+ *
+ * A LISTA VAZIA É BARRADA AQUI TAMBÉM, e não só no banco. O CHECK da coluna
+ * recusaria, mas a mensagem que ele devolve fala de constraint — e quem está
+ * no balcão precisa ler que um PDV sem forma de pagamento não cobra ninguém.
+ */
+export async function savePreferences(p: Settings): Promise<ActionResult> {
+  const session = await requireCustomer("mudar as preferências");
+  if (!session.ok) return session;
+
+  const methods = p.acceptedMethods.filter((m, i, all) => all.indexOf(m) === i);
+  if (methods.length === 0) {
+    return { ok: false, message: "Você precisa aceitar pelo menos uma forma de pagamento." };
+  }
+
+  const { data, error } = await session.supabase
+    .from("tenant_settings")
+    .upsert(
+      {
+        tenant_id: session.tenantId,
+        accepted_payment_methods: methods.map((m) => PAYMENT_DB[m]),
+        print_receipt: p.printReceipt,
+        ask_customer: p.askCustomer,
+      },
+      { onConflict: "tenant_id" },
+    )
+    .select("tenant_id");
+
+  if (error) return { ok: false, message: error.message };
+  // Mesma checagem de linhas de `saveBusinessData`: RLS que recusa devolve
+  // sucesso com zero linhas, e sem contar diríamos "salvo" para nada.
+  if (!data?.length) {
+    return { ok: false, message: "As preferências não foram salvas. Recarregue e tente de novo." };
+  }
+
+  await logActivity(session.supabase, "settings.updated", {
+    summary: `Formas aceitas: ${methods.length}`,
+    metadata: { printReceipt: p.printReceipt, askCustomer: p.askCustomer },
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Salva o tema DESTA pessoa — `profiles.ui_theme`.
+ *
+ * Fica em `profiles` e não em `tenant_settings` porque é escolha individual:
+ * numa tabela por negócio, o caixa mudar para escuro mudaria a tela do dono.
+ *
+ * NÃO revalida a rota. As outras gravações trazem o retrato novo do servidor
+ * porque a tela precisa mostrar o que o banco confirmou; aqui a tela JÁ está
+ * com o tema aplicado — quem o aplica é o estado do provider, na hora do
+ * clique. Um `revalidatePath` aqui recarregaria o portal inteiro para
+ * confirmar uma cor que já está na frente da pessoa.
+ */
+export async function saveTheme(theme: Theme): Promise<ActionResult> {
+  const session = await requireCustomer("mudar o tema");
+  if (!session.ok) return session;
+
+  const { data, error } = await session.supabase
+    .from("profiles")
+    .update({ ui_theme: theme })
+    .eq("id", session.userId)
+    .select("id");
+
+  if (error) return { ok: false, message: error.message };
+  if (!data?.length) {
+    return { ok: false, message: "O tema não foi salvo." };
+  }
+
+  return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Logo                                                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Registra a logo já enviada — ou tira a que está lá, com `null`.
+ *
+ * O ARQUIVO NÃO PASSA POR AQUI. Ele já subiu direto do navegador para o
+ * Storage (ver `lib/arquivos.ts`); o que chega é o caminho, e o trabalho desta
+ * função é o de sempre: conferir de quem é, gravar, e contar as linhas.
+ *
+ * A ANTIGA É APAGADA DEPOIS, e só se a gravação passou. Na ordem inversa, um
+ * UPDATE recusado deixaria a coluna apontando para um arquivo que acabamos de
+ * destruir — a pessoa ficaria sem logo nenhuma, com a tela dizendo que tem uma.
+ *
+ * E o `remove` não derruba nada se falhar: um arquivo órfão de 40 KB no bucket
+ * é um problema de faxina; uma exceção aqui é um problema de quem só queria
+ * trocar a imagem.
+ */
+export async function saveLogo(path: string | null): Promise<ActionResult> {
+  const session = await requireCustomer("mudar a logo do negócio");
+  if (!session.ok) return session;
+
+  const { supabase, tenantId } = session;
+
+  if (path !== null && !isOwnPath(path, tenantId)) {
+    return { ok: false, message: "Esse arquivo não pertence a este negócio." };
+  }
+
+  const { data: atual } = await supabase
+    .from("tenants")
+    .select("logo_path")
+    .eq("id", tenantId)
+    .single();
+
+  const { data, error } = await supabase
+    .from("tenants")
+    .update({ logo_path: path })
+    .eq("id", tenantId)
+    .select("id");
+
+  if (error) return { ok: false, message: error.message };
+  // Sem GRANT na coluna, um UPDATE afeta zero linhas SEM ERRO — foi o que
+  // `20260828030000_storage_buckets.sql` teve de consertar. A contagem é o que
+  // faz esse buraco aparecer aqui em vez de na recarga seguinte.
+  if (!data?.length) {
+    return { ok: false, message: "A logo não foi salva. Recarregue e tente de novo." };
+  }
+
+  const antiga = atual?.logo_path;
+  if (antiga && antiga !== path) {
+    await supabase.storage.from(LOGO_BUCKET).remove([antiga]);
+  }
+
+  await logActivity(supabase, path ? "logo.updated" : "logo.removed");
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Dados do negócio                                                            */
+/* -------------------------------------------------------------------------- */
 
 /**
  * Salva os dados do negócio.
@@ -76,6 +227,8 @@ export async function saveBusinessData(d: BusinessData): Promise<ActionResult> {
       message: "Não foi possível salvar os dados do negócio. Tente de novo; se continuar, fale com o suporte.",
     };
   }
+
+  await logActivity(session.supabase, "business.updated", { summary: d.name.trim() });
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -243,6 +396,13 @@ export async function saveRole(p: {
 
   if (error) return { ok: false, message: error.message };
 
+  // Quem pode o quê é a informação mais sensível desta tela: o log guarda o
+  // nome do acesso e quantos módulos ele abriu.
+  await logActivity(supabase, p.id ? "role.updated" : "role.created", {
+    entityId: p.id,
+    summary: `${fields.name} · ${p.modules.length} módulos`,
+  });
+
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -264,6 +424,8 @@ export async function removeRole(id: string): Promise<ActionResult> {
   // `is_owner = false` na condição: o tipo do dono não sai nem por engano.
   const { error } = await supabase.from("roles").delete().eq("id", id).eq("is_owner", false);
   if (error) return { ok: false, message: error.message };
+
+  await logActivity(supabase, "role.deleted", { entityId: id });
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -288,12 +450,18 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Ac
     return { ok: false, message: "Você não pode suspender o seu próprio acesso." };
   }
 
-  const { error } = await session.supabase
+  const { data, error } = await session.supabase
     .from("profiles")
     .update({ status: active ? "active" : "suspended" })
-    .eq("id", id);
+    .eq("id", id)
+    .select("full_name");
 
   if (error) return { ok: false, message: error.message };
+
+  await logActivity(session.supabase, active ? "employee.restored" : "employee.suspended", {
+    entityId: id,
+    summary: data?.[0]?.full_name ?? null,
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -304,9 +472,19 @@ export async function changeEmployeeRole(id: string, roleId: string): Promise<Ac
   const session = await requireCustomer("alterar o acesso de um funcionário");
   if (!session.ok) return session;
 
-  const { error } = await session.supabase.from("profiles").update({ role_id: roleId }).eq("id", id);
+  const { data, error } = await session.supabase
+    .from("profiles")
+    .update({ role_id: roleId })
+    .eq("id", id)
+    .select("full_name");
 
   if (error) return { ok: false, message: error.message };
+
+  await logActivity(session.supabase, "employee.role_changed", {
+    entityId: id,
+    summary: data?.[0]?.full_name ?? null,
+    metadata: { roleId },
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };

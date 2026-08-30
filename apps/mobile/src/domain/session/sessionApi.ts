@@ -125,15 +125,6 @@ export async function signOut(): Promise<void> {
   if (error) throw error;
 }
 
-export async function requestPasswordReset(email: string): Promise<void> {
-  // Sem `redirectTo`: o fluxo de redefinir senha ainda não tem tela no app, e
-  // apontar para um deep link que não existe deixaria o usuário num beco. O
-  // e-mail do Supabase leva para a página padrão do projeto. Quando a tela
-  // existir, é aqui que entra o `redirectTo` com o scheme `aguiarone://`.
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
-  if (error) throw error;
-}
-
 /**
  * Avisa quando o Supabase troca de sessão (login, logout, refresh de token,
  * expiração). Devolve a função que cancela a inscrição.

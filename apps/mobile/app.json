@@ -39,7 +39,23 @@
           }
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-sharing",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O Aguiar One usa a câmera para ler o código de barras dos produtos na hora da venda.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Aguiar One acessa suas fotos para você anexar um print ao chamado de suporte.",
+          "cameraPermission": "O Aguiar One usa a câmera para você fotografar a tela e anexar ao chamado de suporte."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

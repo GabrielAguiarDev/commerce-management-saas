@@ -67,6 +67,17 @@ export interface Business {
   id: string;
   name: string;
   initials: string;
+  /**
+   * O CAMINHO da logo no bucket `tenant-logos`, nunca a URL.
+   *
+   * Uma URL do Storage carrega dentro dela o domínio do projeto Supabase; se
+   * um dia o projeto mudar — ou entrar um domínio próprio na frente —, toda
+   * linha gravada apontaria para o lugar antigo. A URL sai do caminho na hora
+   * de desenhar, com `logoUrl()`.
+   *
+   * `null` = ainda não enviaram nada, e a tela usa as iniciais do nome.
+   */
+  logoPath: string | null;
   /** Ramo do comércio — `tenants.segment`. */
   type: string;
   user: User;
@@ -295,6 +306,25 @@ export interface Ticket {
 /* Configurações                                                               */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * As preferências de uso do negócio — `tenant_settings`.
+ *
+ * MORAM NO RETRATO DO SERVIDOR, e não no estado da sessão. Antes viviam só no
+ * React: valiam a sessão e voltavam ao padrão no próximo login, e a tela dizia
+ * isso num aviso. Agora que há tabela, a regra do portal vale para elas como
+ * vale para o resto — a tela mostra o que o banco confirmou.
+ *
+ * O TEMA NÃO ESTÁ AQUI. Ele é de cada pessoa (`profiles.ui_theme`), não do
+ * negócio: numa tabela por tenant, o caixa mudar para escuro mudaria a tela do
+ * dono junto.
+ */
+export interface Settings {
+  /** Nunca vazio — o banco tem CHECK, e um PDV sem forma de pagamento não cobra. */
+  acceptedMethods: PaymentMethod[];
+  printReceipt: boolean;
+  askCustomer: boolean;
+}
+
 /** O que `tenants` guarda hoje. Documento e endereço ainda não têm coluna. */
 export interface BusinessData {
   name: string;
@@ -401,4 +431,28 @@ export interface FiscalData {
   certificateSet: boolean;
   /** ISO, ou vazio. O certificado A1 vale 12 meses e para de emitir ao vencer. */
   certificateExpiresAt: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Histórico                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Uma linha de "O que aconteceu no portal" — `activity_log`.
+ *
+ * `action` é a chave em inglês (`sale.created`, `stock.moved`), e a tela é que
+ * traduz. O texto em português NÃO é gravado: renomear um rótulo reescreveria
+ * o passado.
+ *
+ * `actor` é o nome COMO ERA na hora, copiado pela função que grava. Ler o nome
+ * atual do perfil faria um funcionário renomeado — ou removido — mudar a
+ * autoria de tudo o que já fez.
+ */
+export interface ActivityEntry {
+  id: string;
+  action: string;
+  actor: string;
+  summary: string;
+  d: number;
+  time: string;
 }

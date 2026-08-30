@@ -326,7 +326,7 @@ export function PdvView() {
                 onChange={(e) => a.set({ currentMethod: e.target.value as typeof s.currentMethod })}
                 cssText={field(false, true).replace("padding:13px 14px", "padding:12px 12px")}
               >
-                {s.acceptedMethods.map((f) => (
+                {d.settings.acceptedMethods.map((f) => (
                   <option key={f} value={f}>
                     {PAYMENT_LABEL[f]}
                   </option>

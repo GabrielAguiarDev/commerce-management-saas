@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  readActivity,
   readRegister,
   readTickets,
   readCosts,
@@ -11,6 +12,7 @@ import {
   readBusiness,
   readProducts,
   readSales,
+  readSettings,
 } from "@/lib/dados/leitura";
 import { EMPTY_DATA } from "@/lib/estado";
 import { requireCustomer } from "@/lib/sessao";
@@ -39,7 +41,7 @@ export async function loadPortal(): Promise<PortalData> {
   // credenciais. A casca renderiza vazia em vez de estourar.
   if (!session.ok) return { ...EMPTY_DATA, error: session.message };
 
-  const { supabase, tenantId, name } = session;
+  const { supabase, tenantId, userId, name } = session;
 
   try {
     const salesPromise = readSales(supabase);
@@ -60,6 +62,8 @@ export async function loadPortal(): Promise<PortalData> {
       register,
       fiscal,
       fiscalDocuments,
+      preferences,
+      activity,
     ] = await Promise.all([
         businessPromise,
         readProducts(supabase),
@@ -71,11 +75,15 @@ export async function loadPortal(): Promise<PortalData> {
         readRegister(supabase, salesPromise),
         readFiscal(supabase, businessPromise),
         readFiscalDocuments(supabase, businessPromise),
+        readSettings(supabase, tenantId, userId),
+        readActivity(supabase),
       ]);
 
     return {
       business,
       data,
+      settings: preferences.settings,
+      theme: preferences.theme,
       fiscal,
       fiscalDocuments,
       products,
@@ -87,6 +95,7 @@ export async function loadPortal(): Promise<PortalData> {
       roles: team.roles,
       team: team.team,
       tickets,
+      activity,
       error: null,
     };
   } catch (e) {

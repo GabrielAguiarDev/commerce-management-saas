@@ -6,6 +6,7 @@ import {
   registerMovementFromDb,
 } from '@domain/shared/dbEnums';
 import { supabase } from '@services/supabase';
+import { logActivity } from '@domain/shared/activityLog';
 import { daysAgoISO, daysSince } from '@utils/dates';
 import { centsToReal, realToCents } from '@utils/money';
 
@@ -208,6 +209,11 @@ export async function openShift(
 
   if (error) throw error;
 
+  logActivity('register.opened', {
+    entityId: data.id,
+    summary: `Troco de ${moeda(aberturaCentavos)}`,
+  });
+
   return {
     id: data.id,
     tenant_id: tenantId,
@@ -243,6 +249,11 @@ export async function recordAdjustment(
 
   if (error) throw error;
 
+  logActivity(payload.kind === 'deposit' ? 'register.deposit' : 'register.withdrawal', {
+    entityId: payload.shift_id,
+    summary: moeda(payload.amount_cents),
+  });
+
   // Relê o turno para devolver a gaveta já recalculada — a conta de quanto há
   // na gaveta mora num lugar só (`fetchOpenShift`), e duplicá-la aqui é como
   // as duas metades passam a discordar.
@@ -274,6 +285,16 @@ export async function closeShift(
 
   if (error) throw error;
 
+  logActivity('register.closed', {
+    entityId: shiftId,
+    summary: `Contado em dinheiro: ${moeda(contadoEmDinheiroCentavos)}`,
+  });
+
   const history = await listHistory(tenantId);
   return history.find((h) => h.id === shiftId) ?? null;
+}
+
+/** Centavos → `R$ 12,34`, gravado pronto no histórico — ver `logActivity`. */
+function moeda(cents: number): string {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }

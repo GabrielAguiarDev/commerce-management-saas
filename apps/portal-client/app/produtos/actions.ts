@@ -9,6 +9,7 @@ import {
   NO_GTIN,
   onlyDigits,
 } from "@/lib/dados/fiscal";
+import { logActivity } from "@/lib/historico";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 import type { ProductFiscal } from "@/types/types";
 
@@ -89,11 +90,16 @@ export async function saveProduct(p: ProductToSave): Promise<ActionResult> {
     cofins_cst: p.fiscal.cofinsCst.trim() || null,
   };
 
-  const { error } = p.id
-    ? await supabase.from("products").update(fields).eq("id", p.id)
-    : await supabase.from("products").insert({ tenant_id: tenantId, ...fields });
+  const { data: saved, error } = p.id
+    ? await supabase.from("products").update(fields).eq("id", p.id).select("id")
+    : await supabase.from("products").insert({ tenant_id: tenantId, ...fields }).select("id");
 
   if (error) return { ok: false, message: error.message };
+
+  await logActivity(supabase, p.id ? "product.updated" : "product.created", {
+    entityId: saved?.[0]?.id ?? p.id ?? null,
+    summary: fields.name,
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -120,6 +126,14 @@ export async function setActive(id: string, active: boolean): Promise<ActionResu
   const { error } = await session.supabase.from("products").update({ is_active: active }).eq("id", id);
 
   if (error) return { ok: false, message: error.message };
+
+  // Pausar um produto some com ele do balcão: quem procurar depois precisa
+  // achar quem o tirou de lá. Favoritar não entra no log — é arrumação de
+  // tela, não decisão sobre o negócio.
+  await logActivity(session.supabase, active ? "product.resumed" : "product.paused", {
+    entityId: id,
+  });
+
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -136,6 +150,16 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
   const session = await requireCustomer("excluir um produto");
   if (!session.ok) return session;
 
+  // O nome é lido ANTES da exclusão, e é o único momento em que dá: depois do
+  // delete não há de onde tirá-lo, e um histórico que diz "produto excluído"
+  // sem dizer qual não serve para nada — justamente a linha mais importante do
+  // log é a do que deixou de existir.
+  const { data: produto } = await session.supabase
+    .from("products")
+    .select("name")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await session.supabase.from("products").delete().eq("id", id);
 
   if (error) {
@@ -145,6 +169,11 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
         "Este produto tem movimentações ligadas a ele e não pode ser excluído. Pause a venda para tirá-lo do balcão.",
     };
   }
+
+  await logActivity(session.supabase, "product.deleted", {
+    entityId: id,
+    summary: produto?.name ?? null,
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };

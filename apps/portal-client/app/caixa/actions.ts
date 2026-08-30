@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { REGISTER_OPEN, REGISTER_CLOSED, REGISTER_MOVEMENT_DB } from "@/lib/dados/caixa";
+import { logActivity } from "@/lib/historico";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 import type { RegisterMovementType } from "@/types/types";
 
@@ -34,6 +35,8 @@ export async function openRegister(valorInicial: number): Promise<ActionResult> 
 
   if (error) return { ok: false, message: error.message };
 
+  await logActivity(supabase, "register.opened", { summary: `Troco de ${brl(valorInicial)}` });
+
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -62,6 +65,11 @@ export async function recordRegisterMovement(data: {
 
   if (error) return { ok: false, message: error.message };
 
+  await logActivity(supabase, data.type === "deposit" ? "register.deposit" : "register.withdrawal", {
+    entityId: data.registerId,
+    summary: `${brl(data.amount)}${data.reason.trim() ? ` · ${data.reason.trim()}` : ""}`,
+  });
+
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -79,6 +87,10 @@ export async function undoRegisterMovement(movId: string): Promise<ActionResult>
 
   const { error } = await session.supabase.from("cash_movements").delete().eq("id", movId);
   if (error) return { ok: false, message: error.message };
+
+  // A linha some da gaveta, mas o log guarda que ela existiu — é o que
+  // diferencia "digitei errado" de "sumiu dinheiro".
+  await logActivity(session.supabase, "register.movement_undone", { entityId: movId });
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -107,6 +119,11 @@ export async function closeRegister(
   });
 
   if (error) return { ok: false, message: error.message };
+
+  await logActivity(session.supabase, "register.closed", {
+    entityId: registerId,
+    summary: `Contado em dinheiro: ${brl(contadoEmDinheiro)}`,
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -143,6 +160,13 @@ export async function reopenRegister(registerId: string): Promise<ActionResult> 
 
   if (error) return { ok: false, message: error.message };
 
+  await logActivity(supabase, "register.reopened", { entityId: registerId });
+
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/** O valor como ele fica gravado no histórico — ver `logActivity`. */
+function brl(v: number): string {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }

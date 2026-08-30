@@ -17,6 +17,8 @@ export interface TicketMessageAPI {
   body: string;
   /** `true` = veio do time de suporte; `false` = escrita pelo cliente. */
   from_support: boolean;
+  /** Caminho no bucket `support-attachments`, ou `null`. */
+  attachment_path: string | null;
   created_label: string;
 }
 
@@ -25,6 +27,8 @@ export interface TicketCreateAPI {
   subject: string;
   category: string;
   body: string;
+  /** Vai para `support_messages.attachment_url`. `null` = sem anexo. */
+  attachment_path: string | null;
 }
 
 export interface TicketReplyAPI {

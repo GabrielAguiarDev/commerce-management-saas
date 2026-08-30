@@ -1,4 +1,4 @@
-import type { RecoveryErrorCode } from '@domain/session/passwordRecovery';
+import type { RecoveryErrorCode } from '@domain/session/recoveryRules';
 import type { AuthErrorCode } from '@domain/session/sessionTypes';
 import type { CashErrorCode } from '@domain/cash/cashTypes';
 import type { CatalogErrorCode } from '@domain/catalog/catalogTypes';
@@ -104,23 +104,26 @@ export const en = {
       network: 'Could not send right now. Try again.',
     } as Record<SupportErrorCode, string>,
 
-    // Password recovery. The whole flow is a SIMULATION for now — see
-    // `domain/session/passwordRecovery.ts`.
+    // Password recovery — see `domain/session/recoveryService.ts`.
     recovery: {
       invalid_email: 'Check the e-mail address you typed.',
-      incomplete_code: 'Type the 4 digits of the code.',
-      invalid_code: 'This code does not match. Check your e-mail.',
+      incomplete_code: 'Type the 6 digits of the code.',
+      // Covers wrong AND expired: Supabase returns the same thing for both,
+      // and the way out is the same — ask for another one.
+      invalid_code: 'This code does not match or has expired. Ask for a new one.',
       short_password: 'The new password must be at least 6 characters long.',
       password_mismatch: 'The two passwords are not the same.',
+      same_password: 'That is already your current password. Pick a different one.',
+      expired_flow: 'The recovery expired. Start again from your e-mail.',
+      network: 'Could not reach the server. Try again.',
     } as Record<RecoveryErrorCode, string>,
   },
 
   toasts: {
-    recoverySent: 'We sent a recovery link to your e-mail.',
-    /** The simulated flow: says it worked without claiming an e-mail was sent. */
-    recoveryCodeReady: 'Code ready. In the simulation it is not sent by e-mail.',
+    /** Deliberately vague: an address with no account gets this same line. */
+    recoveryCodeReady: 'If that account exists, the code arrives in a moment.',
     passwordChanged: 'New password saved. Sign in with it.',
-    cameraUnavailable: 'The barcode camera would open here.',
+    scanned: (name: string) => `${name} added to the cart.`,
     productCreated: (name: string) => `"${name}" created and ready to sell.`,
     // Says what editing does NOT do: a sale recorded yesterday keeps
     // yesterday's price.
@@ -149,8 +152,10 @@ export const en = {
     stockUpdated: 'Stock updated.',
     costRecorded: 'Cost recorded.',
     businessSaved: 'Business details saved.',
-    pdfExported: 'PDF report generated and saved to the phone.',
-    spreadsheetExported: 'Spreadsheet generated and saved to the phone.',
+    /** See the pt-BR file: the file is shared, not saved to the device. */
+    reportNotReady: 'The report is still loading. Try again in a moment.',
+    shareUnavailable: 'This device cannot share files.',
+    exportFailed: 'Could not generate the file. Try again.',
     replySent: 'Message sent to support.',
     ticketOpened: 'Ticket opened. We reply within 1 business day.',
     // Shown when the WhatsApp channel could not be opened — either the number
@@ -159,7 +164,9 @@ export const en = {
     // blocked screen and has no other way through.
     whatsappUnavailable:
       'Could not open WhatsApp. Write to contato@aguiarone.com.br and we will get back to you.',
-    attachmentUnavailable: 'Pick a photo from the gallery or take one now.',
+    photosDenied: 'Allow photo access in the device settings to attach a file.',
+    attachmentFailed: 'Could not upload the photo. Try again.',
+    attachmentOpenFailed: 'Could not open the attachment. Try again.',
     synced: 'Everything synced. Nothing was lost.',
   },
 
@@ -247,7 +254,7 @@ export const en = {
 
     forgot: {
       title: 'Forgot your password',
-      intro: 'Type the e-mail of your account. We send you a 4-digit code to create a new password.',
+      intro: 'Type the e-mail of your account. We send you a 6-digit code to create a new password.',
       emailLabel: 'E-mail address',
       submit: 'Send code',
       back: 'Back',
@@ -256,7 +263,7 @@ export const en = {
     code: {
       title: 'Check your e-mail',
       /** "We sent a 4-digit code to ga••••@gmail.com". */
-      sentTo: (email: string) => `We sent a 4-digit code to ${email}`,
+      sentTo: (email: string) => `We sent a 6-digit code to ${email}`,
       codeLabel: 'Verification code',
       resendIn: (seconds: number) => `Resend code in ${seconds} s`,
       resend: 'Resend code',
@@ -271,28 +278,19 @@ export const en = {
       submit: 'Save new password',
     },
 
-    /**
-     * The banner that says out loud that recovery is not real yet.
-     *
-     * It names the demo code on purpose: without it there is no way to reach
-     * the success path, and a mock nobody can walk through does not get
-     * reviewed. It disappears with the mock.
-     */
-    mockNotice: (code: string) =>
-      `Simulation: nothing is sent by e-mail yet and no password changes. Use the code ${code} to see the rest of the flow.`,
-
-    /** The same warning, one line, on the last screen of the flow. */
-    mockShortNotice: 'Simulation: the password is not really changed yet.',
+    /** The app signs out after the change — see `recoveryService`. */
+    signInAgainNotice: 'After saving, sign in again with the new password.',
   },
 
   paymentMethods: {
     cash: 'Cash',
     pix: 'Pix',
-    debit_card: 'Debit card',
-    credit_card: 'Credit card',
-    /** The spellings the web PORTAL writes into the same column. See `utils/payment`. */
     debit: 'Debit card',
     credit: 'Credit card',
+    /** What THIS app wrote before the vocabularies were unified. Kept while
+     *  older rows survive in the column. See `utils/payment`. */
+    debit_card: 'Debit card',
+    credit_card: 'Credit card',
   },
 
   cart: {
@@ -309,6 +307,43 @@ export const en = {
     ok: 'In stock',
     low: 'Low',
     out: 'Out of stock',
+  },
+
+  /** See the pt-BR file: the DB stores the key, the screen translates it. */
+  activity: {
+    empty: 'Nothing recorded here yet.',
+    actions: {
+      'sale.created': 'Sale recorded',
+      'sale.refunded': 'Sale refunded',
+      'sale.refund_undone': 'Refund undone',
+      'stock.moved': 'Stock moved',
+      'stock.reverted': 'Movement reverted',
+      'product.created': 'Product created',
+      'product.updated': 'Product updated',
+      'product.deleted': 'Product deleted',
+      'product.paused': 'Product paused',
+      'product.resumed': 'Product back on sale',
+      'register.opened': 'Register opened',
+      'register.closed': 'Register closed',
+      'register.reopened': 'Register reopened',
+      'register.deposit': 'Cash added',
+      'register.withdrawal': 'Cash withdrawn',
+      'register.movement_undone': 'Register movement undone',
+      'cost.created': 'Cost recorded',
+      'cost.updated': 'Cost updated',
+      'cost.deleted': 'Cost deleted',
+      'business.updated': 'Business details changed',
+      'settings.updated': 'Preferences changed',
+      'logo.updated': 'Logo uploaded',
+      'logo.removed': 'Logo removed',
+      'role.created': 'Access type created',
+      'role.updated': 'Access type updated',
+      'role.deleted': 'Access type removed',
+      'employee.suspended': 'Access suspended',
+      'employee.restored': 'Access restored',
+      'employee.role_changed': 'Access type changed',
+      'ticket.opened': 'Ticket opened',
+    } as Record<string, string>,
   },
 
   home: {

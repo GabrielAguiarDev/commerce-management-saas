@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { MANUAL_ORIGIN, COST_TYPE_DB } from "@/lib/dados/custos";
+import { logActivity } from "@/lib/historico";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 import type { CostType } from "@/types/types";
 
@@ -35,13 +36,19 @@ export async function saveCost(c: CostToSave): Promise<ActionResult> {
     cost_date: c.data,
   };
 
-  const { error } = c.id
-    ? await supabase.from("costs").update(fields).eq("id", c.id)
+  const { data: saved, error } = c.id
+    ? await supabase.from("costs").update(fields).eq("id", c.id).select("id")
     : await supabase
         .from("costs")
-        .insert({ tenant_id: tenantId, user_id: userId, origin: MANUAL_ORIGIN, ...fields });
+        .insert({ tenant_id: tenantId, user_id: userId, origin: MANUAL_ORIGIN, ...fields })
+        .select("id");
 
   if (error) return { ok: false, message: error.message };
+
+  await logActivity(supabase, c.id ? "cost.updated" : "cost.created", {
+    entityId: saved?.[0]?.id ?? c.id ?? null,
+    summary: `${fields.description} · ${c.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -59,7 +66,13 @@ export async function deleteCost(id: string): Promise<ActionResult> {
   if (!session.ok) return session;
   const { supabase } = session;
 
-  const { data: cost } = await supabase.from("costs").select("origin").eq("id", id).single();
+  // `description` vem junto só para o histórico: depois do delete não há de
+  // onde tirá-la, e "custo excluído" sem dizer qual não explica nada.
+  const { data: cost } = await supabase
+    .from("costs")
+    .select("origin, description")
+    .eq("id", id)
+    .single();
 
   if (cost?.origin === "stock") {
     return {
@@ -70,6 +83,8 @@ export async function deleteCost(id: string): Promise<ActionResult> {
 
   const { error } = await supabase.from("costs").delete().eq("id", id);
   if (error) return { ok: false, message: error.message };
+
+  await logActivity(supabase, "cost.deleted", { entityId: id, summary: cost?.description ?? null });
 
   revalidatePath("/", "layout");
   return { ok: true };

@@ -60,7 +60,11 @@ export interface EditableSale {
  */
 export const useCartStore = create<CartState>()((set) => ({
   items: [],
-  paymentMethod: 'Dinheiro',
+  // A CHAVE, não o rótulo. 'Dinheiro' ficou aqui da época em que a forma era
+  // o texto da tela; nunca chegou ao banco porque o CartSheet cai na primeira
+  // forma aceita quando não reconhece a guardada — mas era um padrão que
+  // parecia válido e não era.
+  paymentMethod: 'cash',
   editingSaleId: null,
 
   add: (product) => set((s) => ({ items: cart.add(s.items, product) })),

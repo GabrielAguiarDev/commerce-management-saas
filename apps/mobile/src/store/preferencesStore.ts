@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { PAYMENT_METHODS as DB_PAYMENT_METHODS } from '@domain/shared/dbEnums';
 import type { Language } from '@i18n/languages';
 import { DEFAULT_LANGUAGE, isSupportedLanguage } from '@i18n/languages';
 import { STORAGE_KEYS } from '@services/storageAdapter';
@@ -19,10 +20,35 @@ import { STORAGE_KEYS } from '@services/storageAdapter';
  * preference and the sale record both carried Portuguese copy — untranslatable,
  * and it would break the moment the copy was reworded. The visible label now
  * lives in the locale files under `paymentMethods.*`.
+ *
+ * ⚠️ THE LIST IS RE-EXPORTED FROM `dbEnums`, NOT DECLARED HERE. It used to be
+ * declared, with `debit_card`/`credit_card`, while the web portal wrote
+ * `debit`/`credit` into THE SAME COLUMN. The key picked here travels
+ * untouched into `sales.payment_method` (CartSheet → checkoutSale → adapter),
+ * so the portal read every card sale made on the phone as CASH — its
+ * `paymentFromDb` falls back to `'cash'` for anything it does not recognise.
+ * The sale then counted towards the money expected in the till, and the
+ * register closed short every single day.
+ *
+ * Re-exporting is what makes that impossible to reintroduce: there is now one
+ * list, and it is the one the database is about to enforce with a CHECK.
  */
-export const PAYMENT_METHODS = ['cash', 'pix', 'debit_card', 'credit_card'] as const;
+export const PAYMENT_METHODS = DB_PAYMENT_METHODS;
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/**
+ * What a payload written by an older build calls each card method.
+ *
+ * Dropping this would silently re-enable a method the shop had turned off:
+ * `merge` would find no `debit` key, fall back to the default `true`, and put
+ * "Cartão de débito" back in the cart selector of a business that does not
+ * accept it.
+ */
+const LEGACY_METHOD: Record<string, PaymentMethod> = {
+  debit_card: 'debit',
+  credit_card: 'credit',
+};
 
 interface PreferencesState {
   darkTheme: boolean;
@@ -39,6 +65,16 @@ const ALL_ACCEPTED = Object.fromEntries(PAYMENT_METHODS.map((m) => [m, true])) a
   PaymentMethod,
   boolean
 >;
+
+/** Reads a stored map under either spelling, keeping what the shop chose. */
+function acceptedFromPersisted(stored: Partial<Record<string, boolean>> | undefined) {
+  const out = { ...ALL_ACCEPTED };
+  for (const [key, enabled] of Object.entries(stored ?? {})) {
+    const method = LEGACY_METHOD[key] ?? (key as PaymentMethod);
+    if (method in out && typeof enabled === 'boolean') out[method] = enabled;
+  }
+  return out;
+}
 
 export const usePreferencesStore = create<PreferencesState>()(
   persist(
@@ -86,7 +122,7 @@ export const usePreferencesStore = create<PreferencesState>()(
           // A hand-edited or downgraded payload could carry an unsupported tag.
           // Falling back keeps `t()` from resolving against a missing catalog.
           language: isSupportedLanguage(p.language) ? p.language : DEFAULT_LANGUAGE,
-          acceptedMethods: { ...ALL_ACCEPTED, ...(p.acceptedMethods ?? {}) },
+          acceptedMethods: acceptedFromPersisted(p.acceptedMethods),
         };
       },
       onRehydrateStorage: () => () => {

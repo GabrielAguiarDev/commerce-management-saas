@@ -1,5 +1,6 @@
 import { SENDER_SIDE, TICKET_STATUS } from '@domain/shared/dbEnums';
 import { supabase } from '@services/supabase';
+import { logActivity } from '@domain/shared/activityLog';
 import { relativeLabel } from '@utils/dates';
 
 import type {
@@ -74,7 +75,7 @@ function toAppStatus(status: string | null): string {
 export async function listMessages(ticketId: string): Promise<TicketMessageAPI[]> {
   const { data, error } = await supabase
     .from('support_messages')
-    .select('id, ticket_id, body, sender_side, created_at')
+    .select('id, ticket_id, body, attachment_url, sender_side, created_at')
     .eq('ticket_id', ticketId)
     .order('created_at', { ascending: true });
 
@@ -85,6 +86,7 @@ export async function listMessages(ticketId: string): Promise<TicketMessageAPI[]
     ticket_id: m.ticket_id,
     body: m.body,
     from_support: m.sender_side === SENDER_SIDE.support,
+    attachment_path: m.attachment_url ?? null,
     created_label: relativeLabel(m.created_at),
   }));
 }
@@ -140,6 +142,7 @@ export async function createTicket(payload: TicketCreateAPI): Promise<TicketAPI>
     ticket_id: ticket.id,
     sender_side: SENDER_SIDE.client,
     body: payload.body,
+    attachment_url: payload.attachment_path,
     read_by_recipient: false,
     created_at: now,
   });
@@ -148,6 +151,13 @@ export async function createTicket(payload: TicketCreateAPI): Promise<TicketAPI>
     await supabase.from('support_tickets').delete().eq('id', ticket.id);
     throw messageError;
   }
+
+  // Depois da mensagem: o chamado ainda podia ser apagado nas linhas acima.
+  logActivity('ticket.opened', {
+    entityId: ticket.id,
+    summary: payload.subject,
+    metadata: { category: payload.category || null, origin: 'app' },
+  });
 
   return {
     id: ticket.id,
@@ -185,7 +195,7 @@ export async function reply(payload: TicketReplyAPI): Promise<TicketMessageAPI> 
       read_by_recipient: false,
       created_at: now,
     })
-    .select('id, ticket_id, body, sender_side, created_at')
+    .select('id, ticket_id, body, attachment_url, sender_side, created_at')
     .single();
 
   if (error) throw error;
@@ -202,6 +212,7 @@ export async function reply(payload: TicketReplyAPI): Promise<TicketMessageAPI> 
     ticket_id: data.ticket_id,
     body: data.body,
     from_support: false,
+    attachment_path: data.attachment_url ?? null,
     created_label: relativeLabel(data.created_at),
   };
 }

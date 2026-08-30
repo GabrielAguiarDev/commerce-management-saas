@@ -2,7 +2,9 @@
 
 import { ModalFrame } from "@/components/modais/Base";
 import { Button, LabeledField, css, MONO, ModalFooter, FIELD_LABEL, SANS } from "@aguiar/ui";
+import { EnviarArquivo } from "@/components/EnviarArquivo";
 import { usePortal } from "@/components/PortalProvider";
+import { fileNameOf, SUPPORT_BUCKET } from "@/lib/arquivos";
 import { SP_CATEGORIES } from "@/lib/dados/chamados";
 
 /**
@@ -108,7 +110,7 @@ export function NewTicketModal() {
             )}
           >
             <span style={css(`font:600 10px ${MONO};letter-spacing:.08em;color:var(--muted)`)}>IMG</span>
-            {f.attachment}
+            {fileNameOf(f.attachment)}
             <Button
               onClick={() => set({ attachment: "" })}
               title="Remover anexo"
@@ -120,18 +122,21 @@ export function NewTicketModal() {
             </Button>
           </div>
         ) : (
-          <Button
-            // Sem backend de upload nesta fase: o anexo é registrado pelo nome,
-            // que é o que a conversa precisa mostrar.
-            onClick={() => set({ attachment: "print-da-tela.png" })}
+          // O arquivo sobe na hora da escolha, e não junto com o chamado: o
+          // envio de um print de celular leva segundos, e cobrá-los do botão
+          // "Enviar chamado" faria a pessoa achar que ele travou. O que o
+          // formulário guarda é só o caminho do que já está no Storage.
+          <EnviarArquivo
+            bucket={SUPPORT_BUCKET}
+            onDone={(path) => set({ attachment: path })}
             style={css(
-              "display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:15px;" +
+              "display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:15px;box-sizing:border-box;" +
                 `border:1px dashed var(--border2);border-radius:11px;background:var(--surface2);color:var(--text2);font:600 12.5px ${SANS}`,
             )}
           >
             <span style={css(`font:600 12px/1 ${MONO};color:var(--muted)`)}>IMG</span>
             Anexar imagem ou print da tela
-          </Button>
+          </EnviarArquivo>
         )}
       </div>
     </ModalFrame>

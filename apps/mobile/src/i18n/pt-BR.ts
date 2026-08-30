@@ -82,22 +82,28 @@ export const ptBR: Messages = {
       network: 'Não deu para enviar agora. Tente de novo.',
     },
 
-    // Recuperação de senha — o fluxo inteiro ainda é SIMULAÇÃO. Ver
-    // `domain/session/passwordRecovery.ts`.
+    // Recuperação de senha — ver `domain/session/recoveryService.ts`.
     recovery: {
       invalid_email: 'Confira o e-mail digitado.',
-      incomplete_code: 'Digite os 4 números do código.',
-      invalid_code: 'Esse código não confere. Confira o seu e-mail.',
+      incomplete_code: 'Digite os 6 números do código.',
+      // Cobre errado E vencido: o Supabase devolve a mesma coisa para os dois,
+      // e a saída é a mesma — pedir outro.
+      invalid_code: 'Esse código não confere ou já venceu. Peça um novo.',
       short_password: 'A nova senha precisa ter pelo menos 6 caracteres.',
       password_mismatch: 'As duas senhas não são iguais.',
+      same_password: 'Essa já é a sua senha atual. Escolha uma diferente.',
+      expired_flow: 'A recuperação expirou. Comece de novo pelo e-mail.',
+      network: 'Não deu para falar com o servidor. Tente de novo.',
     },
   },
 
   toasts: {
-    recoverySent: 'Enviamos um link de recuperação para o seu e-mail.',
-    recoveryCodeReady: 'Código pronto. Na simulação ele não sai por e-mail.',
+    // NÃO diz "enviamos para fulano@...": a tela seguinte já mostra o endereço
+    // mascarado, e um e-mail que não existe recebe esta mesma frase de
+    // propósito — ver `recoveryService.pedirCodigo`.
+    recoveryCodeReady: 'Se essa conta existir, o código chega em instantes.',
     passwordChanged: 'Senha nova salva. Entre com ela.',
-    cameraUnavailable: 'Câmera do código de barras abriria aqui.',
+    scanned: (name: string) => `${name} foi para o carrinho.`,
     productCreated: (name: string) => `"${name}" cadastrado e pronto pra vender.`,
     // Diz o que a edição NÃO faz: venda registrada ontem continua com o preço
     // de ontem. Sem essa frase, o dono pode achar que corrigiu o faturamento.
@@ -128,8 +134,12 @@ export const ptBR: Messages = {
     stockUpdated: 'Estoque atualizado.',
     costRecorded: 'Custo registrado.',
     businessSaved: 'Dados do negócio salvos.',
-    pdfExported: 'Relatório em PDF gerado e salvo no celular.',
-    spreadsheetExported: 'Planilha gerada e salva no celular.',
+    // O arquivo NÃO é "salvo no celular": ele é gerado no cache e entregue à
+    // folha de compartilhamento. Prometer que ficou guardado mandaria a pessoa
+    // procurar num lugar onde não está.
+    reportNotReady: 'O relatório ainda está carregando. Tente daqui a pouco.',
+    shareUnavailable: 'Este aparelho não tem como compartilhar arquivos.',
+    exportFailed: 'Não deu para gerar o arquivo. Tente de novo.',
     replySent: 'Mensagem enviada ao suporte.',
     ticketOpened: 'Chamado aberto. Respondemos em até 1 dia útil.',
     // Aparece quando o canal do WhatsApp não abriu — número ilegível no banco
@@ -137,7 +147,9 @@ export const ptBR: Messages = {
     // quem vê isto está na tela de bloqueio e não tem outro caminho.
     whatsappUnavailable:
       'Não foi possível abrir o WhatsApp. Escreva para contato@aguiarone.com.br que a gente responde.',
-    attachmentUnavailable: 'Escolha uma foto da galeria ou tire uma agora.',
+    photosDenied: 'Libere o acesso às fotos nos ajustes do aparelho para anexar.',
+    attachmentFailed: 'Não deu para enviar a foto. Tente de novo.',
+    attachmentOpenFailed: 'Não deu para abrir o anexo. Tente de novo.',
     synced: 'Tudo sincronizado. Nada se perdeu.',
   },
 
@@ -209,7 +221,7 @@ export const ptBR: Messages = {
     forgot: {
       title: 'Esqueci minha senha',
       intro:
-        'Digite o e-mail da sua conta. A gente manda um código de 4 números para você criar uma senha nova.',
+        'Digite o e-mail da sua conta. A gente manda um código de 6 números para você criar uma senha nova.',
       emailLabel: 'E-mail',
       submit: 'Enviar código',
       back: 'Voltar',
@@ -217,7 +229,7 @@ export const ptBR: Messages = {
 
     code: {
       title: 'Confira seu e-mail',
-      sentTo: (email: string) => `Enviamos um código de 4 números para ${email}`,
+      sentTo: (email: string) => `Enviamos um código de 6 números para ${email}`,
       codeLabel: 'Código de verificação',
       resendIn: (seconds: number) => `Reenviar código em ${seconds} s`,
       resend: 'Reenviar código',
@@ -232,20 +244,21 @@ export const ptBR: Messages = {
       submit: 'Salvar nova senha',
     },
 
-    mockNotice: (code: string) =>
-      `Simulação: ainda não sai e-mail nenhum e nenhuma senha muda. Use o código ${code} para ver o resto do fluxo.`,
-
-    mockShortNotice: 'Simulação: a senha ainda não muda de verdade.',
+    // Depois de trocar a senha o app SAI da sessão de propósito (ver
+    // `recoveryService.redefinirSenha`). Sem esta frase, voltar para o login
+    // pareceria o fluxo ter falhado no último passo.
+    signInAgainNotice: 'Depois de salvar, entre de novo com a senha nova.',
   },
 
   paymentMethods: {
     cash: 'Dinheiro',
     pix: 'Pix',
-    debit_card: 'Cartão de débito',
-    credit_card: 'Cartão de crédito',
-    // As duas grafias que o PORTAL grava na mesma coluna. Ver `utils/payment`.
     debit: 'Cartão de débito',
     credit: 'Cartão de crédito',
+    // As grafias que ESTE app gravava antes da unificação. Continuam aqui
+    // enquanto houver linha antiga no banco. Ver `utils/payment`.
+    debit_card: 'Cartão de débito',
+    credit_card: 'Cartão de crédito',
   },
 
   cart: {
@@ -266,6 +279,52 @@ export const ptBR: Messages = {
     ok: 'Em dia',
     low: 'Baixo',
     out: 'Zerado',
+  },
+
+  /**
+   * "Quem fez o quê" — a tradução das chaves gravadas em `activity_log.action`.
+   *
+   * O banco guarda `sale.created`; é aqui que isso vira português. Nunca o
+   * contrário — gravar o rótulo faria renomear um texto reescrever o passado.
+   *
+   * A ausência de uma chave NÃO é erro: o portal pode gravar ações que este
+   * app ainda não conhece, e mostrar a chave crua é melhor do que esconder a
+   * linha. Ver `activityLabel`.
+   */
+  activity: {
+    empty: 'Ainda não há nada registrado aqui.',
+    actions: {
+      'sale.created': 'Venda registrada',
+      'sale.refunded': 'Venda estornada',
+      'sale.refund_undone': 'Estorno desfeito',
+      'stock.moved': 'Estoque movimentado',
+      'stock.reverted': 'Movimentação revertida',
+      'product.created': 'Produto cadastrado',
+      'product.updated': 'Produto alterado',
+      'product.deleted': 'Produto excluído',
+      'product.paused': 'Produto pausado',
+      'product.resumed': 'Produto voltou à venda',
+      'register.opened': 'Caixa aberto',
+      'register.closed': 'Caixa fechado',
+      'register.reopened': 'Caixa reaberto',
+      'register.deposit': 'Reforço no caixa',
+      'register.withdrawal': 'Sangria',
+      'register.movement_undone': 'Movimentação do caixa desfeita',
+      'cost.created': 'Custo lançado',
+      'cost.updated': 'Custo alterado',
+      'cost.deleted': 'Custo excluído',
+      'business.updated': 'Dados do negócio alterados',
+      'settings.updated': 'Preferências alteradas',
+      'logo.updated': 'Logo enviada',
+      'logo.removed': 'Logo removida',
+      'role.created': 'Tipo de acesso criado',
+      'role.updated': 'Tipo de acesso alterado',
+      'role.deleted': 'Tipo de acesso removido',
+      'employee.suspended': 'Acesso suspenso',
+      'employee.restored': 'Acesso liberado',
+      'employee.role_changed': 'Tipo de acesso trocado',
+      'ticket.opened': 'Chamado aberto',
+    } as Record<string, string>,
   },
 
   home: {

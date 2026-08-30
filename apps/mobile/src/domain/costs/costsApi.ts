@@ -1,5 +1,6 @@
 import { COST_ORIGIN, COST_TYPES, costTypeFromDb } from '@domain/shared/dbEnums';
 import { supabase } from '@services/supabase';
+import { logActivity } from '@domain/shared/activityLog';
 import { daysAgoDateOnly, todayDateOnly } from '@utils/dates';
 import { centsToReal, realToCents } from '@utils/money';
 
@@ -144,6 +145,11 @@ export async function createCost(payload: CostCreateAPI): Promise<CostAPI> {
     .single();
 
   if (error) throw error;
+
+  logActivity('cost.created', {
+    entityId: data.id,
+    summary: `${payload.name} · ${(payload.amount_cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+  });
 
   return {
     id: data.id,

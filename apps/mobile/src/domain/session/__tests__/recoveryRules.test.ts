@@ -1,16 +1,19 @@
 import {
   CODE_LENGTH,
-  DEMO_CODE,
   mascararEmail,
   validarCodigo,
   validarNovaSenha,
-} from '../passwordRecovery';
+} from '../recoveryRules';
 import { SENHA_MINIMA } from '../sessionRules';
 
 /**
- * O que está sob teste aqui SOBREVIVE à troca do mock pelo fluxo real: as
- * regras puras e os códigos de erro. O `setTimeout` que faz de conta que houve
- * rede não é testado de propósito — ele é a parte que vai embora.
+ * As REGRAS PURAS da recuperação — as mesmas de quando o fluxo era simulado, e
+ * é por isso que elas viviam separadas do mock.
+ *
+ * O que fala com o Supabase (`recoveryApi`, `recoveryService`) não é testado
+ * aqui: exercitá-lo exigiria dublê de rede, e o que ele faz é encaminhar
+ * chamada e traduzir mensagem de erro — não há regra de negócio escondida
+ * dentro.
  */
 
 describe('mascararEmail', () => {
@@ -38,17 +41,17 @@ describe('mascararEmail', () => {
 });
 
 describe('validarCodigo', () => {
-  it('reclama de incompleto antes de reclamar de errado', () => {
+  it('recusa o código incompleto sem gastar uma ida à rede', () => {
     expect(validarCodigo('12')?.code).toBe('incomplete_code');
   });
 
-  it('recusa o código completo que não confere', () => {
-    expect(validarCodigo('9999')?.code).toBe('invalid_code');
-  });
-
-  it('aceita o código da simulação', () => {
-    expect(validarCodigo(DEMO_CODE)).toBeNull();
-    expect(DEMO_CODE).toHaveLength(CODE_LENGTH);
+  /**
+   * Quem diz se o código CONFERE é o servidor — este aparelho não tem o número
+   * que foi para o e-mail. Um código completo passa daqui e só é recusado na
+   * volta da rede, com `invalid_code`.
+   */
+  it('deixa passar qualquer código completo: a conferência é do servidor', () => {
+    expect(validarCodigo('9'.repeat(CODE_LENGTH))).toBeNull();
   });
 });
 

@@ -38,6 +38,7 @@ export function toMessage(raw: TicketMessageAPI): TicketMessage {
     id: raw.id,
     text: raw.body,
     minha: !raw.from_support,
+    anexo: raw.attachment_path ?? '',
     quando: raw.created_label,
   };
 }
@@ -48,6 +49,7 @@ export function toTicketPayload(tenantId: string, novo: NewTicket): TicketCreate
     subject: novo.assunto.trim(),
     category: novo.category,
     body: novo.description.trim(),
+    attachment_path: novo.attachmentPath || null,
   };
 }
 

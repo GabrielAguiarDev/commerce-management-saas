@@ -115,13 +115,4 @@ export async function signOut(): Promise<void> {
   }
 }
 
-export async function recuperarSenha(email: string): Promise<void> {
-  if (!isValidEmail(email)) throw new AuthError('invalid_email');
-  try {
-    await api.requestPasswordReset(email.trim().toLowerCase());
-  } catch (e) {
-    throw new AuthError('network', e instanceof Error ? e.message : undefined);
-  }
-}
-
 export { onAuthStateChange } from './sessionApi';

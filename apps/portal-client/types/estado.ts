@@ -1,4 +1,5 @@
 import type {
+  ActivityEntry,
   OpenRegister,
   ClosedRegister,
   Ticket,
@@ -20,6 +21,7 @@ import type {
   RegisterMovementType,
   StockMovementType,
   Sale,
+  Settings,
 } from "./types";
 
 /* -------------------------------------------------------------------------- */
@@ -260,6 +262,16 @@ export interface SupportFilters {
  */
 export interface PortalData {
   business: Business;
+  /** `tenant_settings` — formas aceitas, comprovante, pedir cliente. */
+  settings: Settings;
+  /**
+   * `profiles.ui_theme` — a escolha DESTA pessoa.
+   *
+   * `null` significa "nunca escolheu", que não é o mesmo que claro: é o que
+   * vai permitir respeitar o tema do sistema operacional sem atropelar quem
+   * decidiu.
+   */
+  theme: Theme | null;
   data: BusinessData;
   /**
    * O cadastro fiscal. Vem vazio (`EMPTY_FISCAL`) para quem não tem o módulo
@@ -277,6 +289,14 @@ export interface PortalData {
   roles: Role[];
   team: Employee[];
   tickets: Ticket[];
+  /**
+   * "O que aconteceu no portal" — as últimas 60 linhas de `activity_log`.
+   *
+   * Só leitura, e por isso vive aqui e não no `PortalState`: a tela nunca
+   * acrescenta uma linha por conta própria. Quem grava é a função
+   * `log_activity`, chamada de dentro das Server Actions.
+   */
+  activity: ActivityEntry[];
   /** Preenchido quando a leitura falhou — a tela avisa em vez de mentir "vazio". */
   error: string | null;
 }
@@ -308,16 +328,6 @@ export interface PortalState {
   notificationsOpen: boolean;
   signOutOpen: boolean;
   hint: Hint | null;
-
-  /**
-   * Preferências de uso.
-   *
-   * Ainda NÃO têm tabela: valem só nesta sessão e voltam ao padrão no próximo
-   * login. A tela de Configurações diz isso em voz alta. Ver a análise.
-   */
-  acceptedMethods: PaymentMethod[];
-  imprimirComprovante: boolean;
-  pedirCliente: boolean;
 
   /**
    * Rascunho dos dados do negócio. O salvo vive no retrato do servidor (`d`);
@@ -442,12 +452,16 @@ export interface PortalActions {
   /* Configurações */
   saveData: () => Promise<void>;
   discardData: () => void;
+  /** `null` remove a logo e volta às iniciais do nome. */
+  saveLogo: (path: string | null) => Promise<void>;
   saveFiscal: () => Promise<void>;
   discardFiscal: () => void;
 
   /* Notas fiscais */
   resendDocument: (id: string) => Promise<void>;
-  toggleMethod: (f: PaymentMethod) => void;
+  toggleMethod: (f: PaymentMethod) => Promise<void>;
+  togglePrintReceipt: () => Promise<void>;
+  toggleAskCustomer: () => Promise<void>;
   openRole: (id: string | null) => void;
   saveRole: () => Promise<void>;
   removeRole: (id: string) => Promise<void>;

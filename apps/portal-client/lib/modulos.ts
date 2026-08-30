@@ -118,6 +118,7 @@ const FALLBACK_CATALOG: Record<ModuleKey, { name: string; benefit: string }> = {
   register: { name: "Caixa", benefit: "Abra e feche o caixa com a conferência já pronta." },
   costs: { name: "Custos", benefit: "Lance suas despesas e veja o lucro de verdade." },
   reports: { name: "Relatórios", benefit: "Compare períodos e descubra o que mais vende." },
+  fiscal: { name: "Notas fiscais", benefit: "Emita a NFC-e da venda sem sair do balcão." },
   settings: { name: "Configurações", benefit: "Os dados e a equipe do seu negócio." },
   support: { name: "Suporte", benefit: "Fale com a nossa equipe direto pelo portal." },
 };

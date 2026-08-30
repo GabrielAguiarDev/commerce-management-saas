@@ -2,7 +2,13 @@ import { useState } from 'react';
 
 import { Button, Box, Card, Chips, Divider, Gutter, Screen, Text } from '@components';
 import type { ChipOption } from '@components';
-import { PERIODS, periodLabel, useReports } from '@domain/reports';
+import {
+  PERIODS,
+  periodLabel,
+  shareReportPdf,
+  shareReportXlsx,
+  useReports,
+} from '@domain/reports';
 import type { DayBar, FinanceLine, ReportPeriod } from '@domain/reports';
 import { useTranslation } from '@i18n';
 import { useUIStore } from '@store/uiStore';
@@ -34,6 +40,36 @@ export default function ReportsScreen() {
   const [period, setPeriodo] = useState<ReportPeriod>('week');
   const { data: report } = useReports(period);
   const showToast = useUIStore((s) => s.showToast);
+  const [gerando, setGerando] = useState<'pdf' | 'xlsx' | null>(null);
+
+  /**
+   * Gera o arquivo e abre a folha de compartilhamento.
+   *
+   * O botão fica em carregamento porque montar o PDF passa pelo motor de
+   * impressão do sistema e leva um instante perceptível — sem isso, o toque
+   * pareceria ignorado e a pessoa tocaria de novo, gerando dois arquivos.
+   *
+   * SEM RELATÓRIO NÃO HÁ O QUE EXPORTAR. Gerar uma planilha de três abas
+   * vazias seria pior do que dizer que ainda não carregou.
+   */
+  async function exportar(formato: 'pdf' | 'xlsx') {
+    if (!report) {
+      showToast(t.toasts.reportNotReady, { tone: 'erro' });
+      return;
+    }
+
+    setGerando(formato);
+    const r =
+      formato === 'pdf'
+        ? await shareReportPdf(report, periodLabel(period))
+        : await shareReportXlsx(report, periodLabel(period));
+    setGerando(null);
+
+    if (r.ok) return;
+    showToast(r.reason === 'unavailable' ? t.toasts.shareUnavailable : t.toasts.exportFailed, {
+      tone: 'erro',
+    });
+  }
 
   return (
     <Screen title="Relatórios" subtitle={periodLabel(period)}>
@@ -131,9 +167,8 @@ export default function ReportsScreen() {
           <Box flex={1}>
             <Button
               title="Exportar PDF"
-              // Geração de arquivo fora de escopo: exigiria expo-print +
-              // expo-sharing. Ver DEVELOPMENT.md › Pendências.
-              onPress={() => showToast(t.toasts.pdfExported)}
+              onPress={() => exportar('pdf')}
+              loading={gerando === 'pdf'}
               variant="secundario"
               height={50}
               textVariant="buttonXs"
@@ -142,7 +177,8 @@ export default function ReportsScreen() {
           <Box flex={1}>
             <Button
               title="Exportar planilha"
-              onPress={() => showToast(t.toasts.spreadsheetExported)}
+              onPress={() => exportar('xlsx')}
+              loading={gerando === 'xlsx'}
               variant="secundario"
               height={50}
               textVariant="buttonXs"

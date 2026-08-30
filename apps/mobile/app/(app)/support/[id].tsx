@@ -4,7 +4,13 @@ import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box, Field, ESPACO_INFERIOR_INTERNO, Screen, Text, Touchable } from '@components';
-import { useTicketMessages, useReplyToTicket } from '@domain/support';
+import {
+  attachmentName,
+  isStoragePath,
+  openAttachment,
+  useTicketMessages,
+  useReplyToTicket,
+} from '@domain/support';
 import { useTranslation } from '@i18n';
 import { useUIStore } from '@store/uiStore';
 
@@ -64,6 +70,29 @@ export default function TicketScreen() {
               <Text variant="bodyRelaxed" color={m.minha ? 'onPrimary' : 'textPrimary'}>
                 {m.text}
               </Text>
+              {/* O anexo é um TOQUE, e não um link: o bucket é privado e a
+                  URL assinada só passa a existir na hora — ver
+                  `supportAttachment.openAttachment`. */}
+              {m.anexo !== '' && isStoragePath(m.anexo) && (
+                <Touchable
+                  accessibilityLabel={`Abrir o anexo ${attachmentName(m.anexo)}`}
+                  onPress={async () => {
+                    const abriu = await openAttachment(m.anexo);
+                    if (!abriu) showToast(t.toasts.attachmentOpenFailed, { tone: 'erro' });
+                  }}
+                  marginTop="s8"
+                  paddingVertical="s6"
+                  paddingHorizontal="s10"
+                  borderRadius="r10"
+                  borderWidth={1}
+                  borderColor={m.minha ? 'onPrimary' : 'line'}
+                >
+                  <Text variant="hint" color={m.minha ? 'onPrimary' : 'textPrimary'}>
+                    {attachmentName(m.anexo)}
+                  </Text>
+                </Touchable>
+              )}
+
               <Text
                 variant="micro"
                 color={m.minha ? 'onPrimary' : 'textPrimary'}

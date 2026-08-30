@@ -17,6 +17,13 @@ export interface TicketMessage {
   text: string;
   /** `true` = escrita pelo dono do negócio (bolha teal, à direita). */
   minha: boolean;
+  /**
+   * Caminho do anexo no Storage, ou `''`.
+   *
+   * Caminho e não URL: o bucket é privado, e a URL assinada só passa a existir
+   * no toque — ver `supportAttachment.openAttachment`.
+   */
+  anexo: string;
   quando: string;
 }
 
@@ -33,6 +40,13 @@ export interface NewTicket {
   assunto: string;
   category: TicketCategory;
   description: string;
+  /**
+   * O CAMINHO do arquivo já enviado ao Storage, não o arquivo.
+   *
+   * O envio acontece na escolha da imagem (ver `supportAttachment`); o que
+   * viaja com o chamado é só a referência.
+   */
+  attachmentPath?: string | null;
 }
 
 export type SupportErrorCode = 'subject_required' | 'description_required' | 'network';

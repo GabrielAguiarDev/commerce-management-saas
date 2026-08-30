@@ -48,10 +48,22 @@ export interface TeamMemberAPI {
   access_summary: string | null;
 }
 
+/**
+ * Uma linha crua de `activity_log`.
+ *
+ * `action` é a chave em inglês (`sale.created`) — a tela é que traduz. O texto
+ * em português NUNCA é gravado: renomear um rótulo reescreveria o passado.
+ *
+ * `actor_name` é o nome COMO ERA na hora, copiado pela função que grava. Ler o
+ * nome atual do perfil faria um funcionário renomeado — ou removido — mudar a
+ * autoria de tudo o que já fez.
+ */
 export interface ActivityAPI {
   id: string;
-  description: string;
-  happened_label: string;
+  action: string;
+  actor_name: string | null;
+  summary: string | null;
+  created_at: string;
 }
 
 /** Payload de escrita das Configurações › Negócio. */

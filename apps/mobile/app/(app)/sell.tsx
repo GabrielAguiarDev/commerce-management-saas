@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Box, Field, EmptyState, Icon, Screen, Text, Touchable } from '@components';
+import { BarcodeScanner, Box, Field, EmptyState, Icon, Screen, Text, Touchable } from '@components';
 import { searchHasNoResults, saleGrid, useCatalog } from '@domain/catalog';
 import type { Product } from '@domain/catalog';
 import { useTranslation } from '@i18n';
@@ -19,6 +19,7 @@ import { formatBRL } from '@utils/money';
 export default function SellScreen() {
   const t = useTranslation();
   const [search, setSearch] = useState('');
+  const [lendoCodigo, setLendoCodigo] = useState(false);
   const { data: products = [] } = useCatalog();
   const add = useCartStore((s) => s.add);
   const openSheet = useUIStore((s) => s.openSheet);
@@ -26,6 +27,31 @@ export default function SellScreen() {
 
   const grid = saleGrid(products, search);
   const isEmpty = searchHasNoResults(products, search);
+
+  /**
+   * O que fazer com o número que a câmera leu.
+   *
+   * CÓDIGO EXATO VAI DIRETO PARA O CARRINHO. É para isso que se lê código de
+   * barras no balcão: bipar e passar o próximo. Cair na busca e obrigar um
+   * toque a mais anularia o ganho de ter câmera.
+   *
+   * Não achou — produto sem cadastro, ou etiqueta de outro sistema — o número
+   * vai para a busca. Assim a pessoa vê o que foi lido e decide: procurar por
+   * nome, ou cadastrar. Um toast de "não encontrei" e a tela intacta deixaria
+   * ela sem nenhuma das duas saídas.
+   */
+  function usarCodigo(code: string) {
+    setLendoCodigo(false);
+
+    const achado = products.find((p) => p.code === code);
+    if (!achado) {
+      setSearch(code);
+      return;
+    }
+
+    add({ id: achado.id, name: achado.name, priceCents: achado.priceCents });
+    showToast(t.toasts.scanned(achado.name), { tone: 'sucesso' });
+  }
 
   return (
     <Screen title="Nova venda" subtitle="Toque nos itens para montar a venda" padded>
@@ -44,9 +70,7 @@ export default function SellScreen() {
         </Box>
         <Touchable
           accessibilityLabel="Ler código de barras"
-          // Fora de escopo: exige expo-camera e permissão declarada. O botão
-          // permanece no desenho e diz o que faria.
-          onPress={() => showToast(t.toasts.cameraUnavailable)}
+          onPress={() => setLendoCodigo(true)}
           width={48}
           height={48}
           borderRadius="r15"
@@ -59,6 +83,12 @@ export default function SellScreen() {
           <Icon name="scan" size={20} color="primary" />
         </Touchable>
       </Box>
+
+      <BarcodeScanner
+        visible={lendoCodigo}
+        onClose={() => setLendoCodigo(false)}
+        onRead={usarCodigo}
+      />
 
       <Text variant="gridLabel" color="textMuted" marginTop="s2">
         {search.trim() ? 'Resultados da busca' : 'Produtos'}

@@ -1,3 +1,4 @@
+import { relativeLabel } from '@utils/dates';
 import { initials } from '@utils/text';
 
 import type { ActivityAPI, TeamMemberAPI, TenantAPI, TenantUpdateAPI } from './tenantApiTypes';
@@ -52,8 +53,23 @@ export function toMembro(raw: TeamMemberAPI): Membro {
   };
 }
 
+/**
+ * `ActivityAPI` → `Activity`.
+ *
+ * O rótulo relativo ("há 2 h") é calculado AQUI, e não no banco: ele depende de
+ * quando a tela está sendo olhada, não de quando a linha foi gravada. É a mesma
+ * `relativeLabel` que estoque e suporte usam — os três já divergiram uma vez.
+ */
 export function toActivity(raw: ActivityAPI): Activity {
-  return { id: raw.id, text: raw.description, quando: raw.happened_label };
+  return {
+    id: raw.id,
+    action: raw.action,
+    // Autor nulo é o funcionário removido depois: o registro do que ele fez
+    // fica, e a tela precisa dizer alguma coisa no lugar do nome.
+    autor: raw.actor_name ?? 'Alguém da equipe',
+    detalhe: raw.summary ?? '',
+    quando: relativeLabel(raw.created_at),
+  };
 }
 
 export function toTenantUpdatePayload(name: string, phone: string): TenantUpdateAPI {

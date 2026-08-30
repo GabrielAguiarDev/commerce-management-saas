@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { MOVEMENT_DB } from "@/lib/dados/estoque";
 import { onlyDigits } from "@/lib/dados/fiscal";
+import { logActivity } from "@/lib/historico";
 import { isComingSoon } from "@/lib/modulos";
 import { PAYMENT_DB, SALE_STATUS } from "@/lib/dados/vendas";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
@@ -17,24 +18,34 @@ export interface ItemToSave {
 }
 
 /**
- * Registra uma venda.
+ * Registra uma venda — UMA transação, via `create_sale`.
  *
- * A baixa de estoque é do BANCO: um trigger em `sale_items` desconta o saldo e
- * grava o movimento do tipo 'sale'. Esta função só cria a venda e os itens.
+ * ┌─ POR QUE NÃO SÃO MAIS DUAS ESCRITAS ───────────────────────────────────┐
+ * │ Até aqui esta função inseria em `sales` e depois em `sale_items`, e o   │
+ * │ PostgREST não tem transação entre chamadas: a segunda falhando deixava  │
+ * │ uma venda SEM ITENS no banco. Sem nota fiscal isso era um incômodo no   │
+ * │ relatório; com nota é um documento de valor errado enviado à SEFAZ, que │
+ * │ não se apaga depois.                                                    │
+ * │                                                                        │
+ * │ `create_sale` faz as duas dentro da mesma transação — ou entram as      │
+ * │ duas, ou nenhuma. Ela é SECURITY INVOKER: o RLS de `sales` e            │
+ * │ `sale_items` continua valendo linha a linha, como valia antes.          │
+ * └────────────────────────────────────────────────────────────────────────┘
  *
- * ATENÇÃO — AINDA não é atômico. São duas escritas em sequência (`sales` e
- * `sale_items`) e o PostgREST não tem transação entre chamadas: se a segunda
- * falhar, fica uma venda sem itens.
+ * O TOTAL DEIXA DE SER CALCULADO AQUI. Quem soma é a função, a partir dos
+ * itens. Não é preciosismo: uma Server Action é um endpoint HTTP, e uma
+ * requisição forjada podia mandar itens de R$ 200 com total de R$ 2. Como a
+ * nota fiscal sai desse número, ele tem de vir do banco.
  *
- * A função `create_sale` que resolve isso JÁ EXISTE, em
- * `supabase/migrations/20260817140000_fiscal_emissao.sql`, e não está ligada
- * aqui de propósito: trocar o caminho da venda sem exercitar a função contra o
- * banco é o tipo de mudança cujo erro aparece como venda perdida no balcão.
- * Ligar é uma linha — trocar as duas escritas por um `rpc("create_sale")` —
- * assim que a migration rodar e houver como testar.
+ * A baixa de estoque continua sendo do BANCO: o trigger em `sale_items`
+ * desconta o saldo e grava o movimento do tipo 'sale'. Agora ele roda DENTRO
+ * da transação — uma melhoria de graça, porque venda desfeita desfaz a baixa
+ * junto.
  *
- * Enquanto isso, a nota só é enfileirada DEPOIS de os itens entrarem, o que
- * fecha a janela pior: documento fiscal de uma venda vazia.
+ * A nota entra na fila depois, e fora da transação: emitir documento é o
+ * passo que pode falhar por motivo de fora (cadastro incompleto, provedor
+ * indisponível), e nenhum deles pode desfazer uma venda que o cliente já
+ * pagou.
  */
 export async function recordSale(
   items: ItemToSave[],
@@ -46,52 +57,49 @@ export async function recordSale(
 
   if (!items.length) return { ok: false, message: "A venda precisa de pelo menos um item." };
 
-  const { supabase, userId, tenantId } = session;
-  const total = items.reduce((a, i) => a + i.qtd * i.price, 0);
-  const document = onlyDigits(customerDocument);
+  const { supabase } = session;
 
-  const { data: sale, error } = await supabase
-    .from("sales")
-    .insert({
-      tenant_id: tenantId,
-      user_id: userId,
-      total,
-      payment_method: PAYMENT_DB[payment],
-      status: SALE_STATUS.normal,
-      sold_at: new Date().toISOString(),
-      customer_document: document || null,
-    })
-    .select("id")
-    .single();
-
-  if (error || !sale) return { ok: false, message: error?.message ?? "Não foi possível registrar a venda." };
-
-  const { error: erroItens } = await supabase.from("sale_items").insert(
-    items.map((i) => ({
-      tenant_id: tenantId,
-      sale_id: sale.id,
-      product_id: i.productId,
+  const { data: saleId, error } = await supabase.rpc("create_sale", {
+    p_payment_method: PAYMENT_DB[payment],
+    // `product_id` vazio vira NULL lá dentro: venda de item avulso, que não
+    // está no cadastro, é caso normal no balcão.
+    p_items: items.map((i) => ({
+      product_id: i.productId ?? "",
       product_name: i.name,
       quantity: i.qtd,
       unit_price: i.price,
-      subtotal: i.qtd * i.price,
     })),
-  );
+    p_customer_document: onlyDigits(customerDocument) || null,
+    p_customer_name: null,
+    p_sold_at: null,
+  });
 
-  if (erroItens) return { ok: false, message: erroItens.message };
+  if (error || !saleId) {
+    return { ok: false, message: error?.message ?? "Não foi possível registrar a venda." };
+  }
 
-  // A nota entra na fila SÓ DEPOIS de os itens estarem gravados. Enfileirar
-  // antes produziria um documento fiscal de uma venda sem itens — valor zero
-  // enviado à SEFAZ, que não se apaga.
-  await enqueueFiscalDocument(supabase, sale.id);
+  await enqueueFiscalDocument(supabase, saleId as string);
 
-  // A baixa de estoque NÃO é feita aqui. Um trigger em `sale_items` já desconta
-  // o saldo e grava o `stock_movements` do tipo 'sale' — verificado no banco:
-  // inserir um item de 3 unidades leva o saldo de 100 para 97 sozinho.
-  // Descontar de novo daqui tiraria o dobro de cada venda.
+  const total = items.reduce((a, i) => a + i.qtd * i.price, 0);
+  await logActivity(supabase, "sale.created", {
+    entityId: saleId as string,
+    summary: `${items.length} ${items.length === 1 ? "item" : "itens"} · ${brl(total)}`,
+    metadata: { payment: PAYMENT_DB[payment], items: items.length },
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/**
+ * O valor como ele aparece no histórico.
+ *
+ * Formatado AQUI e gravado pronto: o `summary` do log é o retrato do que
+ * aconteceu naquela hora, e remontá-lo na tela usaria as regras de hoje para
+ * descrever um evento de ontem.
+ */
+function brl(v: number): string {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 /* -------------------------------------------------------------------------- */
@@ -174,6 +182,7 @@ export async function refundSale(vendaId: string): Promise<ActionResult> {
   if (error) return { ok: false, message: error.message };
 
   await returnToStock(supabase, vendaId, 1);
+  await logActivity(supabase, "sale.refunded", { entityId: vendaId });
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -192,6 +201,7 @@ export async function undoRefund(vendaId: string): Promise<ActionResult> {
   if (error) return { ok: false, message: error.message };
 
   await returnToStock(supabase, vendaId, -1);
+  await logActivity(supabase, "sale.refund_undone", { entityId: vendaId });
 
   revalidatePath("/", "layout");
   return { ok: true };

@@ -37,12 +37,24 @@ describe('toMensagem', () => {
     ticket_id: 'tkt_1',
     body: 'Deu certo, obrigada!',
     from_support: false,
+    attachment_path: null,
     created_label: 'hoje, 10:02',
   };
 
   it('inverte from_support para "minha" — a pergunta que a bolha faz', () => {
     expect(toMessage(message).minha).toBe(true);
     expect(toMessage({ ...message, from_support: true }).minha).toBe(false);
+  });
+
+  /**
+   * Sem anexo vira string vazia, não `null`: a bolha só pergunta se tem, e um
+   * `null` renderizaria o texto "null" embaixo da mensagem.
+   */
+  it('mensagem sem anexo vira string vazia', () => {
+    expect(toMessage(message).anexo).toBe('');
+    expect(toMessage({ ...message, attachment_path: 'ten_1/123-print.png' }).anexo).toBe(
+      'ten_1/123-print.png',
+    );
   });
 });
 

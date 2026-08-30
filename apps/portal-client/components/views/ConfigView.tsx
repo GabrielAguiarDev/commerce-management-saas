@@ -16,15 +16,17 @@ import {
   SCREEN_TITLE,
 } from "@aguiar/ui";
 import type { ReactNode } from "react";
+import { EnviarArquivo } from "@/components/EnviarArquivo";
 import { roleSummary } from "@/components/modais/EquipeModais";
 import { usePortal } from "@/components/PortalProvider";
 import { FiscalTab } from "@/components/views/ConfigFiscal";
 import { RowMenu } from "@/components/ui";
+import { LOGO_BUCKET, logoUrl } from "@/lib/arquivos";
 import { MODULES, PERMISSION_MODULES } from "@/lib/dados/perfis";
 import { categoriesOf } from "@/lib/dados/produtos";
 import { METHODS, METHOD_NOTE, PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { dataDirty } from "@/lib/estado";
-import { initialsOf } from "@/lib/formato";
+import { dateLabel, initialsOf } from "@/lib/formato";
 import { ROUTES } from "@/lib/rotas";
 import type { SettingsTab } from "@/types/estado";
 import type { BusinessData, ModuleKey } from "@/types/types";
@@ -126,6 +128,8 @@ function DataTab() {
   const r = s.draftData;
   const dirty = dataDirty(s, d.data);
   const cols = isMobile ? "1fr" : "1fr 1fr";
+  // A URL sai do caminho aqui, e não do banco: ver `Business.logoPath`.
+  const logo = d.business.logoPath ? logoUrl(d.business.logoPath) : null;
 
   return (
     <div
@@ -142,28 +146,64 @@ function DataTab() {
 
       <div style={css("padding:18px;display:flex;flex-direction:column;gap:16px")}>
         <div style={css("display:flex;align-items:center;gap:14px;flex-wrap:wrap")}>
-          <span
-            style={css(
-              "flex:none;width:62px;height:62px;border-radius:16px;background:var(--petrol);color:#fff;" +
-                `display:flex;align-items:center;justify-content:center;font:700 21px ${SANS}`,
-            )}
-          >
-            {initialsOf(r.name) || d.business.initials}
-          </span>
+          {logo ? (
+            /**
+             * `<img>` cru, e não o `<Image>` do Next: o domínio do Storage
+             * teria de entrar no `remotePatterns` da configuração, e o ganho
+             * do otimizador é pequeno num arquivo de 2 MB no máximo que a
+             * pessoa vê uma vez por mês. A `key` na URL força a troca de
+             * imagem — sem ela, o React reaproveita o mesmo nó e algumas
+             * versões seguram o quadro antigo até a nova baixar.
+             */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={logo}
+              src={logo}
+              alt={`Logo de ${d.business.name}`}
+              style={css(
+                "flex:none;width:62px;height:62px;border-radius:16px;object-fit:cover;" +
+                  "border:1px solid var(--border);background:var(--surface2)",
+              )}
+            />
+          ) : (
+            <span
+              style={css(
+                "flex:none;width:62px;height:62px;border-radius:16px;background:var(--petrol);color:#fff;" +
+                  `display:flex;align-items:center;justify-content:center;font:700 21px ${SANS}`,
+              )}
+            >
+              {initialsOf(r.name) || d.business.initials}
+            </span>
+          )}
           <div style={css("flex:1;min-width:180px")}>
             <div style={css(`font:600 13px ${SANS}`)}>Logo do negócio</div>
             <p style={css(`margin:3px 0 8px;font:400 11.5px/1.45 ${SANS};color:var(--muted)`)}>
-              Enquanto você não enviar uma imagem, usamos as iniciais do nome.
+              {logo
+                ? "PNG, JPG, WEBP ou SVG, até 2 MB. Enviar outra substitui esta."
+                : "Enquanto você não enviar uma imagem, usamos as iniciais do nome."}
             </p>
-            <Button
-              onClick={() => a.notify("O envio de imagem ainda não está disponível", "warn")}
-              className="hv-borda"
-              style={css(
-                `padding:9px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font:600 12px ${SANS}`,
+            <div style={css("display:flex;align-items:center;gap:8px;flex-wrap:wrap")}>
+              <EnviarArquivo
+                bucket={LOGO_BUCKET}
+                onDone={(path) => a.saveLogo(path)}
+                className="hv-borda"
+                style={css(
+                  `display:inline-block;padding:9px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font:600 12px ${SANS}`,
+                )}
+              >
+                {logo ? "Trocar imagem" : "Enviar imagem"}
+              </EnviarArquivo>
+              {logo && (
+                <Button
+                  onClick={() => a.saveLogo(null)}
+                  style={css(
+                    `padding:9px 12px;border-radius:9px;background:transparent;color:var(--muted);font:600 12px ${SANS}`,
+                  )}
+                >
+                  Remover
+                </Button>
               )}
-            >
-              Enviar imagem
-            </Button>
+            </div>
           </div>
         </div>
 
@@ -278,19 +318,13 @@ function PreferencesTab() {
           {METHODS.map((f) => (
             <Switch
               key={f}
-              on={s.acceptedMethods.includes(f)}
+              on={d.settings.acceptedMethods.includes(f)}
               onToggle={() => a.toggleMethod(f)}
               title={PAYMENT_LABEL[f]}
               note={METHOD_NOTE[f]}
-              state={s.acceptedMethods.includes(f) ? "Aceito" : "Desligado"}
+              state={d.settings.acceptedMethods.includes(f) ? "Aceito" : "Desligado"}
             />
           ))}
-        </div>
-        <div style={css("padding:13px 18px;border-top:1px solid var(--border);background:var(--surface2)")}>
-          <UnsavedNotice>
-            Esta escolha vale só nesta sessão — ainda não há onde guardá-la. No próximo login todas
-            as formas voltam ligadas.
-          </UnsavedNotice>
         </div>
       </Panel>
 
@@ -354,20 +388,20 @@ function PreferencesTab() {
                 { key: "dark" as const, name: "Escuro" },
               ]}
               current={s.theme}
-              onPick={(v) => a.set({ theme: v })}
+              onPick={(v) => v !== s.theme && a.toggleTheme()}
               size="sm"
             />
           </div>
 
           <Switch
-            on={s.imprimirComprovante}
-            onToggle={() => a.set({ imprimirComprovante: !s.imprimirComprovante })}
+            on={d.settings.printReceipt}
+            onToggle={() => a.togglePrintReceipt()}
             title="Imprimir comprovante ao finalizar a venda"
             note="Se desligar, o comprovante fica só no histórico e pode ser reimpresso depois."
           />
           <Switch
-            on={s.pedirCliente}
-            onToggle={() => a.set({ pedirCliente: !s.pedirCliente })}
+            on={d.settings.askCustomer}
+            onToggle={() => a.toggleAskCustomer()}
             title="Perguntar o nome do cliente na venda"
             note="Útil para encomendas e fiado. Deixa o balcão um pouco mais lento."
           />
@@ -384,11 +418,6 @@ function PreferencesTab() {
           )}
         </div>
 
-        <div style={css("padding:13px 18px;border-top:1px solid var(--border);background:var(--surface2)")}>
-          <UnsavedNotice>
-            Aparência e preferências de sale ainda valem só nesta sessão.
-          </UnsavedNotice>
-        </div>
       </Panel>
     </div>
   );
@@ -634,10 +663,7 @@ function TeamTab() {
       </Panel>
 
       <Panel title="O que aconteceu no portal" note="Registro de quem fez o quê, para consulta.">
-        <UnsavedNotice>
-          O histórico de ações ainda não é gravado. Quando existir, esta lista mostrará cada sale,
-          adjustment de estoque e alteração de acesso, com autor e horário.
-        </UnsavedNotice>
+        <ActivityList />
       </Panel>
     </div>
   );
@@ -766,6 +792,98 @@ function AccountTab() {
           Sair da account
         </Button>
       </Panel>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Histórico                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A tradução das chaves gravadas em `activity_log.action`.
+ *
+ * O banco guarda `sale.created`, e é aqui que isso vira português. Nunca o
+ * contrário: gravar o rótulo faria renomear um texto reescrever o passado, e
+ * um histórico que muda de descrição não serve para conferir nada.
+ *
+ * A ausência de uma chave não é erro — o mobile e as versões futuras podem
+ * gravar ações que esta tela ainda não conhece, e mostrar a chave crua é
+ * melhor do que esconder a linha.
+ */
+const ACTION_LABEL: Record<string, string> = {
+  "sale.created": "Venda registrada",
+  "sale.refunded": "Venda estornada",
+  "sale.refund_undone": "Estorno desfeito",
+
+  "stock.moved": "Estoque movimentado",
+  "stock.reverted": "Movimentação revertida",
+
+  "product.created": "Produto cadastrado",
+  "product.updated": "Produto alterado",
+  "product.deleted": "Produto excluído",
+  "product.paused": "Produto pausado",
+  "product.resumed": "Produto voltou à venda",
+
+  "register.opened": "Caixa aberto",
+  "register.closed": "Caixa fechado",
+  "register.reopened": "Caixa reaberto",
+  "register.deposit": "Reforço no caixa",
+  "register.withdrawal": "Sangria",
+  "register.movement_undone": "Movimentação do caixa desfeita",
+
+  "cost.created": "Custo lançado",
+  "cost.updated": "Custo alterado",
+  "cost.deleted": "Custo excluído",
+
+  "business.updated": "Dados do negócio alterados",
+  "settings.updated": "Preferências alteradas",
+  "logo.updated": "Logo enviada",
+  "logo.removed": "Logo removida",
+
+  "role.created": "Tipo de acesso criado",
+  "role.updated": "Tipo de acesso alterado",
+  "role.deleted": "Tipo de acesso removido",
+  "employee.suspended": "Acesso suspenso",
+  "employee.restored": "Acesso liberado",
+  "employee.role_changed": "Tipo de acesso trocado",
+
+  "ticket.opened": "Chamado aberto",
+};
+
+function ActivityList() {
+  const { d } = usePortal();
+
+  if (!d.activity.length) {
+    return (
+      <p style={css(`margin:0;font:400 12.5px/1.5 ${SANS};color:var(--muted)`)}>
+        Ainda não há nada registrado. A partir de agora, cada venda, ajuste de estoque e alteração
+        de acesso aparece aqui com autor e horário.
+      </p>
+    );
+  }
+
+  return (
+    <div style={css("display:flex;flex-direction:column")}>
+      {d.activity.map((a, i) => (
+        <div
+          key={a.id}
+          style={css(
+            "display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:9px 0" +
+              (i ? ";border-top:1px solid var(--border)" : ""),
+          )}
+        >
+          <span style={css(`flex:none;font:500 11px ${MONO};color:var(--muted);min-width:96px`)}>
+            {dateLabel(a.d, a.time)}
+          </span>
+          <span style={css(`font:600 12.5px ${SANS}`)}>{ACTION_LABEL[a.action] ?? a.action}</span>
+          {a.summary && (
+            <span style={css(`font:400 12px ${SANS};color:var(--text2)`)}>{a.summary}</span>
+          )}
+          <span style={css("flex:1;min-width:0")} />
+          <span style={css(`flex:none;font:500 11.5px ${SANS};color:var(--muted)`)}>{a.actor}</span>
+        </div>
+      ))}
     </div>
   );
 }

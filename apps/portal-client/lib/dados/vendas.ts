@@ -29,9 +29,30 @@ export const PAYMENT_DB: Record<PaymentMethod, string> = {
   credit: "credit",
 };
 
-const DB_TO_PORTAL: Record<string, PaymentMethod> = Object.fromEntries(
-  Object.entries(PAYMENT_DB).map(([pt, db]) => [db, pt as PaymentMethod]),
-) as Record<string, PaymentMethod>;
+/**
+ * ⚠️ AS DUAS GRAFIAS QUE JÁ EXISTEM EM `sales.payment_method`.
+ *
+ * O app mobile gravava `debit_card`/`credit_card` enquanto este portal gravava
+ * `debit`/`credit` na MESMA coluna. Os dois já foram unificados na origem
+ * (`apps/mobile/src/store/preferencesStore.ts` reexporta a lista de
+ * `domain/shared/dbEnums`), mas as linhas gravadas antes disso continuam lá.
+ *
+ * O ESTRAGO NÃO ERA COSMÉTICO: `paymentFromDb` caía em `"cash"` para o que não
+ * reconhecia, então toda venda no cartão feita pelo celular virava venda em
+ * DINHEIRO aqui — entrava no "esperado na gaveta" do fechamento e o caixa
+ * fechava com falta todo dia, sem ninguém achar o motivo.
+ *
+ * A ESCRITA continua só em `PAYMENT_DB`, de propósito: passar a gravar a
+ * segunda grafia espalharia o problema em vez de encerrá-lo. Estas linhas
+ * saem daqui quando a migration de normalização tiver rodado em produção.
+ */
+const DB_TO_PORTAL: Record<string, PaymentMethod> = {
+  ...(Object.fromEntries(
+    Object.entries(PAYMENT_DB).map(([pt, db]) => [db, pt as PaymentMethod]),
+  ) as Record<string, PaymentMethod>),
+  debit_card: "debit",
+  credit_card: "credit",
+};
 
 /** Forma desconhecida cai em Dinheiro — não vale perder a venda por um rótulo. */
 export function paymentFromDb(v: string | null): PaymentMethod {

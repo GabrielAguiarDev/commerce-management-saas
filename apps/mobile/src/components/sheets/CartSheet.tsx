@@ -55,7 +55,7 @@ export function CartSheet() {
   const editing = editingSaleId !== null;
   const total = totalCents(items);
   // The option's identity is the KEY; the label comes from the catalog, so a
-  // sale still records `debit_card` no matter which language is on screen.
+  // sale still records `debit` no matter which language is on screen.
   const options = activePaymentMethods(acceptedMethods).map((method) => ({
     value: method,
     label: t.paymentMethods[method],

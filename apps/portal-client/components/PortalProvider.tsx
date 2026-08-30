@@ -21,9 +21,12 @@ import {
 } from "@/app/caixa/actions";
 import {
   setEmployeeActive,
+  savePreferences,
+  saveTheme,
   changeEmployeeRole as acaoMudarPapel,
   removeRole as acaoRemoverPapel,
   saveBusinessData,
+  saveLogo as acaoSalvarLogo,
   saveFiscalData,
   saveRole as acaoSalvarPapel,
 } from "@/app/configuracoes/actions";
@@ -77,7 +80,14 @@ import type {
   ToastTone,
   ViewProps,
 } from "@/types/estado";
-import type { PaymentMethod, ModuleKey, Product, StockMovementType } from "@/types/types";
+import type {
+  PaymentMethod,
+  ModuleKey,
+  Product,
+  Settings,
+  StockMovementType,
+  Theme,
+} from "@/types/types";
 
 const Ctx = createContext<ViewProps | null>(null);
 
@@ -102,7 +112,7 @@ export function PortalProvider({
 }) {
   const router = useRouter();
   const [, iniciarTransicao] = useTransition();
-  const [s, setS] = useState<PortalState>(() => initialState(data.data, data.fiscal));
+  const [s, setS] = useState<PortalState>(() => initialState(data.data, data.fiscal, data.theme));
 
   // O retrato do servidor NÃO entra no estado: ele é lido direto da prop, e o
   // `router.refresh()` do laço de escrita traz a versão nova. Duas cópias
@@ -310,10 +320,28 @@ export function PortalProvider({
     [beforeNavigate, router],
   );
 
-  const toggleTheme = useCallback(
-    () => setS((x) => ({ ...x, theme: x.theme === "light" ? "dark" : "light" })),
-    [],
-  );
+  /**
+   * O tema vira NA HORA e só depois vai ao banco — a única escrita do portal
+   * que não espera o servidor.
+   *
+   * A regra "a tela mostra o que o banco confirmou" existe para dado de
+   * negócio: uma venda que o banco recusou não pode aparecer na tela. Tema não
+   * é dado de negócio, é a cor da interface de quem está olhando, e travá-la
+   * por uma ida e volta faria o botão parecer emperrado.
+   *
+   * Se a gravação falhar, o aviso aparece e a cor CONTINUA trocada: desfazer a
+   * escolha na cara da pessoa seria pior do que ela voltar ao claro no próximo
+   * login.
+   */
+  const toggleTheme = useCallback(() => {
+    setS((x) => {
+      const theme: Theme = x.theme === "light" ? "dark" : "light";
+      void saveTheme(theme).then((r) => {
+        if (!r.ok) setS((y) => ({ ...y, toast: toast(r.message, "error") }));
+      });
+      return { ...x, theme };
+    });
+  }, []);
 
   // Sair apaga também as telas que o service worker guardou: elas continuariam
   // legíveis offline depois de a sessão acabar. Ver `lib/pwa.ts`.
@@ -728,6 +756,21 @@ export function PortalProvider({
   );
 
   /**
+   * A logo — o caminho já veio do Storage, aqui só se registra.
+   *
+   * Não entra no rascunho de "Dados do negócio": aquele formulário tem
+   * "Salvar" e "Descartar" porque nome e telefone só valem depois de a pessoa
+   * confirmar. A imagem não tem esse meio-termo — escolher o arquivo JÁ é a
+   * confirmação, e um rascunho a deixaria pendurada num botão de salvar que
+   * fala de outros campos.
+   */
+  const saveLogo = useCallback(
+    (path: string | null) =>
+      run(() => acaoSalvarLogo(path), path ? "Logo atualizada" : "Logo removida"),
+    [run],
+  );
+
+  /**
    * Salva o cadastro fiscal.
    *
    * `submitted` sobe ANTES de qualquer coisa: é o que faz os campos mal
@@ -756,23 +799,46 @@ export function PortalProvider({
     [run],
   );
 
-  const toggleMethod = useCallback((f: PaymentMethod) => {
-    setS((x) => {
-      const on = x.acceptedMethods.includes(f);
-      // Desligar a última forma deixaria o PDV sem como cobrar.
-      if (on && x.acceptedMethods.length === 1) {
-        return { ...x, toast: toast("Você precisa aceitar pelo menos uma forma", "warn") };
+  /**
+   * As preferências agora são do BANCO, e por isso saem daqui pelo mesmo laço
+   * de toda escrita: `run` grava, o aviso conta o que houve e o
+   * `router.refresh()` traz o retrato novo. Antes elas viviam no estado e
+   * mudavam na hora — parecia melhor e era pior, porque a escolha não existia
+   * em lugar nenhum depois do logout.
+   */
+  const savePrefs = useCallback(
+    (patch: Partial<Settings>) =>
+      run(() => savePreferences({ ...d.settings, ...patch }), "Preferências salvas"),
+    [run, d.settings],
+  );
+
+  const toggleMethod = useCallback(
+    (f: PaymentMethod) => {
+      const on = d.settings.acceptedMethods.includes(f);
+      // Desligar a última forma deixaria o PDV sem como cobrar. O banco também
+      // recusa (CHECK), mas a mensagem dele fala de constraint, não de balcão.
+      if (on && d.settings.acceptedMethods.length === 1) {
+        notify("Você precisa aceitar pelo menos uma forma", "warn");
+        return Promise.resolve();
       }
-      const acceptedMethods = on
-        ? x.acceptedMethods.filter((y) => y !== f)
-        : [...x.acceptedMethods, f];
-      return {
-        ...x,
-        acceptedMethods,
-        currentMethod: acceptedMethods.includes(x.currentMethod) ? x.currentMethod : acceptedMethods[0],
-      };
-    });
-  }, []);
+      return savePrefs({
+        acceptedMethods: on
+          ? d.settings.acceptedMethods.filter((y) => y !== f)
+          : [...d.settings.acceptedMethods, f],
+      });
+    },
+    [d.settings, savePrefs, notify],
+  );
+
+  const togglePrintReceipt = useCallback(
+    () => savePrefs({ printReceipt: !d.settings.printReceipt }),
+    [d.settings.printReceipt, savePrefs],
+  );
+
+  const toggleAskCustomer = useCallback(
+    () => savePrefs({ askCustomer: !d.settings.askCustomer }),
+    [d.settings.askCustomer, savePrefs],
+  );
 
   const openRole = useCallback(
     (id: string | null) => {
@@ -957,10 +1023,13 @@ export function PortalProvider({
       reopenRegister,
       saveData,
       discardData,
+      saveLogo,
       saveFiscal,
       discardFiscal,
       resendDocument,
       toggleMethod,
+      togglePrintReceipt,
+      toggleAskCustomer,
       openRole,
       saveRole,
       removeRole,
@@ -979,7 +1048,8 @@ export function PortalProvider({
       editSale, refundSale, undoRefund, openProduct, saveProduct, toggleFav,
       toggleActive, deleteProduct, openMovement, saveMovement, undoMovement, openCost, saveCost,
       deleteCost, openRegister, recordRegisterMovement, undoRegisterMovement, closeRegister, reopenRegister,
-      saveData, discardData, saveFiscal, discardFiscal, resendDocument, toggleMethod, openRole, saveRole, removeRole,
+      saveData, discardData, saveLogo, saveFiscal, discardFiscal, resendDocument, toggleMethod, togglePrintReceipt,
+      toggleAskCustomer, openRole, saveRole, removeRole,
       toggleEmployee, changeEmployeeRole, openNewTicket, sendTicket,
       replyToTicket, resolveTicket, reopenTicket, markRead,
     ],

@@ -1,4 +1,5 @@
 import { supabase } from '@services/supabase';
+import { logActivity } from '@domain/shared/activityLog';
 import { centsToReal, realToCents } from '@utils/money';
 
 import type { ProductAPI, ProductCreateAPI, ProductUpdateAPI } from './catalogApiTypes';
@@ -118,6 +119,9 @@ export async function createProduct(payload: ProductCreateAPI): Promise<ProductA
     .single();
 
   if (error) throw error;
+
+  logActivity('product.created', { entityId: data.id, summary: payload.name });
+
   return toProductAPI(data as ProductRow);
 }
 
@@ -149,6 +153,11 @@ export async function updateProduct(
     .maybeSingle();
 
   if (error) throw error;
+
+  // `data` nulo é o RLS recusando em silêncio — não houve alteração para
+  // registrar. Favoritar NÃO entra no histórico: é arrumação de tela.
+  if (data) logActivity('product.updated', { entityId: productId, summary: payload.name });
+
   return data ? toProductAPI(data as ProductRow) : null;
 }
 

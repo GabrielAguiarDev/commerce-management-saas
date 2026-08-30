@@ -1,8 +1,10 @@
 "use client";
 
+import { EnviarArquivo } from "@/components/EnviarArquivo";
 import { NavLink } from "@/components/NavLink";
 import { usePortal } from "@/components/PortalProvider";
 import { primaryButton, Button, css, MONO, PANEL, SANS, Empty } from "@aguiar/ui";
+import { fileNameOf, isStoragePath, openAttachment, SUPPORT_BUCKET } from "@/lib/arquivos";
 import { canReply, SP_STATUS } from "@/lib/dados/chamados";
 import { dateLabel, initialsOf } from "@/lib/formato";
 import { ROUTES } from "@/lib/rotas";
@@ -63,7 +65,7 @@ export function ChamadoView({ id }: { id: string }) {
               {ticket.subject}
             </h1>
             <p style={css(`margin:6px 0 0;font:500 12px ${SANS};color:var(--muted)`)}>
-              {ticket.category} · open em {dateLabel(first.d, first.time)} ·{" "}
+              {ticket.category} · aberto em {dateLabel(first.d, first.time)} ·{" "}
               {ticket.messages.length} {ticket.messages.length === 1 ? "mensagem" : "mensagens"}
             </p>
           </div>
@@ -85,7 +87,7 @@ export function ChamadoView({ id }: { id: string }) {
 
       {reply ? (
         <div style={css(`margin-top:12px;padding:16px;${PANEL}`)}>
-          <div style={css(`font:600 13.5px ${SANS}`)}>Responder ao support</div>
+          <div style={css(`font:600 13.5px ${SANS}`)}>Responder ao suporte</div>
           <p style={css(`margin:4px 0 11px;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
             O atendimento é por chamado: sua resposta entra na fila e a devolutiva aparece aqui. Não é
             preciso ficar com a tela aberta.
@@ -110,7 +112,7 @@ export function ChamadoView({ id }: { id: string }) {
               )}
             >
               <span style={css(`font:600 10px ${MONO};letter-spacing:.08em;color:var(--muted)`)}>IMG</span>
-              {f.attachment}
+              {fileNameOf(f.attachment)}
               <Button
                 onClick={() => a.set({ replyForm: { ...f, attachment: "" } })}
                 title="Remover anexo"
@@ -124,14 +126,15 @@ export function ChamadoView({ id }: { id: string }) {
           )}
 
           <div style={css("display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px")}>
-            <Button
-              onClick={() => a.set({ replyForm: { ...f, attachment: "print-da-tela.png" } })}
+            <EnviarArquivo
+              bucket={SUPPORT_BUCKET}
+              onDone={(path) => a.set({ replyForm: { ...f, attachment: path } })}
               style={css(
-                `padding:11px 15px;border-radius:10px;border:1px dashed var(--border2);background:var(--surface2);color:var(--text2);font:600 12.5px ${SANS}`,
+                `display:inline-block;padding:11px 15px;border-radius:10px;border:1px dashed var(--border2);background:var(--surface2);color:var(--text2);font:600 12.5px ${SANS}`,
               )}
             >
               Anexar print
-            </Button>
+            </EnviarArquivo>
             <span style={css("flex:1;min-width:0")} />
             <Button
               onClick={() =>
@@ -153,7 +156,7 @@ export function ChamadoView({ id }: { id: string }) {
                 `padding:12px 17px;border-radius:11px;border:1px solid var(--border2);background:var(--surface);color:var(--pos);font:600 13px ${SANS}`,
               )}
             >
-              Já está resolved
+              Já está resolvido
             </Button>
             <Button
               onClick={() =>
@@ -177,11 +180,11 @@ export function ChamadoView({ id }: { id: string }) {
         >
           <div style={css("min-width:0")}>
             <div style={css(`font:700 13.5px ${SANS};color:var(--pos)`)}>
-              Este chamado está resolved
+              Este chamado está resolvido
             </div>
             <p style={css(`margin:4px 0 0;font:400 12.5px/1.5 ${SANS};color:var(--text2)`)}>
-              A conversa fica guardada no histórico. Se o problema voltar, é só reabrir — o support
-              recebe all o que já foi conversado.
+              A conversa fica guardada no histórico. Se o problema voltar, é só reabrir — o suporte
+              recebe tudo o que já foi conversado.
             </p>
           </div>
           <Button
@@ -257,18 +260,53 @@ function Message({ msg: m }: { msg: TicketMessage }) {
           {m.text}
         </span>
 
-        {m.attachment && (
-          <span
-            style={css(
-              "display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:7px 11px;" +
-                `border:1px solid var(--border);border-radius:9px;background:var(--surface);font:600 11.5px ${SANS};color:var(--text2)`,
-            )}
-          >
-            <span style={css(`font:600 10px ${MONO};letter-spacing:.08em;color:var(--muted)`)}>IMG</span>
-            {m.attachment}
-          </span>
-        )}
+        {m.attachment && <Attachment path={m.attachment} />}
       </span>
     </div>
+  );
+}
+
+/**
+ * O anexo de uma mensagem.
+ *
+ * O bucket é privado: não existe URL fixa para colocar num `href`, e é por
+ * isso que abrir é uma AÇÃO e não um link — a URL assinada só passa a existir
+ * no clique, e vale por um minuto.
+ *
+ * O `isStoragePath` separa os anexos de verdade das linhas antigas, gravadas
+ * quando o botão só escrevia `"print-da-tela.png"` sem arquivo nenhum atrás.
+ * Essas continuam aparecendo, e continuam sem abrir: transformá-las em botão
+ * seria prometer de novo o que já não existe.
+ */
+function Attachment({ path }: { path: string }) {
+  const { a } = usePortal();
+
+  const chip =
+    "display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:7px 11px;" +
+    `border:1px solid var(--border);border-radius:9px;background:var(--surface);font:600 11.5px ${SANS};color:var(--text2)`;
+  const tag = `font:600 10px ${MONO};letter-spacing:.08em;color:var(--muted)`;
+
+  if (!isStoragePath(path)) {
+    return (
+      <span style={css(chip)} title="Este anexo é de antes do envio de arquivos e não pode ser aberto.">
+        <span style={css(tag)}>IMG</span>
+        {path}
+      </span>
+    );
+  }
+
+  return (
+    <Button
+      onClick={async () => {
+        const erro = await openAttachment(path);
+        if (erro) a.notify(erro, "error");
+      }}
+      className="hv-linha2"
+      title="Abrir o anexo numa nova aba"
+      style={css(chip)}
+    >
+      <span style={css(tag)}>IMG</span>
+      {fileNameOf(path)}
+    </Button>
   );
 }

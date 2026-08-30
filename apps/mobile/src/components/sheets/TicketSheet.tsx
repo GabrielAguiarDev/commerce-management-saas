@@ -6,9 +6,10 @@ import { Box } from '@components/ui/Box';
 import { Field } from '@components/ui/Field';
 import { Select } from '@components/ui/Select';
 import { Text } from '@components/ui/Text';
-import { TICKET_CATEGORIES, useOpenTicket } from '@domain/support';
+import { TICKET_CATEGORIES, attachmentName, pickAndUploadAttachment, useOpenTicket } from '@domain/support';
 import { SupportError, type TicketCategory } from '@domain/support/supportTypes';
 import { useTranslation } from '@i18n';
+import { useSessionStore } from '@store/sessionStore';
 import { useUIStore } from '@store/uiStore';
 
 /** "Abrir chamado": assunto, categoria, descrição e anexo. */
@@ -18,13 +19,43 @@ export function TicketSheet() {
   const showToast = useUIStore((s) => s.showToast);
   const { mutate: open, isPending } = useOpenTicket();
 
+  const tenantId = useSessionStore((s) => s.tenantId);
+
   const [assunto, setAssunto] = useState('');
   const [category, setCategory] = useState<TicketCategory>('duvida');
   const [description, setDescription] = useState('');
+  const [anexo, setAnexo] = useState('');
+  const [anexando, setAnexando] = useState(false);
+
+  /**
+   * O arquivo sobe AGORA, na escolha, e não junto com o chamado.
+   *
+   * Um print de celular leva segundos para subir, e cobrá-los do botão
+   * "Enviar chamado" faria a pessoa achar que ele travou e tocar de novo. O
+   * formulário guarda só o caminho do que já está no Storage.
+   */
+  async function anexar() {
+    if (!tenantId) return;
+
+    setAnexando(true);
+    const r = await pickAndUploadAttachment(tenantId);
+    setAnexando(false);
+
+    if (r.ok) {
+      setAnexo(r.path);
+      return;
+    }
+    // Desistir de escolher não é erro, e um aviso aqui puniria quem só mudou
+    // de ideia.
+    if (r.reason === 'cancelled') return;
+    showToast(r.reason === 'denied' ? t.toasts.photosDenied : t.toasts.attachmentFailed, {
+      tone: 'erro',
+    });
+  }
 
   function send() {
     open(
-      { assunto, category, description },
+      { assunto, category, description, attachmentPath: anexo || null },
       {
         onSuccess: () => {
           closeSheet();
@@ -71,16 +102,20 @@ export function TicketSheet() {
         />
 
         <Button
-          title="Anexar foto"
-          // Fora de escopo nesta fase: o seletor de imagem exige
-          // expo-image-picker e permissão declarada no app.config. O botão
-          // existe para não sumir do desenho, e diz o que faria.
-          onPress={() => showToast(t.toasts.attachmentUnavailable)}
+          title={anexo ? `Anexado: ${attachmentName(anexo)}` : 'Anexar foto'}
+          onPress={anexo ? () => setAnexo('') : anexar}
+          loading={anexando}
           variant="tracejado"
           height={48}
           radius={14}
           textVariant="buttonXs"
         />
+
+        {anexo !== '' && (
+          <Text variant="hint" color="textMuted" textAlign="center">
+            Toque no anexo para tirá-lo do chamado.
+          </Text>
+        )}
 
         <Button
           title="Enviar chamado"

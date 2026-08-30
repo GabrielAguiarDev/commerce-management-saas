@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isOwnPath } from "@/lib/buckets";
+import { logActivity } from "@/lib/historico";
 import { AUTHOR_DB, STATUS_DB } from "@/lib/dados/chamados";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 
@@ -23,6 +25,12 @@ export async function openTicket(data: {
 
   const { supabase, tenantId, userId } = session;
   const now = new Date().toISOString();
+
+  // O caminho do anexo vem do navegador, e uma Server Action é um endpoint
+  // HTTP como outro qualquer — ver `isOwnPath`.
+  if (data.attachment && !isOwnPath(data.attachment, tenantId)) {
+    return { ok: false, message: "Esse anexo não pertence a este negócio." };
+  }
 
   const { data: ticket, error } = await supabase
     .from("support_tickets")
@@ -54,6 +62,12 @@ export async function openTicket(data: {
 
   if (erroMsg) return { ok: false, message: erroMsg.message };
 
+  await logActivity(supabase, "ticket.opened", {
+    entityId: ticket.id,
+    summary: data.subject.trim(),
+    metadata: { category: data.category },
+  });
+
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -71,6 +85,10 @@ export async function replyToTicket(
 
   const { supabase, tenantId, userId } = session;
   const now = new Date().toISOString();
+
+  if (attachment && !isOwnPath(attachment, tenantId)) {
+    return { ok: false, message: "Esse anexo não pertence a este negócio." };
+  }
 
   const { error } = await supabase.from("support_messages").insert({
     ticket_id: chamadoId,

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { STOCK_ORIGIN, COST_TYPE_DB } from "@/lib/dados/custos";
 import { MOVEMENT_DB } from "@/lib/dados/estoque";
+import { logActivity } from "@/lib/historico";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 import type { StockMovementType } from "@/types/types";
 
@@ -79,6 +80,14 @@ export async function recordStockMovement(data: {
     });
   }
 
+  // O saldo DE DEPOIS vai no resumo porque é a pergunta que se faz ao olhar o
+  // histórico: "quanto ficou". Recalcular na tela daria o saldo de hoje.
+  await logActivity(supabase, "stock.moved", {
+    entityId: productId,
+    summary: `${product.name}: ${delta > 0 ? "+" : ""}${delta} · saldo ${balance + delta}`,
+    metadata: { type: MOVEMENT_DB[type], delta, reason: reason.trim() || null },
+  });
+
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -116,6 +125,12 @@ export async function undoStockMovement(movId: string): Promise<ActionResult> {
   });
 
   if (error) return { ok: false, message: error.message };
+
+  await logActivity(supabase, "stock.reverted", {
+    entityId: mov.product_id,
+    summary: `Reversão de ${Number(mov.quantity) > 0 ? "+" : ""}${mov.quantity}`,
+    metadata: { movementId: movId },
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };

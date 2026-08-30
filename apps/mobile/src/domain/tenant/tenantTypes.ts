@@ -70,7 +70,12 @@ export interface Membro {
 
 export interface Activity {
   id: string;
-  text: string;
+  /** Chave `entidade.verbo`. Quem a traduz é a tela, com `t.activity`. */
+  action: string;
+  /** Quem fez, como se chamava na hora. */
+  autor: string;
+  /** O detalhe já pronto: "Ração Golden · R$ 89,00". Pode ser vazio. */
+  detalhe: string;
   quando: string;
 }
 

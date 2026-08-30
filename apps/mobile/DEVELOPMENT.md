@@ -20,7 +20,7 @@ e `portal-admin`. Compartilha com eles o modelo de **tenant + módulos**.
 
 **16 rotas**, sendo 12 telas de conteúdo, 5 bottom sheets e 3 estados de topo
 (login, bloqueio, app) — mais as **três telas da recuperação de senha**, que
-empilham sobre o login e hoje são uma simulação (§7.1).
+empilham sobre o login (§7.1).
 
 ### O ponto arquitetural central: módulos são entitlements
 
@@ -492,26 +492,37 @@ dentro do app). Reaproveita o `useSupportWhatsApp` inteiro.
 > e no login ainda não há sessão. **Sem aplicar a migration, o botão cai no
 > toast de "não foi possível abrir o WhatsApp"** — o fluxo degrada, não quebra.
 
-**A recuperação de senha é uma SIMULAÇÃO, de ponta a ponta.** Três telas
-(`forgot-password` → `verify-code` → `new-password`), com um aviso na primeira
-dizendo isso em voz alta e anunciando o código da demonstração (`1234`). Nenhum
-e-mail sai, nenhuma senha muda.
+**A recuperação de senha é REAL desde 29/08/2026.** Três telas
+(`forgot-password` → `verify-code` → `new-password`). O e-mail sai pelo
+`resetPasswordForEmail`, o código é conferido pelo `verifyOtp` com
+`type: 'recovery'` e a senha muda pelo `updateUser`.
 
-O que sustenta o mock é **um arquivo só**, `domain/session/passwordRecovery.ts`:
-é ele que vira `Api` + `Adapter` + `Service` quando o fluxo real existir, e
-nenhuma das três telas muda quando isso acontecer. O que já é definitivo e está
-sob teste são as regras puras — `mascararEmail`, o tamanho do código, o mínimo
-da senha, a conferência das duas senhas — e os códigos de erro.
+A aposta de manter o mock num arquivo só se pagou: **nenhuma das três telas
+mudou de forma.** `passwordRecovery.ts` se partiu em `recoveryRules` (puro, e é
+o que continua sob teste — `mascararEmail`, o tamanho do código, o mínimo da
+senha, a conferência das duas), `recoveryApi` (a única fronteira de rede) e
+`recoveryService` (a conversa).
 
 Decisões que valem registro:
 
-- **O `sessionService.recuperarSenha` (Supabase `resetPasswordForEmail`) NÃO é
-  usado por estas telas.** Mandar um e-mail de verdade e depois pedir um código
-  inventado deixaria duas recuperações concorrentes na mão do usuário — e a
-  real leva para uma página web fora do app. Ele continua exportado, esperando.
-- **O e-mail viaja mascarado entre as telas**, como parâmetro de rota. Uma store
-  global para uma conversa de três telas seria estado demais, e a tela do código
-  não precisa do endereço por extenso.
+- **O código tem 6 dígitos, não 4.** Quem o gera é o Supabase, e o token de
+  e-mail dele tem seis. O `CODE_LENGTH` é a única linha a mexer se o
+  `mailer_otp_length` do projeto mudar.
+- **`verifyOtp` ABRE UMA SESSÃO.** Provar que você abriu o e-mail da conta é
+  provar quem você é, e o Supabase devolve tokens como um login devolveria. O
+  passo 3 derruba essa sessão no fim E na desistência (limpeza de desmonte em
+  `new-password`) — sem isso, "esqueci minha senha" viraria "entrei sem ela".
+  Nada disso arrasta a pessoa para dentro do app no meio do fluxo: o portão só
+  decide em `/`, e o `useSessionSync` ignora o evento de "sessão apareceu".
+- **Um e-mail sem conta passa igual a um com conta**, e falha de rede no passo 1
+  é engolida de propósito. Distinguir os casos transformaria a tela num
+  verificador de quem é cliente — a mesma decisão do login.
+- **O e-mail viaja mascarado entre as telas**, como parâmetro de rota; o
+  endereço de verdade fica numa variável de módulo do `recoveryService`. Uma
+  store global para uma conversa de três telas seria estado demais, e o
+  expo-router serializa parâmetro de rota — o endereço apareceria na URL.
+  Recarregar o app no meio perde a variável, e aí o erro `expired_flow` manda
+  recomeçar em vez de adivinhar.
 - **`sessionRules.ts` nasceu por causa do jest.** A regex de e-mail e o mínimo
   de senha moravam no `sessionService`, que importa o armazenamento seguro e
   portanto puxa `react-native`. Um teste node que importasse aquilo quebrava na
@@ -919,24 +930,38 @@ regenerá-las é seguro. Se `pod update` não bastar, o próximo passo é
 
 ## 10. Pendências e próximos passos
 
-**Fora de escopo desta entrega, com o botão preservado no desenho** (cada um
-mostra hoje um toast explicando o que faria):
+### 10.1 Resolvido em 29/08/2026
 
-- **Câmera de código de barras** em Vender → `expo-camera` + permissão no config.
-- **Anexar foto** no chamado → `expo-image-picker` + permissão.
-- **Exportar PDF / planilha** em Relatórios → `expo-print` + `expo-sharing`.
+Os quatro botões que mostravam um toast explicando o que fariam agora fazem.
+**Todos exigem uma build nova** — são módulos nativos, e não passam por OTA:
+
+- **Câmera de código de barras** em Vender → `expo-camera`, permissão declarada
+  em `app.json`. Código exato cai direto no carrinho; o que não está no catálogo
+  vai para a busca, com o número na tela.
+- **Anexar foto** no chamado → `expo-image-picker` + upload direto para o bucket
+  `support-attachments`. A conversa também ABRE anexo, por URL assinada de um
+  minuto — o bucket é privado.
+- **Exportar PDF / planilha** em Relatórios → `expo-print` (HTML → PDF pelo motor
+  do sistema) e `src/utils/xlsx.ts`, um escritor de XLSX próprio. Os dois
+  arquivos vão para o cache e daí para a folha de compartilhamento.
+- **Recuperação de senha** → deixou de ser simulação. `passwordRecovery.ts` virou
+  `recoveryRules` (puro, testado) + `recoveryApi` + `recoveryService`. O código
+  tem **6 dígitos** porque quem o gera é o Supabase.
+
+⚠️ **O template de e-mail do projeto precisa conter `{{ .Token }}`.** O modelo
+padrão do Supabase traz só o link; sem o token, o e-mail chega sem número e não
+há o que digitar na tela 2.
+
+⚠️ **`verifyOtp` abre uma sessão.** É como o Supabase funciona — abrir o e-mail
+da conta é a prova de identidade. A tela da senha nova derruba essa sessão no
+fim E na desistência (`useEffect` de desmonte), senão "esqueci minha senha"
+viraria "entrei sem ela".
+
+**Ainda fora de escopo:**
+
 - **"Falar com o suporte" na tela de bloqueio** → precisa de canal EXTERNO
   (WhatsApp/e-mail via `Linking`), porque o suporte in-app é justamente o que
   aquele plano não tem.
-
-- **Recuperação de senha de verdade** → hoje as três telas são uma simulação
-  (§7.1). O caminho é trocar o miolo de `domain/session/passwordRecovery.ts` por
-  `Api`/`Adapter`/`Service` como os outros domínios, e decidir entre o OTP que a
-  interface já desenha (`supabase.auth.verifyOtp` com `type: 'recovery'`, que
-  devolve sessão e permite trocar a senha dentro do app) e o link do
-  `resetPasswordForEmail` — este último exige `redirectTo` com o scheme
-  `aguiarone://` e uma rota que receba o deep link. **O aviso de simulação e o
-  código `1234` saem da tela junto com o mock.**
 
 **Melhorias propostas, não implementadas** (fora do escopo pedido):
 
@@ -1038,10 +1063,16 @@ Sem ela, qualquer recusa futura voltaria a aparecer como "salvo" e o nome
 voltaria ao antigo na carga seguinte. O portal do cliente **não tinha** essa
 checagem e passou a ter no mesmo dia.
 
-**2. Não existe `activity_log`.** O feed de atividades em Configurações vem
-**sempre vazio**. `listActivities` devolve `[]` de propósito: sintetizar
-"atividades" a partir de vendas e movimentações pareceria um log de auditoria
-sem ser um, e alguém acabaria confiando nisso para saber quem fez o quê.
+**2. ~~Não existe `activity_log`~~ — RESOLVIDO em 28/08/2026.** A migration
+`20260828020000_activity_log.sql` criou a tabela e a função `log_activity`, que
+é a ÚNICA porta de escrita: `security definer`, carimbando tenant, autor e
+horário a partir da sessão. Não há policy de INSERT, UPDATE nem DELETE — um log
+que a parte auditada consegue forjar ou apagar não audita ninguém.
+
+O app grava por `src/domain/shared/activityLog.ts` (venda, estoque, caixa,
+produto, custo, chamado) e lê em Configurações › Equipe. As chaves de ação são
+as MESMAS do portal: uma venda feita no balcão pelo app aparece no portal com o
+mesmo rótulo de uma feita lá.
 
 **3. Falta CHECK (ou enum) nas colunas de estado.** Verificado no levantamento
 do portal: `'__x__'` foi **aceito** em `sales.payment_method`, `sales.status`,
@@ -1049,10 +1080,16 @@ do portal: `'__x__'` foi **aceito** em `sales.payment_method`, `sales.status`,
 `src/domain/shared/dbEnums.ts` é a única coisa segurando o vocabulário deste
 lado — e ele **precisa continuar igual** ao de `apps/portal-client/lib/dados/`.
 
-**4. `create_sale` transacional.** Registrar uma venda são duas escritas sem
-transação (`sales`, depois `sale_items`). O `salesApi` apaga a venda órfã se a
-segunda falhar, mas isso é remendo: o certo é uma função no banco, que de quebra
-levaria a baixa de estoque para dentro dela.
+**4. `create_sale` transacional — existe, e o APP não a usa.** A função foi
+criada em `20260817140000_fiscal_emissao.sql` e o **portal já migrou** para ela.
+
+O app continua com as duas escritas, de propósito: `create_sale` não aceita um
+`id` vindo de fora, e a fila offline depende justamente disso — é o id gerado no
+aparelho que faz a duplicata ser reconhecida quando a resposta se perde no meio
+do caminho (ver `saleHasItems`). Migrar sem um parâmetro de id trocaria uma
+venda órfã rara por uma venda DUPLICADA a cada reenvio, que é pior.
+
+O caminho é acrescentar `p_id uuid default null` à função e só então migrar.
 
 **5. E-mail do funcionário.** Vive em `auth.users`, fora do alcance do RLS.
 A aba Equipe mostra o campo vazio, igual ao portal.

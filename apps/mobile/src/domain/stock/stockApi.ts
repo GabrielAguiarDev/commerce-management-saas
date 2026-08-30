@@ -1,5 +1,6 @@
 import { stockMovementFromDb } from '@domain/shared/dbEnums';
 import { supabase } from '@services/supabase';
+import { logActivity } from '@domain/shared/activityLog';
 import { daysAgoISO, relativeLabel } from '@utils/dates';
 
 import type { StockMovementAPI, StockMovementCreateAPI } from './stockApiTypes';
@@ -115,6 +116,12 @@ export async function createStockMovement(
   });
 
   if (error) throw error;
+
+  logActivity('stock.moved', {
+    entityId: payload.product_id,
+    summary: `${payload.product_name}: ${payload.delta > 0 ? '+' : ''}${payload.delta}`,
+    metadata: { type: dbType, delta: payload.delta, origin: 'app' },
+  });
 
   return {
     id: `mov_${Date.now().toString(36)}`,

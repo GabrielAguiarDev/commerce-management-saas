@@ -44,6 +44,7 @@ export { AppProviders } from './AppProviders';
 export { AO_FADE, AO_PULSE, AO_SHEET, AO_UP } from './patterns/animations';
 export { AuthBackdrop } from './patterns/AuthBackdrop';
 export { AuthScreen } from './patterns/AuthScreen';
+export { BarcodeScanner } from './patterns/BarcodeScanner';
 export { ConnectionBanner } from './patterns/ConnectionBanner';
 export { TabBar } from './patterns/TabBar';
 export { ALTURA_TAB_BAR } from './patterns/tabBarGeometry';

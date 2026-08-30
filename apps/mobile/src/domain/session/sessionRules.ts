@@ -7,7 +7,7 @@
  * linha, com um erro de sintaxe que não tem nada a ver com o que se queria
  * testar. É a mesma regra do blueprint sobre domínio não importar barrel de UI.
  *
- * Aqui é tudo função pura sobre string. A `passwordRecovery` e o
+ * Aqui é tudo função pura sobre string. A recuperação de senha e o
  * `sessionService` leem daqui para não terem duas peneiras de e-mail
  * divergindo em silêncio no endereço estranho de um cliente só.
  */

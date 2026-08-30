@@ -17,3 +17,10 @@ export {
   useReplyToTicket,
   useSupportWhatsApp,
 } from './useCases/useSupport';
+export {
+  attachmentName,
+  isStoragePath,
+  openAttachment,
+  pickAndUploadAttachment,
+  type AttachResult,
+} from './supportAttachment';

@@ -1,5 +1,6 @@
 import { SALE_STATUS } from '@domain/shared/dbEnums';
 import { supabase } from '@services/supabase';
+import { logActivity } from '@domain/shared/activityLog';
 import { startOfTodayISO, todayDateOnly } from '@utils/dates';
 import { centsToReal, realToCents } from '@utils/money';
 
@@ -196,6 +197,10 @@ export async function fetchSale(saleId: string): Promise<SaleAPI | null> {
 export async function setSaleStatus(saleId: string, status: string): Promise<void> {
   const { error } = await supabase.from('sales').update({ status }).eq('id', saleId);
   if (error) throw error;
+
+  logActivity(status === SALE_STATUS.refunded ? 'sale.refunded' : 'sale.refund_undone', {
+    entityId: saleId,
+  });
 }
 
 /**
@@ -453,6 +458,14 @@ export async function recordSale(payload: SaleCreateAPI): Promise<SaleAPI> {
     throw itemsError;
   }
 
+  // Só DEPOIS de os itens entrarem: uma venda que ainda pode ser apagada nas
+  // linhas acima não pode já constar no histórico como registrada.
+  logActivity('sale.created', {
+    entityId: sale.id,
+    summary: `${payload.items.length} ${payload.items.length === 1 ? 'item' : 'itens'} · ${moeda(payload.total_cents)}`,
+    metadata: { payment: payload.payment_method, origin: 'app' },
+  });
+
   return {
     id: sale.id,
     tenant_id: payload.tenant_id,
@@ -463,4 +476,15 @@ export async function recordSale(payload: SaleCreateAPI): Promise<SaleAPI> {
     items: payload.items,
     is_synced: true,
   };
+}
+
+/**
+ * Centavos → `R$ 12,34`, para o resumo do histórico.
+ *
+ * O texto é gravado PRONTO: `activity_log.summary` é o retrato do que
+ * aconteceu naquela hora, e remontá-lo na tela usaria a formatação de hoje
+ * para descrever um evento de ontem.
+ */
+function moeda(cents: number): string {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }

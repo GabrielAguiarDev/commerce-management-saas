@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { AuthScreen, Box, Button, Field, Icon, Text, Touchable } from '@components';
 import { ROUTES } from '@domain/navigation/routes';
-import { RecoveryError, redefinirSenha } from '@domain/session';
+import { RecoveryError, cancelarRecuperacao, redefinirSenha } from '@domain/session';
 import { useTranslation } from '@i18n';
 import { useUIStore } from '@store/uiStore';
 import { RAIO_PILULA } from '@theme';
@@ -11,12 +11,20 @@ import { RAIO_PILULA } from '@theme';
 /**
  * Passo 3 de 3: a senha nova.
  *
- * ⚠️ SIMULAÇÃO — nenhuma senha muda de verdade. Ver
- * `domain/session/passwordRecovery.ts`.
- *
  * O fim do fluxo é `replace` no login, e não `back`: depois de trocar a senha
  * não pode existir caminho de volta para a tela do código, que a essa altura
  * confere um código já usado.
+ *
+ * ┌─ POR QUE ESTA TELA SAI DA SESSÃO ──────────────────────────────────────┐
+ * │ Chegar aqui significa que o `verifyOtp` do passo 2 já abriu uma sessão  │
+ * │ no Supabase. Se a pessoa DESISTIR agora — botão voltar, gesto do iOS —  │
+ * │ o aparelho ficaria logado com a senha ANTIGA ainda valendo, e "esqueci  │
+ * │ minha senha" teria virado "entrei sem ela".                            │
+ * │                                                                        │
+ * │ Por isso a limpeza no desmonte. Ela NÃO roda no caminho feliz: lá quem  │
+ * │ derruba a sessão é o próprio `redefinirSenha`, depois de gravar — e     │
+ * │ derrubá-la antes deixaria a troca sem a quem aplicar.                   │
+ * └────────────────────────────────────────────────────────────────────────┘
  */
 export default function NewPasswordScreen() {
   const t = useTranslation();
@@ -27,10 +35,21 @@ export default function NewPasswordScreen() {
   const [verSenha, setVerSenha] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
+  // `ref` e não estado: quem lê isto é a limpeza do desmonte, que roda depois
+  // do último render e não deve provocar outro.
+  const concluido = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (!concluido.current) void cancelarRecuperacao();
+    };
+  }, []);
+
   async function salvar() {
     setSalvando(true);
     try {
       await redefinirSenha(senha, confirmacao);
+      concluido.current = true;
       showToast(t.toasts.passwordChanged, { tone: 'sucesso' });
       // Zera a pilha da recuperação ANTES de voltar. Um `replace` sozinho troca
       // só a tela do topo: "conferir código" continuaria viva embaixo do login,
@@ -112,7 +131,7 @@ export default function NewPasswordScreen() {
 
       <Box alignItems="center" marginTop="s16">
         <Text variant="hint" color="authFaint" textAlign="center">
-          {t.auth.mockShortNotice}
+          {t.auth.signInAgainNotice}
         </Text>
       </Box>
     </AuthScreen>

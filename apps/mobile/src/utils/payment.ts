@@ -8,12 +8,13 @@ import type { Messages } from '@i18n';
  * o Início mostra "cash" cru — que era exatamente o estado das duas antes
  * deste arquivo.
  *
- * ⚠️ DUAS GRAFIAS CONVIVEM NA MESMA COLUNA, e por isso o catálogo tem seis
- * chaves para quatro formas: o app grava `debit_card`/`credit_card` (as chaves
- * de `preferencesStore.PAYMENT_METHODS`) e o portal web grava `debit`/`credit`
- * (`apps/portal-client/lib/dados/vendas.ts`). Um negócio que vende pelos dois
- * tem as duas grafias no histórico. Unificar é migração de dados, não é
- * mudança de rótulo — está anotado em DEVELOPMENT.md › Pendências.
+ * ⚠️ O CATÁLOGO TEM SEIS CHAVES PARA QUATRO FORMAS, e as duas sobrando são
+ * históricas. O app gravava `debit_card`/`credit_card` enquanto o portal web
+ * gravava `debit`/`credit` NA MESMA COLUNA; hoje os dois gravam a mesma coisa
+ * (`preferencesStore` reexporta a lista de `domain/shared/dbEnums`), mas as
+ * linhas escritas antes disso continuam no banco até a migration de
+ * normalização rodar. Enquanto elas existirem, tirar `debit_card` daqui faz o
+ * histórico mostrar o identificador cru no lugar do nome.
  *
  * A forma desconhecida cai no PRÓPRIO identificador, nunca em branco: uma
  * linha sem forma de pagamento parece um defeito da venda, e a chave crua pelo
