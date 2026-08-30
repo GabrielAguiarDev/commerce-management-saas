@@ -353,10 +353,24 @@ export async function fetchDailySummary(tenantId: string): Promise<DailySummaryA
  *
  * ⚠️ NÃO É ATÔMICO. São duas escritas em sequência (`sales`, depois
  * `sale_items`) e o PostgREST não tem transação entre chamadas: se a segunda
- * falhar, fica uma venda sem itens. O certo é uma função `create_sale` no
- * banco, que está na lista do que falta criar. Enquanto não existe, o
- * tratamento abaixo apaga a venda órfã — melhor um registro que não existe do
- * que um que mente sobre o que foi vendido.
+ * falhar, fica uma venda sem itens. O tratamento abaixo apaga a venda órfã —
+ * melhor um registro que não existe do que um que mente sobre o que foi
+ * vendido.
+ *
+ * ┌─ A `create_sale` JÁ EXISTE, E ESTE CAMINHO NÃO A USA ──────────────────┐
+ * │ Ela está em `20260817140000_fiscal_emissao.sql` e o PORTAL já migrou    │
+ * │ para ela (`apps/portal-client/app/vendas/actions.ts`). Aqui não, e não  │
+ * │ é esquecimento:                                                        │
+ * │                                                                        │
+ * │ a função NÃO ACEITA UM `id` VINDO DE FORA, e a fila offline depende     │
+ * │ exatamente disso — é o id gerado no aparelho que faz a duplicata ser    │
+ * │ reconhecida quando a resposta se perde no meio do caminho (ver          │
+ * │ `saleHasItems`). Migrar assim trocaria uma venda órfã RARA por uma      │
+ * │ venda DUPLICADA a cada reenvio, que é pior.                            │
+ * │                                                                        │
+ * │ O caminho é acrescentar `p_id uuid default null` à função e só então    │
+ * │ migrar este arquivo.                                                   │
+ * └────────────────────────────────────────────────────────────────────────┘
  *
  * ESTA É A ÚNICA PORTA DE ENTRADA DE VENDA, e é de propósito: a venda offline
  * que sobe da fila passa exatamente por aqui, com o mesmo INSERT e os mesmos
