@@ -1,5 +1,10 @@
 import type { StockMovementAPI } from '../stockApiTypes';
-import { formatSign, parseMovementQuantity, toStockMovement } from '../stockAdapter';
+import {
+  formatSign,
+  parseMovementQuantity,
+  toStockMovement,
+  toStockMovementPayload,
+} from '../stockAdapter';
 
 const base: StockMovementAPI = {
   id: 'mov_1',
@@ -66,5 +71,33 @@ describe('lerQuantidadeMovimento', () => {
 
   it('ignora espaço nas pontas', () => {
     expect(parseMovementQuantity('  +7 ')).toBe(7);
+  });
+});
+
+describe('toStockMovementPayload', () => {
+  const payload = (delta: number, custo: number | null) =>
+    toStockMovementPayload('tnt_1', 'prd_1', ' Ração Golden ', delta, custo);
+
+  it('entrada leva o custo — é o que vira despesa em costs', () => {
+    expect(payload(10, 899).unit_cost_cents).toBe(899);
+    expect(payload(10, 899).reason).toBe('purchase');
+  });
+
+  /**
+   * O custo numa SAÍDA não tem significado: perda e ajuste não compram nada.
+   * Deixá-lo passar lançaria despesa por mercadoria que sumiu — contando o
+   * mesmo dinheiro duas vezes, uma na compra e outra na perda.
+   */
+  it('saída DESCARTA o custo, mesmo se ele vier preenchido', () => {
+    expect(payload(-3, 899).unit_cost_cents).toBeNull();
+    expect(payload(-3, 899).reason).toBe('manual');
+  });
+
+  it('entrada sem custo continua válida: nem toda entrada é compra', () => {
+    expect(payload(10, null).unit_cost_cents).toBeNull();
+  });
+
+  it('apara o nome do produto — ele vira a descrição da despesa', () => {
+    expect(payload(10, 100).product_name).toBe('Ração Golden');
   });
 });

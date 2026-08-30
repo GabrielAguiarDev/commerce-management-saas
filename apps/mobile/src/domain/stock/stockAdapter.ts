@@ -44,6 +44,7 @@ export function toStockMovementPayload(
   productId: string | null,
   productName: string,
   delta: number,
+  unitCostCents: number | null,
 ): StockMovementCreateAPI {
   return {
     tenant_id: tenantId,
@@ -51,6 +52,10 @@ export function toStockMovementPayload(
     product_name: productName.trim(),
     delta,
     reason: delta > 0 ? 'purchase' : 'manual',
+    // O custo só acompanha ENTRADA. Numa saída ele não teria significado:
+    // perda e ajuste não compram nada, e lançar despesa ali contaria o mesmo
+    // dinheiro duas vezes — uma na compra, outra na perda.
+    unit_cost_cents: delta > 0 ? unitCostCents : null,
   };
 }
 

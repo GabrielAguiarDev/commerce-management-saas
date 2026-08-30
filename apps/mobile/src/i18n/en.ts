@@ -89,6 +89,7 @@ export const en = {
     stock: {
       product_required: 'Say which product is being moved.',
       invalid_quantity: 'Enter a quantity other than zero.',
+      invalid_cost: 'The cost cannot be negative.',
       network: 'Could not record the movement right now.',
     } as Record<StockErrorCode, string>,
 
@@ -150,6 +151,8 @@ export const en = {
     withdrawalRecorded: 'Withdrawal recorded at the register.',
     topUpRecorded: 'Top-up recorded at the register.',
     stockUpdated: 'Stock updated.',
+    /** Says out loud that an expense was created — see the pt-BR file. */
+    stockUpdatedWithCost: 'Stock updated and the purchase was added to costs.',
     costRecorded: 'Cost recorded.',
     businessSaved: 'Business details saved.',
     /** See the pt-BR file: the file is shared, not saved to the device. */

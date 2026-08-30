@@ -64,7 +64,7 @@ const SHEET_CONFIG: Record<SimpleSheetType, SheetConfig> = {
   },
   movement: {
     title: 'Movimentar estoque',
-    text: 'Entradas viram custo variável automaticamente.',
+    text: 'Entrada com custo vira despesa automaticamente, na aba Custos.',
     label1: 'Produto',
     placeholder1: 'Ração premium 15kg',
     label2: 'Quantidade (use − para saída)',
@@ -107,8 +107,18 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
 
   const [campo1, setCampo1] = useState(openingAmount);
   const [campo2, setCampo2] = useState('');
+  const [custo, setCusto] = useState('');
 
   const ocupado = ajuste.isPending || stockMovement.isPending || cost.isPending;
+
+  /**
+   * O CUSTO SÓ APARECE NA ENTRADA.
+   *
+   * Perguntar "quanto custou" numa saída não tem resposta: perda e ajuste não
+   * compram nada. E o campo só nasce depois de a quantidade ser digitada com
+   * sinal positivo — antes disso ainda não se sabe qual dos dois é.
+   */
+  const entradaDeEstoque = type === 'movement' && (parseMovementQuantity(campo2) ?? 0) > 0;
 
   function errorToast(error: unknown) {
     if (error instanceof CashError) return showToast(t.errors.cash[error.code], { tone: 'erro' });
@@ -143,13 +153,20 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
     }
 
     if (type === 'movement') {
+      const delta = parseMovementQuantity(campo2) ?? 0;
+      const unitCostCents = delta > 0 ? parseCents(custo) : null;
+
       return stockMovement.mutate(
+        { productId: productId ?? null, productName: campo1, delta, unitCostCents },
         {
-          productId: productId ?? null,
-          productName: campo1,
-          delta: parseMovementQuantity(campo2) ?? 0,
+          // A mensagem MUDA quando houve custo: o dono precisa saber que uma
+          // despesa nasceu sozinha na aba Custos, senão ele a lança de novo à
+          // mão e a compra conta duas vezes.
+          onSuccess: sucesso(
+            unitCostCents ? t.toasts.stockUpdatedWithCost : t.toasts.stockUpdated,
+          ),
+          onError: errorToast,
         },
-        { onSuccess: sucesso(t.toasts.stockUpdated), onError: errorToast },
       );
     }
 
@@ -181,6 +198,16 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
           placeholder={conf.placeholder2}
           keyboardType={conf.keyboard2}
         />
+
+        {entradaDeEstoque && (
+          <Field
+            label="Custo por unidade (opcional)"
+            value={custo}
+            onChangeText={setCusto}
+            placeholder="R$ 0,00"
+            keyboardType="decimal-pad"
+          />
+        )}
 
         <Button
           title={conf.button}

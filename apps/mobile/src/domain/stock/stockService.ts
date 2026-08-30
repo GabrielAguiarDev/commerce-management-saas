@@ -33,13 +33,19 @@ export async function recordStockMovement(
   productId: string | null,
   productName: string,
   delta: number,
+  unitCostCents: number | null = null,
 ): Promise<StockMovement> {
   if (!productName.trim()) throw new StockError('product_required');
   if (!Number.isInteger(delta) || delta === 0) throw new StockError('invalid_quantity');
 
+  // Custo NEGATIVO é erro de digitação, e passaria batido: viraria uma despesa
+  // negativa, que na prática é receita — o lucro do mês subiria por causa de
+  // uma compra. Zero e vazio continuam válidos: nem toda entrada é compra.
+  if (unitCostCents !== null && unitCostCents < 0) throw new StockError('invalid_cost');
+
   try {
     const raw = await api.createStockMovement(
-      toStockMovementPayload(tenantId, productId, productName, delta),
+      toStockMovementPayload(tenantId, productId, productName, delta, unitCostCents),
     );
     return toStockMovement(raw);
   } catch (e) {

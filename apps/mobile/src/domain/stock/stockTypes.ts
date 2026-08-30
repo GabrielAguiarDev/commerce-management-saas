@@ -12,7 +12,11 @@ export interface StockMovement {
   quando: string;
 }
 
-export type StockErrorCode = 'product_required' | 'invalid_quantity' | 'network';
+export type StockErrorCode =
+  | 'product_required'
+  | 'invalid_quantity'
+  | 'invalid_cost'
+  | 'network';
 
 export class StockError extends Error {
   constructor(readonly code: StockErrorCode, message?: string) {

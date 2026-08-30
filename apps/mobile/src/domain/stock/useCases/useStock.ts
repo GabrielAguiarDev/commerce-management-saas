@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { catalogoKeys } from '@domain/catalog/useCases/useCatalog';
+import { costsKeys } from '@domain/costs/useCases/useCosts';
 import { useSessionStore } from '@store/sessionStore';
 
 import * as service from '../stockService';
@@ -30,16 +31,26 @@ export function useRecordStockMovement() {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { productId: string | null; productName: string; delta: number }) =>
+    mutationFn: (data: {
+      productId: string | null;
+      productName: string;
+      delta: number;
+      unitCostCents?: number | null;
+    }) =>
       service.recordStockMovement(
         tenantId as string,
         data.productId,
         data.productName,
         data.delta,
+        data.unitCostCents ?? null,
       ),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: stockKeys.all });
       void client.invalidateQueries({ queryKey: catalogoKeys.all });
+      // A entrada com custo lança uma despesa e muda `products.cost`: sem
+      // invalidar os custos, a aba Custos continuaria sem a compra que o dono
+      // acabou de registrar, e ele a lançaria de novo à mão.
+      void client.invalidateQueries({ queryKey: costsKeys.all });
     },
   });
 }

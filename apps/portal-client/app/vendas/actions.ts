@@ -37,6 +37,11 @@ export interface ItemToSave {
  * requisição forjada podia mandar itens de R$ 200 com total de R$ 2. Como a
  * nota fiscal sai desse número, ele tem de vir do banco.
  *
+ * Desde `20260829000000_create_sale_client_id.sql` a função arredonda CADA
+ * subtotal em centavos e soma os arredondados. Importa em venda por peso: meio
+ * quilo a R$ 19,99 dá R$ 9,995, um valor que não existe em dinheiro — e uma
+ * nota fiscal em que os itens não somam o total é uma nota rejeitada.
+ *
  * A baixa de estoque continua sendo do BANCO: o trigger em `sale_items`
  * desconta o saldo e grava o movimento do tipo 'sale'. Agora ele roda DENTRO
  * da transação — uma melhoria de graça, porque venda desfeita desfaz a baixa

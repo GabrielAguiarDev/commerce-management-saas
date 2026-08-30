@@ -342,7 +342,11 @@ export async function fetchDailySummary(tenantId: string): Promise<DailySummaryA
 }
 
 /**
- * REGISTRAR UMA VENDA.
+ * Insere os itens de uma venda que JÁ existe.
+ *
+ * Sobrou de quando registrar uma venda eram duas escritas: hoje quem grava
+ * venda e itens juntos é a `create_sale`, numa transação só. O único chamador
+ * é `completeSaleItems`, o conserto de vendas meio-gravadas — ver lá.
  *
  * ⚠️ A BAIXA DE ESTOQUE NÃO É FEITA AQUI, e isso é intencional. Existe um
  * TRIGGER em `sale_items` que já desconta `products.stock_quantity` e grava o
@@ -350,33 +354,6 @@ export async function fetchDailySummary(tenantId: string): Promise<DailySummaryA
  * unidades leva o saldo de 100 para 97 sozinho. Descontar de novo pela
  * aplicação tiraria O DOBRO de cada venda. A primeira versão da integração do
  * portal fez exatamente isso.
- *
- * ⚠️ NÃO É ATÔMICO. São duas escritas em sequência (`sales`, depois
- * `sale_items`) e o PostgREST não tem transação entre chamadas: se a segunda
- * falhar, fica uma venda sem itens. O tratamento abaixo apaga a venda órfã —
- * melhor um registro que não existe do que um que mente sobre o que foi
- * vendido.
- *
- * ┌─ A `create_sale` JÁ EXISTE, E ESTE CAMINHO NÃO A USA ──────────────────┐
- * │ Ela está em `20260817140000_fiscal_emissao.sql` e o PORTAL já migrou    │
- * │ para ela (`apps/portal-client/app/vendas/actions.ts`). Aqui não, e não  │
- * │ é esquecimento:                                                        │
- * │                                                                        │
- * │ a função NÃO ACEITA UM `id` VINDO DE FORA, e a fila offline depende     │
- * │ exatamente disso — é o id gerado no aparelho que faz a duplicata ser    │
- * │ reconhecida quando a resposta se perde no meio do caminho (ver          │
- * │ `saleHasItems`). Migrar assim trocaria uma venda órfã RARA por uma      │
- * │ venda DUPLICADA a cada reenvio, que é pior.                            │
- * │                                                                        │
- * │ O caminho é acrescentar `p_id uuid default null` à função e só então    │
- * │ migrar este arquivo.                                                   │
- * └────────────────────────────────────────────────────────────────────────┘
- *
- * ESTA É A ÚNICA PORTA DE ENTRADA DE VENDA, e é de propósito: a venda offline
- * que sobe da fila passa exatamente por aqui, com o mesmo INSERT e os mesmos
- * gatilhos. Ela não tem caminho privilegiado — só chega atrasada. Um segundo
- * caminho de escrita seria a maneira mais rápida de a baixa de estoque valer
- * para a venda do balcão e não para a que ficou na fila.
  */
 async function insertSaleItems(saleId: string, payload: SaleCreateAPI): Promise<unknown | null> {
   const { error } = await supabase.from('sale_items').insert(
@@ -389,7 +366,11 @@ async function insertSaleItems(saleId: string, payload: SaleCreateAPI): Promise<
       product_name: i.product_name,
       quantity: i.qty,
       unit_price: centsToReal(i.unit_price_cents),
-      subtotal: centsToReal(i.unit_price_cents * i.qty),
+      // Arredondado em CENTAVOS, exatamente como a `create_sale` faz: uma
+      // venda por peso (0,5 kg) produz meio centavo, e `sale_items.subtotal` é
+      // numeric sem escala — guardaria a sujeira inteira, e a soma dos itens
+      // deixaria de fechar com o total da venda.
+      subtotal: centsToReal(Math.round(i.unit_price_cents * i.qty)),
     })),
   );
 
@@ -399,20 +380,23 @@ async function insertSaleItems(saleId: string, payload: SaleCreateAPI): Promise<
 /**
  * ESTA VENDA JÁ TEM ITENS LÁ DENTRO?
  *
- * Pergunta que só a fila offline faz, e só quando o INSERT da venda volta com
- * "chave duplicada". Aí existem dois passados possíveis, e eles pedem coisas
- * opostas:
+ * Pergunta que só a fila offline faz, e só quando a venda volta com "chave
+ * duplicada". Aí existem dois passados possíveis, e eles pedem coisas opostas:
  *
  *  - a venda subiu INTEIRA numa tentativa anterior (a resposta é que se
  *    perdeu) → não há nada a fazer, e reenviar os itens duplicaria a baixa de
  *    estoque;
- *  - a venda subiu PELA METADE (o `sales` entrou, o `sale_items` não, e o app
- *    morreu antes de apagar a órfã) → falta inserir os itens. Sem isso ficaria
- *    para sempre uma venda de valor cheio, sem item nenhum e sem ter tirado
- *    nada do estoque.
+ *  - a venda subiu PELA METADE (o `sales` entrou, o `sale_items` não) → falta
+ *    inserir os itens. Sem isso ficaria para sempre uma venda de valor cheio,
+ *    sem item nenhum e sem ter tirado nada do estoque.
  *
- * A resposta separa os dois casos, e é por isso que a duplicata não pode ser
- * tratada como "pronto, subiu" sem olhar.
+ * ⚠️ O SEGUNDO CASO NÃO ACONTECE MAIS EM VENDA NOVA. A `create_sale` grava as
+ * duas coisas na mesma transação desde 29/08/2026 — ou entram as duas, ou
+ * nenhuma. Esta checagem FICA porque o banco ainda tem as vendas meio-gravadas
+ * de antes, e porque um aparelho com a versão antiga do app pode estar com uma
+ * fila para subir. É código de convivência, não código morto: quando não
+ * houver mais nenhuma dessas linhas, ele responde `true` sempre e sai de cena
+ * sozinho.
  */
 export async function saleHasItems(saleId: string): Promise<boolean> {
   const { data, error } = await supabase
@@ -439,51 +423,83 @@ export async function completeSaleItems(payload: SaleCreateAPI & { id: string })
   if (error) throw error;
 }
 
+/**
+ * REGISTRAR UMA VENDA.
+ *
+ * ┌─ UMA TRANSAÇÃO SÓ, desde 29/08/2026 ───────────────────────────────────┐
+ * │ Eram duas escritas em sequência (`sales`, depois `sale_items`), e o     │
+ * │ PostgREST não tem transação entre chamadas: a segunda falhando deixava  │
+ * │ uma venda SEM ITENS. O código apagava a órfã, mas isso era remendo —    │
+ * │ e não cobria o app morrer no meio.                                      │
+ * │                                                                        │
+ * │ `create_sale` faz as duas dentro da mesma transação: ou entram as duas, │
+ * │ ou nenhuma. O trigger de estoque roda lá dentro, o que é uma melhoria   │
+ * │ de graça — venda desfeita desfaz a baixa junto.                         │
+ * │                                                                        │
+ * │ O APP SÓ PÔDE MIGRAR depois de a função aceitar `p_id`                  │
+ * │ (`20260829000000_create_sale_client_id.sql`). Sem esse parâmetro, o     │
+ * │ uuid da fila offline era ignorado e CADA REENVIO viraria uma venda      │
+ * │ nova — trocar uma venda órfã rara por faturamento duplicado é pior.     │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * O TOTAL NÃO É MAIS ENVIADO. Quem soma é a função, a partir dos itens, com
+ * cada subtotal arredondado em centavos. Não é preciosismo: o valor que o
+ * cliente afirma não prova nada, e a NFC-e sai desse número.
+ *
+ * ESTA É A ÚNICA PORTA DE ENTRADA DE VENDA, e é de propósito: a venda offline
+ * que sobe da fila passa exatamente por aqui, pela mesma `create_sale` e pelos
+ * mesmos gatilhos. Ela não tem caminho privilegiado — só chega atrasada. Um segundo
+ * caminho de escrita seria a maneira mais rápida de a baixa de estoque valer
+ * para a venda do balcão e não para a que ficou na fila.
+ */
 export async function recordSale(payload: SaleCreateAPI): Promise<SaleAPI> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // A hora é resolvida AQUI, e não deixada para o `now()` do banco, por dois
+  // motivos: a venda da fila carrega a hora em que foi FEITA (carimbar a hora
+  // da sincronização jogaria um dia inteiro de vendas offline para o minuto em
+  // que o vendedor apertou o botão), e é este mesmo valor que volta no
+  // `created_at` — sem ele, teríamos de reler a venda só para saber a hora.
+  const soldAt = payload.sold_at ?? new Date().toISOString();
 
-  const { data: sale, error } = await supabase
-    .from('sales')
-    .insert({
-      // O `id` só vai junto quando quem chama o gerou (a fila offline). No
-      // caminho comum a chave fica em branco e o banco a produz, como sempre.
-      ...(payload.id ? { id: payload.id } : {}),
-      tenant_id: payload.tenant_id,
-      user_id: user?.id ?? null,
-      total: centsToReal(payload.total_cents),
-      payment_method: payload.payment_method,
-      status: SALE_STATUS.completed,
-      // A venda da fila carrega a hora em que foi FEITA. Carimbar `now()` aqui
-      // jogaria um dia inteiro de vendas offline para o minuto em que o
-      // vendedor apertou "sincronizar".
-      sold_at: payload.sold_at ?? new Date().toISOString(),
-    })
-    .select('id, sold_at')
-    .single();
+  const { data: saleId, error } = await supabase.rpc('create_sale', {
+    p_payment_method: payload.payment_method,
+    p_items: payload.items.map((i) => ({
+      // String vazia vira NULL lá dentro: o produto avulso, que não está no
+      // cadastro, sobrevive só pelo `product_name`.
+      product_id: i.product_id || '',
+      product_name: i.product_name,
+      quantity: i.qty,
+      unit_price: centsToReal(i.unit_price_cents),
+    })),
+    p_sold_at: soldAt,
+    // `undefined` faria a chave sumir do JSON e a função cair no default —
+    // mesmo efeito, mas `null` diz explicitamente "sem id do aparelho".
+    p_id: payload.id ?? null,
+  });
 
+  // ⚠️ O ERRO SOBE INTEIRO, e não como `new Error(mensagem)`. A fila offline
+  // decide o que fazer pelo CÓDIGO do Postgres que vem nele — `23505` é "esta
+  // venda já entrou", `23503` é "o produto sumiu" (ver `syncErrors`). Trocá-lo
+  // por um Error genérico faria toda venda travada virar "algo deu errado".
   if (error) throw error;
+  if (!saleId) throw new Error('create_sale não devolveu o id da venda.');
 
-  const itemsError = await insertSaleItems(sale.id, payload);
+  const id = saleId as string;
 
-  if (itemsError) {
-    await supabase.from('sales').delete().eq('id', sale.id);
-    throw itemsError;
-  }
-
-  // Só DEPOIS de os itens entrarem: uma venda que ainda pode ser apagada nas
-  // linhas acima não pode já constar no histórico como registrada.
   logActivity('sale.created', {
-    entityId: sale.id,
+    entityId: id,
     summary: `${payload.items.length} ${payload.items.length === 1 ? 'item' : 'itens'} · ${moeda(payload.total_cents)}`,
     metadata: { payment: payload.payment_method, origin: 'app' },
   });
 
   return {
-    id: sale.id,
+    id,
     tenant_id: payload.tenant_id,
-    created_at: sale.sold_at,
+    created_at: soldAt,
+    // O total volta como o app o calculou. O banco tem a palavra final e pode
+    // divergir por centavos numa venda por peso — mas quem lê este retorno é o
+    // comprovante que já está na tela, e trocar o número DEPOIS da venda
+    // fechada confundiria mais do que a diferença que corrige. A próxima carga
+    // traz o valor do banco.
     total_cents: payload.total_cents,
     payment_method: payload.payment_method,
     status: SALE_STATUS.completed,

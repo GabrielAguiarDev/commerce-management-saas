@@ -67,6 +67,7 @@ export const ptBR: Messages = {
     stock: {
       product_required: 'Diga qual produto está sendo movimentado.',
       invalid_quantity: 'Informe uma quantidade diferente de zero.',
+      invalid_cost: 'O custo não pode ser negativo.',
       network: 'Não deu para registrar a movimentação agora.',
     },
 
@@ -132,6 +133,9 @@ export const ptBR: Messages = {
     withdrawalRecorded: 'Retirada registrada no caixa.',
     topUpRecorded: 'Reforço registrado no caixa.',
     stockUpdated: 'Estoque atualizado.',
+    // Diz em voz alta que uma despesa nasceu sozinha. Sem isto, o dono lança a
+    // mesma compra à mão em Custos e ela conta duas vezes.
+    stockUpdatedWithCost: 'Estoque atualizado e a compra entrou nos custos.',
     costRecorded: 'Custo registrado.',
     businessSaved: 'Dados do negócio salvos.',
     // O arquivo NÃO é "salvo no celular": ele é gerado no cache e entregue à

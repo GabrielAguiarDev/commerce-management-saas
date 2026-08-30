@@ -19,4 +19,12 @@ export interface StockMovementCreateAPI {
   product_name: string;
   delta: number;
   reason: string;
+  /**
+   * Quanto custou CADA unidade que entrou, em centavos. `null` na saída.
+   *
+   * É o que faz a compra virar despesa: sem este número não dá para lançar em
+   * `costs`, e a entrada aumentaria o estoque sem tirar nada do caixa — o
+   * lucro do relatório ficaria otimista pelo valor exato da compra.
+   */
+  unit_cost_cents: number | null;
 }

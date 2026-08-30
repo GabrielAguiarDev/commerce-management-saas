@@ -1080,16 +1080,24 @@ do portal: `'__x__'` foi **aceito** em `sales.payment_method`, `sales.status`,
 `src/domain/shared/dbEnums.ts` é a única coisa segurando o vocabulário deste
 lado — e ele **precisa continuar igual** ao de `apps/portal-client/lib/dados/`.
 
-**4. `create_sale` transacional — existe, e o APP não a usa.** A função foi
-criada em `20260817140000_fiscal_emissao.sql` e o **portal já migrou** para ela.
+**4. ~~`create_sale` transacional~~ — RESOLVIDO em 29/08/2026, nos dois apps.**
+A função nasceu em `20260817140000_fiscal_emissao.sql` e o portal migrou
+primeiro. O app não podia: `create_sale` não aceitava um `id` vindo de fora, e a
+fila offline depende justamente disso — é o uuid gerado no aparelho que faz a
+duplicata ser reconhecida quando a resposta se perde no meio do caminho (ver
+`saleHasItems`). Migrar assim trocaria uma venda órfã rara por faturamento
+DUPLICADO a cada reenvio.
 
-O app continua com as duas escritas, de propósito: `create_sale` não aceita um
-`id` vindo de fora, e a fila offline depende justamente disso — é o id gerado no
-aparelho que faz a duplicata ser reconhecida quando a resposta se perde no meio
-do caminho (ver `saleHasItems`). Migrar sem um parâmetro de id trocaria uma
-venda órfã rara por uma venda DUPLICADA a cada reenvio, que é pior.
+`20260829000000_create_sale_client_id.sql` acrescentou `p_id uuid default null`
+e o app migrou. Duas consequências que valem registro:
 
-O caminho é acrescentar `p_id uuid default null` à função e só então migrar.
+- **A venda meio-gravada deixou de ser possível.** `saleHasItems` e
+  `completeSaleItems` continuam de pé para as linhas de ANTES e para aparelhos
+  ainda na versão velha — código de convivência, não código morto.
+- **O total deixou de ser enviado pelo app.** Quem soma é a função, arredondando
+  cada subtotal em centavos. `sales.total` é `numeric` sem escala: meio quilo a
+  R$ 19,99 gravava R$ 9,995, e uma nota fiscal em que os itens não somam o total
+  é uma nota rejeitada.
 
 **5. E-mail do funcionário.** Vive em `auth.users`, fora do alcance do RLS.
 A aba Equipe mostra o campo vazio, igual ao portal.
@@ -1113,6 +1121,19 @@ lembrar é revisão que uma hora não acontece.
 
 ⚠️ **Enquanto a migration não for aplicada, a RPC não existe e o botão cai no
 fallback** — avisa e oferece o e-mail. É o comportamento correto, não um bug.
+
+**5c. ~~Entrada de estoque no app não lançava a despesa~~ — RESOLVIDO em
+29/08/2026.** O sheet "Movimentar estoque" não pedia o custo unitário, então
+`apply_stock_movement` ajustava o saldo e nada mais: o portal lançava a compra
+em `costs` e atualizava `products.cost`, o app não. O mesmo negócio tinha DOIS
+LUCROS diferentes conforme onde a mercadoria fosse dada entrada — e o texto do
+próprio sheet já prometia "entradas viram custo variável automaticamente".
+
+O campo agora existe, aparece só quando a quantidade é positiva (perda e ajuste
+não compram nada) e é opcional (nem toda entrada é compra). As duas escritas
+ficam em `stockApi.registerPurchase` e **não derrubam a movimentação** se
+falharem: o saldo já subiu quando elas rodam, e estourar ali faria a tela dizer
+que a entrada falhou sobre um estoque que já mudou.
 
 **6. O custo praticado na venda não é guardado.** `sale_items` tem `unit_price`
 (o preço no momento, correto) mas não o custo. O lucro do dia é calculado com o

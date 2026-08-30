@@ -1,7 +1,8 @@
-import { stockMovementFromDb } from '@domain/shared/dbEnums';
-import { supabase } from '@services/supabase';
 import { logActivity } from '@domain/shared/activityLog';
-import { daysAgoISO, relativeLabel } from '@utils/dates';
+import { COST_ORIGIN, COST_TYPES, stockMovementFromDb } from '@domain/shared/dbEnums';
+import { supabase } from '@services/supabase';
+import { daysAgoISO, relativeLabel, todayDateOnly } from '@utils/dates';
+import { centsToReal } from '@utils/money';
 
 import type { StockMovementAPI, StockMovementCreateAPI } from './stockApiTypes';
 
@@ -90,10 +91,23 @@ function toReason(type: string, _freeText: string | null): string {
  * função subtraia é o erro que este parágrafo existe para evitar — e ele
  * aumentaria o estoque em vez de baixá-lo.
  *
- * A função também NÃO atualiza `products.cost` nem lança a despesa em `costs`.
- * O portal faz as duas coisas à mão em `app/estoque/actions.ts`; o app ainda
- * não, porque o sheet de movimentação não pede custo unitário. Anotado como
- * pendência.
+ * ┌─ A COMPRA VIRA DESPESA AQUI, À MÃO ────────────────────────────────────┐
+ * │ `apply_stock_movement` grava o movimento e ajusta o saldo — e SÓ. Ela   │
+ * │ não mexe em `products.cost` nem lança nada em `costs`, e não deveria    │
+ * │ mesmo: nem toda entrada é compra (devolução de estorno também entra     │
+ * │ por ela, e aquilo não é dinheiro saindo).                               │
+ * │                                                                        │
+ * │ Quem sabe que ISTO é uma compra é esta função, porque só ela recebeu o  │
+ * │ custo unitário. As duas escritas abaixo são as mesmas que o portal faz  │
+ * │ em `app/estoque/actions.ts` — e são o motivo de o sheet ter passado a   │
+ * │ pedir o custo: até 29/08/2026 o app registrava a entrada e NÃO lançava  │
+ * │ a despesa, enquanto o portal lançava. O mesmo negócio tinha dois lucros │
+ * │ diferentes conforme onde a mercadoria fosse dada entrada.               │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * ⚠️ ELAS NÃO DERRUBAM A MOVIMENTAÇÃO. O saldo já está ajustado quando estas
+ * linhas rodam; estourar aqui faria a tela dizer que a entrada falhou sobre um
+ * estoque que já subiu, e o dono lançaria tudo de novo.
  */
 export async function createStockMovement(
   payload: StockMovementCreateAPI,
@@ -112,10 +126,16 @@ export async function createStockMovement(
     p_quantity: payload.delta,
     p_reason: payload.reason.trim() || null,
     p_sale_id: null,
-    p_unit_cost: null,
+    // O custo vai junto para o HISTÓRICO do movimento. Quem lança a despesa é
+    // o `registerPurchase` abaixo — a função do banco não faz isso.
+    p_unit_cost: payload.unit_cost_cents === null ? null : centsToReal(payload.unit_cost_cents),
   });
 
   if (error) throw error;
+
+  if (payload.delta > 0 && (payload.unit_cost_cents ?? 0) > 0) {
+    await registerPurchase(payload);
+  }
 
   logActivity('stock.moved', {
     entityId: payload.product_id,
@@ -133,4 +153,53 @@ export async function createStockMovement(
     actor_name: null,
     happened_label: 'agora',
   };
+}
+
+/**
+ * O lado FINANCEIRO de uma entrada de mercadoria.
+ *
+ * Duas escritas, na ordem que importa se a segunda falhar:
+ *
+ *  1. `products.cost` passa a ser o último custo pago. É o número que a margem
+ *     dos relatórios usa daqui para a frente.
+ *  2. A compra entra em `costs` como custo VARIÁVEL, com `origin: 'stock'`.
+ *
+ * O `origin` não é enfeite: é ele que impede o custo de ser excluído solto na
+ * tela de Custos. Apagá-lo sozinho deixaria a compra sem despesa e o lucro
+ * inflado — quem corrige é a reversão da movimentação.
+ *
+ * NADA AQUI LANÇA EXCEÇÃO. Ver o cabeçalho de `createStockMovement`: o estoque
+ * já subiu, e falhar agora faria a tela mentir sobre o que aconteceu. O preço
+ * é uma compra sem despesa registrada; o preço da alternativa é o dono dar
+ * entrada duas vezes na mesma mercadoria.
+ */
+async function registerPurchase(payload: StockMovementCreateAPI): Promise<void> {
+  const unitCost = centsToReal(payload.unit_cost_cents ?? 0);
+
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (payload.product_id) {
+      await supabase.from('products').update({ cost: unitCost }).eq('id', payload.product_id);
+    }
+
+    await supabase.from('costs').insert({
+      tenant_id: payload.tenant_id,
+      user_id: user?.id ?? null,
+      description: `Compra — ${payload.product_name}`,
+      type: COST_TYPES.variable,
+      category: 'Materiais',
+      // Arredondado em CENTAVOS antes de virar reais: `10 * 3.33` em ponto
+      // flutuante dá 9.99999..., e `costs.amount` é numeric sem escala — o
+      // valor entraria no banco com a sujeira inteira.
+      amount: centsToReal(Math.round((payload.unit_cost_cents ?? 0) * payload.delta)),
+      is_recurring: false,
+      origin: COST_ORIGIN.stock,
+      cost_date: todayDateOnly(),
+    });
+  } catch {
+    // Silêncio proposital — ver o cabeçalho.
+  }
 }
