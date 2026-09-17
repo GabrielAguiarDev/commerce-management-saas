@@ -1,5 +1,5 @@
 import { expectedInCash, movementsBalance } from "@/lib/dados/caixa";
-import { fixedShare } from "@/lib/dados/custos";
+import { fixedTotal } from "@/lib/dados/custos";
 import { lowStock } from "@/lib/dados/produtos";
 import { METHODS } from "@/lib/dados/vendas";
 import { qtdV, totalV } from "@/lib/formato";
@@ -42,14 +42,14 @@ export function costsInPeriod(costs: Cost[], days: number): Cost[] {
 }
 
 /**
- * Total de custos de um período: os variáveis entram pelo valor lançado, os
- * fixos entram rateados — ver `rateioFixo`.
+ * Total de custos de um período: variáveis e fixos entram pelo valor lançado
+ * (cada mês de um custo que repete é um lançamento próprio).
  */
 export function costsTotal(costs: Cost[], days: number): number {
   const variable = costs
     .filter((c) => c.type === "variable" && c.d < days)
     .reduce((a, c) => a + c.amount, 0);
-  return variable + fixedShare(costs, days);
+  return variable + fixedTotal(costs, days);
 }
 
 /* -------------------------------------------------------------------------- */

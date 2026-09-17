@@ -212,7 +212,12 @@ export interface Cost {
   d: number;
   /** A data exata (`costs.cost_date`), para editar sem recalcular. */
   data: string;
+  /** Pertence a uma série mensal (`costs.recurrence_id`). */
   recurring: boolean;
+  /** A série mensal ainda gera lançamentos (false quando foi encerrada). */
+  seriesActive: boolean;
+  /** Primeiro dia do mês (`YYYY-MM-01`) representado pelo lançamento. */
+  competence: string | null;
   /** `costs.origin = 'stock'`: veio de uma entrada de mercadoria. */
   fromStock: boolean;
 }

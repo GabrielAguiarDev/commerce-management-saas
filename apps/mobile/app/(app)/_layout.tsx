@@ -12,7 +12,7 @@ import {
 } from '@components';
 import { ROUTES, isRouteAllowed, resolveAppGate } from '@domain/navigation/routes';
 import { useAppAccess } from '@domain/session';
-import { useCapabilities, useCurrentTenant } from '@domain/tenant';
+import { useCapabilities, useCurrentTenant, usePaymentPreferencesSync } from '@domain/tenant';
 import { useAppHydrated } from '@hooks/useAppHydrated';
 import { useAppTheme } from '@hooks/useAppTheme';
 import { selectIsAuthenticated, useSessionStore } from '@store/sessionStore';
@@ -122,6 +122,9 @@ export default function AppLayout() {
 
 function AppShell() {
   const theme = useAppTheme();
+  // A configuração é carregada no shell, não só na tela de Preferências: o
+  // caixa precisa receber as formas aceitas antes da primeira venda.
+  usePaymentPreferencesSync();
 
   return (
     // A ÚNICA transição do app que é fade — e de propósito.

@@ -3,6 +3,43 @@ import { supabase } from '@services/supabase';
 import type { ActivityAPI, TeamMemberAPI, TenantAPI, TenantUpdateAPI } from './tenantApiTypes';
 
 /**
+ * As formas de pagamento são uma preferência DO NEGÓCIO. A linha pode não
+ * existir ainda; nesse caso o service aplica o mesmo padrão do banco.
+ */
+export async function fetchAcceptedPaymentMethods(tenantId: string): Promise<string[] | null> {
+  void tenantId; // O RLS já limita a leitura ao tenant da sessão.
+
+  const { data, error } = await supabase
+    .from('tenant_settings')
+    .select('accepted_payment_methods')
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data?.accepted_payment_methods as string[] | null | undefined) ?? null;
+}
+
+/**
+ * `upsert` é obrigatório: a ausência da linha significa "valores padrão", e
+ * a primeira alteração é justamente quem precisa criá-la.
+ */
+export async function upsertAcceptedPaymentMethods(
+  tenantId: string,
+  methods: readonly string[],
+): Promise<string[] | null> {
+  const { data, error } = await supabase
+    .from('tenant_settings')
+    .upsert(
+      { tenant_id: tenantId, accepted_payment_methods: [...methods] },
+      { onConflict: 'tenant_id' },
+    )
+    .select('accepted_payment_methods')
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data?.accepted_payment_methods as string[] | null | undefined) ?? null;
+}
+
+/**
  * FRONTEIRA DE REDE do domínio `tenant`.
  *
  * ⚠️ ÚNICO ARQUIVO DESTE DOMÍNIO QUE FALA COM O SUPABASE.

@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { BottomSheet } from '@components/patterns/BottomSheet';
 import { Button } from '@components/ui/Button';
 import { Box } from '@components/ui/Box';
+import { Chips, type ChipOption } from '@components/ui/Chips';
 import { Field } from '@components/ui/Field';
+import { Switch } from '@components/ui/Switch';
 import { Text } from '@components/ui/Text';
 import { useRecordAdjustment, useOpenShift } from '@domain/cash';
 import { CashError } from '@domain/cash/cashTypes';
 import { useRecordCost } from '@domain/costs';
-import { CostError } from '@domain/costs/costsTypes';
+import { CostError, type CostType } from '@domain/costs/costsTypes';
 import { parseMovementQuantity, useRecordStockMovement } from '@domain/stock';
 import { StockError } from '@domain/stock/stockTypes';
 import { useTranslation } from '@i18n';
@@ -75,7 +77,7 @@ const SHEET_CONFIG: Record<SimpleSheetType, SheetConfig> = {
   },
   cost: {
     title: 'Novo custo',
-    text: 'Custos fixos se repetem todo mês.',
+    text: 'Registre um gasto avulso, ou um custo fixo que se repete todo mês.',
     label1: 'Nome do custo',
     placeholder1: 'Ex: aluguel',
     label2: 'Valor',
@@ -108,6 +110,14 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
   const [campo1, setCampo1] = useState(openingAmount);
   const [campo2, setCampo2] = useState('');
   const [custo, setCusto] = useState('');
+  const [costType, setCostType] = useState<CostType>('variable');
+  const [recurring, setRecurring] = useState(false);
+
+  const costTypes: ChipOption<CostType>[] = [
+    { key: 'variable', label: t.costs.variable },
+    { key: 'fixed', label: t.costs.fixed },
+  ];
+  const repeating = costType === 'fixed' && recurring;
 
   const ocupado = ajuste.isPending || stockMovement.isPending || cost.isPending;
 
@@ -171,8 +181,11 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
     }
 
     return cost.mutate(
-      { name: campo1, amountCents: parseCents(campo2) ?? 0 },
-      { onSuccess: sucesso(t.toasts.costRecorded), onError: errorToast },
+      { name: campo1, amountCents: parseCents(campo2) ?? 0, type: costType, recurring: repeating },
+      {
+        onSuccess: sucesso(repeating ? t.toasts.costRecordedRepeating : t.toasts.costRecorded),
+        onError: errorToast,
+      },
     );
   }
 
@@ -180,8 +193,46 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
     <BottomSheet title={conf.title} onClose={closeSheet}>
       <Box gap="s13">
         <Text variant="bodyRelaxed" color="textMuted">
-          {conf.text}
+          {type === 'cost' ? t.costs.sheetText : conf.text}
         </Text>
+
+        {type === 'cost' ? (
+          <Box gap="s10">
+            <Text variant="fieldLabel" color="textMuted">
+              {t.costs.typeLabel}
+            </Text>
+            <Chips
+              options={costTypes}
+              selecionada={costType}
+              onSelect={(next) => {
+                setCostType(next);
+                if (next === 'variable') setRecurring(false);
+              }}
+              method="cash"
+              expandir
+            />
+            {costType === 'fixed' ? (
+              <Box
+                flexDirection="row"
+                alignItems="center"
+                justifyContent="space-between"
+                gap="s12"
+              >
+                <Box flex={1}>
+                  <Text variant="bodyMd">{t.costs.repeatMonthly}</Text>
+                  <Text variant="hint" color="textMuted" marginTop="s3">
+                    {t.costs.repeatMonthlyHint}
+                  </Text>
+                </Box>
+                <Switch
+                  on={recurring}
+                  onToggle={() => setRecurring((value) => !value)}
+                  label={t.costs.repeatMonthly}
+                />
+              </Box>
+            ) : null}
+          </Box>
+        ) : null}
 
         <Field
           label={conf.label1}

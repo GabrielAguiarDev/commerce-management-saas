@@ -1,6 +1,6 @@
 import * as api from './costsApi';
 import { toCost, toCostPayload, toMonthlySummary } from './costsAdapter';
-import { CostError, type Cost, type MonthlySummary } from './costsTypes';
+import { CostError, type Cost, type CostType, type MonthlySummary } from './costsTypes';
 
 /** AS REGRAS dos custos. */
 
@@ -38,12 +38,14 @@ export async function recordCost(
   tenantId: string,
   name: string,
   amountCents: number,
+  type: CostType,
+  recurring: boolean,
 ): Promise<Cost> {
   if (!name.trim()) throw new CostError('name_required');
   if (amountCents <= 0) throw new CostError('invalid_amount');
 
   try {
-    return toCost(await api.createCost(toCostPayload(tenantId, name, amountCents)));
+    return toCost(await api.createCost(toCostPayload(tenantId, name, amountCents, type, recurring)));
   } catch (e) {
     return normalize(e);
   }

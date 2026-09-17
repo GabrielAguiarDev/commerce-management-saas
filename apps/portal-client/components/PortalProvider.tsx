@@ -20,6 +20,8 @@ import {
   undoRegisterMovement as undoRegisterMovementAction,
 } from "@/app/caixa/actions";
 import {
+  inviteEmployee as acaoConvidarFuncionario,
+  removeEmployee as acaoRemoverFuncionario,
   setEmployeeActive,
   savePreferences,
   saveTheme,
@@ -675,6 +677,7 @@ export function PortalProvider({
 
   const saveCost = useCallback(async () => {
     const f = s.costForm;
+    const original = f.id ? d.costs.find((cost) => cost.id === f.id) : null;
     const amount = parseBrNumber(f.amount);
     if (!f.description.trim() || amount <= 0) {
       set({ costForm: { ...f, submitted: true } });
@@ -689,24 +692,41 @@ export function PortalProvider({
           description: f.description,
           category: f.category,
           amount,
-          data: dateDaysAgo(f.d),
+          // Em série a data não é editável: manda a original, sem recalcular.
+          data: original?.recurring ? original.data : dateDaysAgo(f.d),
           recurring: f.recurring,
         }),
-      f.id ? "Custo atualizado" : "Custo registrado",
+      original?.recurring
+        ? !f.recurring
+          ? "Custo parou de repetir; este mês foi mantido"
+          : original.seriesActive
+            ? "Custo atualizado deste mês em diante"
+            : "Custo atualizado"
+        : f.recurring
+          ? f.id
+            ? "Custo passa a repetir todo mês"
+            : "Custo registrado para repetir todo mês"
+          : f.id
+            ? "Custo atualizado"
+            : "Custo registrado",
       (ok) => ok && set({ modal: null, costForm: { ...EMPTY_COST_FORM } }),
     );
-  }, [s.costForm, run, set]);
+  }, [s.costForm, d.costs, run, set]);
 
   const deleteCost = useCallback(
     async (id: string) => {
+      const cost = d.costs.find((c) => c.id === id);
       set({ rowMenu: null });
-      await run(() => acaoExcluirCusto(id), "Custo excluído");
+      await run(
+        () => acaoExcluirCusto(id),
+        cost?.recurring && cost.seriesActive ? "Custo excluído e parou de repetir" : "Custo excluído",
+      );
       // A caixa de confirmação só sai depois da resposta: é o botão dela que
       // segura a espera, travado e girando. Fechá-la antes anunciava um fim que
       // o servidor ainda podia recusar.
       set({ confirmDialog: null });
     },
-    [run, set],
+    [d.costs, run, set],
   );
 
   /* ---------------------------------------------------------------------- */
@@ -927,6 +947,33 @@ export function PortalProvider({
     [d.team, run, set],
   );
 
+  const inviteEmployee = useCallback(
+    async (name: string, email: string, roleId: string) => {
+      let ok = false;
+      await run(
+        () => acaoConvidarFuncionario({ name, email, roleId }),
+        "Convite enviado",
+        (result) => { ok = result; },
+      );
+      if (ok) set({ modal: null });
+      return ok;
+    },
+    [run, set],
+  );
+
+  const removeEmployee = useCallback(
+    async (id: string) => {
+      const employee = d.team.find((member) => member.id === id);
+      set({ rowMenu: null });
+      await run(
+        () => acaoRemoverFuncionario(id),
+        `${employee?.name ?? "Funcionário"} removido`,
+      );
+      set({ confirmDialog: null });
+    },
+    [d.team, run, set],
+  );
+
   const changeEmployeeRole = useCallback(
     (id: string, roleId: string) => {
       set({ rowMenu: null });
@@ -1064,6 +1111,8 @@ export function PortalProvider({
       openRole,
       saveRole,
       removeRole,
+      inviteEmployee,
+      removeEmployee,
       toggleEmployee,
       changeEmployeeRole,
       openNewTicket,
@@ -1081,7 +1130,7 @@ export function PortalProvider({
       deleteCost, openRegister, recordRegisterMovement, undoRegisterMovement, closeRegister, reopenRegister,
       saveData, discardData, saveLogo, saveFiscal, discardFiscal, resendDocument, toggleMethod, togglePrintReceipt,
       toggleAskCustomer, openRole, saveRole, removeRole,
-      toggleEmployee, changeEmployeeRole, openNewTicket, sendTicket,
+      inviteEmployee, removeEmployee, toggleEmployee, changeEmployeeRole, openNewTicket, sendTicket,
       replyToTicket, resolveTicket, reopenTicket, markRead,
     ],
   );

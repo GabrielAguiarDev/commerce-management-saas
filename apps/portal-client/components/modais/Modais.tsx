@@ -2,7 +2,7 @@
 
 import { CaixaAbrirModal, CaixaDetalheModal, CaixaFecharModal, CaixaMovModal } from "@/components/modais/CaixaModais";
 import { CustoModal } from "@/components/modais/CustoModal";
-import { EmployeeModal, RoleModal } from "@/components/modais/EquipeModais";
+import { EmployeeModal, InviteEmployeeModal, RoleModal } from "@/components/modais/EquipeModais";
 import { MovEstoqueModal } from "@/components/modais/MovEstoqueModal";
 import { ProdutoModal } from "@/components/modais/ProdutoModal";
 import { NewTicketModal } from "@/components/modais/SuporteModal";
@@ -39,6 +39,8 @@ export function Modais() {
       const register = d.caixasFechados.find((c) => c.id === m.id);
       return register ? <CaixaDetalheModal register={register} /> : null;
     }
+    case "inviteEmployee":
+      return <InviteEmployeeModal />;
     case "employee":
       return <EmployeeModal id={m.id} />;
     case "role":

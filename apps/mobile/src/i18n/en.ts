@@ -154,7 +154,11 @@ export const en = {
     /** Says out loud that an expense was created — see the pt-BR file. */
     stockUpdatedWithCost: 'Stock updated and the purchase was added to costs.',
     costRecorded: 'Cost recorded.',
+    costRecordedRepeating: 'Cost recorded. It will be added again every month.',
     businessSaved: 'Business details saved.',
+    paymentPreferencesSaved: 'Accepted payment methods updated.',
+    paymentPreferencesFailed: 'Could not save payment methods. Try again.',
+    paymentMethodRequired: 'Keep at least one payment method enabled.',
     /** See the pt-BR file: the file is shared, not saved to the device. */
     reportNotReady: 'The report is still loading. Try again in a moment.',
     shareUnavailable: 'This device cannot share files.',
@@ -345,6 +349,8 @@ export const en = {
       'employee.suspended': 'Access suspended',
       'employee.restored': 'Access restored',
       'employee.role_changed': 'Access type changed',
+      'employee.invited': 'Employee invited',
+      'employee.removed': 'Employee removed',
       'ticket.opened': 'Ticket opened',
     } as Record<string, string>,
   },
@@ -442,6 +448,19 @@ export const en = {
       low: (quantity: number) => `${quantity} — running low`,
       inStock: (quantity: number) => `${quantity} in stock`,
     },
+  },
+
+  costs: {
+    sheetText: 'Record a one-off expense, or a fixed cost that repeats every month.',
+    typeLabel: 'Cost type',
+    variable: 'Variable',
+    fixed: 'Fixed',
+    repeatMonthly: 'Repeat every month',
+    /** The first entry is today; the next ones fall on the same day of the month. */
+    repeatMonthlyHint:
+      'Recorded today and again on the same day each month — or on the last day, in shorter months.',
+    /** "month 09/2026": which month a repeating entry stands for. */
+    competence: (month: string) => `month ${month}`,
   },
 
   stockAlert: {

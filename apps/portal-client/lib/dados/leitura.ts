@@ -443,15 +443,30 @@ export async function readStockMovements(supabase: Customer, days = 90): Promise
 /* Custos                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/** O embed many-to-one vem como objeto, mas o client sem tipos não garante. */
+function seriesActive(series: unknown): boolean {
+  const row = Array.isArray(series) ? series[0] : series;
+  return !!row && typeof row === "object" && (row as { active?: unknown }).active === true;
+}
+
 export async function readCosts(supabase: Customer, days = 180): Promise<Cost[]> {
+  // Sem cron ou infraestrutura externa: toda leitura materializa primeiro as
+  // competências que faltam. A RPC é idempotente e segura sob concorrência.
+  // Se ela falhar, a lista ainda sai com o que já foi lançado — a próxima
+  // leitura tenta gerar de novo.
+  const { error: generationError } = await supabase.rpc("generate_recurring_costs");
+  if (generationError) console.error("generate_recurring_costs", generationError);
+
   const since = new Date(hoje0() - days * MS_DAY);
   const iso = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, "0")}-${String(since.getDate()).padStart(2, "0")}`;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("costs")
-    .select("id, description, type, category, amount, is_recurring, origin, cost_date")
+    .select("id, description, type, category, amount, origin, cost_date, recurrence_id, competence, series:cost_recurrence_series(active)")
     .gte("cost_date", iso)
     .order("cost_date", { ascending: false });
+
+  if (error) throw error;
 
   return (data ?? []).map((c) => ({
     id: c.id,
@@ -461,7 +476,10 @@ export async function readCosts(supabase: Customer, days = 180): Promise<Cost[]>
     amount: num(c.amount),
     d: dateDaysAgo(c.cost_date),
     data: c.cost_date,
-    recurring: !!c.is_recurring,
+    // A série é a fonte da verdade; `is_recurring` é derivado dela no banco.
+    recurring: c.recurrence_id != null,
+    seriesActive: seriesActive(c.series),
+    competence: c.competence,
     fromStock: c.origin === "stock",
   }));
 }
@@ -586,7 +604,7 @@ export async function readTeam(
 ): Promise<{ roles: Role[]; team: Employee[] }> {
   const [{ data: rawRoles }, { data: rawProfiles }] = await Promise.all([
     supabase.from("roles").select("id, name, permissions, is_owner").order("name"),
-    supabase.from("profiles").select("id, full_name, status, role_id, roles(name, is_owner)"),
+    supabase.from("profiles").select("id, full_name, email, status, role_id, roles(name, is_owner)"),
   ]);
 
   const roles: Role[] = (rawRoles ?? []).map((r) => ({
@@ -603,9 +621,7 @@ export async function readTeam(
     return {
       id: p.id,
       name: p.full_name ?? "Sem nome",
-      // O e-mail vive em `auth.users`, fora do alcance do RLS do portal.
-      // Ver a análise: falta uma coluna ou uma view que o exponha.
-      email: "",
+      email: p.email ?? "",
       role: role?.name ?? "Sem tipo de acesso",
       active: p.status === "active",
       owner: !!role?.is_owner,

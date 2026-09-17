@@ -137,7 +137,11 @@ export const ptBR: Messages = {
     // mesma compra à mão em Custos e ela conta duas vezes.
     stockUpdatedWithCost: 'Estoque atualizado e a compra entrou nos custos.',
     costRecorded: 'Custo registrado.',
+    costRecordedRepeating: 'Custo registrado. Ele volta a ser lançado todo mês.',
     businessSaved: 'Dados do negócio salvos.',
+    paymentPreferencesSaved: 'Formas de pagamento atualizadas.',
+    paymentPreferencesFailed: 'Não deu para salvar as formas de pagamento. Tente de novo.',
+    paymentMethodRequired: 'Mantenha pelo menos uma forma de pagamento ativa.',
     // O arquivo NÃO é "salvo no celular": ele é gerado no cache e entregue à
     // folha de compartilhamento. Prometer que ficou guardado mandaria a pessoa
     // procurar num lugar onde não está.
@@ -327,6 +331,8 @@ export const ptBR: Messages = {
       'employee.suspended': 'Acesso suspenso',
       'employee.restored': 'Acesso liberado',
       'employee.role_changed': 'Tipo de acesso trocado',
+      'employee.invited': 'Funcionário convidado',
+      'employee.removed': 'Funcionário removido',
       'ticket.opened': 'Chamado aberto',
     } as Record<string, string>,
   },
@@ -430,6 +436,17 @@ export const ptBR: Messages = {
       low: (quantity: number) => `${quantity} — está baixo`,
       inStock: (quantity: number) => `${quantity} em estoque`,
     },
+  },
+
+  costs: {
+    sheetText: 'Registre um gasto avulso, ou um custo fixo que se repete todo mês.',
+    typeLabel: 'Tipo do custo',
+    variable: 'Variável',
+    fixed: 'Fixo',
+    repeatMonthly: 'Repetir todo mês',
+    repeatMonthlyHint:
+      'Lançado hoje e de novo no mesmo dia de cada mês — ou no último dia, nos meses mais curtos.',
+    competence: (month: string) => `competência ${month}`,
   },
 
   stockAlert: {

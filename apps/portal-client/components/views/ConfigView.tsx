@@ -434,6 +434,7 @@ function TeamTab() {
   const { a, has, isDesktop, d } = usePortal();
 
   const active = d.team.filter((x) => x.active).length;
+  const canInvite = d.roles.some((role) => !role.fixed);
   const roleCols = isDesktop ? "1fr 1fr" : "1fr";
 
   return (
@@ -445,6 +446,17 @@ function TeamTab() {
             ? "Por enquanto só você tem acesso a este portal."
             : `${d.team.length} pessoas cadastradas · ${active} com acesso liberado`
         }
+        action={
+          <Button
+            onClick={() => canInvite ? a.openModal({ k: "inviteEmployee" }) : a.openRole(null)}
+            className="hv-acc-borda"
+            style={css(
+              `padding:11px 18px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font:600 13px ${SANS}`,
+            )}
+          >
+            {canInvite ? "+ Convidar funcionário" : "+ Criar tipo de acesso"}
+          </Button>
+        }
         flush
       >
         {d.team.length === 0 ? (
@@ -455,7 +467,7 @@ function TeamTab() {
           >
             <div style={css(`font:700 15px ${SANS}`)}>Nenhum funcionário cadastrado</div>
             <p style={css(`margin:0;max-width:340px;font:400 12.5px/1.5 ${SANS};color:var(--muted)`)}>
-              Fale com a nossa equipe para liberar o acesso de mais alguém.
+              Crie um tipo de acesso e envie o primeiro convite por e-mail.
             </p>
           </div>
         ) : (
@@ -484,6 +496,11 @@ function TeamTab() {
                       >
                         {x.name}
                       </span>
+                      {x.email ? (
+                        <span style={css(`width:100%;font:500 11px ${SANS};color:var(--muted)`)}>
+                          {x.email}
+                        </span>
+                      ) : null}
                       <span
                         style={css(
                           `padding:2px 8px;border-radius:999px;font:600 10.5px ${SANS};` +
@@ -538,6 +555,23 @@ function TeamTab() {
                               action: () => a.toggleEmployee(x.id),
                             }),
                         },
+                        {
+                          text: "Remover funcionário",
+                          color: "var(--danger)",
+                          onClick: () =>
+                            a.confirm({
+                              title: "Remover este funcionário?",
+                              text: "O login e o perfil desta pessoa serão removidos do negócio.",
+                              summary: x.name,
+                              detail: x.email || x.role,
+                              reversal: "Para devolver o acesso depois, será necessário enviar um novo convite.",
+                              button: "Remover funcionário",
+                              buttonBg: "var(--danger)",
+                              buttonInk: "#fff",
+                              color: "var(--danger)",
+                              action: () => a.removeEmployee(x.id),
+                            }),
+                        },
                       ]}
                     />
                   )}
@@ -549,8 +583,8 @@ function TeamTab() {
 
         <div style={css("padding:13px 18px;border-top:1px solid var(--border);background:var(--surface2)")}>
           <UnsavedNotice>
-            Cadastrar um funcionário novo cria um login, e isso ainda é feito pela nossa equipe. Aqui
-            você muda o tipo de acesso e suspende quem já existe.
+            O convite cria um login separado e a pessoa escolhe a própria senha pelo e-mail. Você
+            pode mudar, suspender ou remover o acesso a qualquer momento.
           </UnsavedNotice>
         </div>
       </Panel>
@@ -853,6 +887,8 @@ const ACTION_LABEL: Record<string, string> = {
   "employee.suspended": "Acesso suspenso",
   "employee.restored": "Acesso liberado",
   "employee.role_changed": "Tipo de acesso trocado",
+  "employee.invited": "Funcionário convidado",
+  "employee.removed": "Funcionário removido",
 
   "ticket.opened": "Chamado aberto",
 };

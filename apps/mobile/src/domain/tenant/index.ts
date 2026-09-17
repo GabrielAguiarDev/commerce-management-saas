@@ -14,5 +14,7 @@ export {
   useCapabilities,
   useTeam,
   useSaveBusinessDetails,
+  useSaveAcceptedPaymentMethods,
+  usePaymentPreferencesSync,
   useCurrentTenant,
 } from './useCases/useTenant';

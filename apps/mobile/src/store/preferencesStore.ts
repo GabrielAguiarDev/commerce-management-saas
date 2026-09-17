@@ -2,7 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { PAYMENT_METHODS as DB_PAYMENT_METHODS } from '@domain/shared/dbEnums';
+import {
+  PAYMENT_METHODS as DB_PAYMENT_METHODS,
+  type DbPaymentMethod,
+} from '@domain/shared/dbEnums';
 import type { Language } from '@i18n/languages';
 import { DEFAULT_LANGUAGE, isSupportedLanguage } from '@i18n/languages';
 import { STORAGE_KEYS } from '@services/storageAdapter';
@@ -35,7 +38,7 @@ import { STORAGE_KEYS } from '@services/storageAdapter';
  */
 export const PAYMENT_METHODS = DB_PAYMENT_METHODS;
 
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export type PaymentMethod = DbPaymentMethod;
 
 /**
  * What a payload written by an older build calls each card method.
@@ -59,6 +62,7 @@ interface PreferencesState {
   toggleTheme: () => void;
   setLanguage: (language: Language) => void;
   toggleMethod: (method: PaymentMethod) => void;
+  setAcceptedMethods: (methods: readonly PaymentMethod[]) => void;
 }
 
 const ALL_ACCEPTED = Object.fromEntries(PAYMENT_METHODS.map((m) => [m, true])) as Record<
@@ -94,6 +98,16 @@ export const usePreferencesStore = create<PreferencesState>()(
 
       toggleMethod: (method) =>
         set((s) => ({ acceptedMethods: { ...s.acceptedMethods, [method]: !s.acceptedMethods[method] } })),
+
+      // A configuração da empresa vem de `tenant_settings`. O mapa continua
+      // neste store para o carrinho poder consultá-lo sem depender da tela de
+      // Preferências estar montada, mas o servidor é a fonte de verdade.
+      setAcceptedMethods: (methods) =>
+        set({
+          acceptedMethods: Object.fromEntries(
+            PAYMENT_METHODS.map((method) => [method, methods.includes(method)]),
+          ) as Record<PaymentMethod, boolean>,
+        }),
     }),
     {
       name: STORAGE_KEYS.preferences,

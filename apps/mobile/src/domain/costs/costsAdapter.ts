@@ -7,15 +7,28 @@ function toTipo(kind: string): CostType {
   return kind === 'fixed' ? 'fixed' : 'variable';
 }
 
+/** `2026-09-01` → `09/2026`; qualquer outra coisa → null. */
+export function toCompetenceLabel(competence: string | null): string | null {
+  const match = competence ? /^(\d{4})-(\d{2})-\d{2}$/.exec(competence) : null;
+  return match ? `${match[2]}/${match[1]}` : null;
+}
+
 export function toCost(raw: CostAPI): Cost {
   const type = toTipo(raw.kind);
+  const recurring = raw.recurrence_id != null;
+  // Só a série ATIVA repete. Um lançamento de série encerrada é história e
+  // aparece como um fixo comum.
+  const repeating = recurring && raw.series_active === true;
   return {
     id: raw.id,
     name: raw.name,
     amountCents: raw.amount_cents ?? 0,
     type,
-    typeLabel: type === 'fixed' ? 'Fixo · todo mês' : 'Variável',
+    typeLabel: type === 'fixed' ? (repeating ? 'Fixo · todo mês' : 'Fixo') : 'Variável',
     quando: raw.due_label ?? '—',
+    recurring,
+    repeating,
+    competenceLabel: recurring ? toCompetenceLabel(raw.competence) : null,
     fromStock: raw.from_stock === true,
   };
 }
@@ -40,8 +53,20 @@ export function toMonthlySummary(raw: MonthSummaryAPI): MonthlySummary {
   };
 }
 
-export function toCostPayload(tenantId: string, name: string, amountCents: number): CostCreateAPI {
-  return { tenant_id: tenantId, name: name.trim(), amount_cents: amountCents, kind: 'variable' };
+export function toCostPayload(
+  tenantId: string,
+  name: string,
+  amountCents: number,
+  type: CostType,
+  recurring: boolean,
+): CostCreateAPI {
+  return {
+    tenant_id: tenantId,
+    name: name.trim(),
+    amount_cents: amountCents,
+    kind: type,
+    recurring: type === 'fixed' && recurring,
+  };
 }
 
 /** Seletor puro dos chips Todos / Fixos / Variáveis. */

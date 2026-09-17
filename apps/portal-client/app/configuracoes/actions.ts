@@ -446,12 +446,127 @@ export async function removeRole(id: string): Promise<ActionResult> {
 /* Funcionários                                                                */
 /* -------------------------------------------------------------------------- */
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/**
+ * Em respostas não-2xx o supabase-js devolve `data: null` e guarda a Response
+ * em `error.context`; é de lá que sai a mensagem escrita pela Edge Function.
+ */
+async function teamFunctionMessage(error: unknown, fallback: string): Promise<string> {
+  const context = (error as { context?: unknown } | null)?.context;
+  if (context instanceof Response) {
+    try {
+      const body: unknown = await context.clone().json();
+      if (
+        typeof body === "object" &&
+        body !== null &&
+        typeof (body as { error?: unknown }).error === "string"
+      ) {
+        const message = (body as { error: string }).error;
+        return message.charAt(0).toUpperCase() + message.slice(1) + ".";
+      }
+    } catch {
+      // Corpo não-JSON: fica a mensagem genérica.
+    }
+  }
+  return fallback;
+}
+
+/**
+ * Envia um convite sem trazer a service_role para este projeto.
+ *
+ * A Edge Function confirma novamente que a sessão é do dono, cria o usuário no
+ * Auth, envia o e-mail e só então liga o perfil ao tenant. Se o perfil falhar,
+ * ela remove o usuário criado para o endereço não ficar preso num órfão.
+ */
+export async function inviteEmployee(input: {
+  name: string;
+  email: string;
+  roleId: string;
+}): Promise<ActionResult> {
+  const session = await requireOwner("convidar um funcionário");
+  if (!session.ok) return session;
+
+  const name = input.name.trim();
+  const email = input.email.trim().toLowerCase();
+  if (name.length < 2) return { ok: false, message: "Informe o nome da pessoa." };
+  if (!EMAIL_RE.test(email)) return { ok: false, message: "Informe um e-mail válido." };
+
+  const { data: role } = await session.supabase
+    .from("roles")
+    .select("id, name")
+    .eq("id", input.roleId)
+    .eq("tenant_id", session.tenantId)
+    .eq("is_owner", false)
+    .maybeSingle();
+
+  if (!role) return { ok: false, message: "Escolha um tipo de acesso válido." };
+
+  const { data, error } = await session.supabase.functions.invoke("team-members", {
+    body: { action: "invite", name, email, role_id: role.id },
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: await teamFunctionMessage(error, "Não foi possível enviar o convite."),
+    };
+  }
+
+  await logActivity(session.supabase, "employee.invited", {
+    entityId:
+      typeof data === "object" &&
+      data !== null &&
+      "user_id" in data &&
+      typeof (data as { user_id?: unknown }).user_id === "string"
+        ? (data as { user_id: string }).user_id
+        : null,
+    summary: name,
+    metadata: { roleId: role.id, roleName: role.name },
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Remove o login e o perfil de um funcionário, preservando a auditoria. */
+export async function removeEmployee(id: string): Promise<ActionResult> {
+  const session = await requireOwner("remover um funcionário");
+  if (!session.ok) return session;
+  if (id === session.userId) return { ok: false, message: "Você não pode remover o próprio acesso." };
+
+  const { data: target } = await session.supabase
+    .from("profiles")
+    .select("id, full_name, roles!inner(is_owner)")
+    .eq("id", id)
+    .eq("tenant_id", session.tenantId)
+    .eq("roles.is_owner", false)
+    .maybeSingle();
+
+  if (!target) return { ok: false, message: "Funcionário não encontrado." };
+
+  const { error } = await session.supabase.functions.invoke("team-members", {
+    body: { action: "remove", user_id: id },
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: await teamFunctionMessage(error, "Não foi possível remover o funcionário."),
+    };
+  }
+
+  await logActivity(session.supabase, "employee.removed", {
+    entityId: id,
+    summary: target.full_name ?? null,
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
 /**
  * Suspende ou libera o acesso de alguém da equipe.
- *
- * É o que dá para fazer daqui: CRIAR um funcionário exige criar o usuário no
- * Auth, e isso precisa da `service_role`, que não existe neste projeto por
- * decisão de segurança. Ver a análise.
  */
 export async function setEmployeeActive(id: string, active: boolean): Promise<ActionResult> {
   const session = await requireOwner("alterar o acesso de um funcionário");

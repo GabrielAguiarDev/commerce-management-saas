@@ -5,6 +5,7 @@ import type { ChipOption } from '@components';
 import { filterCosts, useCosts, useMonthlySummary } from '@domain/costs';
 import type { CostFilter } from '@domain/costs';
 import { useUIStore } from '@store/uiStore';
+import { useTranslation } from '@i18n';
 import { formatBRL } from '@utils/money';
 
 const FILTERS: ChipOption<CostFilter>[] = [
@@ -24,6 +25,7 @@ export default function CostsScreen() {
   const { data: summary } = useMonthlySummary();
   const { data: costs = [] } = useCosts();
   const openSheet = useUIStore((s) => s.openSheet);
+  const t = useTranslation();
 
   const [filter, setFilter] = useState<CostFilter>('all');
   const list = filterCosts(costs, filter);
@@ -81,7 +83,9 @@ export default function CostsScreen() {
           <Box alignItems="flex-end">
             <Text variant="moneyBase">{formatBRL(cost.amountCents)}</Text>
             <Text variant="hint" color="textMuted" marginTop="s3">
-              {cost.quando}
+              {cost.competenceLabel
+                ? `${cost.quando} · ${t.costs.competence(cost.competenceLabel)}`
+                : cost.quando}
             </Text>
           </Box>
         </Box>

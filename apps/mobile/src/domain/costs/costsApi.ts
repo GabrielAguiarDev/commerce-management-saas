@@ -22,28 +22,83 @@ const HISTORY_DAYS = 180;
  * `toISOString()`: às 21h de Brasília o ISO já aponta para o dia seguinte, e um
  * custo lançado à noite cairia fora do mês em que foi pago.
  */
-export async function listCosts(tenantId: string): Promise<CostAPI[]> {
-  void tenantId; // O RLS já isola pelo tenant do usuário logado.
+const COST_COLUMNS =
+  'id, tenant_id, description, type, amount, origin, cost_date, recurrence_id, competence, series:cost_recurrence_series(active)';
 
-  const { data, error } = await supabase
-    .from('costs')
-    .select('id, tenant_id, description, type, category, amount, is_recurring, origin, cost_date')
-    .gte('cost_date', daysAgoDateOnly(HISTORY_DAYS))
-    .order('cost_date', { ascending: false });
+let generation: Promise<void> | null = null;
 
-  if (error) throw error;
+/**
+ * GERA OS MESES QUE FALTAM das séries mensais antes de ler.
+ *
+ * Não há cron: a RPC materializa as competências vencidas e é idempotente no
+ * banco (uma linha por série + mês), então retry e leituras concorrentes não
+ * duplicam. A lista e o resumo do mês carregam juntos; a promessa em voo é
+ * compartilhada para não chamar a RPC duas vezes na mesma tela.
+ *
+ * Falhar aqui não derruba a leitura: o que já foi lançado continua na tela e
+ * a próxima leitura tenta gerar de novo.
+ */
+function generateRecurringCosts(): Promise<void> {
+  generation ??= (async () => {
+    try {
+      const { error } = await supabase.rpc('generate_recurring_costs');
+      if (error) console.warn('generate_recurring_costs', error.message);
+    } catch (e) {
+      console.warn('generate_recurring_costs', e);
+    } finally {
+      generation = null;
+    }
+  })();
+  return generation;
+}
 
-  return (data ?? []).map((c) => ({
+interface CostRow {
+  id: string;
+  tenant_id: string;
+  description: string;
+  type: string | null;
+  amount: number | null;
+  origin: string | null;
+  cost_date: string;
+  recurrence_id: string | null;
+  competence: string | null;
+  series: { active: boolean | null } | { active: boolean | null }[] | null;
+}
+
+function toCostAPI(c: CostRow): CostAPI {
+  // O embed many-to-one vem como objeto; o client sem tipos não garante.
+  const series = Array.isArray(c.series) ? c.series[0] : c.series;
+  const seriesActive = c.recurrence_id != null && series?.active === true;
+  return {
     id: c.id,
     tenant_id: c.tenant_id,
     name: c.description,
     amount_cents: realToCents(c.amount),
     kind: costTypeFromDb(c.type),
-    due_label: dueLabel(c.cost_date, c.is_recurring),
+    due_label: dueLabel(c.cost_date, seriesActive),
     // Custo que nasceu de uma entrada de estoque. A tela usa isto para explicar
     // por que a despesa apareceu sem ninguém digitar.
     from_stock: c.origin === COST_ORIGIN.stock,
-  }));
+    recurrence_id: c.recurrence_id,
+    series_active: seriesActive,
+    competence: c.competence,
+  };
+}
+
+export async function listCosts(tenantId: string): Promise<CostAPI[]> {
+  void tenantId; // O RLS já isola pelo tenant do usuário logado.
+
+  await generateRecurringCosts();
+
+  const { data, error } = await supabase
+    .from('costs')
+    .select(COST_COLUMNS)
+    .gte('cost_date', daysAgoDateOnly(HISTORY_DAYS))
+    .order('cost_date', { ascending: false });
+
+  if (error) throw error;
+
+  return ((data ?? []) as unknown as CostRow[]).map(toCostAPI);
 }
 
 /**
@@ -73,6 +128,10 @@ function dueLabel(costDate: string, isRecurring: boolean | null): string | null 
  */
 export async function fetchMonthlySummary(tenantId: string): Promise<MonthSummaryAPI | null> {
   void tenantId;
+
+  // Esta consulta pode correr antes da lista na tela. Gerar aqui também evita
+  // que o card mensal mostre um total sem o mês que acabou de vencer.
+  await generateRecurringCosts();
 
   const { data, error } = await supabase
     .from('v_monthly_result')
@@ -124,40 +183,33 @@ function rangeLabel(month: string): string {
 }
 
 export async function createCost(payload: CostCreateAPI): Promise<CostAPI> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const costDate = todayDateOnly();
+
+  const { data: savedId, error: saveError } = await supabase.rpc('save_manual_cost', {
+    p_id: null,
+    p_description: payload.name,
+    p_type: payload.kind === COST_TYPES.fixed ? COST_TYPES.fixed : COST_TYPES.variable,
+    p_category: null,
+    p_amount: centsToReal(payload.amount_cents),
+    p_cost_date: costDate,
+    p_is_recurring: payload.recurring,
+  });
+
+  if (saveError) throw saveError;
 
   const { data, error } = await supabase
     .from('costs')
-    .insert({
-      tenant_id: payload.tenant_id,
-      user_id: user?.id ?? null,
-      description: payload.name,
-      type: payload.kind === COST_TYPES.fixed ? COST_TYPES.fixed : COST_TYPES.variable,
-      category: null,
-      amount: centsToReal(payload.amount_cents),
-      is_recurring: payload.kind === COST_TYPES.fixed,
-      origin: COST_ORIGIN.manual,
-      cost_date: todayDateOnly(),
-    })
-    .select('id, tenant_id, description, type, amount, is_recurring, origin, cost_date')
+    .select(COST_COLUMNS)
+    .eq('id', savedId)
     .single();
 
   if (error) throw error;
+  const row = data as unknown as CostRow;
 
   logActivity('cost.created', {
-    entityId: data.id,
+    entityId: row.id,
     summary: `${payload.name} · ${(payload.amount_cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
   });
 
-  return {
-    id: data.id,
-    tenant_id: data.tenant_id,
-    name: data.description,
-    amount_cents: realToCents(data.amount),
-    kind: costTypeFromDb(data.type),
-    due_label: dueLabel(data.cost_date, data.is_recurring),
-    from_stock: false,
-  };
+  return toCostAPI(row);
 }

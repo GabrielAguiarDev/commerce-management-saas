@@ -1,6 +1,11 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
+import {
+  PAYMENT_METHODS,
+  usePreferencesStore,
+  type PaymentMethod,
+} from '@store/preferencesStore';
 import { useSessionStore } from '@store/sessionStore';
 
 import { deriveCapabilities } from '../tenantAdapter';
@@ -19,6 +24,7 @@ export const tenantKeys = {
   detail: (id: string) => [...tenantKeys.all, 'detalhe', id] as const,
   team: (id: string) => [...tenantKeys.all, 'equipe', id] as const,
   activities: (id: string) => [...tenantKeys.all, 'atividades', id] as const,
+  paymentPreferences: (id: string) => [...tenantKeys.all, 'formas-pagamento', id] as const,
 };
 
 /** O tenant muda pouco (plano, nome); 5 min sem refetch é folgado e seguro. */
@@ -32,6 +38,51 @@ export function useCurrentTenant() {
     queryFn: () => service.getTenant(tenantId as string),
     enabled: Boolean(tenantId),
     staleTime: CINCO_MINUTOS,
+  });
+}
+
+/** Mantém o seletor do carrinho alinhado à configuração compartilhada. */
+export function usePaymentPreferencesSync() {
+  const tenantId = useSessionStore((s) => s.tenantId);
+  const setAcceptedMethods = usePreferencesStore((s) => s.setAcceptedMethods);
+  const query = useQuery({
+    queryKey: tenantKeys.paymentPreferences(tenantId ?? 'sem-tenant'),
+    queryFn: () => service.getAcceptedPaymentMethods(tenantId as string),
+    enabled: Boolean(tenantId),
+    staleTime: CINCO_MINUTOS,
+  });
+
+  useEffect(() => {
+    if (query.data) setAcceptedMethods(query.data);
+  }, [query.data, setAcceptedMethods]);
+
+  return query;
+}
+
+export function useSaveAcceptedPaymentMethods() {
+  const tenantId = useSessionStore((s) => s.tenantId);
+  const client = useQueryClient();
+  const setAcceptedMethods = usePreferencesStore((s) => s.setAcceptedMethods);
+
+  return useMutation({
+    mutationFn: (methods: readonly PaymentMethod[]) =>
+      service.saveAcceptedPaymentMethods(tenantId as string, methods),
+    onMutate: (methods) => {
+      const previous = usePreferencesStore.getState().acceptedMethods;
+      setAcceptedMethods(methods);
+      return { previous };
+    },
+    onError: (_error, _methods, context) => {
+      if (context?.previous) {
+        const previous = PAYMENT_METHODS.filter((method) => context.previous[method]);
+        setAcceptedMethods(previous);
+      }
+    },
+    onSuccess: (methods) => setAcceptedMethods(methods),
+    onSettled: () =>
+      client.invalidateQueries({
+        queryKey: tenantKeys.paymentPreferences(tenantId ?? 'sem-tenant'),
+      }),
   });
 }
 

@@ -1,6 +1,10 @@
 import * as api from './tenantApi';
 import { toActivity, toMembro, toTenant, toTenantUpdatePayload } from './tenantAdapter';
 import { TenantError, type Activity, type Membro, type Tenant } from './tenantTypes';
+import {
+  PAYMENT_METHODS,
+  type DbPaymentMethod,
+} from '@domain/shared/dbEnums';
 
 /**
  * AS REGRAS do domínio `tenant`.
@@ -13,6 +17,41 @@ import { TenantError, type Activity, type Membro, type Tenant } from './tenantTy
 function normalize(error: unknown): never {
   if (error instanceof TenantError) throw error;
   throw new TenantError('network', error instanceof Error ? error.message : undefined);
+}
+
+function validPaymentMethods(raw: readonly string[] | null): DbPaymentMethod[] {
+  const unique = (raw ?? []).filter(
+    (method, index, all): method is DbPaymentMethod =>
+      (PAYMENT_METHODS as readonly string[]).includes(method) && all.indexOf(method) === index,
+  );
+
+  return unique.length ? unique : [...PAYMENT_METHODS];
+}
+
+export async function getAcceptedPaymentMethods(tenantId: string): Promise<DbPaymentMethod[]> {
+  try {
+    return validPaymentMethods(await api.fetchAcceptedPaymentMethods(tenantId));
+  } catch (e) {
+    return normalize(e);
+  }
+}
+
+export async function saveAcceptedPaymentMethods(
+  tenantId: string,
+  methods: readonly DbPaymentMethod[],
+): Promise<DbPaymentMethod[]> {
+  const unique = methods.filter((method, index, all) => all.indexOf(method) === index);
+  if (unique.length === 0) {
+    throw new TenantError('unknown', 'Aceite pelo menos uma forma de pagamento.');
+  }
+
+  try {
+    const saved = await api.upsertAcceptedPaymentMethods(tenantId, unique);
+    if (!saved) throw new TenantError('forbidden');
+    return validPaymentMethods(saved);
+  } catch (e) {
+    return normalize(e);
+  }
 }
 
 export async function getTenant(tenantId: string): Promise<Tenant> {

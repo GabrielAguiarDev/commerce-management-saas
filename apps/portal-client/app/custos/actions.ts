@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { MANUAL_ORIGIN, COST_TYPE_DB } from "@/lib/dados/custos";
+import { COST_TYPE_DB } from "@/lib/dados/custos";
 import { logActivity } from "@/lib/historico";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 import type { CostType } from "@/types/types";
@@ -24,30 +24,27 @@ export async function saveCost(c: CostToSave): Promise<ActionResult> {
   if (!c.description.trim()) return { ok: false, message: "Escreva o que foi o gasto." };
   if (!(c.amount > 0)) return { ok: false, message: "Informe um valor maior que zero." };
 
-  const { supabase, tenantId, userId } = session;
+  const { supabase } = session;
+  const description = c.description.trim();
+  const recurring = c.type === "fixed" ? c.recurring : false;
 
-  const fields = {
-    description: c.description.trim(),
-    type: COST_TYPE_DB[c.type],
-    category: c.category.trim() || null,
-    amount: c.amount,
-    // Só custo fixo repete: um saco de feijão não volta sozinho todo mês.
-    is_recurring: c.type === "fixed" ? c.recurring : false,
-    cost_date: c.data,
-  };
-
-  const { data: saved, error } = c.id
-    ? await supabase.from("costs").update(fields).eq("id", c.id).select("id")
-    : await supabase
-        .from("costs")
-        .insert({ tenant_id: tenantId, user_id: userId, origin: MANUAL_ORIGIN, ...fields })
-        .select("id");
+  // A RPC cria/edita a série e o lançamento na mesma transação. Editar um mês
+  // de uma série altera aquele mês e os seguintes; os anteriores não mudam.
+  const { data: savedId, error } = await supabase.rpc("save_manual_cost", {
+    p_id: c.id,
+    p_description: description,
+    p_type: COST_TYPE_DB[c.type],
+    p_category: c.category.trim() || null,
+    p_amount: c.amount,
+    p_cost_date: c.data,
+    p_is_recurring: recurring,
+  });
 
   if (error) return { ok: false, message: error.message };
 
   await logActivity(supabase, c.id ? "cost.updated" : "cost.created", {
-    entityId: saved?.[0]?.id ?? c.id ?? null,
-    summary: `${fields.description} · ${c.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+    entityId: savedId ?? c.id ?? null,
+    summary: `${description} · ${c.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
   });
 
   revalidatePath("/", "layout");
@@ -70,7 +67,7 @@ export async function deleteCost(id: string): Promise<ActionResult> {
   // onde tirá-la, e "custo excluído" sem dizer qual não explica nada.
   const { data: cost } = await supabase
     .from("costs")
-    .select("origin, description")
+    .select("origin, description, recurrence_id")
     .eq("id", id)
     .single();
 
@@ -81,10 +78,17 @@ export async function deleteCost(id: string): Promise<ActionResult> {
     };
   }
 
-  const { error } = await supabase.from("costs").delete().eq("id", id);
+  // Para uma série, a RPC preserva competências anteriores e remove a
+  // escolhida e as seguintes. Para um avulso, remove somente a linha.
+  const { error } = await supabase.rpc("delete_manual_cost", { p_id: id });
   if (error) return { ok: false, message: error.message };
 
-  await logActivity(supabase, "cost.deleted", { entityId: id, summary: cost?.description ?? null });
+  await logActivity(supabase, "cost.deleted", {
+    entityId: id,
+    summary: cost
+      ? `${cost.description}${cost.recurrence_id ? " · parou de repetir" : ""}`
+      : null,
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };

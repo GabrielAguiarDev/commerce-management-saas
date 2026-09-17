@@ -18,32 +18,43 @@ deliberadamente excluído desta análise e das alterações.
 | Suporte administrativo | Prioridade não era editável e anexos não abriam | Prioridade pode ser alterada e anexos privados usam URL assinada de curta duração |
 | Landing page | CTA de reserva podia não sair do lugar; contato e dados legais tinham marcadores; depoimentos eram fictícios | CTA leva a Contato, canais dependem de configuração real, marcadores legais saíram da publicação e depoimentos fictícios não são renderizados |
 
+## Segunda fase (17/09/2026)
+
+| Área | Resultado | Migration / arquivo |
+| --- | --- | --- |
+| Autorização no banco | Policies RESTRICTIVE por operação em vendas, itens, produtos, estoque, custos, caixa e suporte, com gates de módulo nas views de relatório e guardas por coluna em `products` | `20260917010000_role_module_rls.sql` |
+| Custos recorrentes | Série mensal explícita (`cost_recurrence_series`), competência por lançamento, geração idempotente (`generate_recurring_costs`), dias 29/30/31 ajustados ao fim do mês, edição/exclusão por RPC e leitura das séries restrita a custos/relatórios | `20260917020000_recurring_costs.sql` |
+| Equipe | O dono convida por e-mail e remove funcionários pela Edge Function `team-members` (service_role só na função). Se a pessoa já tem registros presos por FK, a remoção é recusada e a tela orienta a suspender | `20260917030000_team_members.sql`, `supabase/functions/team-members` |
+| Preferências do mobile | As formas de pagamento aceitas vêm de `tenant_settings`, as mesmas do portal. Tema e idioma continuam no aparelho | `apps/mobile/src/domain/tenant` |
+
+### Para publicar esta fase
+
+1. Aplicar as três migrations, na ordem, e depois conferir os NOTICEs das
+   funções SECURITY DEFINER.
+2. Fazer o deploy de `team-members` e configurar `PORTAL_CLIENT_URL` na função.
+3. Testar em staging com os perfis dono, só vendas, só estoque, só caixa, só
+   relatórios e pacote app, cobrindo venda, estorno, edição de venda,
+   movimentação de estoque com custo, fechamento de caixa, suporte, custo
+   recorrente (incluindo dia 31) e convite/remoção de funcionário.
+
+### Riscos conhecidos
+
+- A validação do SQL foi apenas estática (parser PG17). Nenhuma migration foi
+  executada localmente.
+- Um funcionário de vendas ainda consegue ler `products.cost`, porque o RLS não
+  filtra por coluna.
+- `support_messages` UPDATE não impede trocar `sender_side`.
+- No dashboard do portal, funcionários sem os módulos correspondentes passam a
+  ver vendas, custos e caixa vazios.
+- No mobile ainda não dá para editar nem excluir custos: essa semântica existe
+  só no servidor e no portal.
+
 ## Próximas funcionalidades
-
-### Prioridade alta
-
-1. **Aplicar permissão de papel dentro do banco para todos os domínios usados
-   diretamente pelo mobile.** As RPCs de venda já fazem essa validação. Produtos,
-   estoque, custos, caixa, relatórios e suporte ainda dependem das policies atuais
-   de tenant e do bloqueio de interface. A próxima etapa deve adicionar policies
-   restritivas por operação, considerando dependências de leitura (por exemplo:
-   vender precisa ler produtos; relatório precisa ler vendas e custos).
-
-2. **Convite e remoção de funcionários.** O dono já cria papéis, troca o papel e
-   suspende/libera acessos. Criar ou excluir uma pessoa continua dependendo da
-   equipe da plataforma porque também exige coordenar `auth.users`, convite por
-   e-mail e `profiles`, com compensação caso uma das etapas falhe.
-
-3. **Materialização de custos recorrentes.** Hoje `is_recurring` e o dia do mês
-   são gravados e exibidos, mas não existe rotina que gere o lançamento do mês
-   seguinte. A implementação precisa de uma série recorrente, chave única por
-   competência e executor agendado/idempotente para não duplicar despesas.
 
 ### Prioridade média
 
-4. **Sincronizar preferências do mobile com o tenant.** Tema e parte das
-   preferências ainda são locais ao aparelho. É preciso definir quais são
-   pessoais e quais pertencem ao negócio antes de sincronizar.
+4. **Editar e excluir custos no mobile**, reaproveitando `save_manual_cost` e
+   `delete_manual_cost`.
 
 5. **Fila offline para escritas no portal web.** A PWA possui cache de assets,
    mas não uma fila transacional para alterações feitas sem conexão. O mobile já

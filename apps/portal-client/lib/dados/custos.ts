@@ -37,14 +37,19 @@ export const COST_TYPE_STYLE: Record<CostType, { name: string; color: string; bg
 };
 
 /**
- * Custo fixo é mensal. Num relatório de 7 dias, cobrar o aluguel inteiro faria
- * a semana parecer um desastre — então ele entra rateado pelos dias do período.
+ * Custos fixos lançados no período. Cada mês de uma série é um lançamento real
+ * no banco, então basta somar — ratear pelos dias contaria a mesma despesa
+ * por uma segunda regra.
  */
-export function fixedShare(costs: Cost[], days: number): number {
-  const monthly = costs
-    .filter((c) => c.type === "fixed" && c.d <= 30)
-    .reduce((a, c) => a + c.amount, 0);
-  return (monthly / 30) * days;
+export function fixedTotal(costs: Cost[], days: number): number {
+  return costs.filter((c) => c.type === "fixed" && c.d < days).reduce((a, c) => a + c.amount, 0);
+}
+
+/** `YYYY-MM-01` -> `competência 09/2026`. */
+export function competenceLabel(competence: string | null): string | null {
+  if (!competence) return null;
+  const [year, month] = competence.split("-");
+  return year && month ? `competência ${month}/${year}` : null;
 }
 
 /** As categorias que este cliente já usou, somadas às sugeridas. */

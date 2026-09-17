@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSessionStore } from '@store/sessionStore';
 
 import * as service from '../costsService';
+import type { CostType } from '../costsTypes';
 
 export const costsKeys = {
   all: ['costs'] as const,
@@ -37,8 +38,14 @@ export function useRecordCost() {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { name: string; amountCents: number }) =>
-      service.recordCost(tenantId as string, data.name, data.amountCents),
+    mutationFn: (data: { name: string; amountCents: number; type: CostType; recurring: boolean }) =>
+      service.recordCost(
+        tenantId as string,
+        data.name,
+        data.amountCents,
+        data.type,
+        data.recurring,
+      ),
     onSuccess: () => client.invalidateQueries({ queryKey: costsKeys.all }),
   });
 }

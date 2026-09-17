@@ -1,16 +1,40 @@
 import { Box, Card, Divider, Switch, TabPane, Text, Touchable } from '@components';
+import { useSaveAcceptedPaymentMethods } from '@domain/tenant';
 import { LANGUAGES, useTranslation } from '@i18n';
-import { PAYMENT_METHODS, usePreferencesStore } from '@store/preferencesStore';
+import {
+  PAYMENT_METHODS,
+  activePaymentMethods,
+  usePreferencesStore,
+  type PaymentMethod,
+} from '@store/preferencesStore';
+import { useUIStore } from '@store/uiStore';
 
 /** Configurações › Preferências. */
 export default function PreferencesTab() {
   const t = useTranslation();
   const acceptedMethods = usePreferencesStore((s) => s.acceptedMethods);
-  const toggleMethod = usePreferencesStore((s) => s.toggleMethod);
+  const savePaymentMethods = useSaveAcceptedPaymentMethods();
+  const showToast = useUIStore((s) => s.showToast);
   const darkTheme = usePreferencesStore((s) => s.darkTheme);
   const toggleTheme = usePreferencesStore((s) => s.toggleTheme);
   const language = usePreferencesStore((s) => s.language);
   const setLanguage = usePreferencesStore((s) => s.setLanguage);
+
+  function togglePaymentMethod(method: PaymentMethod) {
+    if (savePaymentMethods.isPending) return;
+
+    const next = { ...acceptedMethods, [method]: !acceptedMethods[method] };
+    const enabled = activePaymentMethods(next);
+    if (enabled.length === 0) {
+      showToast(t.toasts.paymentMethodRequired, { tone: 'erro' });
+      return;
+    }
+
+    savePaymentMethods.mutate(enabled, {
+      onSuccess: () => showToast(t.toasts.paymentPreferencesSaved, { tone: 'sucesso' }),
+      onError: () => showToast(t.toasts.paymentPreferencesFailed, { tone: 'erro' }),
+    });
+  }
 
   return (
     <TabPane>
@@ -27,7 +51,7 @@ export default function PreferencesTab() {
               </Box>
               <Switch
                 on={acceptedMethods[method]}
-                onToggle={() => toggleMethod(method)}
+                onToggle={() => togglePaymentMethod(method)}
                 label={`Aceitar ${t.paymentMethods[method]}`}
               />
             </Box>

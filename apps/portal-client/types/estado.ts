@@ -41,6 +41,7 @@ export type Modal =
   | { k: "registerMovement"; type: RegisterMovementType }
   | { k: "closeRegister" }
   | { k: "registerDetail"; id: string }
+  | { k: "inviteEmployee" }
   | { k: "employee"; id: string }
   | { k: "role"; id: string | null }
   | { k: "newTicket" };
@@ -465,6 +466,8 @@ export interface PortalActions {
   openRole: (id: string | null) => void;
   saveRole: () => Promise<void>;
   removeRole: (id: string) => Promise<void>;
+  inviteEmployee: (name: string, email: string, roleId: string) => Promise<boolean>;
+  removeEmployee: (id: string) => Promise<void>;
   toggleEmployee: (id: string) => Promise<void>;
   changeEmployeeRole: (id: string, roleId: string) => Promise<void>;
 

@@ -3,7 +3,7 @@
 import { usePortal } from "@/components/PortalProvider";
 import { RowMenu } from "@/components/ui";
 import { NewButton, Button, TABLE_HEADER, ScreenHeader, css, KpiStrip, ClearFilters, LIST, MONO, NUM, columnLabel, SANS, SimpleSelect, Empty } from "@aguiar/ui";
-import { costCategories, fixedShare, COST_TYPE_STYLE } from "@/lib/dados/custos";
+import { competenceLabel, costCategories, COST_TYPE_STYLE } from "@/lib/dados/custos";
 import { brl, dateLabel } from "@/lib/formato";
 import { ROUTES } from "@/lib/rotas";
 import { totalRevenue } from "@/lib/selectors";
@@ -40,14 +40,14 @@ export function CustosView() {
 
   const fixed = inPeriod.filter((c) => c.type === "fixed").reduce((x, c) => x + c.amount, 0);
   const variable = inPeriod.filter((c) => c.type === "variable").reduce((x, c) => x + c.amount, 0);
-  const totalReal = variable + fixedShare(d.costs, days);
+  const totalReal = variable + fixed;
   const revenue = totalRevenue(d.sales.filter((v) => v.d < days));
   const peso = revenue > 0 ? (totalReal / revenue) * 100 : 0;
 
   const filterActive = f.type !== ALL_TYPES || f.cat !== ALL_CATEGORIES || f.period !== "Este mês";
 
   const kpis = [
-    { label: "Total do período", value: brl(totalReal), note: "Fixos rateados pelos dias" },
+    { label: "Total do período", value: brl(totalReal), note: "Lançamentos no período" },
     { label: "Variáveis", value: brl(variable), note: "Mercadoria, feira, materiais" },
     { label: "Fixos", value: brl(fixed), note: "Lançados no período" },
     {
@@ -151,20 +151,29 @@ export function CustosView() {
 function CostRow({ cost: c, cols, categoryCol }: { cost: Cost; cols: string; categoryCol: boolean }) {
   const { a, isDesktop } = usePortal();
   const e = COST_TYPE_STYLE[c.type];
+  const competence = competenceLabel(c.competence);
+
+  // Só uma série ativa muda "daqui em diante"; a encerrada se comporta como
+  // um lançamento comum.
+  const repeating = c.recurring && c.seriesActive;
 
   const actions = [
     { text: "Editar custo", onClick: () => a.openCost(c.id) },
     {
-      text: "Excluir custo",
+      text: repeating ? "Excluir e parar de repetir" : "Excluir custo",
       color: "var(--danger)",
       onClick: () =>
         a.confirm({
-          title: "Excluir este custo?",
-          text: "Ele sai do total do período e do cálculo do lucro.",
+          title: repeating ? "Excluir e parar de repetir?" : "Excluir este custo?",
+          text: repeating
+            ? "Este mês e os seguintes já lançados saem do total, e o custo deixa de ser lançado todo mês. Os meses anteriores continuam no histórico."
+            : "Ele sai do total do período e do cálculo do lucro.",
           summary: c.description,
           detail: `${brl(c.amount)} · ${dateLabel(c.d, "")} · ${c.category}`,
-          reversal: "Isto não pode ser desfeito — você teria de lançar de novo.",
-          button: "Excluir custo",
+          reversal: repeating
+            ? "Isto não pode ser desfeito — para voltar a repetir, lance o custo de novo."
+            : "Isto não pode ser desfeito — você teria de lançar de novo.",
+          button: repeating ? "Excluir e parar" : "Excluir custo",
           buttonBg: "var(--danger)",
           buttonInk: "#fff",
           color: "var(--danger)",
@@ -190,7 +199,8 @@ function CostRow({ cost: c, cols, categoryCol }: { cost: Cost; cols: string; cat
             `padding:2px 7px;border-radius:999px;background:var(--surface3);color:var(--muted);font:600 10px ${SANS}`,
           )}
         >
-          repete todo mês
+          {c.seriesActive ? "repete todo mês" : "repetição encerrada"}
+          {competence ? ` · ${competence}` : ""}
         </span>
       )}
     </>

@@ -3,7 +3,7 @@
 import { ModalFrame } from "@/components/modais/Base";
 import { Button, field, MoneyField, LabeledField, css, ChoiceCard, ChoicePill, ModalFooter, FIELD_LABEL, SANS, SimpleSelect, Suggestions, track } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
-import { costCategories, COST_SUGGESTIONS } from "@/lib/dados/custos";
+import { competenceLabel, costCategories, COST_SUGGESTIONS } from "@/lib/dados/custos";
 import { parseBrNumber, dateLabel } from "@/lib/formato";
 
 /** As últimas datas que fazem sentido para um lançamento manual. */
@@ -13,6 +13,9 @@ export function CustoModal() {
   const { s, a, isMobile, d } = usePortal();
   const f = s.costForm;
   const editing = f.id != null;
+  const original = f.id ? d.costs.find((cost) => cost.id === f.id) : null;
+  const editingSeries = original?.recurring === true;
+  const seriesActive = editingSeries && original.seriesActive;
 
   const descriptionError = f.submitted && !f.description.trim();
   const amountError = f.submitted && parseBrNumber(f.amount) <= 0;
@@ -42,11 +45,11 @@ export function CustoModal() {
           name="Variável"
           note="Muda todo mês: mercadoria, feira, combustível."
           active={f.type === "variable"}
-          onClick={() => set({ type: "variable" })}
+          onClick={() => set({ type: "variable", recurring: false })}
         />
         <ChoiceCard
           name="Fixo"
-          note="Repete igual: aluguel, luz, internet, salário."
+          note="Valor previsível: aluguel, luz, internet, salário."
           active={f.type === "fixed"}
           onClick={() => set({ type: "fixed" })}
         />
@@ -72,15 +75,24 @@ export function CustoModal() {
           error={amountError}
           message="Informe um valor maior que zero."
         />
-        <div>
-          <label style={css(FIELD_LABEL)}>Quando foi</label>
-          <SimpleSelect
-            value={dateLabel(f.d, "")}
-            options={labels}
-            onChange={(v) => set({ d: DAYS[labels.indexOf(v)] ?? 0 })}
-            cssText={field(false, true)}
-          />
-        </div>
+        {editingSeries ? (
+          <div>
+            <label style={css(FIELD_LABEL)}>Mês deste lançamento</label>
+            <div style={css(field(false, true) + `;display:flex;align-items:center;font:600 12px ${SANS}`)}>
+              {competenceLabel(original.competence) ?? dateLabel(f.d, "")} · dia {Number(original.data.slice(8, 10))}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <label style={css(FIELD_LABEL)}>Quando foi</label>
+            <SimpleSelect
+              value={dateLabel(f.d, "")}
+              options={labels}
+              onChange={(v) => set({ d: DAYS[labels.indexOf(v)] ?? 0 })}
+              cssText={field(false, true)}
+            />
+          </div>
+        )}
       </div>
 
       <div>
@@ -97,7 +109,13 @@ export function CustoModal() {
         </div>
       </div>
 
-      {/* Só custo fixo repete: um saco de feijão não volta sozinho todo mês. */}
+      {editingSeries && f.type === "variable" && (
+        <span style={css(`font:500 11px/1.4 ${SANS};color:var(--muted)`)}>
+          Como variável, este mês fica como lançamento avulso e os meses seguintes saem.
+        </span>
+      )}
+
+      {/* Só custo fixo forma série: um saco de feijão não volta sozinho. */}
       {f.type === "fixed" && (
         <Button
           onClick={() => set({ recurring: !f.recurring })}
@@ -118,7 +136,13 @@ export function CustoModal() {
               Repete todo mês
             </span>
             <span style={css(`display:block;margin-top:2px;font:500 11px/1.4 ${SANS};color:var(--muted)`)}>
-              Aluguel, luz, internet: lance uma vez e o portal repete sozinho.
+              {editingSeries
+                ? f.recurring
+                  ? seriesActive
+                    ? "Ao salvar, vale para este mês e os próximos; os meses anteriores não mudam."
+                    : "A repetição deste custo foi encerrada. Ao salvar, muda só este lançamento."
+                  : "Ao salvar, este mês fica como lançamento avulso e os meses seguintes saem."
+                : "O portal lança o custo uma vez por mês, no mesmo dia. Em meses mais curtos, no último dia."}
             </span>
           </span>
         </Button>

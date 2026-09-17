@@ -1,7 +1,7 @@
 "use client";
 
 import { ModalFrame } from "@/components/modais/Base";
-import { Button, LabeledField, css, MONO, ModalFooter, FIELD_LABEL, SANS } from "@aguiar/ui";
+import { Button, LabeledField, Select, css, field, MONO, ModalFooter, FIELD_LABEL, SANS } from "@aguiar/ui";
 import { usePortal } from "@/components/PortalProvider";
 import { MODULES, PERMISSION_MODULES } from "@/lib/dados/perfis";
 import { useState } from "react";
@@ -11,13 +11,87 @@ import type { ModuleKey } from "@/types/types";
 /* Funcionário                                                                 */
 /* -------------------------------------------------------------------------- */
 
+export function InviteEmployeeModal() {
+  const { a, d } = usePortal();
+  const roles = d.roles.filter((role) => !role.fixed);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [roleId, setRoleId] = useState(() => roles[0]?.id ?? "");
+  const [submitted, setSubmitted] = useState(false);
+
+  const nameError = submitted && name.trim().length < 2;
+  const emailError = submitted && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  const roleError = submitted && !roles.some((role) => role.id === roleId);
+
+  return (
+    <ModalFrame
+      closeLabel="Fechar"
+      title="Convidar funcionário"
+      subtitle="A pessoa recebe um e-mail para criar a própria senha."
+      width={480}
+      onClose={a.closeModal}
+      footer={
+        <ModalFooter
+          cancelText="Cancelar"
+          onCancel={a.closeModal}
+          onConfirm={async () => {
+            setSubmitted(true);
+            if (name.trim().length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+              return;
+            }
+            if (!roles.some((role) => role.id === roleId)) return;
+            await a.inviteEmployee(name, email, roleId);
+          }}
+          confirmText="Enviar convite"
+        />
+      }
+    >
+      <LabeledField
+        label="Nome"
+        value={name}
+        onChange={setName}
+        placeholder="Ex.: Ana Souza"
+        error={nameError}
+        message="Informe o nome da pessoa."
+      />
+      <LabeledField
+        label="E-mail de acesso"
+        value={email}
+        onChange={setEmail}
+        placeholder="ana@empresa.com.br"
+        error={emailError}
+        message="Informe um e-mail válido."
+      />
+      <div>
+        <label style={css(FIELD_LABEL)}>Tipo de acesso</label>
+        <Select
+          value={roleId}
+          onChange={(event) => setRoleId(event.target.value)}
+          disabled={roles.length === 0}
+          aria-invalid={roleError || undefined}
+          boxCssText="width:100%"
+          cssText={field(roleError)}
+        >
+          {roles.length === 0 ? (
+            <option value="">Crie um tipo de acesso primeiro</option>
+          ) : (
+            roles.map((role) => (
+              <option key={role.id} value={role.id}>{role.name}</option>
+            ))
+          )}
+        </Select>
+        {roleError ? (
+          <div style={css(`margin-top:5px;font:500 11.5px ${SANS};color:var(--danger)`)}>
+            Escolha um tipo de acesso.
+          </div>
+        ) : null}
+      </div>
+    </ModalFrame>
+  );
+}
+
 /**
  * Troca o tipo de acesso de quem já está na equipe.
- *
- * Não dá para CADASTRAR alguém por aqui: criar um funcionário significa criar
- * um usuário no Auth, e isso exige a `service_role` — que este projeto não tem,
- * por decisão de segurança. Enquanto não houver um convite feito pelo admin (ou
- * uma Edge Function), o portal administra apenas quem já existe.
  */
 export function EmployeeModal({ id }: { id: string }) {
   const { a, d } = usePortal();
@@ -32,7 +106,7 @@ export function EmployeeModal({ id }: { id: string }) {
     <ModalFrame
       closeLabel="Fechar"
       title={employee.name}
-      subtitle="Escolha o que esta pessoa enxerga no portal."
+      subtitle={employee.email || "Escolha o que esta pessoa enxerga no portal."}
       width={450}
       onClose={a.closeModal}
       footer={
