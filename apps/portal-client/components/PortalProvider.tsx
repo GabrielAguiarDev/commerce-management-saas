@@ -52,7 +52,6 @@ import {
   undoRefund as acaoDesfazerEstorno,
   editSale as acaoEditarVenda,
   refundSale as acaoEstornarVenda,
-  recordSale as acaoRegistrarVenda,
 } from "@/app/vendas/actions";
 import {
   EMPTY_DATA,
@@ -71,6 +70,8 @@ import {
   toast,
 } from "@/lib/estado";
 import { parseBrNumber } from "@/lib/formato";
+import { createQueuedSale, newClientId } from "@/lib/offline/salesQueue";
+import { submitSale, useSalesQueueSync } from "@/lib/offline/salesQueueStore";
 import { limparTelasGuardadas } from "@/lib/pwa";
 import { POS_ROUTE, ROUTES } from "@/lib/rotas";
 import type {
@@ -426,21 +427,82 @@ export function PortalProvider({
     // A mesma forma que o seletor está mostrando — ver `effectiveMethod`.
     const method = effectiveMethod(s, d);
 
-    await run(
-      () =>
-        editing
-          ? acaoEditarVenda(editing, items, method, s.customerDocument)
-          : acaoRegistrarVenda(items, method, s.customerDocument),
-      editing ? "Venda atualizada" : "Venda registrada",
-      (ok) => {
-        if (!ok) return;
-        // O documento sai junto com o carrinho: o CPF é de UMA venda, e deixá-lo
-        // no campo colaria o cliente anterior na nota do próximo.
-        setS((x) => ({ ...x, cart: [], editingSale: null, cartOpen: false, customerDocument: "" }));
+    // O documento sai junto com o carrinho: o CPF é de UMA venda, e deixá-lo
+    // no campo colaria o cliente anterior na nota do próximo.
+    const limparCarrinho = () =>
+      setS((x) => ({ ...x, cart: [], editingSale: null, cartOpen: false, customerDocument: "" }));
+
+    // Editar é substituir uma venda que JÁ está no banco — não tem fila offline.
+    if (editing) {
+      await run(
+        () => acaoEditarVenda(editing, items, method, s.customerDocument),
+        "Venda atualizada",
+        (ok) => {
+          if (!ok) return;
+          limparCarrinho();
+          router.push(ROUTES.sales);
+        },
+      );
+      return;
+    }
+
+    /**
+     * Venda NOVA: passa pela fila offline (`lib/offline`). O `clientId` nasce
+     * aqui, no clique, e é o mesmo em toda tentativa — é ele que impede o
+     * reenvio de duplicar a venda no banco.
+     */
+    const sale = createQueuedSale({
+      clientId: newClientId(),
+      scope: { tenantId: d.business.id, userId: d.business.user.id },
+      items,
+      payment: method,
+      customerDocument: s.customerDocument,
+      now: new Date(),
+    });
+
+    setS((x) => ({ ...x, saving: true }));
+    const outcome = await submitSale(sale);
+
+    switch (outcome.kind) {
+      case "recorded":
+        setS((x) => ({ ...x, saving: false, toast: toast("Venda registrada") }));
+        limparCarrinho();
+        iniciarTransicao(() => router.refresh());
         router.push(ROUTES.sales);
-      },
-    );
+        return;
+      case "queued":
+        // Fica no PDV: sem conexão, a lista de vendas pode nem abrir, e o balcão
+        // precisa do carrinho limpo para a próxima venda.
+        setS((x) => ({
+          ...x,
+          saving: false,
+          toast: toast(`Venda guardada neste computador. ${outcome.reason}`, "warn"),
+        }));
+        limparCarrinho();
+        return;
+      case "rejected":
+      case "lost":
+        setS((x) => ({ ...x, saving: false, toast: toast(outcome.message, "error") }));
+        return;
+    }
   }, [s, d, run, router]);
+
+  /**
+   * O envio automático da fila offline. Ao terminar uma rodada que mudou algo,
+   * traz o retrato novo (estoque, caixa e totais passam a contar as vendas).
+   */
+  useSalesQueueSync(d.business.id, d.business.user.id, (r) => {
+    if (r.sent) iniciarTransicao(() => router.refresh());
+    setS((x) => ({
+      ...x,
+      toast: r.failed
+        ? toast(
+            `${r.failed} ${r.failed === 1 ? "venda guardada foi recusada" : "vendas guardadas foram recusadas"} pelo servidor — veja em Nova venda`,
+            "error",
+          )
+        : toast(`${r.sent} ${r.sent === 1 ? "venda guardada enviada" : "vendas guardadas enviadas"}`),
+    }));
+  });
 
   const editSale = useCallback(
     (id: string) => {

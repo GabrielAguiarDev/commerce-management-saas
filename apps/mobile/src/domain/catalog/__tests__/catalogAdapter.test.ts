@@ -156,6 +156,26 @@ describe('toProductUpdatePayload', () => {
     expect(payload).not.toHaveProperty('stock_qty');
   });
 
+  it('custo ausente continua ausente — quem não vê o custo não o apaga', () => {
+    const payload = toProductUpdatePayload({
+      name: 'Coleira',
+      code: null,
+      priceCents: 4590,
+      minimumStock: null,
+    });
+
+    expect(payload.cost_cents).toBeUndefined();
+    expect(
+      toProductUpdatePayload({
+        name: 'Coleira',
+        code: null,
+        priceCents: 4590,
+        costCents: null,
+        minimumStock: null,
+      }).cost_cents,
+    ).toBeNull();
+  });
+
   it('mínimo nulo continua nulo — é "não mexe", não "zera"', () => {
     expect(
       toProductUpdatePayload({

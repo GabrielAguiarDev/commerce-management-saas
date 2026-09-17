@@ -11,10 +11,16 @@ import { NetworkOnly, Serwist, type PrecacheEntry, type SerwistGlobalConfig } fr
  * isso este arquivo não pode importar nada do app (nem `@/lib/...`): ele roda
  * fora da página, num contexto sem `window` e sem React.
  *
- * O QUE ESTA FASE ENTREGA: abrir o app e navegar pelas telas sem rede, com o
- * último retrato que o servidor mandou. O que grava no banco — registrar venda,
- * fechar caixa — continua falhando offline, de propósito. A fila de escrita é
- * a fase 2.
+ * O QUE ELE ENTREGA: abrir o app e navegar pelas telas sem rede, com o último
+ * retrato que o servidor mandou. Gravações não passam por aqui: as Server
+ * Actions são POST, e o cache abaixo só responde a GET.
+ *
+ * A FILA OFFLINE DE VENDAS NÃO MORA NESTE WORKER. Ela vive na página
+ * (`lib/offline`, IndexedDB), porque o reenvio precisa da Server Action com a
+ * sessão da pessoa e da decisão "reenviar ou parar" que a tela mostra. Este
+ * worker só garante que o PDV já visitado abra sem rede — o catálogo que
+ * aparece é o do cache de telas que já existia; nenhum cache novo de dados foi
+ * criado para a fila. Fechar caixa, estoque e o resto continuam exigindo rede.
  */
 
 declare global {
@@ -57,9 +63,9 @@ const serwist = new Serwist({
      * O Supabase fica FORA do cache, sempre.
      *
      * Duas razões: uma resposta guardada com o token de uma sessão pode ser
-     * devolvida a outra, e nesta fase é melhor a leitura falhar na cara do que
-     * o portal exibir um saldo de ontem como se fosse o de agora. Quando a fase
-     * 2 chegar, quem guarda dados é o banco local — não este cache.
+     * devolvida a outra, e é melhor a leitura falhar na cara do que o portal
+     * exibir um saldo de ontem como se fosse o de agora. O que precisa ficar no
+     * aparelho (vendas da fila offline) fica no IndexedDB — não neste cache.
      */
     {
       matcher: ({ url }) => url.hostname.endsWith(".supabase.co"),

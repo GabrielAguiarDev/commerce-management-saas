@@ -3,7 +3,9 @@ import {
   filterCosts,
   toCompetenceLabel,
   toCost,
+  toCostErrorCode,
   toCostPayload,
+  toCostUpdatePayload,
   toMonthlySummary,
 } from '../costsAdapter';
 
@@ -18,6 +20,8 @@ const base: CostAPI = {
   recurrence_id: 'rec_1',
   series_active: true,
   competence: '2026-09-01',
+  cost_date: '2026-09-05',
+  category: 'Aluguel',
 };
 
 const avulso: Partial<CostAPI> = { recurrence_id: null, series_active: null, competence: null };
@@ -151,5 +155,81 @@ describe('filtrarCustos', () => {
   it('não muta a lista recebida', () => {
     filterCosts(costs, 'fixed_only');
     expect(costs).toHaveLength(3);
+  });
+});
+
+describe('toCostUpdatePayload', () => {
+  it('preserva categoria e data do original, que o app não edita', () => {
+    const cost = toCost(base);
+    expect(
+      toCostUpdatePayload(cost, {
+        name: '  Aluguel novo ',
+        amountCents: 300000,
+        type: 'fixed',
+        recurring: true,
+      }),
+    ).toEqual({
+      id: 'cst_1',
+      name: 'Aluguel novo',
+      amount_cents: 300000,
+      kind: 'fixed',
+      category: 'Aluguel',
+      cost_date: '2026-09-05',
+      recurring: true,
+    });
+  });
+
+  it('categoria vazia continua nula', () => {
+    const cost = toCost({ ...base, category: null });
+    expect(
+      toCostUpdatePayload(cost, { name: 'x', amountCents: 1, type: 'fixed', recurring: false })
+        .category,
+    ).toBeNull();
+  });
+
+  it('virar variável desliga a repetição', () => {
+    const cost = toCost(base);
+    expect(
+      toCostUpdatePayload(cost, { name: 'Luz', amountCents: 100, type: 'variable', recurring: true }),
+    ).toMatchObject({ kind: 'variable', recurring: false });
+  });
+});
+
+describe('toCostErrorCode', () => {
+  it('separa custo de estoque de falta de permissão', () => {
+    expect(
+      toCostErrorCode({
+        code: '42501',
+        message: 'este custo veio de uma entrada de estoque; ajuste pelo estoque',
+      }),
+    ).toBe('from_stock');
+    expect(toCostErrorCode({ code: '42501', message: 'sem permissão para custos' })).toBe(
+      'forbidden',
+    );
+  });
+
+  it('custo ou série que sumiu vira not_found', () => {
+    expect(toCostErrorCode({ code: 'P0002', message: 'custo não encontrado' })).toBe('not_found');
+    expect(toCostErrorCode({ code: 'P0002', message: 'repetição mensal não encontrada' })).toBe(
+      'not_found',
+    );
+  });
+
+  it('validação do servidor reaproveita os códigos locais', () => {
+    expect(toCostErrorCode({ code: '22023', message: 'escreva o que foi o gasto' })).toBe(
+      'name_required',
+    );
+    expect(toCostErrorCode({ code: '22023', message: 'informe um valor maior que zero' })).toBe(
+      'invalid_amount',
+    );
+    expect(
+      toCostErrorCode({ code: '22023', message: 'só custo fixo pode repetir todo mês' }),
+    ).toBe('invalid_data');
+  });
+
+  it('o resto é rede', () => {
+    expect(toCostErrorCode(new Error('Failed to fetch'))).toBe('network');
+    expect(toCostErrorCode(null)).toBe('network');
+    expect(toCostErrorCode({ code: 42501 })).toBe('network');
   });
 });

@@ -1,5 +1,12 @@
-import type { CostAPI, CostCreateAPI, MonthSummaryAPI } from './costsApiTypes';
-import type { Cost, CostFilter, MonthlySummary, CostType } from './costsTypes';
+import type { CostAPI, CostCreateAPI, CostUpdateAPI, MonthSummaryAPI } from './costsApiTypes';
+import type {
+  Cost,
+  CostChanges,
+  CostErrorCode,
+  CostFilter,
+  CostType,
+  MonthlySummary,
+} from './costsTypes';
 
 function toTipo(kind: string): CostType {
   // Qualquer valor desconhecido cai em variável: um custo classificado errado
@@ -30,6 +37,8 @@ export function toCost(raw: CostAPI): Cost {
     repeating,
     competenceLabel: recurring ? toCompetenceLabel(raw.competence) : null,
     fromStock: raw.from_stock === true,
+    costDate: raw.cost_date,
+    category: raw.category,
   };
 }
 
@@ -67,6 +76,47 @@ export function toCostPayload(
     kind: type,
     recurring: type === 'fixed' && recurring,
   };
+}
+
+/**
+ * Edição de um custo já lançado.
+ *
+ * Categoria e data vêm do ORIGINAL: o app não mostra esses campos, e mandar
+ * nulo apagaria a categoria que alguém escolheu no portal. Em série a data
+ * também não muda — o servidor mantém o dia âncora da repetição.
+ */
+export function toCostUpdatePayload(cost: Cost, changes: CostChanges): CostUpdateAPI {
+  return {
+    id: cost.id,
+    name: changes.name.trim(),
+    amount_cents: changes.amountCents,
+    kind: changes.type,
+    category: cost.category,
+    cost_date: cost.costDate,
+    recurring: changes.type === 'fixed' && changes.recurring,
+  };
+}
+
+/**
+ * Erro do Postgres/PostgREST → código do domínio.
+ *
+ * As RPCs de custo levantam SQLSTATE + mensagem em português. O SQLSTATE
+ * separa a família; a mensagem só desempata dentro dela (estoque × permissão,
+ * nome × valor). Qualquer coisa sem código conhecido é tratada como rede.
+ */
+export function toCostErrorCode(error: unknown): CostErrorCode {
+  const raw = (error ?? {}) as { code?: unknown; message?: unknown };
+  const code = typeof raw.code === 'string' ? raw.code : '';
+  const message = typeof raw.message === 'string' ? raw.message.toLowerCase() : '';
+
+  if (code === '42501') return message.includes('estoque') ? 'from_stock' : 'forbidden';
+  if (code === 'P0002') return 'not_found';
+  if (code === '22023') {
+    if (message.includes('o que foi o gasto')) return 'name_required';
+    if (message.includes('valor')) return 'invalid_amount';
+    return 'invalid_data';
+  }
+  return 'network';
 }
 
 /** Seletor puro dos chips Todos / Fixos / Variáveis. */

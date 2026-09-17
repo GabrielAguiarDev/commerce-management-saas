@@ -6,6 +6,7 @@ import { onlyDigits } from "@/lib/dados/fiscal";
 import { logActivity } from "@/lib/historico";
 import { isComingSoon } from "@/lib/modulos";
 import { PAYMENT_DB } from "@/lib/dados/vendas";
+import { isUuid, SESSION_CODE } from "@/lib/offline/salesQueue";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 import type { PaymentMethod } from "@/types/types";
 
@@ -55,11 +56,24 @@ export async function recordSale(
   items: ItemToSave[],
   payment: PaymentMethod,
   customerDocument = "",
-): Promise<ActionResult> {
+  clientId: string | null = null,
+  soldAt: string | null = null,
+): Promise<SaleActionResult> {
   const session = await requireCustomer("registrar uma venda", "sales");
-  if (!session.ok) return session;
+  if (!session.ok) {
+    // A fila offline precisa separar "entre de novo" (a venda espera) de
+    // "sem permissão" (a venda para). `requireCustomer` só devolve a frase.
+    const expired = session.message.startsWith("Sessão expirada");
+    return { ok: false, message: session.message, code: expired ? SESSION_CODE : "42501" };
+  }
 
-  if (!items.length) return { ok: false, message: "A venda precisa de pelo menos um item." };
+  if (!items.length) {
+    return { ok: false, message: "A venda precisa de pelo menos um item.", code: "22023" };
+  }
+
+  if (clientId !== null && !isUuid(clientId)) {
+    return { ok: false, message: "Identificador da venda inválido.", code: "22023" };
+  }
 
   const { supabase } = session;
 
@@ -75,11 +89,25 @@ export async function recordSale(
     })),
     p_customer_document: onlyDigits(customerDocument) || null,
     p_customer_name: null,
-    p_sold_at: null,
+    p_sold_at: queuedSoldAt(soldAt),
+    // O uuid da fila offline do PDV. Com ele, reenviar a mesma venda viola a
+    // chave primária (23505) em vez de criar uma gêmea.
+    p_id: clientId,
   });
 
+  if (error?.code === "23505" && clientId !== null) {
+    // A venda JÁ entrou numa tentativa anterior cuja resposta se perdeu. Nota e
+    // histórico ficaram com aquela tentativa; repeti-los aqui duplicaria os dois.
+    revalidatePath("/", "layout");
+    return { ok: true, duplicate: true };
+  }
+
   if (error || !saleId) {
-    return { ok: false, message: error?.message ?? "Não foi possível registrar a venda." };
+    return {
+      ok: false,
+      message: error?.message ?? "Não foi possível registrar a venda.",
+      code: error?.code || null,
+    };
   }
 
   await enqueueFiscalDocument(supabase, saleId as string);
@@ -93,6 +121,29 @@ export async function recordSale(
 
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/**
+ * O resultado de registrar uma venda. O `code` do Postgres sobe junto porque a
+ * fila offline decide por ele se reenvia (rede, sessão) ou para (permissão,
+ * validação, produto inexistente) — ver `lib/offline/salesQueue.ts`.
+ */
+export type SaleActionResult =
+  | { ok: true; duplicate?: boolean }
+  | { ok: false; message: string; code: string | null };
+
+/**
+ * A hora da venda que veio da fila: a do clique, não a do envio — senão um dia
+ * de vendas offline cairia inteiro no minuto em que a internet voltou.
+ *
+ * Hora inválida ou no FUTURO (relógio do computador adiantado) vira `null`, e o
+ * banco carimba `now()`: uma venda datada de amanhã sumiria do caixa de hoje.
+ */
+function queuedSoldAt(soldAt: string | null): string | null {
+  if (soldAt === null) return null;
+  const t = Date.parse(soldAt);
+  if (Number.isNaN(t) || t > Date.now() + 60_000) return null;
+  return new Date(t).toISOString();
 }
 
 /**

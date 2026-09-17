@@ -49,17 +49,28 @@ deliberadamente excluído desta análise e das alterações.
 - No mobile ainda não dá para editar nem excluir custos: essa semântica existe
   só no servidor e no portal.
 
+## Terceira fase (17/09/2026)
+
+| Área | Resultado |
+| --- | --- |
+| Custos no mobile | Edição e exclusão de custos manuais pelas RPCs `save_manual_cost`/`delete_manual_cost`, com a mesma semântica de série do portal. Custo vindo do estoque não é editável |
+| `products.cost` | `authenticated` perde o SELECT da coluna (grants por coluna) e o custo é lido por `v_product_costs`, com gate por módulo (`20260917040000_authorization_leftovers.sql`). Depois de adicionar uma coluna em `products`, rodar `select public.sync_product_column_grants();` |
+| Suporte | Um trigger impede sessão comum de trocar autor, lado, conteúdo ou chamado de uma mensagem |
+| Painel do portal | Cards de vendas e lucro ficam ocultos para quem não tem o módulo correspondente |
+| PDV web offline | Vendas novas vão para uma fila no IndexedDB, separada por negócio e usuário, e são reenviadas sem duplicar (`client_id`). Recusas definitivas pedem ação do usuário. Detalhes em `apps/portal-client/lib/offline/README.md` |
+
+Pendências que sobraram desta fase:
+
+- Testes de migrations em Postgres real (aguardando o dump do schema de produção).
+- `markRead` do portal e do mobile filtra só `sender_side = 'support'` e nunca marca como lidas as mensagens `admin`.
+- No PDV offline, estoque e caixa não são recalculados localmente, e o horário da venda vem do relógio do computador.
+- O advisor do Supabase vai apontar `v_product_costs` como view security definer (é intencional: o filtro de tenant e de módulo está dentro dela).
+
 ## Próximas funcionalidades
 
 ### Prioridade média
 
-4. **Editar e excluir custos no mobile**, reaproveitando `save_manual_cost` e
-   `delete_manual_cost`.
-
-5. **Fila offline para escritas no portal web.** A PWA possui cache de assets,
-   mas não uma fila transacional para alterações feitas sem conexão. O mobile já
-   tem fila específica para vendas; generalizá-la no navegador exige conflitos,
-   indicação de pendência e política de repetição por operação.
+5. **Fila offline para outras escritas do portal web** (hoje só vendas do PDV).
 
 6. **Cobertura automatizada das migrations e das Server Actions.** TypeScript,
    lint, builds e testes mobile estão cobertos. Falta um Postgres/Supabase local

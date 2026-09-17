@@ -17,6 +17,9 @@ export interface CostAPI {
   series_active: boolean | null;
   /** `YYYY-MM-01`: o mês que este lançamento da série representa. */
   competence: string | null;
+  /** `YYYY-MM-DD`, sem fuso. */
+  cost_date: string;
+  category: string | null;
 }
 
 export interface MonthSummaryAPI {
@@ -32,4 +35,24 @@ export interface CostCreateAPI {
   amount_cents: number;
   kind: string;
   recurring: boolean;
+}
+
+/** Edição de um custo manual existente (`save_manual_cost` com `p_id`). */
+export interface CostUpdateAPI {
+  id: string;
+  name: string;
+  amount_cents: number;
+  kind: string;
+  /** Preservada: o app não edita categoria, mas não pode apagá-la. */
+  category: string | null;
+  /** `YYYY-MM-DD` original; em série, o servidor mantém o dia âncora. */
+  cost_date: string;
+  recurring: boolean;
+}
+
+/** Só para o histórico: depois do delete não há de onde tirar o nome. */
+export interface CostDeleteAPI {
+  id: string;
+  name: string;
+  stops_repeating: boolean;
 }

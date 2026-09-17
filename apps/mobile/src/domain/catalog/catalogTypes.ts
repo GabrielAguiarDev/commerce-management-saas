@@ -56,7 +56,11 @@ export interface ProductUpdate {
   name: string;
   code: string | null;
   priceCents: number;
-  costCents: number | null;
+  /**
+   * `undefined` = o formulário não tem o campo (sem permissão de ver custo) e o
+   * custo gravado fica como está. `null` = o dono apagou o custo.
+   */
+  costCents?: number | null;
   minimumStock: number | null;
 }
 

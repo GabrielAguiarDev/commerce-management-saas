@@ -1,8 +1,13 @@
 "use client";
 
 import { Button, css, SANS } from "@aguiar/ui";
+import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
+import { NavLink } from "@/components/NavLink";
 import { usePortal } from "@/components/PortalProvider";
+import { brl } from "@/lib/formato";
+import { useQueuedSales } from "@/lib/offline/salesQueueStore";
+import { POS_ROUTE } from "@/lib/rotas";
 
 /**
  * O portal como aplicativo instalado: o aviso de que a internet caiu e o convite
@@ -13,6 +18,52 @@ import { usePortal } from "@/components/PortalProvider";
  * o portal PODER ser instalado e abrir sem rede; estes dois avisos são o que a
  * pessoa vê disso.
  */
+
+/* -------------------------------------------------------------------------- */
+/* Vendas guardadas offline                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A tarja de "há vendas que o sistema ainda não viu".
+ *
+ * Em toda tela menos o PDV (que tem a lista completa): estoque, caixa, vendas,
+ * dashboard e relatórios mostram o retrato do SERVIDOR, e nenhum deles conta a
+ * fila. Sem este aviso, o caixa pareceria faltar dinheiro e o estoque sobrar
+ * mercadoria.
+ */
+export function AvisoVendasPendentes() {
+  const { d, isMobile } = usePortal();
+  const pathname = usePathname();
+  const { sales, summary } = useQueuedSales(d.business.id, d.business.user.id);
+
+  if (pathname === POS_ROUTE || sales.length === 0) return null;
+
+  const n = sales.length;
+  return (
+    <div
+      role="status"
+      style={css(
+        `margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;` +
+          `padding:${isMobile ? "11px 13px" : "12px 15px"};border-radius:12px;` +
+          `border:1px solid ${summary.failed ? "var(--danger)" : "var(--warn-line)"};background:var(--warn-soft);` +
+          `font:600 12.5px/1.5 ${SANS};color:${summary.failed ? "var(--danger)" : "var(--warn)"}`,
+      )}
+    >
+      <span style={css("flex:1;min-width:220px")}>
+        {n} {n === 1 ? "venda feita sem conexão ainda não foi enviada" : "vendas feitas sem conexão ainda não foram enviadas"}{" "}
+        ({brl(summary.totalValue)}
+        {summary.failed ? `, ${summary.failed} recusada${summary.failed === 1 ? "" : "s"}` : ""}). Estoque, caixa e
+        totais exibidos ainda não as incluem.
+      </span>
+      <NavLink
+        href={POS_ROUTE}
+        style={css(`flex:none;font:700 12.5px ${SANS};color:inherit;text-decoration:underline`)}
+      >
+        Ver vendas guardadas
+      </NavLink>
+    </div>
+  );
+}
 
 /* -------------------------------------------------------------------------- */
 /* Aviso de conexão                                                            */
@@ -39,9 +90,9 @@ function assinarRede(onChange: () => void) {
  * está no meio de um cadastro, rolado até o rodapé, é justamente quem precisa
  * ler o aviso antes de tentar salvar.
  *
- * O texto explica a fase em que o portal está hoje: as telas continuam, as
- * gravações não. Quando a fila offline da fase 2 existir, é esta frase que
- * muda — para "guardamos aqui e enviamos quando a internet voltar".
+ * O texto explica o que funciona sem rede: as telas continuam com o último
+ * retrato, e SÓ a venda nova do PDV é guardada para envio posterior (ver
+ * `lib/offline`). Todo o resto continua exigindo internet.
  */
 export function AvisoOffline() {
   const { isMobile } = usePortal();
@@ -73,8 +124,9 @@ export function AvisoOffline() {
         style={css("flex:none;width:8px;height:8px;border-radius:50%;background:var(--warn)")}
       />
       <span>
-        Você está sem conexão. As telas continuam abrindo com o que já foi carregado, mas nada é
-        salvo — registrar venda, fechar caixa ou lançar custo só funciona com internet.
+        Você está sem conexão. As telas mostram o que já foi carregado. Vendas novas do PDV ficam
+        guardadas neste computador e são enviadas quando a conexão voltar; o resto — editar ou
+        estornar venda, caixa, estoque, custos — só funciona com internet.
       </span>
     </div>
   );

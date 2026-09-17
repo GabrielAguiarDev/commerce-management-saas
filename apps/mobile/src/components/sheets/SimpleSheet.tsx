@@ -3,14 +3,10 @@ import { useState } from 'react';
 import { BottomSheet } from '@components/patterns/BottomSheet';
 import { Button } from '@components/ui/Button';
 import { Box } from '@components/ui/Box';
-import { Chips, type ChipOption } from '@components/ui/Chips';
 import { Field } from '@components/ui/Field';
-import { Switch } from '@components/ui/Switch';
 import { Text } from '@components/ui/Text';
 import { useRecordAdjustment, useOpenShift } from '@domain/cash';
 import { CashError } from '@domain/cash/cashTypes';
-import { useRecordCost } from '@domain/costs';
-import { CostError, type CostType } from '@domain/costs/costsTypes';
 import { parseMovementQuantity, useRecordStockMovement } from '@domain/stock';
 import { StockError } from '@domain/stock/stockTypes';
 import { useTranslation } from '@i18n';
@@ -18,7 +14,8 @@ import { useUIStore } from '@store/uiStore';
 import { parseCents } from '@utils/money';
 
 /**
- * O sheet de DOIS CAMPOS, usado por quatro fluxos diferentes.
+ * O sheet de DOIS CAMPOS, usado por três fluxos diferentes (custos têm o
+ * próprio `CostSheet`).
  *
  * No protótipo era um único bloco `sheetSimples` com os rótulos trocando por
  * `sheetTipo`. Mantivemos a ideia — o desenho é literalmente o mesmo — mas com
@@ -27,7 +24,7 @@ import { parseCents } from '@utils/money';
  * despercebido.
  */
 
-type SimpleSheetType = 'withdrawal' | 'topUp' | 'movement' | 'cost';
+type SimpleSheetType = 'withdrawal' | 'topUp' | 'movement';
 
 interface SheetConfig {
   title: string;
@@ -75,17 +72,6 @@ const SHEET_CONFIG: Record<SimpleSheetType, SheetConfig> = {
     keyboard1: 'default',
     keyboard2: 'numbers-and-punctuation',
   },
-  cost: {
-    title: 'Novo custo',
-    text: 'Registre um gasto avulso, ou um custo fixo que se repete todo mês.',
-    label1: 'Nome do custo',
-    placeholder1: 'Ex: aluguel',
-    label2: 'Valor',
-    placeholder2: 'R$ 0,00',
-    button: 'Salvar custo',
-    keyboard1: 'default',
-    keyboard2: 'decimal-pad',
-  },
 };
 
 interface SimpleSheetProps {
@@ -105,21 +91,12 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
   const { data: shift } = useOpenShift();
   const ajuste = useRecordAdjustment();
   const stockMovement = useRecordStockMovement();
-  const cost = useRecordCost();
 
   const [campo1, setCampo1] = useState(openingAmount);
   const [campo2, setCampo2] = useState('');
   const [custo, setCusto] = useState('');
-  const [costType, setCostType] = useState<CostType>('variable');
-  const [recurring, setRecurring] = useState(false);
 
-  const costTypes: ChipOption<CostType>[] = [
-    { key: 'variable', label: t.costs.variable },
-    { key: 'fixed', label: t.costs.fixed },
-  ];
-  const repeating = costType === 'fixed' && recurring;
-
-  const ocupado = ajuste.isPending || stockMovement.isPending || cost.isPending;
+  const ocupado = ajuste.isPending || stockMovement.isPending;
 
   /**
    * O CUSTO SÓ APARECE NA ENTRADA.
@@ -134,7 +111,6 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
     if (error instanceof CashError) return showToast(t.errors.cash[error.code], { tone: 'erro' });
     if (error instanceof StockError)
       return showToast(t.errors.stock[error.code], { tone: 'erro' });
-    if (error instanceof CostError) return showToast(t.errors.cost[error.code], { tone: 'erro' });
     return showToast('Não deu para salvar agora.', { tone: 'erro' });
   }
 
@@ -162,28 +138,18 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
       );
     }
 
-    if (type === 'movement') {
-      const delta = parseMovementQuantity(campo2) ?? 0;
-      const unitCostCents = delta > 0 ? parseCents(custo) : null;
+    const delta = parseMovementQuantity(campo2) ?? 0;
+    const unitCostCents = delta > 0 ? parseCents(custo) : null;
 
-      return stockMovement.mutate(
-        { productId: productId ?? null, productName: campo1, delta, unitCostCents },
-        {
-          // A mensagem MUDA quando houve custo: o dono precisa saber que uma
-          // despesa nasceu sozinha na aba Custos, senão ele a lança de novo à
-          // mão e a compra conta duas vezes.
-          onSuccess: sucesso(
-            unitCostCents ? t.toasts.stockUpdatedWithCost : t.toasts.stockUpdated,
-          ),
-          onError: errorToast,
-        },
-      );
-    }
-
-    return cost.mutate(
-      { name: campo1, amountCents: parseCents(campo2) ?? 0, type: costType, recurring: repeating },
+    return stockMovement.mutate(
+      { productId: productId ?? null, productName: campo1, delta, unitCostCents },
       {
-        onSuccess: sucesso(repeating ? t.toasts.costRecordedRepeating : t.toasts.costRecorded),
+        // A mensagem MUDA quando houve custo: o dono precisa saber que uma
+        // despesa nasceu sozinha na aba Custos, senão ele a lança de novo à
+        // mão e a compra conta duas vezes.
+        onSuccess: sucesso(
+          unitCostCents ? t.toasts.stockUpdatedWithCost : t.toasts.stockUpdated,
+        ),
         onError: errorToast,
       },
     );
@@ -193,46 +159,8 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
     <BottomSheet title={conf.title} onClose={closeSheet}>
       <Box gap="s13">
         <Text variant="bodyRelaxed" color="textMuted">
-          {type === 'cost' ? t.costs.sheetText : conf.text}
+          {conf.text}
         </Text>
-
-        {type === 'cost' ? (
-          <Box gap="s10">
-            <Text variant="fieldLabel" color="textMuted">
-              {t.costs.typeLabel}
-            </Text>
-            <Chips
-              options={costTypes}
-              selecionada={costType}
-              onSelect={(next) => {
-                setCostType(next);
-                if (next === 'variable') setRecurring(false);
-              }}
-              method="cash"
-              expandir
-            />
-            {costType === 'fixed' ? (
-              <Box
-                flexDirection="row"
-                alignItems="center"
-                justifyContent="space-between"
-                gap="s12"
-              >
-                <Box flex={1}>
-                  <Text variant="bodyMd">{t.costs.repeatMonthly}</Text>
-                  <Text variant="hint" color="textMuted" marginTop="s3">
-                    {t.costs.repeatMonthlyHint}
-                  </Text>
-                </Box>
-                <Switch
-                  on={recurring}
-                  onToggle={() => setRecurring((value) => !value)}
-                  label={t.costs.repeatMonthly}
-                />
-              </Box>
-            ) : null}
-          </Box>
-        ) : null}
 
         <Field
           label={conf.label1}

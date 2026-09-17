@@ -257,7 +257,7 @@ export async function replaceSale(saleId: string, payload: SaleCreateAPI): Promi
  *    que o portal usa, então o "vendeu hoje" do app e o do navegador não podem
  *    divergir. Refazer essa soma aqui seria criar uma segunda verdade.
  *
- *  - `sale_items` de hoje, com o custo do produto embutido, dá o que a view não
+ *  - `sale_items` de hoje, com o custo de `v_product_costs`, dá o que a view não
  *    tem: quantos itens saíram, o lucro e o mais vendido. O lucro é
  *    faturamento − custo da mercadoria vendida, com o custo ATUAL do produto —
  *    uma aproximação, e é honesto dizer por quê: o banco não guarda o custo
@@ -272,20 +272,31 @@ export async function fetchDailySummary(tenantId: string): Promise<DailySummaryA
 
   const today = todayDateOnly();
 
-  const [dailyResult, itemsResult] = await Promise.all([
+  const [dailyResult, itemsResult, costsResult] = await Promise.all([
     supabase.from('v_daily_sales').select('day, revenue, sales_count').eq('day', today).maybeSingle(),
     supabase
       .from('sale_items')
       // `!inner` para que o filtro de data e status na venda REMOVA o item, e
       // não apenas devolva o item com a venda nula. Sem `inner`, itens de
       // vendas estornadas entrariam na contagem com `sales: null`.
-      .select('product_name, quantity, unit_price, sales!inner(sold_at, status), products(cost)')
+      .select('product_name, product_id, quantity, unit_price, sales!inner(sold_at, status)')
       .gte('sales.sold_at', startOfTodayISO())
       .eq('sales.status', SALE_STATUS.completed),
+    // O custo não vem embutido em `products(...)`: a coluna não tem SELECT para
+    // a sessão. A view devolve vazio para quem não pode vê-lo, e aí o custo
+    // entra como zero — o mesmo tratamento do produto sem custo cadastrado.
+    supabase.from('v_product_costs').select('product_id, cost'),
   ]);
 
   if (dailyResult.error) throw dailyResult.error;
   if (itemsResult.error) throw itemsResult.error;
+
+  const costByProduct = new Map(
+    ((costsResult.error ? [] : costsResult.data) ?? []).map((c) => [
+      c.product_id as string,
+      c.cost as number | null,
+    ]),
+  );
 
   const daily = dailyResult.data;
   const items = itemsResult.data ?? [];
@@ -302,10 +313,8 @@ export async function fetchDailySummary(tenantId: string): Promise<DailySummaryA
     const qty = Number(item.quantity ?? 0);
     itemCount += qty;
 
-    const product = (Array.isArray(item.products) ? item.products[0] : item.products) as {
-      cost?: number | null;
-    } | null;
-    costCents += realToCents(product?.cost) * qty;
+    const cost = item.product_id ? costByProduct.get(item.product_id) : null;
+    costCents += realToCents(cost) * qty;
 
     byProduct.set(item.product_name, (byProduct.get(item.product_name) ?? 0) + qty);
   }

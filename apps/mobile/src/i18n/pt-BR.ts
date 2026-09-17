@@ -75,6 +75,10 @@ export const ptBR: Messages = {
       name_required: 'Dê um nome ao custo.',
       invalid_amount: 'Informe um valor maior que zero.',
       network: 'Não deu para salvar o custo agora.',
+      from_stock: 'Este custo veio de uma entrada no Estoque. Ajuste a movimentação por lá.',
+      not_found: 'Este custo não existe mais. A lista foi atualizada.',
+      forbidden: 'Seu acesso não permite alterar custos.',
+      invalid_data: 'Confira os dados do custo e tente de novo.',
     },
 
     support: {
@@ -447,6 +451,67 @@ export const ptBR: Messages = {
     repeatMonthlyHint:
       'Lançado hoje e de novo no mesmo dia de cada mês — ou no último dia, nos meses mais curtos.',
     competence: (month: string) => `competência ${month}`,
+
+    title: 'Custos',
+    subtitle: 'O que sai do seu bolso',
+    filters: { all: 'Todos', fixed: 'Fixos', variable: 'Variáveis' },
+    summary: { income: 'Entrou', expense: 'Saiu', left: 'Sobrou' },
+    fromStockTag: 'veio do estoque',
+    addButton: '+ Registrar custo',
+    editRow: (name: string) => `Editar ${name}`,
+
+    newTitle: 'Novo custo',
+    editTitle: 'Editar custo',
+    nameLabel: 'Nome do custo',
+    namePlaceholder: 'Ex: aluguel',
+    amountLabel: 'Valor',
+    amountPlaceholder: 'R$ 0,00',
+    save: 'Salvar custo',
+    saveChanges: 'Salvar alterações',
+    delete: 'Excluir custo',
+    deleteAndStop: 'Excluir e parar de repetir',
+    /** Em série a data não é editável: mostra o mês e o dia de vencimento. */
+    entryMonth: (month: string, day: number) => `Mês deste lançamento: ${month} · dia ${day}`,
+    editHint: {
+      // Espelha o CustoModal do portal: só a série ATIVA muda "daqui em diante".
+      active: 'Ao salvar, vale para este mês e os próximos; os meses anteriores não mudam.',
+      ended:
+        'A repetição deste custo foi encerrada: ao salvar, ela não volta. Os meses anteriores não mudam.',
+      stop: 'Ao salvar, este mês fica como lançamento avulso e os meses seguintes saem.',
+      startRepeating:
+        'Ao salvar, este custo passa a ser lançado todo mês, no mesmo dia. Em meses mais curtos, no último dia.',
+      toVariable:
+        'Como variável, este mês fica como lançamento avulso e os meses seguintes saem.',
+    },
+
+    toasts: {
+      updated: 'Custo atualizado.',
+      updatedForward: 'Custo atualizado deste mês em diante.',
+      stoppedRepeating: 'Custo parou de repetir; este mês foi mantido.',
+      startsRepeating: 'Custo passa a repetir todo mês.',
+      deleted: 'Custo excluído.',
+      deletedAndStopped: 'Custo excluído e parou de repetir.',
+    },
+
+    confirmDelete: {
+      oneOff: {
+        title: 'Excluir este custo?',
+        text: 'Ele sai do total do período e do cálculo do lucro. Isto não pode ser desfeito — você teria de lançar de novo.',
+        button: 'Excluir custo',
+      },
+      // Série ativa: excluir encerra a repetição nesta competência.
+      repeating: {
+        title: 'Excluir e parar de repetir?',
+        text: 'Este mês e os seguintes já lançados saem do total, e o custo deixa de ser lançado todo mês. Os meses anteriores continuam no histórico. Isto não pode ser desfeito — para voltar a repetir, lance o custo de novo.',
+        button: 'Excluir e parar',
+      },
+      // Série já encerrada: a RPC ainda remove esta competência e as seguintes.
+      endedSeries: {
+        title: 'Excluir este custo?',
+        text: 'Este mês e os seguintes desta série saem do total. Os meses anteriores continuam no histórico. Isto não pode ser desfeito.',
+        button: 'Excluir custo',
+      },
+    },
   },
 
   stockAlert: {

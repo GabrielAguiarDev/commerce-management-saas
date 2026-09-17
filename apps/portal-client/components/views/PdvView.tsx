@@ -1,11 +1,19 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { usePortal } from "@/components/PortalProvider";
 import { Button, field, css, MONO, NUM, PANEL, SANS, Select } from "@aguiar/ui";
 import { brl } from "@/lib/formato";
 import { isValidCpf } from "@/lib/dados/fiscal";
 import { PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { effectiveMethod, paymentOptions } from "@/lib/estado";
+import {
+  describeError,
+  queuedQtyByProduct,
+  saleTotal,
+  type QueuedSale,
+} from "@/lib/offline/salesQueue";
+import { discardSale, retrySale, useQueuedSales } from "@/lib/offline/salesQueueStore";
 import { ROUTES } from "@/lib/rotas";
 import type { Product } from "@/types/types";
 
@@ -31,6 +39,11 @@ export function PdvView() {
     if (s.code.trim() && !p.code.includes(s.code.trim())) return false;
     return true;
   });
+
+  // Vendas feitas sem conexão que o banco ainda não viu: o estoque e o caixa
+  // que o portal mostra NÃO as descontam. Ver `lib/offline`.
+  const queue = useQueuedSales(d.business.id, d.business.user.id);
+  const queuedQty = queuedQtyByProduct(queue.sales);
 
   const favorites = available.filter((p) => p.fav);
   const showFavorites = favorites.length > 0 && !search && !s.code.trim();
@@ -95,6 +108,8 @@ export function PdvView() {
           {catalogo.length} de {available.length} produtos
         </span>
       </div>
+
+      {queue.sales.length > 0 && <FilaOffline sales={queue.sales} syncing={queue.syncing} />}
 
       <div style={css(`display:grid;grid-template-columns:${posCols};gap:12px;align-items:start`)}>
         {/* Catálogo */}
@@ -176,7 +191,7 @@ export function PdvView() {
                   )}
                 >
                   {favorites.map((p) => (
-                    <BotaoProduto key={p.id} product={p} standout />
+                    <BotaoProduto key={p.id} product={p} queued={queuedQty.get(p.id) ?? 0} standout />
                   ))}
                 </div>
               </div>
@@ -205,7 +220,7 @@ export function PdvView() {
                 )}
               >
                 {catalogo.map((p) => (
-                  <BotaoProduto key={p.id} product={p} />
+                  <BotaoProduto key={p.id} product={p} queued={queuedQty.get(p.id) ?? 0} />
                 ))}
               </div>
             )}
@@ -443,7 +458,16 @@ export function PdvView() {
   );
 }
 
-function BotaoProduto({ product: p, standout }: { product: Product; standout?: boolean }) {
+function BotaoProduto({
+  product: p,
+  standout,
+  queued,
+}: {
+  product: Product;
+  standout?: boolean;
+  /** Unidades deste produto em vendas guardadas offline, ainda fora do estoque. */
+  queued: number;
+}) {
   const { s, a } = usePortal();
   const inCart = s.cart.find((c) => c.name === p.name);
   const noStock = p.stock != null && p.stock <= 0;
@@ -472,6 +496,10 @@ function BotaoProduto({ product: p, standout }: { product: Product; standout?: b
         {/* Estoque zerado não impede a venda — a prateleira pode estar
             desatualizada — mas o aviso fica visível na hora de tocar. */}
         {noStock && <span style={css(";color:var(--warn)")}> · sem estoque</span>}
+        {/* O saldo exibido é o do servidor e ainda não desconta a fila. */}
+        {p.stock != null && queued > 0 && (
+          <span style={css(";color:var(--warn)")}> · −{queued} pendente{queued === 1 ? "" : "s"}</span>
+        )}
       </span>
       {inCart && (
         <span
@@ -484,5 +512,128 @@ function BotaoProduto({ product: p, standout }: { product: Product; standout?: b
         </span>
       )}
     </Button>
+  );
+}
+
+/**
+ * As vendas guardadas neste computador que ainda não estão no sistema.
+ *
+ * Mora no PDV porque é aqui que elas nasceram e é aqui que a pessoa volta
+ * depois de vender sem internet. Pendente é enviada sozinha; recusada fica
+ * parada até alguém escolher entre tentar de novo e descartar — reenviar
+ * sozinha uma venda que o banco recusa seria um laço sem fim.
+ */
+function FilaOffline({ sales, syncing }: { sales: QueuedSale[]; syncing: boolean }) {
+  const { a, d } = usePortal();
+  const router = useRouter();
+  const scope = { tenantId: d.business.id, userId: d.business.user.id };
+  const failed = sales.filter((x) => x.status === "failed").length;
+  const total = sales.reduce((sum, x) => sum + saleTotal(x), 0);
+
+  const tentar = async (clientId: string) => {
+    const r = await retrySale(clientId, scope);
+    if (r.sent) {
+      a.notify("Venda guardada enviada");
+      router.refresh();
+    } else if (!r.failed) {
+      a.notify("Ainda sem conexão com o servidor — a venda continua guardada", "warn");
+    }
+  };
+
+  return (
+    <section
+      aria-label="Vendas guardadas neste computador"
+      style={css(
+        `margin-bottom:12px;padding:13px 14px;border:1px solid ${failed ? "var(--danger)" : "var(--warn-line)"};` +
+          `border-radius:14px;background:var(--warn-soft)`,
+      )}
+    >
+      <div style={css("display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap")}>
+        <h2 style={css(`margin:0;font:700 13.5px/1.3 ${SANS};color:var(--warn)`)}>
+          {sales.length} {sales.length === 1 ? "venda guardada" : "vendas guardadas"} neste computador ·{" "}
+          {brl(total)}
+        </h2>
+        <span style={css(`font:500 11.5px ${SANS};color:var(--text2)`)}>
+          {syncing ? "Enviando…" : "Ainda não entraram no estoque, no caixa nem nos relatórios."}
+        </span>
+      </div>
+
+      <div style={css("display:flex;flex-direction:column;gap:7px;margin-top:10px")}>
+        {sales.map((x) => {
+          const isFailed = x.status === "failed";
+          const quando = new Date(x.soldAt).toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          const resumo = x.items.map((i) => `${i.qtd}× ${i.name}`).join(" · ");
+          return (
+            <div
+              key={x.clientId}
+              style={css(
+                "display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 11px;border-radius:11px;" +
+                  `border:1px solid ${isFailed ? "var(--danger)" : "var(--border)"};background:var(--surface)`,
+              )}
+            >
+              <span style={css("flex:1;min-width:200px")}>
+                <span style={css(`display:block;font:600 12.5px/1.35 ${SANS}`)}>
+                  <span style={css(`font:600 11.5px ${MONO};color:var(--muted)`)}>{quando}</span> · {resumo}
+                </span>
+                <span
+                  style={css(
+                    `display:block;margin-top:2px;font:500 11.5px/1.4 ${SANS};` +
+                      `color:${isFailed ? "var(--danger)" : "var(--muted)"}`,
+                  )}
+                >
+                  {isFailed ? "Recusada: " : "Pendente: "}
+                  {describeError(x.lastError, x.status)}
+                </span>
+              </span>
+              <span style={css(`font:700 13px ${SANS};${NUM}`)}>{brl(saleTotal(x))}</span>
+              <span style={css("display:flex;gap:6px")}>
+                <Button
+                  onClick={() => tentar(x.clientId)}
+                  disabled={syncing}
+                  style={css(
+                    "padding:7px 10px;border-radius:9px;border:1px solid var(--border2);" +
+                      `background:var(--surface2);color:var(--text2);font:600 12px ${SANS}`,
+                  )}
+                >
+                  {isFailed ? "Tentar de novo" : "Enviar agora"}
+                </Button>
+                <Button
+                  onClick={() =>
+                    a.confirm({
+                      title: "Descartar esta venda guardada?",
+                      text: "Ela nunca chegou ao sistema. Descartar apaga a venda deste computador — o estoque e o caixa não mudam.",
+                      summary: `${resumo} · ${brl(saleTotal(x))}`,
+                      detail: isFailed ? describeError(x.lastError, x.status) : "A venda ainda seria enviada automaticamente.",
+                      reversal: "Não dá para desfazer. Se a venda aconteceu, registre-a de novo.",
+                      button: "Descartar venda",
+                      buttonBg: "var(--danger)",
+                      buttonInk: "#fff",
+                      color: "var(--danger)",
+                      action: async () => {
+                        await discardSale(x.clientId);
+                        a.closeConfirm();
+                        a.notify("Venda guardada descartada", "warn");
+                      },
+                    })
+                  }
+                  disabled={syncing}
+                  style={css(
+                    "padding:7px 10px;border-radius:9px;border:1px solid var(--danger);" +
+                      `background:var(--surface);color:var(--danger);font:600 12px ${SANS}`,
+                  )}
+                >
+                  Descartar
+                </Button>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

@@ -97,6 +97,10 @@ export const en = {
       name_required: 'Give the cost a name.',
       invalid_amount: 'Enter an amount greater than zero.',
       network: 'Could not save the cost right now.',
+      from_stock: 'This cost came from a Stock entry. Adjust the movement there.',
+      not_found: 'This cost no longer exists. The list was refreshed.',
+      forbidden: 'Your access does not allow changing costs.',
+      invalid_data: 'Check the cost details and try again.',
     } as Record<CostErrorCode, string>,
 
     support: {
@@ -461,6 +465,67 @@ export const en = {
       'Recorded today and again on the same day each month — or on the last day, in shorter months.',
     /** "month 09/2026": which month a repeating entry stands for. */
     competence: (month: string) => `month ${month}`,
+
+    title: 'Costs',
+    subtitle: 'What comes out of your pocket',
+    filters: { all: 'All', fixed: 'Fixed', variable: 'Variable' },
+    summary: { income: 'In', expense: 'Out', left: 'Left' },
+    fromStockTag: 'from stock',
+    addButton: '+ Record cost',
+    editRow: (name: string) => `Edit ${name}`,
+
+    newTitle: 'New cost',
+    editTitle: 'Edit cost',
+    nameLabel: 'Cost name',
+    namePlaceholder: 'E.g. rent',
+    amountLabel: 'Amount',
+    amountPlaceholder: 'R$ 0,00',
+    save: 'Save cost',
+    saveChanges: 'Save changes',
+    delete: 'Delete cost',
+    deleteAndStop: 'Delete and stop repeating',
+    /** A repeating entry's date is not editable: shows its month and due day. */
+    entryMonth: (month: string, day: number) => `Month of this entry: ${month} · day ${day}`,
+    editHint: {
+      // Mirrors the portal's CustoModal: only an ACTIVE series changes "from now on".
+      active: 'When saved, applies to this month and the next ones; earlier months do not change.',
+      ended:
+        'This cost stopped repeating: saving does not restart it. Earlier months do not change.',
+      stop: 'When saved, this month stays as a one-off entry and the following months are removed.',
+      startRepeating:
+        'When saved, this cost is added every month on the same day. In shorter months, on the last day.',
+      toVariable:
+        'As variable, this month stays as a one-off entry and the following months are removed.',
+    },
+
+    toasts: {
+      updated: 'Cost updated.',
+      updatedForward: 'Cost updated from this month on.',
+      stoppedRepeating: 'Cost stopped repeating; this month was kept.',
+      startsRepeating: 'Cost now repeats every month.',
+      deleted: 'Cost deleted.',
+      deletedAndStopped: 'Cost deleted and stopped repeating.',
+    },
+
+    confirmDelete: {
+      oneOff: {
+        title: 'Delete this cost?',
+        text: 'It leaves the period total and the profit calculation. This cannot be undone — you would have to record it again.',
+        button: 'Delete cost',
+      },
+      // Active series: deleting ends the repetition at this month.
+      repeating: {
+        title: 'Delete and stop repeating?',
+        text: 'This month and the following ones already recorded leave the total, and the cost is no longer added every month. Earlier months stay in the history. This cannot be undone — to repeat again, record the cost again.',
+        button: 'Delete and stop',
+      },
+      // Already-ended series: the RPC still removes this month and the next ones.
+      endedSeries: {
+        title: 'Delete this cost?',
+        text: 'This month and the following ones in this series leave the total. Earlier months stay in the history. This cannot be undone.',
+        button: 'Delete cost',
+      },
+    },
   },
 
   stockAlert: {

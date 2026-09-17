@@ -22,12 +22,22 @@ import type { ModuleKey } from "@/types/types";
 /**
  * O resumo de hoje.
  *
- * Os cartões e os atalhos são montados a partir dos módulos do plano — quem não
- * tem Estoque nem Caixa não vê esses números, em vez de vê-los zerados. É a
- * mesma regra que monta o menu lateral.
+ * Os cartões, os painéis e os atalhos são montados a partir dos módulos que
+ * ESTA pessoa usa (plano + papel) — quem não tem Estoque nem Caixa não vê esses
+ * números, em vez de vê-los zerados. É a mesma regra que monta o menu lateral.
+ *
+ * As regras de visibilidade espelham o que o banco deixa ler (ver
+ * `20260917010000_role_module_rls.sql`): sem permissão a leitura volta vazia,
+ * e um zero ali seria mentira, não "nada vendido".
  */
 export function DashboardView() {
   const { a, has, isMobile, d } = usePortal();
+
+  // `sales` só é legível com vendas, relatórios ou caixa.
+  const seesSales = has("sales") || has("reports") || has("register");
+  // Lucro = vendas − custo da mercadoria − custos lançados: precisa ler os três.
+  // `costs` e `reports` leem `costs` e o custo dos produtos.
+  const seesProfit = seesSales && (has("costs") || has("reports"));
 
   const today = d.sales.filter((v) => v.d === 0);
   const revenueToday = totalRevenue(today);
@@ -51,15 +61,17 @@ export function DashboardView() {
    * Mover um item daqui muda quem estica. Antes de reordenar, olhe a tabela de
    * `lib/grid.ts` para a contagem em questão.
    */
-  const kpis: MetricCardProps[] = [
-    {
+  const kpis: MetricCardProps[] = [];
+
+  if (seesSales) {
+    kpis.push({
       label: "Faturamento hoje",
       value: brl(revenueToday),
       note: `Em ${today.filter((v) => !v.refunded).length} vendas`,
       color: "var(--text)",
       dot: "var(--pos)",
-    },
-  ];
+    });
+  }
 
   if (has("costs")) {
     kpis.push({
@@ -71,7 +83,7 @@ export function DashboardView() {
     });
   }
 
-  if (has("costs") || has("reports")) {
+  if (seesProfit) {
     const margin = revenueToday > 0 ? (profitToday / revenueToday) * 100 : 0;
     kpis.push({
       label: "Lucro hoje",
@@ -82,23 +94,25 @@ export function DashboardView() {
     });
   }
 
-  kpis.push({
-    label: "Itens vendidos",
-    value: String(itemsSold(today)),
-    note: `Em ${today.filter((v) => !v.refunded).length} vendas`,
-    color: "var(--text)",
-    dot: "var(--petrol)",
-  });
+  if (seesSales) {
+    kpis.push({
+      label: "Itens vendidos",
+      value: String(itemsSold(today)),
+      note: `Em ${today.filter((v) => !v.refunded).length} vendas`,
+      color: "var(--text)",
+      dot: "var(--petrol)",
+    });
 
-  kpis.push({
-    label: "Faturamento do mês",
-    value: brl(month),
-    note: has("costs")
-      ? `Custos: ${brl(costsTotal(d.costs, 30))}`
-      : `${d.sales.filter((v) => v.d < 30 && !v.refunded).length} vendas no período`,
-    color: "var(--text)",
-    dot: "var(--muted)",
-  });
+    kpis.push({
+      label: "Faturamento do mês",
+      value: brl(month),
+      note: has("costs")
+        ? `Custos: ${brl(costsTotal(d.costs, 30))}`
+        : `${d.sales.filter((v) => v.d < 30 && !v.refunded).length} vendas no período`,
+      color: "var(--text)",
+      dot: "var(--muted)",
+    });
+  }
 
   if (has("register")) {
     kpis.push({
@@ -177,7 +191,9 @@ export function DashboardView() {
    */
   const grade = layoutDaGrade(kpis.length + (suggestion ? 1 : 0));
 
-  const panelCols = isMobile ? "1fr" : "minmax(0,1.6fr) minmax(0,1fr)";
+  const showShortcuts = shortcuts.length > 0;
+  const panelCols =
+    isMobile || !seesSales || !showShortcuts ? "1fr" : "minmax(0,1.6fr) minmax(0,1fr)";
 
   return (
     <div>
@@ -195,184 +211,204 @@ export function DashboardView() {
 
       </div>
 
-      <div
-        className="kpi-grid"
-        style={css(`--cols-d:${grade.colunasDesktop};--cols-m:${grade.colunasMobile}`)}
-      >
-        {kpis.map((k, i) => (
-          <MetricCard
-            key={k.label}
-            {...k}
-            spanDesktop={grade.spansDesktop[i]}
-            spanMobile={grade.spansMobile[i]}
-          />
-        ))}
-        {suggestion && (
-          <SuggestedModuleCard
-            module={suggestion}
-            spanDesktop={grade.spansDesktop[kpis.length]}
-            spanMobile={grade.spansMobile[kpis.length]}
-          />
-        )}
-      </div>
-
-      <div style={css(`display:grid;grid-template-columns:${panelCols};gap:12px;margin-top:12px`)}>
-        <div style={css(`display:flex;flex-direction:column;padding:18px;${PANEL}`)}>
-          <div
-            style={css("flex:none;display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap")}
-          >
-            <h2 style={css(PANEL_TITLE)}>Vendas dos últimos 7 dias</h2>
-            <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>
-              Valores em R$ · média {shortBrl(average)} / dia
-            </span>
-          </div>
-
-          <div
-            style={css(
-              `flex:1;display:flex;align-items:flex-end;gap:${isMobile ? "5px" : "10px"};min-height:190px;margin-top:18px`,
-            )}
-          >
-            {bars.map((b) => (
-              <div
-                key={b.d}
-                style={css("flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%")}
-              >
-                <span
-                  style={css(
-                    `flex:none;white-space:nowrap;font:600 11px ${MONO};color:var(--muted);${NUM}`,
-                  )}
-                >
-                  {b.amount > 0 ? shortBrl(b.amount) : "—"}
-                </span>
-                <span style={css("flex:1;min-height:0;width:100%;display:flex;align-items:flex-end")}>
-                  <span
-                    style={css(
-                      "flex:none;width:100%;border-radius:7px 7px 3px 3px;min-height:6px;transition:height .3s ease;" +
-                        `background:${b.d === 0 ? "var(--accent)" : "var(--accent-soft)"};` +
-                        `height:${Math.max((b.amount / largest) * 100, 3)}%`,
-                    )}
-                  />
-                </span>
-                <span
-                  style={css(
-                    `flex:none;font:600 11px ${SANS};color:${b.d === 0 ? "var(--accent)" : "var(--muted)"}`,
-                  )}
-                >
-                  {b.dia}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={css("display:flex;flex-direction:column;gap:12px")}>
-          <div style={css(`padding:18px;${PANEL}`)}>
-            <h2 style={css(`margin:0 0 14px;font:600 15px/1.2 ${SANS}`)}>Atalhos</h2>
-            <div style={css("display:grid;grid-template-columns:1fr 1fr;gap:8px")}>
-              {shortcuts.map((x) => (
-                <Button
-                  key={x.name}
-                  onClick={() => a.goTo(x.rota)}
-                  className="hv-linha"
-                  style={css(
-                    "display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--border);" +
-                      "border-radius:11px;background:var(--surface2);text-align:left",
-                  )}
-                >
-                  <span
-                    style={css(
-                      "width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;" +
-                        `font:600 10px ${MONO};background:var(--accent-soft);color:var(--accent-text)`,
-                    )}
-                  >
-                    {x.initials}
-                  </span>
-                  <span style={css(`font:600 12.5px/1.3 ${SANS};color:var(--text)`)}>{x.name}</span>
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={css(`margin-top:12px;padding:18px;${PANEL}`)}>
+      {kpis.length === 0 && !suggestion ? (
         <div
           style={css(
-            "display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px",
+            `padding:22px 18px;${PANEL};text-align:center;font:500 13px/1.5 ${SANS};color:var(--muted)`,
           )}
         >
-          <div>
-            <h2 style={css(`margin:0 0 4px;font:600 15px/1.2 ${SANS}`)}>Últimas vendas de hoje</h2>
-            <p style={css(`margin:0;font:400 12px ${SANS};color:var(--muted)`)}>
-              Registro em tempo real do balcão.
-            </p>
-          </div>
-          <Button
-            onClick={() => a.goTo(ROUTES.sales)}
-            className="hv-acc-borda"
-            style={css(
-              `padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--accent-text);font:600 12.5px ${SANS}`,
-            )}
-          >
-            Ver todas
-          </Button>
+          Nenhum indicador disponível para o seu acesso. Use o menu para abrir as telas liberadas.
         </div>
+      ) : (
+        <div
+          className="kpi-grid"
+          style={css(`--cols-d:${grade.colunasDesktop};--cols-m:${grade.colunasMobile}`)}
+        >
+          {kpis.map((k, i) => (
+            <MetricCard
+              key={k.label}
+              {...k}
+              spanDesktop={grade.spansDesktop[i]}
+              spanMobile={grade.spansMobile[i]}
+            />
+          ))}
+          {suggestion && (
+            <SuggestedModuleCard
+              module={suggestion}
+              spanDesktop={grade.spansDesktop[kpis.length]}
+              spanMobile={grade.spansMobile[kpis.length]}
+            />
+          )}
+        </div>
+      )}
 
-        {latest.length === 0 ? (
-          <div
-            style={css(
-              `padding:30px 18px;border:1px dashed var(--border2);border-radius:12px;background:var(--surface2);text-align:center;font:500 13px/1.5 ${SANS};color:var(--muted)`,
-            )}
-          >
-            Nenhuma venda registrada hoje ainda.
-          </div>
-        ) : (
-          <div
-            style={css(
-              "display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:11px;overflow:hidden",
-            )}
-          >
-            {latest.map((v) => (
+      {(seesSales || showShortcuts) && (
+        <div style={css(`display:grid;grid-template-columns:${panelCols};gap:12px;margin-top:12px`)}>
+          {seesSales && (
+            <div style={css(`display:flex;flex-direction:column;padding:18px;${PANEL}`)}>
               <div
-                key={v.id}
-                style={css("display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface)")}
+                style={css("flex:none;display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap")}
               >
-                <span style={css(`flex:none;font:600 11.5px ${MONO};color:var(--muted);${NUM}`)}>
-                  {v.time}
-                </span>
-                <span
-                  style={css(
-                    `flex:1;min-width:0;font:500 13px ${SANS};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
-                      (v.refunded ? "text-decoration:line-through;color:var(--muted)" : ""),
-                  )}
-                >
-                  {v.items.map((i) => (i.qtd > 1 ? `${i.qtd}× ${i.name}` : i.name)).join(", ")}
-                </span>
-                {!isMobile && (
-                  <span
-                    style={css(
-                      `flex:none;padding:3px 9px;border-radius:999px;background:var(--surface3);color:var(--text2);font:600 11px ${SANS}`,
-                    )}
-                  >
-                    {PAYMENT_LABEL[v.payment]}
-                  </span>
-                )}
-                <span
-                  style={css(
-                    `flex:none;font:700 13.5px ${SANS};${NUM};` +
-                      (v.refunded ? "text-decoration:line-through;color:var(--muted)" : ""),
-                  )}
-                >
-                  {brl(totalV(v))}
+                <h2 style={css(PANEL_TITLE)}>Vendas dos últimos 7 dias</h2>
+                <span style={css(`font:500 11.5px ${SANS};color:var(--muted)`)}>
+                  Valores em R$ · média {shortBrl(average)} / dia
                 </span>
               </div>
-            ))}
+
+              <div
+                style={css(
+                  `flex:1;display:flex;align-items:flex-end;gap:${isMobile ? "5px" : "10px"};min-height:190px;margin-top:18px`,
+                )}
+              >
+                {bars.map((b) => (
+                  <div
+                    key={b.d}
+                    style={css("flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%")}
+                  >
+                    <span
+                      style={css(
+                        `flex:none;white-space:nowrap;font:600 11px ${MONO};color:var(--muted);${NUM}`,
+                      )}
+                    >
+                      {b.amount > 0 ? shortBrl(b.amount) : "—"}
+                    </span>
+                    <span style={css("flex:1;min-height:0;width:100%;display:flex;align-items:flex-end")}>
+                      <span
+                        style={css(
+                          "flex:none;width:100%;border-radius:7px 7px 3px 3px;min-height:6px;transition:height .3s ease;" +
+                            `background:${b.d === 0 ? "var(--accent)" : "var(--accent-soft)"};` +
+                            `height:${Math.max((b.amount / largest) * 100, 3)}%`,
+                        )}
+                      />
+                    </span>
+                    <span
+                      style={css(
+                        `flex:none;font:600 11px ${SANS};color:${b.d === 0 ? "var(--accent)" : "var(--muted)"}`,
+                      )}
+                    >
+                      {b.dia}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showShortcuts && (
+            <div style={css("display:flex;flex-direction:column;gap:12px")}>
+              <div style={css(`padding:18px;${PANEL}`)}>
+                <h2 style={css(`margin:0 0 14px;font:600 15px/1.2 ${SANS}`)}>Atalhos</h2>
+                <div style={css("display:grid;grid-template-columns:1fr 1fr;gap:8px")}>
+                  {shortcuts.map((x) => (
+                    <Button
+                      key={x.name}
+                      onClick={() => a.goTo(x.rota)}
+                      className="hv-linha"
+                      style={css(
+                        "display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--border);" +
+                          "border-radius:11px;background:var(--surface2);text-align:left",
+                      )}
+                    >
+                      <span
+                        style={css(
+                          "width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;" +
+                            `font:600 10px ${MONO};background:var(--accent-soft);color:var(--accent-text)`,
+                        )}
+                      >
+                        {x.initials}
+                      </span>
+                      <span style={css(`font:600 12.5px/1.3 ${SANS};color:var(--text)`)}>{x.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {seesSales && (
+        <div style={css(`margin-top:12px;padding:18px;${PANEL}`)}>
+          <div
+            style={css(
+              "display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px",
+            )}
+          >
+            <div>
+              <h2 style={css(`margin:0 0 4px;font:600 15px/1.2 ${SANS}`)}>Últimas vendas de hoje</h2>
+              <p style={css(`margin:0;font:400 12px ${SANS};color:var(--muted)`)}>
+                Registro em tempo real do balcão.
+              </p>
+            </div>
+            {has("sales") && (
+              <Button
+                onClick={() => a.goTo(ROUTES.sales)}
+                className="hv-acc-borda"
+                style={css(
+                  `padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--accent-text);font:600 12.5px ${SANS}`,
+                )}
+              >
+                Ver todas
+              </Button>
+            )}
           </div>
-        )}
-        <p style={css(`margin:10px 0 0;font:500 11.5px ${SANS};color:var(--muted)`)}>
-          Última movimentação: {latest[0] ? dateLabel(0, latest[0].time) : "—"}
-        </p>
-      </div>
+
+          {latest.length === 0 ? (
+            <div
+              style={css(
+                `padding:30px 18px;border:1px dashed var(--border2);border-radius:12px;background:var(--surface2);text-align:center;font:500 13px/1.5 ${SANS};color:var(--muted)`,
+              )}
+            >
+              Nenhuma venda registrada hoje ainda.
+            </div>
+          ) : (
+            <div
+              style={css(
+                "display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:11px;overflow:hidden",
+              )}
+            >
+              {latest.map((v) => (
+                <div
+                  key={v.id}
+                  style={css("display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface)")}
+                >
+                  <span style={css(`flex:none;font:600 11.5px ${MONO};color:var(--muted);${NUM}`)}>
+                    {v.time}
+                  </span>
+                  <span
+                    style={css(
+                      `flex:1;min-width:0;font:500 13px ${SANS};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;` +
+                        (v.refunded ? "text-decoration:line-through;color:var(--muted)" : ""),
+                    )}
+                  >
+                    {v.items.map((i) => (i.qtd > 1 ? `${i.qtd}× ${i.name}` : i.name)).join(", ")}
+                  </span>
+                  {!isMobile && (
+                    <span
+                      style={css(
+                        `flex:none;padding:3px 9px;border-radius:999px;background:var(--surface3);color:var(--text2);font:600 11px ${SANS}`,
+                      )}
+                    >
+                      {PAYMENT_LABEL[v.payment]}
+                    </span>
+                  )}
+                  <span
+                    style={css(
+                      `flex:none;font:700 13.5px ${SANS};${NUM};` +
+                        (v.refunded ? "text-decoration:line-through;color:var(--muted)" : ""),
+                    )}
+                  >
+                    {brl(totalV(v))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <p style={css(`margin:10px 0 0;font:500 11.5px ${SANS};color:var(--muted)`)}>
+            Última movimentação: {latest[0] ? dateLabel(0, latest[0].time) : "—"}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

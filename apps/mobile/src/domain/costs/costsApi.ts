@@ -4,7 +4,13 @@ import { logActivity } from '@domain/shared/activityLog';
 import { daysAgoDateOnly, todayDateOnly } from '@utils/dates';
 import { centsToReal, realToCents } from '@utils/money';
 
-import type { CostAPI, CostCreateAPI, MonthSummaryAPI } from './costsApiTypes';
+import type {
+  CostAPI,
+  CostCreateAPI,
+  CostDeleteAPI,
+  CostUpdateAPI,
+  MonthSummaryAPI,
+} from './costsApiTypes';
 
 /**
  * FRONTEIRA DE REDE dos custos.
@@ -23,7 +29,7 @@ const HISTORY_DAYS = 180;
  * custo lançado à noite cairia fora do mês em que foi pago.
  */
 const COST_COLUMNS =
-  'id, tenant_id, description, type, amount, origin, cost_date, recurrence_id, competence, series:cost_recurrence_series(active)';
+  'id, tenant_id, description, type, category, amount, origin, cost_date, recurrence_id, competence, series:cost_recurrence_series(active)';
 
 let generation: Promise<void> | null = null;
 
@@ -57,6 +63,7 @@ interface CostRow {
   tenant_id: string;
   description: string;
   type: string | null;
+  category: string | null;
   amount: number | null;
   origin: string | null;
   cost_date: string;
@@ -82,6 +89,8 @@ function toCostAPI(c: CostRow): CostAPI {
     recurrence_id: c.recurrence_id,
     series_active: seriesActive,
     competence: c.competence,
+    cost_date: c.cost_date,
+    category: c.category,
   };
 }
 
@@ -182,6 +191,10 @@ function rangeLabel(month: string): string {
   return `01/${String(monthIndex).padStart(2, '0')} a ${lastDay}/${String(monthIndex).padStart(2, '0')}`;
 }
 
+function brl(cents: number): string {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
 export async function createCost(payload: CostCreateAPI): Promise<CostAPI> {
   const costDate = todayDateOnly();
 
@@ -208,8 +221,48 @@ export async function createCost(payload: CostCreateAPI): Promise<CostAPI> {
 
   logActivity('cost.created', {
     entityId: row.id,
-    summary: `${payload.name} · ${(payload.amount_cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+    summary: `${payload.name} · ${brl(payload.amount_cents)}`,
   });
 
   return toCostAPI(row);
+}
+
+/**
+ * Edita um custo manual. A RPC decide o alcance: em série ativa vale para este
+ * mês e os seguintes; desligar a repetição encerra a série e mantém este mês;
+ * custo de estoque é recusado no servidor.
+ */
+export async function updateCost(payload: CostUpdateAPI): Promise<void> {
+  const { error } = await supabase.rpc('save_manual_cost', {
+    p_id: payload.id,
+    p_description: payload.name,
+    p_type: payload.kind === COST_TYPES.fixed ? COST_TYPES.fixed : COST_TYPES.variable,
+    p_category: payload.category,
+    p_amount: centsToReal(payload.amount_cents),
+    p_cost_date: payload.cost_date,
+    p_is_recurring: payload.recurring,
+  });
+
+  if (error) throw error;
+
+  logActivity('cost.updated', {
+    entityId: payload.id,
+    summary: `${payload.name} · ${brl(payload.amount_cents)}`,
+  });
+}
+
+/**
+ * Exclui um custo manual. Em série, a RPC encerra a repetição na competência
+ * escolhida: ela e as seguintes saem, as anteriores ficam como histórico.
+ */
+export async function deleteCost(payload: CostDeleteAPI): Promise<void> {
+  const { error } = await supabase.rpc('delete_manual_cost', { p_id: payload.id });
+
+  if (error) throw error;
+
+  // Mesmo resumo que o portal grava para a mesma ação.
+  logActivity('cost.deleted', {
+    entityId: payload.id,
+    summary: `${payload.name}${payload.stops_repeating ? ' · parou de repetir' : ''}`,
+  });
 }

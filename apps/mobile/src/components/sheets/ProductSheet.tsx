@@ -109,7 +109,9 @@ function ProductForm({ product }: { product: Product | null }) {
           name,
           code,
           priceCents: parseCents(price) ?? 0,
-          costCents: capabilities.hasCosts ? parseCents(cost) : null,
+          // Sem o campo na tela, o custo não é enviado: `null` apagaria o que
+          // quem tem acesso cadastrou.
+          costCents: capabilities.hasCosts ? parseCents(cost) : undefined,
           // `null` aqui é "não mexe no mínimo" (produto sem controle de
           // estoque, ou plano sem o módulo). Campo em branco num produto que
           // CONTROLA estoque é 0 mesmo: o dono apagou para não ser avisado.

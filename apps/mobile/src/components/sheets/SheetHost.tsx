@@ -6,6 +6,7 @@ import { useUIStore, type Sheet } from '@store/uiStore';
 import { CartSheet } from './CartSheet';
 import { TicketSheet } from './TicketSheet';
 import { CloseOutSheet } from './CloseOutSheet';
+import { CostSheet } from './CostSheet';
 import { ProductSheet } from './ProductSheet';
 import { SimpleSheet } from './SimpleSheet';
 
@@ -57,7 +58,7 @@ function conteudo(sheet: Sheet) {
     case 'topUp':
       return <SimpleSheet type="topUp" />;
     case 'cost':
-      return <SimpleSheet type="cost" />;
+      return <CostSheet costId={sheet.costId} />;
     case 'movement':
       return (
         <SimpleSheet

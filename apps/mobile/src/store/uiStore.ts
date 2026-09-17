@@ -59,7 +59,8 @@ export type Sheet =
   | { type: 'withdrawal' }
   | { type: 'topUp' }
   | { type: 'movement'; productId?: string; productName?: string }
-  | { type: 'cost' };
+  /** Sem `costId` é registro; com ele, edição/exclusão do mesmo custo. */
+  | { type: 'cost'; costId?: string };
 
 export type SheetType = Sheet['type'];
 

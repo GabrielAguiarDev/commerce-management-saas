@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSessionStore } from '@store/sessionStore';
 
 import * as service from '../costsService';
-import type { CostType } from '../costsTypes';
+import type { Cost, CostChanges, CostType } from '../costsTypes';
 
 export const costsKeys = {
   all: ['costs'] as const,
@@ -47,5 +47,29 @@ export function useRecordCost() {
         data.recurring,
       ),
     onSuccess: () => client.invalidateQueries({ queryKey: costsKeys.all }),
+  });
+}
+
+export function useUpdateCost() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: { cost: Cost; changes: CostChanges }) =>
+      service.updateCost(data.cost, data.changes),
+    // Série mexe em vários meses e no resumo: recarrega tudo de custos.
+    onSettled: () => client.invalidateQueries({ queryKey: costsKeys.all }),
+  });
+}
+
+export function useDeleteCost() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (cost: Cost) => service.deleteCost(cost),
+    // Sem `return`: a mutação não espera o refetch. Esperar faria o sheet
+    // aberto perder o custo excluído e piscar "não existe mais" antes de fechar.
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: costsKeys.all });
+    },
   });
 }

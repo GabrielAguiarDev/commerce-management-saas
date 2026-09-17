@@ -45,6 +45,7 @@ export interface ProductUpdateAPI {
   name: string;
   sku: string | null;
   price_cents: number;
-  cost_cents: number | null;
+  /** `undefined` = não mexe no custo (a sessão não o enxerga); `null` = limpa. */
+  cost_cents?: number | null;
   stock_min: number | null;
 }

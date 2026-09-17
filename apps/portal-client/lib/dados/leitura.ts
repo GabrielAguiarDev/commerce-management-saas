@@ -201,17 +201,35 @@ export async function readSettings(
 /* Produtos                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * O catálogo, com o custo vindo à parte.
+ *
+ * `products.cost` não tem SELECT para a sessão: quem só vende não lê custo. A
+ * coluna sai de `v_product_costs`, que volta VAZIA para quem não pode vê-la —
+ * e aí o custo fica zerado, como o de um produto sem custo cadastrado. Pedir
+ * `cost` (ou `*`) em `products` derrubaria a consulta inteira.
+ */
 export async function readProducts(supabase: Customer): Promise<Product[]> {
-  const { data } = await supabase
-    .from("products")
-    // UMA string literal, sem concatenação: o tipo do PostgREST analisa este
-    // texto para saber o formato da linha, e `"a" + "b"` já chega lá como
-    // `string` — o resultado vira `GenericStringError` e todo o `map` abaixo
-    // perde o tipo.
-    .select(
-      "id, name, price, cost, category, barcode, unit, is_service, is_favorite, is_active, stock_quantity, stock_min, tracks_stock, ncm, cest, origin, gtin, tax_unit, cfop, icms_code, pis_cst, cofins_cst",
-    )
-    .order("name");
+  const [{ data }, { data: costRows }] = await Promise.all([
+    supabase
+      .from("products")
+      // UMA string literal, sem concatenação: o tipo do PostgREST analisa este
+      // texto para saber o formato da linha, e `"a" + "b"` já chega lá como
+      // `string` — o resultado vira `GenericStringError` e todo o `map` abaixo
+      // perde o tipo.
+      .select(
+        "id, name, price, category, barcode, unit, is_service, is_favorite, is_active, stock_quantity, stock_min, tracks_stock, ncm, cest, origin, gtin, tax_unit, cfop, icms_code, pis_cst, cofins_cst",
+      )
+      .order("name"),
+    supabase.from("v_product_costs").select("product_id, cost"),
+  ]);
+
+  const costs = new Map(
+    ((costRows ?? []) as { product_id: string; cost: number | string | null }[]).map((c) => [
+      c.product_id,
+      c.cost,
+    ]),
+  );
 
   return (data ?? []).map((p) => ({
     id: p.id,
@@ -221,7 +239,7 @@ export async function readProducts(supabase: Customer): Promise<Product[]> {
     fav: !!p.is_favorite,
     active: !!p.is_active,
     category: p.category ?? "Outros",
-    cost: num(p.cost),
+    cost: num(costs.get(p.id)),
     // `tracks_stock` é quem manda: um produto físico sem controle de estoque
     // não deve aparecer na tela de Estoque nem gerar alerta.
     stock: p.tracks_stock ? num(p.stock_quantity) : null,

@@ -23,8 +23,15 @@ import type { ProductAPI, ProductCreateAPI, ProductUpdateAPI } from './catalogAp
  *    distinção chegue inteira ao adapter.
  */
 
+/**
+ * Sem `cost`: a coluna não tem SELECT para a sessão (quem vende não lê custo).
+ * O custo vem de `v_product_costs`, que volta vazia para quem não pode vê-lo —
+ * ver `readCosts`. Pedir `cost` aqui derrubaria a consulta inteira com 42501.
+ */
 const PRODUCT_COLUMNS =
-  'id, tenant_id, name, barcode, price, cost, is_service, is_favorite, is_active, stock_quantity, stock_min, tracks_stock, category, created_at';
+  'id, tenant_id, name, barcode, price, is_service, is_favorite, is_active, stock_quantity, stock_min, tracks_stock, category, created_at';
+
+type CostMap = Map<string, number | null>;
 
 interface ProductRow {
   id: string;
@@ -32,7 +39,6 @@ interface ProductRow {
   name: string;
   barcode: string | null;
   price: number | null;
-  cost: number | null;
   is_service: boolean | null;
   is_favorite: boolean | null;
   is_active: boolean | null;
@@ -43,7 +49,29 @@ interface ProductRow {
   created_at: string;
 }
 
-function toProductAPI(row: ProductRow): ProductAPI {
+/**
+ * O custo dos produtos que esta sessão pode ver.
+ *
+ * Falha aqui NÃO derruba o catálogo: o PDV precisa da lista mesmo sem custo, e
+ * a ausência no mapa já significa "custo desconhecido" (`null`).
+ */
+async function readCosts(productId?: string): Promise<CostMap> {
+  let query = supabase.from('v_product_costs').select('product_id, cost');
+  if (productId) query = query.eq('product_id', productId);
+
+  const { data, error } = await query;
+  if (error) return new Map();
+
+  return new Map(
+    ((data ?? []) as { product_id: string; cost: number | null }[]).map((r) => [
+      r.product_id,
+      r.cost,
+    ]),
+  );
+}
+
+function toProductAPI(row: ProductRow, costs: CostMap): ProductAPI {
+  const cost = costs.get(row.id) ?? null;
   const tracks = row.tracks_stock === true && row.is_service !== true;
 
   return {
@@ -54,7 +82,7 @@ function toProductAPI(row: ProductRow): ProductAPI {
     price_cents: realToCents(row.price),
     // `null` preservado de propósito: produto sem custo cadastrado não tem
     // custo ZERO. Zero faria a margem aparecer como 100% de lucro.
-    cost_cents: row.cost == null ? null : realToCents(row.cost),
+    cost_cents: cost == null ? null : realToCents(cost),
     is_service: row.is_service,
     is_favorite: row.is_favorite,
     stock_qty: tracks ? Number(row.stock_quantity ?? 0) : null,
@@ -78,14 +106,13 @@ function toProductAPI(row: ProductRow): ProductAPI {
 export async function listProducts(tenantId: string): Promise<ProductAPI[]> {
   void tenantId; // O RLS já isola pelo tenant do usuário logado.
 
-  const { data, error } = await supabase
-    .from('products')
-    .select(PRODUCT_COLUMNS)
-    .eq('is_active', true)
-    .order('name');
+  const [{ data, error }, costs] = await Promise.all([
+    supabase.from('products').select(PRODUCT_COLUMNS).eq('is_active', true).order('name'),
+    readCosts(),
+  ]);
 
   if (error) throw error;
-  return ((data ?? []) as ProductRow[]).map(toProductAPI);
+  return ((data ?? []) as ProductRow[]).map((row) => toProductAPI(row, costs));
 }
 
 /**
@@ -122,7 +149,12 @@ export async function createProduct(payload: ProductCreateAPI): Promise<ProductA
 
   logActivity('product.created', { entityId: data.id, summary: payload.name });
 
-  return toProductAPI(data as ProductRow);
+  // O custo que acabou de ser gravado é o que o formulário mandou; relê-lo da
+  // view custaria uma ida a mais para devolver o mesmo número.
+  const costs: CostMap = new Map([
+    [data.id, payload.cost_cents == null ? null : centsToReal(payload.cost_cents)],
+  ]);
+  return toProductAPI(data as ProductRow, costs);
 }
 
 /**
@@ -132,6 +164,10 @@ export async function createProduct(payload: ProductCreateAPI): Promise<ProductA
  * tenho esse campo no formulário" (plano sem estoque), e não "zera o mínimo".
  * Gravar 0 nesse caso desligaria silenciosamente o aviso de estoque baixo de
  * quem só queria corrigir o preço.
+ *
+ * `cost_cents` ausente (`undefined`) segue a mesma ideia: quem não enxerga o
+ * custo não tem o campo na tela, e gravar `null` apagaria o custo que o dono
+ * cadastrou. `null` explícito, esse sim, limpa o custo.
  *
  * `stock_quantity` NÃO é tocado de propósito — ver `ProductUpdate`.
  */
@@ -145,7 +181,9 @@ export async function updateProduct(
       name: payload.name,
       barcode: payload.sku,
       price: centsToReal(payload.price_cents),
-      cost: payload.cost_cents == null ? null : centsToReal(payload.cost_cents),
+      ...(payload.cost_cents === undefined
+        ? {}
+        : { cost: payload.cost_cents === null ? null : centsToReal(payload.cost_cents) }),
       ...(payload.stock_min === null ? {} : { stock_min: payload.stock_min }),
     })
     .eq('id', productId)
@@ -153,12 +191,13 @@ export async function updateProduct(
     .maybeSingle();
 
   if (error) throw error;
-
   // `data` nulo é o RLS recusando em silêncio — não houve alteração para
   // registrar. Favoritar NÃO entra no histórico: é arrumação de tela.
-  if (data) logActivity('product.updated', { entityId: productId, summary: payload.name });
+  if (!data) return null;
 
-  return data ? toProductAPI(data as ProductRow) : null;
+  logActivity('product.updated', { entityId: productId, summary: payload.name });
+
+  return toProductAPI(data as ProductRow, await readCosts(productId));
 }
 
 export async function toggleFavorite(
@@ -187,5 +226,5 @@ export async function toggleFavorite(
     .maybeSingle();
 
   if (error) throw error;
-  return data ? toProductAPI(data as ProductRow) : null;
+  return data ? toProductAPI(data as ProductRow, await readCosts(productId)) : null;
 }

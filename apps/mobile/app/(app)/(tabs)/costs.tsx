@@ -1,18 +1,13 @@
 import { useState } from 'react';
 
-import { Button, Box, Card, Chips, Pill, Screen, Text } from '@components';
+import { Button, Box, Card, Chips, Pill, Screen, Text, Touchable } from '@components';
 import type { ChipOption } from '@components';
 import { filterCosts, useCosts, useMonthlySummary } from '@domain/costs';
-import type { CostFilter } from '@domain/costs';
+import type { Cost, CostFilter } from '@domain/costs';
+import { useCapabilities } from '@domain/tenant';
 import { useUIStore } from '@store/uiStore';
 import { useTranslation } from '@i18n';
 import { formatBRL } from '@utils/money';
-
-const FILTERS: ChipOption<CostFilter>[] = [
-  { key: 'all', label: 'Todos' },
-  { key: 'fixed_only', label: 'Fixos' },
-  { key: 'variable_only', label: 'Variáveis' },
-];
 
 /**
  * Custos — "O que sai do seu bolso".
@@ -25,13 +20,29 @@ export default function CostsScreen() {
   const { data: summary } = useMonthlySummary();
   const { data: costs = [] } = useCosts();
   const openSheet = useUIStore((s) => s.openSheet);
+  const showToast = useUIStore((s) => s.showToast);
   const t = useTranslation();
+  // Só quem tem o módulo de custos lança, edita ou exclui. O servidor
+  // confere de novo; aqui é para não oferecer o que vai ser recusado.
+  const canEdit = useCapabilities().capabilities.hasCosts;
+
+  const filters: ChipOption<CostFilter>[] = [
+    { key: 'all', label: t.costs.filters.all },
+    { key: 'fixed_only', label: t.costs.filters.fixed },
+    { key: 'variable_only', label: t.costs.filters.variable },
+  ];
 
   const [filter, setFilter] = useState<CostFilter>('all');
   const list = filterCosts(costs, filter);
 
+  function openCost(cost: Cost) {
+    // Custo de estoque não se edita aqui: explica onde se corrige.
+    if (cost.fromStock) return showToast(t.errors.cost.from_stock);
+    openSheet({ type: 'cost', costId: cost.id });
+  }
+
   return (
-    <Screen title="Custos" subtitle="O que sai do seu bolso" padded>
+    <Screen title={t.costs.title} subtitle={t.costs.subtitle} padded>
       <Card borderRadius="r22" padding="s18">
         <Box
           flexDirection="row"
@@ -46,17 +57,20 @@ export default function CostsScreen() {
         </Box>
 
         <Box flexDirection="row" gap="s12">
-          <ColunaDoMes label="Entrou" amount={summary?.entrouCentavos ?? 0} />
-          <ColunaDoMes label="Saiu" amount={summary?.saiuCentavos ?? 0} color="danger" />
-          <ColunaDoMes label="Sobrou" amount={summary?.sobrouCentavos ?? 0} color="success" />
+          <ColunaDoMes label={t.costs.summary.income} amount={summary?.entrouCentavos ?? 0} />
+          <ColunaDoMes label={t.costs.summary.expense} amount={summary?.saiuCentavos ?? 0} color="danger" />
+          <ColunaDoMes label={t.costs.summary.left} amount={summary?.sobrouCentavos ?? 0} color="success" />
         </Box>
       </Card>
 
-      <Chips options={FILTERS} selecionada={filter} onSelect={setFilter} method="cash" expandir />
+      <Chips options={filters} selecionada={filter} onSelect={setFilter} method="cash" expandir />
 
       {list.map((cost) => (
-        <Box
+        <Touchable
           key={cost.id}
+          accessibilityLabel={t.costs.editRow(cost.name)}
+          disabled={!canEdit}
+          onPress={() => openCost(cost)}
           backgroundColor="surface"
           borderColor="line"
           borderWidth={1}
@@ -72,7 +86,7 @@ export default function CostsScreen() {
               <Pill text={cost.typeLabel} variant="tag" />
               {cost.fromStock ? (
                 <Pill
-                  text="veio do estoque"
+                  text={t.costs.fromStockTag}
                   backgroundColor="primarySoft"
                   textColor="primary"
                   variant="tag"
@@ -88,17 +102,19 @@ export default function CostsScreen() {
                 : cost.quando}
             </Text>
           </Box>
-        </Box>
+        </Touchable>
       ))}
 
-      <Button
-        title="+ Registrar custo"
-        onPress={() => openSheet({ type: 'cost' })}
-        variant="tracejado"
-        height={52}
-        radius={18}
-        textVariant="buttonSm"
-      />
+      {canEdit ? (
+        <Button
+          title={t.costs.addButton}
+          onPress={() => openSheet({ type: 'cost' })}
+          variant="tracejado"
+          height={52}
+          radius={18}
+          textVariant="buttonSm"
+        />
+      ) : null}
     </Screen>
   );
 }
