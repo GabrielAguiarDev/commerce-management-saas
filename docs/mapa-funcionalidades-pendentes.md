@@ -74,10 +74,9 @@ Pendências que sobraram desta fase:
 
 5. **Fila offline para outras escritas do portal web** (hoje só vendas do PDV).
 
-6. **Cobertura automatizada das migrations e das Server Actions.** TypeScript,
-   lint, builds e testes mobile estão cobertos. Falta um Postgres/Supabase local
-   no CI para executar migrations e provar RLS, triggers, concorrência de caixa
-   e retries das RPCs.
+6. **Testes das Server Actions do portal e de concorrência no banco.** As migrations
+   e o RLS já rodam em Postgres real (`scripts/db-test.sh`); faltam testes das
+   actions do portal e de corridas (dois caixas, retries simultâneos).
 
 ### Dependências externas
 
