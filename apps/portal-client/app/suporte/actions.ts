@@ -152,7 +152,13 @@ export async function setTicketStatus(
   return { ok: true };
 }
 
-/** Abrir a conversa já conta como ler: o selo "nova resposta" some. */
+/**
+ * Abrir a conversa já conta como ler: o selo "nova resposta" some.
+ *
+ * Marca tudo que não é do cliente — `'support'`, `'admin'` (equipe da
+ * plataforma) e `'system'`. As do cliente ficam de fora: quem as lê é o
+ * suporte, e o trigger `guard_support_message_write` recusa essa escrita.
+ */
 export async function markTicketRead(chamadoId: string): Promise<ActionResult> {
   const session = await requireCustomer("abrir um chamado", "support");
   if (!session.ok) return session;
@@ -161,7 +167,7 @@ export async function markTicketRead(chamadoId: string): Promise<ActionResult> {
     .from("support_messages")
     .update({ read_by_recipient: true })
     .eq("ticket_id", chamadoId)
-    .eq("sender_side", AUTHOR_DB.support)
+    .neq("sender_side", AUTHOR_DB.customer)
     .eq("read_by_recipient", false);
 
   if (error) return { ok: false, message: error.message };

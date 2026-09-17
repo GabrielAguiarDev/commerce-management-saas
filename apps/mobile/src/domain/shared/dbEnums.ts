@@ -118,7 +118,13 @@ export const COST_ORIGIN = { manual: 'manual', stock: 'stock' } as const;
  * silêncio. Vocabulário divergente entre app e portal é exatamente o tipo de
  * bug que só aparece semanas depois, numa conversa confusa.
  */
-export const SENDER_SIDE = { client: 'client', support: 'support' } as const;
+export const SENDER_SIDE = {
+  client: 'client',
+  support: 'support',
+  /** A equipe da plataforma respondendo pelo painel admin. */
+  admin: 'admin',
+  system: 'system',
+} as const;
 
 /**
  * `support_tickets.status` — as chaves que o portal e o admin usam.

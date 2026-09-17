@@ -61,8 +61,10 @@ deliberadamente excluído desta análise e das alterações.
 
 Pendências que sobraram desta fase:
 
-- Testes de migrations em Postgres real (aguardando o dump do schema de produção).
-- `markRead` do portal e do mobile filtra só `sender_side = 'support'` e nunca marca como lidas as mensagens `admin`.
+- ~~Testes de migrations em Postgres real~~: feito — `scripts/db-test.sh`, suítes em `supabase/tests`, job `db` no CI (ver `docs/testes/banco.md`).
+- ~~`markRead` ignorava mensagens `admin`~~: corrigido no portal e no mobile; a trava de `support_messages` foi ajustada em `20260917050000`.
+- `20260917050000` também corrige o UPDATE de `profiles` (tema, suspender, trocar papel afetavam 0 linhas) e os reforços (`deposit`) ignorados no fechamento de caixa.
+- Trigger `cost_from_stock_entry` testa `type = 'entry'`, que não existe no vocabulário (código morto).
 - No PDV offline, estoque e caixa não são recalculados localmente, e o horário da venda vem do relógio do computador.
 - O advisor do Supabase vai apontar `v_product_costs` como view security definer (é intencional: o filtro de tenant e de módulo está dentro dela).
 

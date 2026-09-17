@@ -48,3 +48,23 @@ jobs:
       # em paralelo e devolve um resumo só; se qualquer pacote falhar, o job
       # falha. Ver o script `check` na raiz.
       - run: pnpm check
+
+  # Migrations e RLS num Postgres de verdade: baseline da produção + migrations
+  # pendentes + testes pgTAP (supabase/tests). O runner ubuntu já tem Docker;
+  # o script sobe e derruba o próprio container, igual na máquina de quem
+  # desenvolve — um lugar só para a receita. Ver docs/testes/banco.md.
+  db:
+    name: banco · migrations e RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # A imagem tem ~1,7 GB; puxar num passo separado deixa claro no log
+      # quanto do tempo foi download e quanto foi teste.
+      - name: Baixar a imagem do Postgres
+        run: docker pull public.ecr.aws/supabase/postgres:17.6.1.155
+
+      - name: Testes de banco
+        run: scripts/db-test.sh

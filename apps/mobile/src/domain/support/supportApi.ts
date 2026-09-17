@@ -3,6 +3,8 @@ import { supabase } from '@services/supabase';
 import { logActivity } from '@domain/shared/activityLog';
 import { relativeLabel } from '@utils/dates';
 
+import { isFromSupportTeam, isUnreadForClient } from './senderSide';
+
 import type {
   TicketAPI,
   TicketCreateAPI,
@@ -19,8 +21,8 @@ import type {
 /**
  * Os chamados do negócio, com a última mensagem servindo de resumo.
  *
- * "Não lido" é uma mensagem DO SUPORTE que o cliente ainda não leu — a mesma
- * definição do portal. Ela alimenta o badge da tela "Mais", então precisa
+ * "Não lido" é uma resposta da equipe (`'support'` ou `'admin'`) que o cliente
+ * ainda não leu — a mesma definição do portal. Ela alimenta o badge da tela "Mais", então precisa
  * significar exatamente a mesma coisa nos dois lugares.
  */
 export async function listTickets(tenantId: string): Promise<TicketAPI[]> {
@@ -50,9 +52,7 @@ export async function listTickets(tenantId: string): Promise<TicketAPI[]> {
       // e o texto diz isso em vez de aparecer em branco.
       summary: last?.body ?? 'Aguardando nossa análise',
       status: toAppStatus(t.status),
-      has_unread: messages.some(
-        (m) => m.sender_side === SENDER_SIDE.support && !m.read_by_recipient,
-      ),
+      has_unread: messages.some(isUnreadForClient),
       updated_at: t.last_message_at ?? t.created_at,
     };
   });
@@ -85,19 +85,20 @@ export async function listMessages(ticketId: string): Promise<TicketMessageAPI[]
     id: m.id,
     ticket_id: m.ticket_id,
     body: m.body,
-    from_support: m.sender_side === SENDER_SIDE.support,
+    from_support: isFromSupportTeam(m.sender_side),
     attachment_path: m.attachment_url ?? null,
     created_label: relativeLabel(m.created_at),
   }));
 }
 
 /**
- * Abrir o chamado marca as mensagens do suporte como lidas.
+ * Abrir o chamado marca como lidas as mensagens que o cliente recebeu.
  *
- * Só as DO SUPORTE: `read_by_recipient` nas mensagens do próprio cliente não
- * quer dizer nada aqui (o destinatário delas é o suporte, e quem as marca é o
- * outro lado). Sem o filtro, o app estaria dizendo ao painel que o suporte já
- * leu o que o cliente acabou de escrever.
+ * Tudo que NÃO é `'client'`: `'support'`, `'admin'` (a equipe da plataforma
+ * responde por aí) e `'system'`. As do próprio cliente ficam de fora — o
+ * destinatário delas é o suporte, e o trigger `guard_support_message_write`
+ * recusa o cliente marcá-las. Só `read_by_recipient` vai no update: o mesmo
+ * trigger proíbe mexer em identidade e conteúdo.
  */
 export async function markAsRead(tenantId: string, ticketId: string): Promise<void> {
   void tenantId;
@@ -106,7 +107,7 @@ export async function markAsRead(tenantId: string, ticketId: string): Promise<vo
     .from('support_messages')
     .update({ read_by_recipient: true })
     .eq('ticket_id', ticketId)
-    .eq('sender_side', SENDER_SIDE.support)
+    .neq('sender_side', SENDER_SIDE.client)
     .eq('read_by_recipient', false);
 
   if (error) throw error;
