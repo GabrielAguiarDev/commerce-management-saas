@@ -1,5 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { roleModules } from "@/lib/dados/equipe";
+import { BASE_MODULES, DB_TO_PORTAL, tenantModules } from "@/lib/modulos";
+import type { ModuleKey } from "@/types/types";
 
 const LOGIN = "/login";
 
@@ -19,6 +22,21 @@ const LOGIN = "/login";
  * de volta para `/esqueci-senha` em vez de para o login.
  */
 const PUBLIC_ROUTES = [LOGIN, "/esqueci-senha", "/auth/confirmar", "/redefinir-senha"];
+
+const ROUTE_MODULES: Array<[prefix: string, module: ModuleKey]> = [
+  ["/vendas", "sales"],
+  ["/caixa", "register"],
+  ["/produtos", "products"],
+  ["/estoque", "stock"],
+  ["/custos", "costs"],
+  ["/relatorios", "reports"],
+  ["/configuracoes", "settings"],
+  ["/suporte", "support"],
+];
+
+function moduleForPath(pathname: string): ModuleKey | null {
+  return ROUTE_MODULES.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`))?.[1] ?? null;
+}
 
 /**
  * Mantém a sessão do dono do comércio viva e barra quem não pode usar o portal.
@@ -97,7 +115,7 @@ export async function proxy(request: NextRequest) {
   // seguir e deixar a tela explicar o `?erro=`.
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("tenant_id, is_platform_admin")
+    .select("tenant_id, role_id, is_platform_admin, status, roles(permissions, is_owner)")
     .eq("id", user.id)
     .single();
 
@@ -108,6 +126,32 @@ export async function proxy(request: NextRequest) {
 
   if (!perfil?.tenant_id) {
     return isPublic ? response : redirect(LOGIN, "sem-negocio");
+  }
+
+  if (perfil.status !== "active") {
+    return isPublic ? response : redirect(LOGIN, "acesso-suspenso");
+  }
+
+  const requiredModule = moduleForPath(request.nextUrl.pathname);
+  if (requiredModule) {
+    const role = (Array.isArray(perfil.roles) ? perfil.roles[0] : perfil.roles) as {
+      permissions?: unknown;
+      is_owner?: boolean | null;
+    } | null;
+    const { data: activeRows } = await supabase
+      .from("v_active_modules")
+      .select("key, is_access");
+    const planModules = tenantModules(activeRows ?? []);
+    const roleAllowed = new Set<ModuleKey>([
+      ...BASE_MODULES,
+      ...roleModules(role?.permissions, (key) => DB_TO_PORTAL[key]),
+    ]);
+    const allowed =
+      role?.is_owner === true
+        ? planModules.includes(requiredModule)
+        : planModules.includes(requiredModule) && roleAllowed.has(requiredModule);
+
+    if (!allowed) return redirect("/", "sem-permissao");
   }
 
   return inLogin ? redirect("/") : response;

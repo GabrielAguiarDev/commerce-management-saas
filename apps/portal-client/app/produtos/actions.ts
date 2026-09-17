@@ -36,7 +36,7 @@ export interface ProductToSave {
 }
 
 export async function saveProduct(p: ProductToSave): Promise<ActionResult> {
-  const session = await requireCustomer("cadastrar um produto");
+  const session = await requireCustomer("cadastrar um produto", "products");
   if (!session.ok) return session;
 
   if (!p.name.trim()) return { ok: false, message: "O produto precisa de um nome." };
@@ -106,7 +106,7 @@ export async function saveProduct(p: ProductToSave): Promise<ActionResult> {
 }
 
 export async function setFav(id: string, fav: boolean): Promise<ActionResult> {
-  const session = await requireCustomer("alterar um produto");
+  const session = await requireCustomer("alterar um produto", "products");
   if (!session.ok) return session;
 
   const { error } = await session.supabase
@@ -120,7 +120,7 @@ export async function setFav(id: string, fav: boolean): Promise<ActionResult> {
 }
 
 export async function setActive(id: string, active: boolean): Promise<ActionResult> {
-  const session = await requireCustomer("alterar um produto");
+  const session = await requireCustomer("alterar um produto", "products");
   if (!session.ok) return session;
 
   const { error } = await session.supabase.from("products").update({ is_active: active }).eq("id", id);
@@ -147,7 +147,7 @@ export async function setActive(id: string, active: boolean): Promise<ActionResu
  * mensagem sugere pausar em vez de excluir.
  */
 export async function deleteProduct(id: string): Promise<ActionResult> {
-  const session = await requireCustomer("excluir um produto");
+  const session = await requireCustomer("excluir um produto", "products");
   if (!session.ok) return session;
 
   // O nome é lido ANTES da exclusão, e é o único momento em que dá: depois do

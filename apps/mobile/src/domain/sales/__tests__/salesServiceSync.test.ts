@@ -1,6 +1,6 @@
 import * as api from '../salesApi';
 import * as queue from '../offlineQueueApi';
-import { checkoutSale, syncPendingSales } from '../salesService';
+import { checkoutSale, editSale, refundSale, syncPendingSales, undoRefund } from '../salesService';
 import { SaleError } from '../salesTypes';
 import type { QueuedSaleRow } from '../offlineQueueTypes';
 
@@ -20,6 +20,8 @@ jest.mock('../salesApi', () => ({
   recordSale: jest.fn(),
   saleHasItems: jest.fn(),
   completeSaleItems: jest.fn(),
+  setSaleRefunded: jest.fn(),
+  replaceSale: jest.fn(),
 }));
 
 jest.mock('../offlineQueueApi', () => ({
@@ -35,6 +37,8 @@ const saleHasItems = api.saleHasItems as jest.MockedFunction<typeof api.saleHasI
 const completeSaleItems = api.completeSaleItems as jest.MockedFunction<
   typeof api.completeSaleItems
 >;
+const setSaleRefunded = api.setSaleRefunded as jest.MockedFunction<typeof api.setSaleRefunded>;
+const replaceSale = api.replaceSale as jest.MockedFunction<typeof api.replaceSale>;
 const listQueue = queue.listQueue as jest.MockedFunction<typeof queue.listQueue>;
 const enqueue = queue.enqueue as jest.MockedFunction<typeof queue.enqueue>;
 const markStatus = queue.markStatus as jest.MockedFunction<typeof queue.markStatus>;
@@ -105,6 +109,73 @@ describe('checkoutSale offline', () => {
       code: 'empty_cart',
     });
     expect(enqueue).not.toHaveBeenCalled();
+  });
+});
+
+describe('estorno transacional', () => {
+  it('estorna por uma única RPC e mantém o contrato sem falha parcial', async () => {
+    setSaleRefunded.mockResolvedValue(true);
+
+    await expect(refundSale('sale-1')).resolves.toEqual({ stockFailures: 0 });
+    expect(setSaleRefunded).toHaveBeenCalledWith('sale-1', true);
+  });
+
+  it('desfaz por uma única RPC idempotente', async () => {
+    setSaleRefunded.mockResolvedValue(false);
+
+    await expect(undoRefund('sale-1')).resolves.toEqual({ stockFailures: 0 });
+    expect(setSaleRefunded).toHaveBeenCalledWith('sale-1', false);
+  });
+});
+
+describe('edição transacional', () => {
+  it('substitui a venda por uma única RPC e não encadeia estorno + criação', async () => {
+    replaceSale.mockResolvedValue({
+      id: 'sale-2',
+      tenant_id: 'tenant-1',
+      created_at: '2026-09-16T12:00:00.000Z',
+      total_cents: 1500,
+      payment_method: 'pix',
+      status: 'completed',
+      items: [
+        {
+          product_id: 'p1',
+          product_name: 'Ração',
+          qty: 1,
+          unit_price_cents: 1500,
+        },
+      ],
+      is_synced: true,
+    });
+
+    const result = await editSale(
+      'tenant-1',
+      'sale-1',
+      [{ productId: 'p1', name: 'Ração', unitPriceCents: 1500, quantity: 1 }],
+      'pix',
+      true,
+    );
+
+    expect(result).toMatchObject({ queued: false, sale: { id: 'sale-2' } });
+    expect(replaceSale).toHaveBeenCalledWith(
+      'sale-1',
+      expect.objectContaining({ tenant_id: 'tenant-1', payment_method: 'pix' }),
+    );
+    expect(setSaleRefunded).not.toHaveBeenCalled();
+    expect(recordSale).not.toHaveBeenCalled();
+  });
+
+  it('não inicia edição offline', async () => {
+    await expect(
+      editSale(
+        'tenant-1',
+        'sale-1',
+        [{ productId: 'p1', name: 'Ração', unitPriceCents: 1500, quantity: 1 }],
+        'pix',
+        false,
+      ),
+    ).rejects.toMatchObject({ code: 'network' });
+    expect(replaceSale).not.toHaveBeenCalled();
   });
 });
 

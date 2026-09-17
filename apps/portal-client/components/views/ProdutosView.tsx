@@ -152,7 +152,7 @@ export function ProdutosView() {
           </div>
 
           <p style={css(`margin:10px 0 0;font:500 12px ${SANS};color:var(--muted)`)}>
-            {sorted.length} de {d.products.length} products
+            {sorted.length} de {d.products.length} produtos
             {hasStock && ` · ${brl(stockValue(d.products))} parados na prateleira`}
           </p>
         </>

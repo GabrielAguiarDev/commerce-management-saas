@@ -88,11 +88,9 @@ export interface SalesPage {
 }
 
 /**
- * O que sobrou de um estorno.
- *
- * `stockFailures > 0` significa que a venda FOI estornada mas o saldo de algum
- * item não se moveu. Não é erro da operação — é uma pendência que a tela
- * precisa dizer em voz alta, porque só quem está ali pode ajustar o estoque.
+ * Contrato preservado para as telas existentes. A RPC transacional torna
+ * `stockFailures` sempre zero: uma falha de estoque agora desfaz o estorno
+ * inteiro e sobe como erro, em vez de deixar uma pendência parcial.
  */
 export interface RefundResult {
   stockFailures: number;

@@ -21,6 +21,8 @@ interface MessageRow {
   id: string;
   sender_side: string | null;
   body: string | null;
+  /** Caminho no bucket `support-attachments` (`<tenant_id>/<arquivo>`). */
+  attachment_url: string | null;
   created_at: string | null;
 }
 
@@ -41,7 +43,7 @@ const SELECT = `
   status,
   priority,
   created_at,
-  support_messages ( id, sender_side, body, created_at )
+  support_messages ( id, sender_side, body, attachment_url, created_at )
 `;
 
 /** dd/mm/aaaa. Formatado no servidor, em UTC, para não divergir na hidratação. */
@@ -90,7 +92,16 @@ function toPriority(v: string | null): Priority {
   }
 }
 
-function toMessage(linha: MessageRow): Message {
+/**
+ * A mensagem com o anexo, quando houver.
+ *
+ * O campo fica fora de `Message` (types/types.ts) e entra por interseção: a
+ * tela confere `"attachment" in m` antes de usar, então uma mensagem montada
+ * em outro lugar sem ele continua válida.
+ */
+export type MessageWithAttachment = Message & { attachment: string | null };
+
+function toMessage(linha: MessageRow): MessageWithAttachment {
   return {
     // Do lado do admin fica à direita; qualquer outro remetente é o cliente.
     from: linha.sender_side === "admin" || linha.sender_side === "support" ? "admin" : "customer",
@@ -98,6 +109,7 @@ function toMessage(linha: MessageRow): Message {
     // `string` além da forma traduzida (ver `Mensagem` em types/types.ts).
     text: linha.body ?? "",
     at: formatWhen(linha.created_at),
+    attachment: linha.attachment_url?.trim() || null,
   };
 }
 

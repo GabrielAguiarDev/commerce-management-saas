@@ -2,13 +2,53 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { setTicketStatus, replyToTicket } from "@/app/suporte/actions";
+import { setTicketPriority, setTicketStatus, replyToTicket } from "@/app/suporte/actions";
 import { useAdmin } from "@/components/AdminProvider";
-import { TextArea, Button, SearchField, css, MONO } from "@aguiar/ui";
+import { TextArea, Button, SearchField, Select, css, MONO } from "@aguiar/ui";
 import { currentTicket } from "@/lib/state";
+import { createClient } from "@/lib/supabase/client";
 import { ticketBadge, priorityBadge } from "@/lib/styleKit";
 import { chip } from "@aguiar/ui";
-import type { TicketStatus } from "@/types/types";
+import type { Message, Priority, TicketStatus } from "@/types/types";
+
+/** O bucket privado onde o portal do cliente guarda os anexos de chamado. */
+const SUPPORT_BUCKET = "support-attachments";
+
+/**
+ * O caminho do anexo, quando a mensagem tem um que dá para abrir.
+ *
+ * Linhas antigas gravavam só o nome do arquivo, sem a pasta do tenant: não há
+ * objeto no Storage para assinar, então elas aparecem como nome, sem link.
+ */
+function attachmentOf(m: Message): { path: string; name: string; openable: boolean } | null {
+  if (!("attachment" in m) || typeof m.attachment !== "string" || !m.attachment) return null;
+  const path = m.attachment;
+  // Tira a pasta e o carimbo de tempo — servem ao Storage, não a quem lê.
+  const name = (path.split("/").pop() ?? path).replace(/^\d{10,}-/, "");
+  return { path, name, openable: path.includes("/") };
+}
+
+/**
+ * Abre o anexo numa aba nova com uma URL assinada de um minuto.
+ *
+ * A aba é aberta ANTES do `await`: depois de esperar a rede, o navegador trata
+ * o `window.open` como pop-up e bloqueia sem erro. O RLS do Storage deixa o
+ * admin da plataforma ler qualquer anexo (`20260828030000_storage_buckets.sql`).
+ */
+async function openAttachment(path: string): Promise<boolean> {
+  const tab = window.open("", "_blank");
+  if (tab) tab.opener = null;
+
+  const { data, error } = await createClient().storage.from(SUPPORT_BUCKET).createSignedUrl(path, 60);
+
+  if (error || !data?.signedUrl) {
+    tab?.close();
+    return false;
+  }
+  if (tab) tab.location.href = data.signedUrl;
+  else window.location.href = data.signedUrl;
+  return true;
+}
 
 export function SuporteView() {
   const { s, a, cs, empty, isMobile } = useAdmin();
@@ -58,6 +98,30 @@ export function SuporteView() {
       iniciarRecarga(() => router.refresh());
     } finally {
       setGravando(false);
+    }
+  };
+
+  const mudarPrioridade = async (prioridade: Priority) => {
+    if (!t || prioridade === t.prioridade) return;
+    setGravando(true);
+    try {
+      const r = await setTicketPriority(t.id, prioridade);
+      if (!r.ok) return a.toast(r.message, "error");
+      iniciarRecarga(() => router.refresh());
+    } finally {
+      setGravando(false);
+    }
+  };
+
+  const abrirAnexo = async (path: string) => {
+    const ok = await openAttachment(path);
+    if (!ok) {
+      a.toast(
+        id === "pt"
+          ? "Não foi possível abrir o anexo. Tente de novo."
+          : "Could not open the attachment. Please try again.",
+        "error",
+      );
     }
   };
 
@@ -271,7 +335,20 @@ export function SuporteView() {
 
           {/* Sem chamado selecionado não há o que marcar nem a quem responder. */}
           {t && (
-            <div style={css("display:flex;gap:7px;flex-wrap:wrap")}>
+            <div style={css("display:flex;gap:7px;flex-wrap:wrap;align-items:center")}>
+              {/* A prioridade é o que ordena a atenção do suporte e o alerta da
+                  Visão Geral; o cliente não a escolhe, então é aqui que ela muda. */}
+              <Select
+                value={t.prioridade}
+                onChange={(e) => mudarPrioridade(e.target.value as Priority)}
+                disabled={ocupado}
+                aria-label={id === "pt" ? "Prioridade do chamado" : "Ticket priority"}
+                cssText="font-size:12px;padding:8px 12px;border-radius:8px"
+              >
+                <option value="alta">{L.alta}</option>
+                <option value="media">{L.average}</option>
+                <option value="baixa">{L.baixa}</option>
+              </Select>
               <Button
                 onClick={() => ticketCustomer && a.openCustomer(ticketCustomer.id)}
                 disabled={!ticketCustomer}
@@ -314,6 +391,7 @@ export function SuporteView() {
         >
           {(t ? t.messages : []).map((m, i) => {
             const adm = m.from === "admin";
+            const anexo = attachmentOf(m);
             return (
               <div
                 key={i}
@@ -343,9 +421,40 @@ export function SuporteView() {
                   >
                     {adm ? L.voce : customerName}
                   </span>
-                  <p style={css("margin:0;font-size:13px;line-height:1.55")}>
-                    {typeof m.text === "string" ? m.text : m.text[id]}
-                  </p>
+                  {/* Uma mensagem pode ser só o anexo, sem texto. */}
+                  {(typeof m.text === "string" ? m.text : m.text[id]) && (
+                    <p style={css("margin:0;font-size:13px;line-height:1.55")}>
+                      {typeof m.text === "string" ? m.text : m.text[id]}
+                    </p>
+                  )}
+                  {anexo && (
+                    <Button
+                      onClick={anexo.openable ? () => abrirAnexo(anexo.path) : undefined}
+                      disabled={!anexo.openable}
+                      title={
+                        anexo.openable
+                          ? id === "pt" ? "Abrir anexo" : "Open attachment"
+                          : id === "pt"
+                            ? "Anexo antigo: só o nome foi guardado"
+                            : "Legacy attachment: only the name was stored"
+                      }
+                      style={css(
+                        "display:inline-flex;align-items:center;gap:7px;align-self:flex-start;max-width:100%;" +
+                          "padding:6px 10px;border-radius:8px;font-size:12px;text-align:left;" +
+                          (adm
+                            ? "background:rgba(255,255,255,.16);color:inherit;"
+                            : "background:var(--surface2);border:1px solid var(--border);color:var(--text2);") +
+                          (anexo.openable ? "" : "cursor:default;opacity:.7;"),
+                      )}
+                    >
+                      <span style={css(`font-family:${MONO};font-size:10.5px;opacity:.7`)}>
+                        {id === "pt" ? "ANEXO" : "FILE"}
+                      </span>
+                      <span style={css("overflow:hidden;text-overflow:ellipsis;white-space:nowrap")}>
+                        {anexo.name}
+                      </span>
+                    </Button>
+                  )}
                   <span
                     style={css(
                       `font-family:${MONO};font-size:10px;opacity:` + (adm ? ".75" : ".55"),

@@ -47,13 +47,17 @@ const NO_CAPABILITIES: Capabilities = deriveCapabilities([]);
  */
 export function useCapabilities(): { capabilities: Capabilities; loading: boolean } {
   const { data, isPending } = useCurrentTenant();
+  const rolePermissions = useSessionStore((s) => s.rolePermissions);
+  const isOwner = useSessionStore((s) => s.isOwner);
 
   return useMemo(
     () => ({
-      capabilities: data ? deriveCapabilities(data.modules) : NO_CAPABILITIES,
+      capabilities: data
+        ? deriveCapabilities(data.modules, rolePermissions, isOwner)
+        : NO_CAPABILITIES,
       loading: isPending,
     }),
-    [data, isPending],
+    [data, isPending, rolePermissions, isOwner],
   );
 }
 

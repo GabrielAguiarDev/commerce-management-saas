@@ -14,7 +14,7 @@ import {
 import { isOwnPath, LOGO_BUCKET } from "@/lib/buckets";
 import { logActivity } from "@/lib/historico";
 import { PORTAL_TO_DB } from "@/lib/modulos";
-import { requireCustomer, type ActionResult } from "@/lib/sessao";
+import { requireCustomer, requireOwner, type ActionResult } from "@/lib/sessao";
 import { PAYMENT_DB } from "@/lib/dados/vendas";
 import type { BusinessData, FiscalData, ModuleKey, Settings, Theme } from "@/types/types";
 
@@ -35,7 +35,7 @@ import type { BusinessData, FiscalData, ModuleKey, Settings, Theme } from "@/typ
  * no balcão precisa ler que um PDV sem forma de pagamento não cobra ninguém.
  */
 export async function savePreferences(p: Settings): Promise<ActionResult> {
-  const session = await requireCustomer("mudar as preferências");
+  const session = await requireCustomer("mudar as preferências", "settings");
   if (!session.ok) return session;
 
   const methods = p.acceptedMethods.filter((m, i, all) => all.indexOf(m) === i);
@@ -85,7 +85,7 @@ export async function savePreferences(p: Settings): Promise<ActionResult> {
  * confirmar uma cor que já está na frente da pessoa.
  */
 export async function saveTheme(theme: Theme): Promise<ActionResult> {
-  const session = await requireCustomer("mudar o tema");
+  const session = await requireCustomer("mudar o tema", "settings");
   if (!session.ok) return session;
 
   const { data, error } = await session.supabase
@@ -122,7 +122,7 @@ export async function saveTheme(theme: Theme): Promise<ActionResult> {
  * trocar a imagem.
  */
 export async function saveLogo(path: string | null): Promise<ActionResult> {
-  const session = await requireCustomer("mudar a logo do negócio");
+  const session = await requireCustomer("mudar a logo do negócio", "settings");
   if (!session.ok) return session;
 
   const { supabase, tenantId } = session;
@@ -184,7 +184,7 @@ export async function saveLogo(path: string | null): Promise<ActionResult> {
  * são o endereço do estabelecimento que emite, não o de contato.
  */
 export async function saveBusinessData(d: BusinessData): Promise<ActionResult> {
-  const session = await requireCustomer("alterar os dados do negócio");
+  const session = await requireCustomer("alterar os dados do negócio", "settings");
   if (!session.ok) return session;
 
   if (!d.name.trim()) return { ok: false, message: "O negócio precisa de um nome." };
@@ -379,7 +379,7 @@ export async function saveRole(p: {
   name: string;
   modules: ModuleKey[];
 }): Promise<ActionResult> {
-  const session = await requireCustomer("alterar os tipos de acesso");
+  const session = await requireOwner("alterar os tipos de acesso");
   if (!session.ok) return session;
 
   if (!p.name.trim()) return { ok: false, message: "Dê um nome ao tipo de acesso." };
@@ -391,7 +391,12 @@ export async function saveRole(p: {
   };
 
   const { error } = p.id
-    ? await supabase.from("roles").update(fields).eq("id", p.id).eq("is_owner", false)
+    ? await supabase
+        .from("roles")
+        .update(fields)
+        .eq("id", p.id)
+        .eq("tenant_id", tenantId)
+        .eq("is_owner", false)
     : await supabase.from("roles").insert({ tenant_id: tenantId, is_owner: false, ...fields });
 
   if (error) return { ok: false, message: error.message };
@@ -408,21 +413,27 @@ export async function saveRole(p: {
 }
 
 export async function removeRole(id: string): Promise<ActionResult> {
-  const session = await requireCustomer("remover um tipo de acesso");
+  const session = await requireOwner("remover um tipo de acesso");
   if (!session.ok) return session;
-  const { supabase } = session;
+  const { supabase, tenantId } = session;
 
   const { count } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
-    .eq("role_id", id);
+    .eq("role_id", id)
+    .eq("tenant_id", tenantId);
 
   if (count) {
     return { ok: false, message: "Há funcionários usando este tipo de acesso." };
   }
 
   // `is_owner = false` na condição: o tipo do dono não sai nem por engano.
-  const { error } = await supabase.from("roles").delete().eq("id", id).eq("is_owner", false);
+  const { error } = await supabase
+    .from("roles")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId)
+    .eq("is_owner", false);
   if (error) return { ok: false, message: error.message };
 
   await logActivity(supabase, "role.deleted", { entityId: id });
@@ -443,17 +454,32 @@ export async function removeRole(id: string): Promise<ActionResult> {
  * decisão de segurança. Ver a análise.
  */
 export async function setEmployeeActive(id: string, active: boolean): Promise<ActionResult> {
-  const session = await requireCustomer("alterar o acesso de um funcionário");
+  const session = await requireOwner("alterar o acesso de um funcionário");
   if (!session.ok) return session;
 
   if (id === session.userId) {
     return { ok: false, message: "Você não pode suspender o seu próprio acesso." };
   }
 
+  const { data: target } = await session.supabase
+    .from("profiles")
+    .select("id, roles(is_owner)")
+    .eq("id", id)
+    .eq("tenant_id", session.tenantId)
+    .maybeSingle();
+
+  const targetRole = (Array.isArray(target?.roles) ? target.roles[0] : target?.roles) as {
+    is_owner?: boolean | null;
+  } | null;
+  if (!target || targetRole?.is_owner) {
+    return { ok: false, message: "O acesso do dono não pode ser alterado por aqui." };
+  }
+
   const { data, error } = await session.supabase
     .from("profiles")
     .update({ status: active ? "active" : "suspended" })
     .eq("id", id)
+    .eq("tenant_id", session.tenantId)
     .select("full_name");
 
   if (error) return { ok: false, message: error.message };
@@ -469,13 +495,37 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Ac
 
 /** Troca o tipo de acesso de alguém da equipe. */
 export async function changeEmployeeRole(id: string, roleId: string): Promise<ActionResult> {
-  const session = await requireCustomer("alterar o acesso de um funcionário");
+  const session = await requireOwner("alterar o acesso de um funcionário");
   if (!session.ok) return session;
+
+  const [{ data: target }, { data: role }] = await Promise.all([
+    session.supabase
+      .from("profiles")
+      .select("id, roles(is_owner)")
+      .eq("id", id)
+      .eq("tenant_id", session.tenantId)
+      .maybeSingle(),
+    session.supabase
+      .from("roles")
+      .select("id")
+      .eq("id", roleId)
+      .eq("tenant_id", session.tenantId)
+      .eq("is_owner", false)
+      .maybeSingle(),
+  ]);
+
+  const targetRole = (Array.isArray(target?.roles) ? target.roles[0] : target?.roles) as {
+    is_owner?: boolean | null;
+  } | null;
+  if (!target || targetRole?.is_owner || !role) {
+    return { ok: false, message: "Funcionário ou tipo de acesso inválido." };
+  }
 
   const { data, error } = await session.supabase
     .from("profiles")
     .update({ role_id: roleId })
     .eq("id", id)
+    .eq("tenant_id", session.tenantId)
     .select("full_name");
 
   if (error) return { ok: false, message: error.message };

@@ -25,6 +25,19 @@ const ACTIVE = 'active';
  */
 export function toSession(raw: SessionAPI): Session {
   const { profile } = raw;
+  const role = (Array.isArray(profile.roles) ? profile.roles[0] : profile.roles) as {
+    permissions?: unknown;
+    is_owner?: boolean | null;
+  } | null;
+  const permissionValue = role?.permissions;
+  const rawModules = Array.isArray(permissionValue)
+    ? permissionValue
+    : typeof permissionValue === 'object' && permissionValue !== null
+      ? ((permissionValue as { modules?: unknown }).modules ?? [])
+      : [];
+  const rolePermissions = Array.isArray(rawModules)
+    ? rawModules.filter((module): module is string => typeof module === 'string')
+    : [];
 
   if (profile.is_platform_admin) {
     throw new AuthError('platform_admin');
@@ -47,6 +60,8 @@ export function toSession(raw: SessionAPI): Session {
     user: { id: raw.user.id, email, name, initials: initials(name) },
     tenantId: profile.tenant_id,
     roleId: profile.role_id,
+    rolePermissions,
+    isOwner: role?.is_owner === true,
   };
 }
 

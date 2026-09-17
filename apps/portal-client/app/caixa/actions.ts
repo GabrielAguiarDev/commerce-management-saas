@@ -13,17 +13,12 @@ import type { RegisterMovementType } from "@/types/types";
  * impossível dizer a qual deles uma venda em dinheiro pertence.
  */
 export async function openRegister(valorInicial: number): Promise<ActionResult> {
-  const session = await requireCustomer("abrir o caixa");
+  const session = await requireCustomer("abrir o caixa", "register");
   if (!session.ok) return session;
+  if (!Number.isFinite(valorInicial) || valorInicial < 0) {
+    return { ok: false, message: "Informe um valor inicial válido." };
+  }
   const { supabase, tenantId, userId } = session;
-
-  const { data: jaAberto } = await supabase
-    .from("cash_registers")
-    .select("id")
-    .eq("status", REGISTER_OPEN)
-    .maybeSingle();
-
-  if (jaAberto) return { ok: false, message: "Já existe um caixa aberto." };
 
   const { error } = await supabase.from("cash_registers").insert({
     tenant_id: tenantId,
@@ -33,7 +28,12 @@ export async function openRegister(valorInicial: number): Promise<ActionResult> 
     opened_at: new Date().toISOString(),
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    if (isOpenRegisterConflict(error)) {
+      return { ok: false, message: "Já existe um caixa aberto." };
+    }
+    return { ok: false, message: error.message };
+  }
 
   await logActivity(supabase, "register.opened", { summary: `Troco de ${brl(valorInicial)}` });
 
@@ -47,10 +47,12 @@ export async function recordRegisterMovement(data: {
   amount: number;
   reason: string;
 }): Promise<ActionResult> {
-  const session = await requireCustomer("movimentar o caixa");
+  const session = await requireCustomer("movimentar o caixa", "register");
   if (!session.ok) return session;
 
-  if (!(data.amount > 0)) return { ok: false, message: "Informe um valor maior que zero." };
+  if (!Number.isFinite(data.amount) || data.amount <= 0) {
+    return { ok: false, message: "Informe um valor maior que zero." };
+  }
 
   const { supabase, tenantId, userId } = session;
 
@@ -82,7 +84,7 @@ export async function recordRegisterMovement(data: {
  * fechamento é que carimba o resultado.
  */
 export async function undoRegisterMovement(movId: string): Promise<ActionResult> {
-  const session = await requireCustomer("reverter uma movimentação");
+  const session = await requireCustomer("reverter uma movimentação", "register");
   if (!session.ok) return session;
 
   const { error } = await session.supabase.from("cash_movements").delete().eq("id", movId);
@@ -109,8 +111,11 @@ export async function closeRegister(
   contadoEmDinheiro: number,
   observacao: string,
 ): Promise<ActionResult> {
-  const session = await requireCustomer("fechar o caixa");
+  const session = await requireCustomer("fechar o caixa", "register");
   if (!session.ok) return session;
+  if (!Number.isFinite(contadoEmDinheiro) || contadoEmDinheiro < 0) {
+    return { ok: false, message: "Informe um valor contado válido." };
+  }
 
   const { error } = await session.supabase.rpc("close_cash_register", {
     p_register_id: registerId,
@@ -131,7 +136,7 @@ export async function closeRegister(
 
 /** Fechou por engano: o turno volta a aceitar vendas e movimentações. */
 export async function reopenRegister(registerId: string): Promise<ActionResult> {
-  const session = await requireCustomer("reabrir o caixa");
+  const session = await requireCustomer("reabrir o caixa", "register");
   if (!session.ok) return session;
   const { supabase } = session;
 
@@ -158,7 +163,12 @@ export async function reopenRegister(registerId: string): Promise<ActionResult> 
     .eq("id", registerId)
     .eq("status", REGISTER_CLOSED);
 
-  if (error) return { ok: false, message: error.message };
+  if (error) {
+    if (isOpenRegisterConflict(error)) {
+      return { ok: false, message: "Feche o caixa aberto antes de reabrir outro turno." };
+    }
+    return { ok: false, message: error.message };
+  }
 
   await logActivity(supabase, "register.reopened", { entityId: registerId });
 
@@ -169,4 +179,16 @@ export async function reopenRegister(registerId: string): Promise<ActionResult> 
 /** O valor como ele fica gravado no histórico — ver `logActivity`. */
 function brl(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function isOpenRegisterConflict(error: {
+  code?: string;
+  message?: string;
+  details?: string;
+}): boolean {
+  const detail = `${error.message ?? ""} ${error.details ?? ""}`;
+  return (
+    error.code === "23505" &&
+    detail.includes("cash_registers_one_open_per_tenant")
+  );
 }

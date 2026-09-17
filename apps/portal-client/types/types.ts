@@ -58,8 +58,10 @@ export type MessageAuthor = "customer" | "support" | "system";
 /* -------------------------------------------------------------------------- */
 
 export interface User {
+  id: string;
   name: string;
   initials: string;
+  isOwner: boolean;
 }
 
 /** O negócio do cliente: identidade e módulos que o plano liga. */

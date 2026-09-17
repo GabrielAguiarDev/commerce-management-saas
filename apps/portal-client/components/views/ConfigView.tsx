@@ -140,7 +140,7 @@ function DataTab() {
       <div style={css("padding:15px 18px;border-bottom:1px solid var(--border)")}>
         <h2 style={css(`margin:0;font:700 15.5px ${SANS}`)}>Dados do negócio</h2>
         <p style={css(`margin:3px 0 0;font:400 12px ${SANS};color:var(--muted)`)}>
-          É o que aparece no portal e nos comprovantes das vendas.
+          É o que identifica o seu negócio no portal.
         </p>
       </div>
 
@@ -393,18 +393,21 @@ function PreferencesTab() {
             />
           </div>
 
-          <Switch
-            on={d.settings.printReceipt}
-            onToggle={() => a.togglePrintReceipt()}
-            title="Imprimir comprovante ao finalizar a venda"
-            note="Se desligar, o comprovante fica só no histórico e pode ser reimpresso depois."
-          />
-          <Switch
-            on={d.settings.askCustomer}
-            onToggle={() => a.toggleAskCustomer()}
-            title="Perguntar o nome do cliente na venda"
-            note="Útil para encomendas e fiado. Deixa o balcão um pouco mais lento."
-          />
+          {/*
+            "Imprimir comprovante" e "Perguntar o nome do cliente" saíram daqui.
+            As duas gravavam em `tenant_settings`, mas o PDV não lê nenhuma: não
+            existe comprovante impresso nem campo de cliente na venda. Um
+            interruptor que salva e não muda nada é o portal mentindo — ver
+            `UnsavedNotice`. Voltam quando o balcão souber obedecer.
+          */}
+          <div
+            style={css(
+              `padding:14px 18px;border-bottom:1px solid var(--border);font:500 12.5px/1.5 ${SANS};color:var(--muted)`,
+            )}
+          >
+            O portal ainda não imprime comprovante nem pede o nome do cliente na venda. A venda fica
+            registrada no histórico com itens, forma de pagamento e horário.
+          </div>
 
           {has("stock") && (
             <div
@@ -608,7 +611,7 @@ function TeamTab() {
                       <div style={css(`margin-top:4px;font:500 11.5px ${SANS};color:var(--muted)`)}>
                         {people === 0
                           ? "Ninguém usa este tipo"
-                          : `${people} ${people === 1 ? "pessoa usa" : "people usam"}`}
+                          : `${people} ${people === 1 ? "pessoa usa" : "pessoas usam"}`}
                       </div>
                     </div>
 
@@ -697,11 +700,14 @@ function AccountTab() {
         >
           <div style={css("flex:1;min-width:200px")}>
             <div style={css(KPI_LABEL)}>Seu plano</div>
+            {/* O nome do plano não chega ao portal: "Completo"/"Essencial" era
+                deduzido da contagem de módulos e podia contradizer a cobrança.
+                A contagem é o que dá para afirmar. */}
             <div style={css(`margin-top:6px;font:700 24px/1.1 ${SANS}`)}>
-              {on >= all.length ? "Plano Completo" : "Plano Essencial"}
+              {on} de {all.length} módulos
             </div>
             <div style={css(`margin-top:5px;font:500 12.5px/1.45 ${SANS};color:var(--muted)`)}>
-              {on} de {all.length} módulos ligados
+              ligados no seu plano
             </div>
           </div>
           <span
@@ -775,7 +781,7 @@ function AccountTab() {
             className="hv-brilho"
             style={css(`flex:none;${primaryButton("sm")}`)}
           >
-            Falar com o support
+            Falar com o suporte
           </Button>
         </div>
       </div>
@@ -789,7 +795,7 @@ function AccountTab() {
             `padding:12px 18px;border-radius:11px;border:1px solid var(--border2);background:var(--surface);color:var(--danger);font:600 13px ${SANS}`,
           )}
         >
-          Sair da account
+          Sair da conta
         </Button>
       </Panel>
     </div>

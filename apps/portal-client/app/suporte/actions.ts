@@ -13,7 +13,7 @@ export async function openTicket(data: {
   description: string;
   attachment: string;
 }): Promise<ActionResult> {
-  const session = await requireCustomer("abrir um chamado");
+  const session = await requireCustomer("abrir um chamado", "support");
   if (!session.ok) return session;
 
   if (data.subject.trim().length < 5) {
@@ -78,7 +78,7 @@ export async function replyToTicket(
   text: string,
   attachment: string,
 ): Promise<ActionResult> {
-  const session = await requireCustomer("responder um chamado");
+  const session = await requireCustomer("responder um chamado", "support");
   if (!session.ok) return session;
 
   if (!text.trim()) return { ok: false, message: "Escreva a sua resposta." };
@@ -121,7 +121,7 @@ export async function setTicketStatus(
   chamadoId: string,
   status: "resolved" | "inProgress",
 ): Promise<ActionResult> {
-  const session = await requireCustomer("mudar o status de um chamado");
+  const session = await requireCustomer("mudar o status de um chamado", "support");
   if (!session.ok) return session;
 
   const { supabase, tenantId, userId } = session;
@@ -154,7 +154,7 @@ export async function setTicketStatus(
 
 /** Abrir a conversa já conta como ler: o selo "nova resposta" some. */
 export async function markTicketRead(chamadoId: string): Promise<ActionResult> {
-  const session = await requireCustomer("abrir um chamado");
+  const session = await requireCustomer("abrir um chamado", "support");
   if (!session.ok) return session;
 
   const { error } = await session.supabase

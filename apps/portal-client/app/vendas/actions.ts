@@ -2,11 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { MOVEMENT_DB } from "@/lib/dados/estoque";
 import { onlyDigits } from "@/lib/dados/fiscal";
 import { logActivity } from "@/lib/historico";
 import { isComingSoon } from "@/lib/modulos";
-import { PAYMENT_DB, SALE_STATUS } from "@/lib/dados/vendas";
+import { PAYMENT_DB } from "@/lib/dados/vendas";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 import type { PaymentMethod } from "@/types/types";
 
@@ -57,7 +56,7 @@ export async function recordSale(
   payment: PaymentMethod,
   customerDocument = "",
 ): Promise<ActionResult> {
-  const session = await requireCustomer("registrar uma venda");
+  const session = await requireCustomer("registrar uma venda", "sales");
   if (!session.ok) return session;
 
   if (!items.length) return { ok: false, message: "A venda precisa de pelo menos um item." };
@@ -169,72 +168,43 @@ async function enqueueFiscalDocument(
  * histórico riscada. Nada é apagado — é o que permite explicar a diferença
  * para o contador depois.
  *
- * A devolução ao estoque é feita AQUI, à mão: o trigger de `sale_items` só
- * reage à inserção do item, não à mudança de `sales.status` — verificado no
- * banco. Sem isto, estornar tiraria a venda do caixa e deixaria a mercadoria
- * fora da prateleira.
+ * Status e estoque mudam juntos em `set_sale_refunded`. A função trava a venda
+ * e trata o estado final como no-op, portanto retry não duplica a devolução.
  */
 export async function refundSale(vendaId: string): Promise<ActionResult> {
-  const session = await requireCustomer("estornar uma venda");
+  const session = await requireCustomer("estornar uma venda", "sales");
   if (!session.ok) return session;
   const { supabase } = session;
 
-  const { error } = await supabase
-    .from("sales")
-    .update({ status: SALE_STATUS.refunded })
-    .eq("id", vendaId);
+  const { data: changed, error } = await supabase.rpc("set_sale_refunded", {
+    p_sale_id: vendaId,
+    p_refunded: true,
+  });
 
   if (error) return { ok: false, message: error.message };
 
-  await returnToStock(supabase, vendaId, 1);
-  await logActivity(supabase, "sale.refunded", { entityId: vendaId });
+  if (changed) await logActivity(supabase, "sale.refunded", { entityId: vendaId });
 
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 export async function undoRefund(vendaId: string): Promise<ActionResult> {
-  const session = await requireCustomer("desfazer um estorno");
+  const session = await requireCustomer("desfazer um estorno", "sales");
   if (!session.ok) return session;
   const { supabase } = session;
 
-  const { error } = await supabase
-    .from("sales")
-    .update({ status: SALE_STATUS.normal })
-    .eq("id", vendaId);
+  const { data: changed, error } = await supabase.rpc("set_sale_refunded", {
+    p_sale_id: vendaId,
+    p_refunded: false,
+  });
 
   if (error) return { ok: false, message: error.message };
 
-  await returnToStock(supabase, vendaId, -1);
-  await logActivity(supabase, "sale.refund_undone", { entityId: vendaId });
+  if (changed) await logActivity(supabase, "sale.refund_undone", { entityId: vendaId });
 
   revalidatePath("/", "layout");
   return { ok: true };
-}
-
-/** `sinal = 1` devolve à prateleira (estorno); `-1` baixa de novo. */
-async function returnToStock(
-  supabase: Extract<Awaited<ReturnType<typeof requireCustomer>>, { ok: true }>["supabase"],
-  vendaId: string,
-  sign: 1 | -1,
-) {
-  const { data: items } = await supabase
-    .from("sale_items")
-    .select("product_id, quantity, products(tracks_stock)")
-    .eq("sale_id", vendaId);
-
-  for (const i of items ?? []) {
-    const tracks = (i.products as { tracks_stock?: boolean } | null)?.tracks_stock;
-    if (!i.product_id || !tracks) continue;
-    await supabase.rpc("apply_stock_movement", {
-      p_product_id: i.product_id,
-      p_type: MOVEMENT_DB.adjustment,
-      p_quantity: sign * Number(i.quantity),
-      p_reason: sign > 0 ? "Devolução por estorno" : "Baixa por estorno desfeito",
-      p_sale_id: vendaId,
-      p_unit_cost: null,
-    });
-  }
 }
 
 /**
@@ -249,7 +219,47 @@ export async function editSale(
   payment: PaymentMethod,
   customerDocument = "",
 ): Promise<ActionResult> {
-  const refund = await refundSale(vendaId);
-  if (!refund.ok) return refund;
-  return recordSale(items, payment, customerDocument);
+  const session = await requireCustomer("editar uma venda", "sales");
+  if (!session.ok) return session;
+
+  if (!items.length) return { ok: false, message: "A venda precisa de pelo menos um item." };
+
+  const { supabase } = session;
+  const { data, error } = await supabase.rpc("replace_sale", {
+    p_sale_id: vendaId,
+    p_payment_method: PAYMENT_DB[payment],
+    p_items: items.map((i) => ({
+      product_id: i.productId ?? "",
+      product_name: i.name,
+      quantity: i.qtd,
+      unit_price: i.price,
+    })),
+    p_customer_document: onlyDigits(customerDocument) || null,
+    p_customer_name: null,
+    p_sold_at: null,
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  const result = data as { sale_id?: unknown; changed?: unknown } | null;
+  if (typeof result?.sale_id !== "string") {
+    return { ok: false, message: "Não foi possível identificar a venda substituta." };
+  }
+
+  if (result.changed === true) {
+    // Só a chamada que criou a substituta enfileira efeitos posteriores. Um
+    // retry idempotente não duplica documento fiscal nem histórico.
+    await enqueueFiscalDocument(supabase, result.sale_id);
+
+    const total = items.reduce((sum, item) => sum + item.qtd * item.price, 0);
+    await logActivity(supabase, "sale.refunded", { entityId: vendaId });
+    await logActivity(supabase, "sale.created", {
+      entityId: result.sale_id,
+      summary: `${items.length} ${items.length === 1 ? "item" : "itens"} · ${brl(total)}`,
+      metadata: { payment: PAYMENT_DB[payment], items: items.length, replaces: vendaId },
+    });
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
 }

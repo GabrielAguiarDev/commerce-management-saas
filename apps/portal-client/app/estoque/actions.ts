@@ -25,7 +25,7 @@ export async function recordStockMovement(data: {
   custoUnitario: number;
   reason: string;
 }): Promise<ActionResult> {
-  const session = await requireCustomer("movimentar o estoque");
+  const session = await requireCustomer("movimentar o estoque", "stock");
   if (!session.ok) return session;
 
   const { supabase, tenantId, userId } = session;
@@ -100,7 +100,7 @@ export async function recordStockMovement(data: {
  * por aqui; quem a desfaz é o estorno da venda.
  */
 export async function undoStockMovement(movId: string): Promise<ActionResult> {
-  const session = await requireCustomer("reverter uma movimentação");
+  const session = await requireCustomer("reverter uma movimentação", "stock");
   if (!session.ok) return session;
   const { supabase } = session;
 

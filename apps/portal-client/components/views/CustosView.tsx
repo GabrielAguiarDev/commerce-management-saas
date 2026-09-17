@@ -87,7 +87,7 @@ export function CustosView() {
           </span>
           <p style={css(`margin:0;font:500 12px/1.5 ${SANS};color:var(--text2)`)}>
             As compras de mercadoria que você lança no Estoque entram aqui sozinhas como custo
-            variável. Para corrigir uma delas, adjustment a in no Estoque — assim o valor não é
+            variável. Para corrigir uma delas, ajuste a entrada no Estoque — assim o valor não é
             lançado duas vezes.
           </p>
         </div>

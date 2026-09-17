@@ -25,7 +25,7 @@ export function VendaDetalheModal({ sale }: { sale: Sale }) {
             `padding:11px 13px;border-radius:11px;background:var(--warn-soft);color:var(--warn);font:600 12.5px/1.45 ${SANS}`,
           )}
         >
-          Esta sale foi estornada e não account no faturamento. Ela continua no histórico para você ter
+          Esta venda foi estornada e não conta no faturamento. Ela continua no histórico para você ter
           o registro.
         </div>
       )}

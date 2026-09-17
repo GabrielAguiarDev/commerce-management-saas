@@ -18,7 +18,7 @@ export interface CostToSave {
 }
 
 export async function saveCost(c: CostToSave): Promise<ActionResult> {
-  const session = await requireCustomer("lançar um custo");
+  const session = await requireCustomer("lançar um custo", "costs");
   if (!session.ok) return session;
 
   if (!c.description.trim()) return { ok: false, message: "Escreva o que foi o gasto." };
@@ -62,7 +62,7 @@ export async function saveCost(c: CostToSave): Promise<ActionResult> {
  * a reversão da movimentação.
  */
 export async function deleteCost(id: string): Promise<ActionResult> {
-  const session = await requireCustomer("excluir um custo");
+  const session = await requireCustomer("excluir um custo", "costs");
   if (!session.ok) return session;
   const { supabase } = session;
 

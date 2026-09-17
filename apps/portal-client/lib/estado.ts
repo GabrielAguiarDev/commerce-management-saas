@@ -14,7 +14,7 @@ import type {
   Toast,
   ToastTone,
 } from "@/types/estado";
-import type { BusinessData, Settings, Theme } from "@/types/types";
+import type { BusinessData, PaymentMethod, Settings, Theme } from "@/types/types";
 
 /**
  * Quanto tempo cada aviso fica na tela.
@@ -159,7 +159,8 @@ export const EMPTY_DATA: PortalData = {
     initials: "?",
     logoPath: null,
     type: "",
-    user: { name: "Você", initials: "?" },
+    // Sem sessão não há dono: `isOwner` falso é o lado seguro.
+    user: { id: "", name: "Você", initials: "?", isOwner: false },
     modules: ["dashboard", "settings"],
     catalog: [],
   },
@@ -253,6 +254,33 @@ export function initialState(
     ticketForm: { ...EMPTY_TICKET_FORM },
     replyForm: { ...EMPTY_REPLY_FORM },
   };
+}
+
+/**
+ * As formas de pagamento que o PDV oferece, na ordem fixa de `METHODS`.
+ *
+ * Numa edição, a forma original da venda entra mesmo que tenha sido desligada
+ * em Preferências depois: sem ela o seletor mostraria outra opção e a venda
+ * trocaria de forma sem ninguém ter escolhido. Lista vazia no banco não deixa
+ * o balcão sem opção — cai em todas, que é o default da coluna.
+ */
+export function paymentOptions(s: PortalState, d: PortalData): PaymentMethod[] {
+  const accepted = d.settings.acceptedMethods.length ? d.settings.acceptedMethods : METHODS;
+  const original =
+    s.editingSale != null ? d.sales.find((v) => v.id === s.editingSale)?.payment : undefined;
+  return METHODS.filter((m) => accepted.includes(m) || m === original);
+}
+
+/**
+ * A forma que a venda vai gravar de fato.
+ *
+ * `currentMethod` nasce "cash" e sobrevive entre vendas; se essa forma não
+ * está entre as oferecidas, o `<select>` exibiria a primeira opção enquanto o
+ * estado gravaria a outra. Resolver aqui faz tela e gravação lerem o mesmo valor.
+ */
+export function effectiveMethod(s: PortalState, d: PortalData): PaymentMethod {
+  const options = paymentOptions(s, d);
+  return options.includes(s.currentMethod) ? s.currentMethod : options[0];
 }
 
 /** Rascunho de dados do negócio diferente do que está salvo. */

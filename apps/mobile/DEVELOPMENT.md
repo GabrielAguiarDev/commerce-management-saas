@@ -957,6 +957,40 @@ da conta é a prova de identidade. A tela da senha nova derruba essa sessão no
 fim E na desistência (`useEffect` de desmonte), senão "esqueci minha senha"
 viraria "entrei sem ela".
 
+### 10.2 Como gerar a build Android
+
+Os perfis já estão em `eas.json`; os scripts em `package.json` só amarram o
+comando ao perfil certo.
+
+| script | perfil | artefato | para quê |
+|---|---|---|---|
+| `pnpm --filter mobile build:android:apk` | `preview` | **APK** | instalar direto no aparelho e testar |
+| `pnpm --filter mobile build:android` | `production` | **AAB** | subir na Google Play |
+| `pnpm --filter mobile build:android:install` | — | — | baixa a última build e instala no emulador/aparelho |
+
+⚠️ **APK e AAB não são a mesma coisa.** O Google Play só aceita AAB; um AAB não
+se instala à mão. Para testar a câmera, o anexo e a exportação, o que serve é o
+**APK** — o AAB só na hora de publicar.
+
+⚠️ **O EAS builda a partir do GIT, não do diretório de trabalho.** O que estiver
+sem commit não entra na build — e o sintoma é cruel: a build sai, instala, e o
+recurso novo simplesmente não está lá. Commite antes.
+
+⚠️ **`android/` e `ios/` são ignorados pelo git** (`.gitignore`), e isso é
+proposital: o EAS roda o `prebuild` do zero na nuvem, aplicando os plugins do
+`app.json`. É o que garante que uma permissão nova (câmera, fotos) entre na
+build sem ninguém lembrar de rodar `prebuild` à mão.
+
+**O `versionCode` não é bumpado à mão.** `eas.json` tem
+`appVersionSource: "remote"` e `autoIncrement: true` no perfil `production` — a
+contagem vive no servidor do EAS. O que continua manual é o `version` do
+`app.json` (`1.0.0`), que é o número que o cliente vê.
+
+Os scripts usam `pnpm dlx eas-cli@latest` em vez de um `eas` global: assim eles
+funcionam numa máquina recém-clonada, sem passo de instalação. O `eas.json`
+declara `"cli": { "version": ">= 21.8.0" }`, e é o próprio EAS que recusa uma
+versão velha demais.
+
 **Ainda fora de escopo:**
 
 - **"Falar com o suporte" na tela de bloqueio** → precisa de canal EXTERNO

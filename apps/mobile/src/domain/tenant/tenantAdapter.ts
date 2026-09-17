@@ -87,19 +87,26 @@ export function toTenantUpdatePayload(name: string, phone: string): TenantUpdate
  * produto não teria tela nenhuma para abrir — é o mesmo raciocínio que o portal
  * usa com `BASE_MODULES` (apps/portal-client/lib/modulos.ts).
  */
-export function deriveCapabilities(modules: readonly ChaveModulo[]): Capabilities {
+export function deriveCapabilities(
+  modules: readonly ChaveModulo[],
+  rolePermissions: readonly string[] = [],
+  isOwner = true,
+): Capabilities {
   const tem = (k: ChaveModulo) => modules.includes(k);
   const hasAppAccess = tem('app');
+  const roleAllows = (k: ChaveModulo) => isOwner || rolePermissions.includes(k);
 
   return {
     hasAppAccess,
-    hasSales: hasAppAccess || tem('sales'),
-    hasProducts: hasAppAccess || tem('products'),
-    hasCash: tem('cash'),
-    hasStock: tem('stock'),
-    hasCosts: tem('costs'),
-    hasReports: tem('reports'),
-    hasSupport: tem('support'),
+    hasSales: (hasAppAccess || tem('sales')) && roleAllows('sales'),
+    hasProducts: (hasAppAccess || tem('products')) && roleAllows('products'),
+    hasCash: tem('cash') && roleAllows('cash'),
+    hasStock: tem('stock') && roleAllows('stock'),
+    hasCosts: tem('costs') && roleAllows('costs'),
+    hasReports: tem('reports') && roleAllows('reports'),
+    // Suporte é a porta para pedir ajuda e mudar o plano; todo usuário que
+    // pode abrir o app precisa alcançá-lo, independentemente do papel.
+    hasSupport: hasAppAccess,
   };
 }
 

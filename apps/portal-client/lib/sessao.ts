@@ -1,6 +1,9 @@
 import "server-only";
 
+import { roleModules } from "@/lib/dados/equipe";
+import { BASE_MODULES, DB_TO_PORTAL, tenantModules } from "@/lib/modulos";
 import { createClient, supabaseConfigurado } from "@/lib/supabase/server";
+import type { ModuleKey } from "@/types/types";
 
 /**
  * Porta de entrada de toda leitura e escrita do portal.
@@ -24,10 +27,15 @@ export type Session =
       tenantId: string;
       name: string;
       roleId: string | null;
+      isOwner: boolean;
+      modules: ModuleKey[];
     }
   | { ok: false; message: string };
 
-export async function requireCustomer(action = "usar o portal"): Promise<Session> {
+export async function requireCustomer(
+  action = "usar o portal",
+  requiredModule?: ModuleKey,
+): Promise<Session> {
   if (!supabaseConfigurado()) {
     return { ok: false, message: "Supabase não configurado neste ambiente." };
   }
@@ -41,13 +49,43 @@ export async function requireCustomer(action = "usar o portal"): Promise<Session
 
   const { data: perfil, error } = await supabase
     .from("profiles")
-    .select("tenant_id, role_id, full_name, is_platform_admin")
+    .select("tenant_id, role_id, full_name, is_platform_admin, status, roles(permissions, is_owner)")
     .eq("id", user.id)
     .single();
 
   // Mensagem deliberadamente seca: não explicamos a quem não pode entrar por
   // que foi negado.
-  if (error || !perfil?.tenant_id || perfil.is_platform_admin) {
+  if (
+    error ||
+    !perfil?.tenant_id ||
+    perfil.is_platform_admin ||
+    perfil.status !== "active"
+  ) {
+    return { ok: false, message: `Você não tem permissão para ${action}.` };
+  }
+
+  const role = (Array.isArray(perfil.roles) ? perfil.roles[0] : perfil.roles) as {
+    permissions?: unknown;
+    is_owner?: boolean | null;
+  } | null;
+  const isOwner = role?.is_owner === true;
+
+  const { data: activeRows, error: moduleError } = await supabase
+    .from("v_active_modules")
+    .select("key, is_access");
+
+  if (moduleError) {
+    return { ok: false, message: `Você não tem permissão para ${action}.` };
+  }
+
+  const planModules = tenantModules(activeRows ?? []);
+  const roleAllowed = new Set<ModuleKey>([
+    ...BASE_MODULES,
+    ...roleModules(role?.permissions, (key) => DB_TO_PORTAL[key]),
+  ]);
+  const modules = isOwner ? planModules : planModules.filter((module) => roleAllowed.has(module));
+
+  if (requiredModule && !modules.includes(requiredModule)) {
     return { ok: false, message: `Você não tem permissão para ${action}.` };
   }
 
@@ -58,7 +96,18 @@ export async function requireCustomer(action = "usar o portal"): Promise<Session
     tenantId: perfil.tenant_id,
     name: perfil.full_name ?? user.email ?? "Você",
     roleId: perfil.role_id ?? null,
+    isOwner,
+    modules,
   };
+}
+
+/** Operações de equipe e papéis pertencem exclusivamente ao dono do negócio. */
+export async function requireOwner(action: string): Promise<Session> {
+  const session = await requireCustomer(action, "settings");
+  if (!session.ok || !session.isOwner) {
+    return { ok: false, message: `Você não tem permissão para ${action}.` };
+  }
+  return session;
 }
 
 /** O que toda Server Action do portal devolve para a interface. */

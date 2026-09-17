@@ -60,7 +60,9 @@ export function customerHref(id: string): string {
  * então fica de fora.
  */
 export function customerIdFromRoute(pathname: string): string | null {
-  const m = /^\/customers\/([^/]+)\/?$/.exec(pathname);
+  const prefix = ROUTES.customers + "/";
+  if (!pathname.startsWith(prefix)) return null;
+  const m = /^([^/]+)\/?$/.exec(pathname.slice(prefix.length));
   if (!m || m[1] === "novo") return null;
   return decodeURIComponent(m[1]);
 }

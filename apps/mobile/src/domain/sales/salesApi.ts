@@ -193,68 +193,59 @@ export async function fetchSale(saleId: string): Promise<SaleAPI | null> {
   return data ? toSaleAPI(data as SaleRow) : null;
 }
 
-/** Marca a venda como estornada (ou de volta como completa). */
-export async function setSaleStatus(saleId: string, status: string): Promise<void> {
-  const { error } = await supabase.from('sales').update({ status }).eq('id', saleId);
-  if (error) throw error;
-
-  logActivity(status === SALE_STATUS.refunded ? 'sale.refunded' : 'sale.refund_undone', {
-    entityId: saleId,
+/** Muda status e estoque juntos; `false` significa que já estava no estado final. */
+export async function setSaleRefunded(saleId: string, refunded: boolean): Promise<boolean> {
+  const { data: changed, error } = await supabase.rpc('set_sale_refunded', {
+    p_sale_id: saleId,
+    p_refunded: refunded,
   });
-}
-
-/**
- * DEVOLVE (ou tira de novo) o estoque dos itens de uma venda.
- *
- * ⚠️ ISTO É FEITO À MÃO, e não por gatilho. O trigger de `sale_items` só reage
- * à INSERÇÃO do item — mudar `sales.status` não move saldo nenhum (verificado
- * no banco, e é o mesmo motivo pelo qual o portal faz esta volta à mão em
- * `app/vendas/actions.ts`). Sem esta função, estornar tiraria a venda do
- * faturamento e deixaria a mercadoria fora da prateleira para sempre.
- *
- * `sign = 1` devolve à prateleira (estorno); `-1` baixa de novo (estorno
- * desfeito). O SINAL é o que conta: `apply_stock_movement` ignora o `p_type` e
- * soma o `p_quantity` como veio — ver o aviso em `shared/dbEnums`.
- *
- * Devolve quantos itens NÃO conseguiram voltar. O chamador não desfaz o
- * estorno por causa disso — a venda já saiu do faturamento e desfazer traria
- * de volta um número que o dono acabou de mandar tirar. Ele AVISA, e o ajuste
- * de estoque fica a um toque de distância, na tela de Estoque. Silêncio aqui
- * seria a única saída pior que as duas.
- */
-export async function moveSaleStock(saleId: string, sign: 1 | -1): Promise<number> {
-  const { data, error } = await supabase
-    .from('sale_items')
-    .select('product_id, quantity, products(tracks_stock)')
-    .eq('sale_id', saleId);
-
   if (error) throw error;
 
-  let failures = 0;
-
-  for (const item of data ?? []) {
-    const product = (Array.isArray(item.products) ? item.products[0] : item.products) as {
-      tracks_stock?: boolean | null;
-    } | null;
-
-    // Produto avulso (sem `product_id`) ou que não controla estoque não tem
-    // saldo para mexer — não é falha, é um item que nunca esteve na prateleira.
-    if (!item.product_id || !product?.tracks_stock) continue;
-
-    const { error: movementError } = await supabase.rpc('apply_stock_movement', {
-      p_product_id: item.product_id,
-      p_type: 'adjustment',
-      // ASSINADO. Ver `moveSaleStock` acima e `stockApi.createStockMovement`.
-      p_quantity: sign * Number(item.quantity ?? 0),
-      p_reason: sign > 0 ? 'Devolução por estorno' : 'Baixa por estorno desfeito',
-      p_sale_id: saleId,
-      p_unit_cost: null,
+  if (changed) {
+    logActivity(refunded ? 'sale.refunded' : 'sale.refund_undone', {
+      entityId: saleId,
     });
-
-    if (movementError) failures += 1;
   }
 
-  return failures;
+  return changed === true;
+}
+
+/** Estorna a original e cria a substituta na mesma transação idempotente. */
+export async function replaceSale(saleId: string, payload: SaleCreateAPI): Promise<SaleAPI> {
+  const { data, error } = await supabase.rpc('replace_sale', {
+    p_sale_id: saleId,
+    p_payment_method: payload.payment_method,
+    p_items: payload.items.map((item) => ({
+      product_id: item.product_id || '',
+      product_name: item.product_name,
+      quantity: item.qty,
+      unit_price: centsToReal(item.unit_price_cents),
+    })),
+    p_customer_document: null,
+    p_customer_name: null,
+    p_sold_at: null,
+    p_id: payload.id ?? null,
+  });
+
+  if (error) throw error;
+
+  const result = data as { sale_id?: unknown; changed?: unknown } | null;
+  if (typeof result?.sale_id !== 'string') {
+    throw new Error('replace_sale não devolveu o id da venda substituta.');
+  }
+
+  if (result.changed === true) {
+    logActivity('sale.refunded', { entityId: saleId });
+    logActivity('sale.created', {
+      entityId: result.sale_id,
+      summary: `${payload.items.length} ${payload.items.length === 1 ? 'item' : 'itens'} · ${moeda(payload.total_cents)}`,
+      metadata: { payment: payload.payment_method, origin: 'app', replaces: saleId },
+    });
+  }
+
+  const replacement = await fetchSale(result.sale_id);
+  if (!replacement) throw new Error('Venda substituta não encontrada depois da edição.');
+  return replacement;
 }
 
 /**

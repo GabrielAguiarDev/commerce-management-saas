@@ -185,7 +185,7 @@ export function RoleModal() {
         </div>
 
         <p style={css(`margin:10px 0 0;font:500 11.5px/1.5 ${SANS};color:var(--muted)`)}>
-          Só aparecem os módulos que o seu plano tem. Para liberar outros, fale com o support na aba
+          Só aparecem os módulos que o seu plano tem. Para liberar outros, fale com o suporte na aba
           Conta.
         </p>
       </div>

@@ -13,7 +13,8 @@ import type { ProfileAPI, SessionAPI, SignInPayloadAPI } from './sessionApiTypes
  * do `user_metadata`.
  */
 
-const PROFILE_COLUMNS = 'id, tenant_id, role_id, full_name, is_platform_admin, status';
+const PROFILE_COLUMNS =
+  'id, tenant_id, role_id, full_name, is_platform_admin, status, roles(permissions, is_owner)';
 
 /**
  * O perfil do usuário logado.
@@ -79,6 +80,7 @@ function emptyProfile(userId: string): ProfileAPI {
     full_name: null,
     is_platform_admin: false,
     status: null,
+    roles: null,
   };
 }
 

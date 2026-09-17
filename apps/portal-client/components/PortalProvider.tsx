@@ -1,7 +1,7 @@
 "use client";
 
 import { MOBILE_BREAKPOINT } from "@aguiar/ui";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -62,6 +62,7 @@ import {
   EMPTY_ROLE_FORM,
   EMPTY_PRODUCT_FORM,
   EMPTY_REPLY_FORM,
+  effectiveMethod,
   fiscalForm,
   TOAST_MS,
   TOAST_OUT_MS,
@@ -157,6 +158,32 @@ export function PortalProvider({
   }
 
   const set = useCallback((p: Patch) => setS((x) => ({ ...x, ...p })), []);
+
+  /**
+   * Sair do PDV no meio de uma edição encerra a edição.
+   *
+   * Só o "‹" e o "Descartar" limpavam `editingSale`; saindo pelo menu, a venda
+   * ficava pendurada e o próximo "Nova venda" abria como "Editar venda", com os
+   * itens da antiga — e salvar estornaria uma venda que ninguém pediu para
+   * mexer. Um carrinho de venda NOVA continua sobrevivendo à troca de tela, de
+   * propósito.
+   *
+   * A regra olha a TRANSIÇÃO saindo de `POS_ROUTE`, e não "fora do PDV com
+   * edição aberta": o `editSale` liga a edição ainda em /vendas, um instante
+   * antes de navegar, e a segunda forma a desligaria na hora.
+   */
+  const pathname = usePathname();
+  const [rotaAnterior, setRotaAnterior] = useState(pathname);
+  if (pathname !== rotaAnterior) {
+    setRotaAnterior(pathname);
+    if (rotaAnterior === POS_ROUTE) {
+      setS((x) =>
+        x.editingSale == null
+          ? x
+          : { ...x, cart: [], editingSale: null, customerDocument: "", cartOpen: false },
+      );
+    }
+  }
 
   /* ---------------------------------------------------------------------- */
   /* Ambiente                                                                */
@@ -394,12 +421,14 @@ export function PortalProvider({
       price: c.price,
     }));
     const editing = s.editingSale;
+    // A mesma forma que o seletor está mostrando — ver `effectiveMethod`.
+    const method = effectiveMethod(s, d);
 
     await run(
       () =>
         editing
-          ? acaoEditarVenda(editing, items, s.currentMethod, s.customerDocument)
-          : acaoRegistrarVenda(items, s.currentMethod, s.customerDocument),
+          ? acaoEditarVenda(editing, items, method, s.customerDocument)
+          : acaoRegistrarVenda(items, method, s.customerDocument),
       editing ? "Venda atualizada" : "Venda registrada",
       (ok) => {
         if (!ok) return;
@@ -409,7 +438,7 @@ export function PortalProvider({
         router.push(ROUTES.sales);
       },
     );
-  }, [s.saving, s.cart, s.currentMethod, s.editingSale, s.customerDocument, run, router]);
+  }, [s, d, run, router]);
 
   const editSale = useCallback(
     (id: string) => {
@@ -429,6 +458,8 @@ export function PortalProvider({
         })),
         currentMethod: v.payment,
         editingSale: id,
+        // Um CPF digitado numa venda nova abandonada não é desta venda.
+        customerDocument: "",
         rowMenu: null,
       }));
       router.push(POS_ROUTE);

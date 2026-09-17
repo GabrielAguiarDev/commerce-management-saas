@@ -14,6 +14,18 @@ function normalize(error: unknown): never {
   throw new CashError('network', error instanceof Error ? error.message : undefined);
 }
 
+function isOpenCashConflict(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const postgres = error as { code?: unknown; message?: unknown; details?: unknown };
+  const message = [postgres.message, postgres.details]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ');
+  return (
+    postgres.code === '23505' &&
+    message.includes('cash_registers_one_open_per_tenant')
+  );
+}
+
 export async function getOpenShift(tenantId: string): Promise<OpenShift | null> {
   try {
     const raw = await api.fetchOpenShift(tenantId);
@@ -39,10 +51,15 @@ export async function openCash(
   tenantId: string,
   aberturaCentavos = ABERTURA_PADRAO_CENTAVOS,
 ): Promise<OpenShift> {
-  if (aberturaCentavos < 0) throw new CashError('invalid_amount');
+  if (!Number.isFinite(aberturaCentavos) || aberturaCentavos < 0) {
+    throw new CashError('invalid_amount');
+  }
   try {
     return toOpenShift(await api.openShift(tenantId, aberturaCentavos));
   } catch (e) {
+    if (isOpenCashConflict(e)) {
+      throw new CashError('cash_already_open', 'Já existe um caixa aberto.');
+    }
     return normalize(e);
   }
 }
@@ -60,7 +77,9 @@ export async function recordAdjustment(
   amountCents: number,
   motivo: string,
 ): Promise<OpenShift> {
-  if (amountCents <= 0) throw new CashError('invalid_amount');
+  if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    throw new CashError('invalid_amount');
+  }
 
   try {
     const raw = await api.recordAdjustment(
@@ -88,7 +107,9 @@ export async function closeCash(
   contadoEmDinheiroCentavos: number,
   observacao = '',
 ): Promise<ClosedShift> {
-  if (contadoEmDinheiroCentavos < 0) throw new CashError('invalid_amount');
+  if (!Number.isFinite(contadoEmDinheiroCentavos) || contadoEmDinheiroCentavos < 0) {
+    throw new CashError('invalid_amount');
+  }
 
   try {
     const raw = await api.closeShift(

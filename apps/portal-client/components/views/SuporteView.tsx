@@ -75,7 +75,7 @@ export function SuporteView() {
           </span>
           <div style={css(`margin-top:2px;font:700 16px ${SANS}`)}>Nenhum chamado ainda</div>
           <p style={css(`margin:0;max-width:380px;font:400 13px/1.5 ${SANS};color:var(--muted)`)}>
-            Travou em algo, apareceu um error ou ficou com dúvida? Abra um chamado contando o que
+            Travou em algo, apareceu um erro ou ficou com dúvida? Abra um chamado contando o que
             aconteceu — a gente responde aqui mesmo.
           </p>
           <Button

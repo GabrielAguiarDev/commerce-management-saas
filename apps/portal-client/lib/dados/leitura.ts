@@ -91,7 +91,10 @@ const numberOrNull = (v: unknown): number | null => (v == null ? null : Number(v
 export async function readBusiness(
   supabase: Customer,
   tenantId: string,
+  userId: string,
   nomeUsuario: string,
+  isOwner: boolean,
+  allowedModules?: ModuleKey[],
 ): Promise<{ business: Business; data: BusinessData }> {
   const [{ data: tenant }, { data: mods }, { data: catalog }] = await Promise.all([
     supabase
@@ -125,8 +128,8 @@ export async function readBusiness(
       initials: initials(name),
       logoPath: tenant?.logo_path ?? null,
       type: tenant?.segment ?? "Comércio",
-      user: { name: nomeUsuario, initials: initials(nomeUsuario) },
-      modules: tenantModules(mods ?? []),
+      user: { id: userId, name: nomeUsuario, initials: initials(nomeUsuario), isOwner },
+      modules: allowedModules ?? tenantModules(mods ?? []),
       catalog: moduleCatalog(catalog),
     },
     data: {

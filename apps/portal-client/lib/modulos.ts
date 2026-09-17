@@ -11,7 +11,7 @@ import type { CatalogModule, ModuleKey } from "@/types/types";
  * - `app` existe no banco mas é módulo de ACESSO (`is_access = true`): libera o
  *   aplicativo mobile, não uma tela do portal. Por isso nunca vira item de menu.
  */
-const DB_TO_PORTAL: Record<string, ModuleKey> = {
+export const DB_TO_PORTAL: Record<string, ModuleKey> = {
   sales: "sales",
   products: "products",
   stock: "stock",
@@ -28,7 +28,7 @@ export const PORTAL_TO_DB: Partial<Record<ModuleKey, string>> = Object.fromEntri
 ) as Partial<Record<ModuleKey, string>>;
 
 /** Módulos que todo cliente tem, sem depender do plano. */
-export const BASE_MODULES: ModuleKey[] = ["dashboard", "settings"];
+export const BASE_MODULES: ModuleKey[] = ["dashboard", "settings", "support"];
 
 /**
  * Módulos construídos mas ainda NÃO liberados — o espelho de

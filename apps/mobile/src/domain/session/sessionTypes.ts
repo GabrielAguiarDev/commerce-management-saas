@@ -12,12 +12,13 @@ export interface Session {
   user: User;
   tenantId: string;
   /**
-   * Papel do usuário dentro do negócio. Ainda não restringe nada no app — está
-   * aqui porque a sessão é onde ele chega, e porque o dia em que os
-   * funcionários entrarem, a permissão vai ser lida daqui e não de uma segunda
-   * consulta espalhada pelas telas.
+   * Papel do usuário dentro do negócio. As capacidades do app cruzam este
+   * papel com os módulos ativos do plano antes de liberar telas e ações.
    */
   roleId: string | null;
+  /** Chaves de módulo autorizadas pelo papel; o dono ignora esta lista. */
+  rolePermissions: string[];
+  isOwner: boolean;
 }
 
 /**

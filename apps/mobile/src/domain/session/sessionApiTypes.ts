@@ -35,6 +35,10 @@ export interface ProfileAPI {
   is_platform_admin: boolean | null;
   /** `'active'` | `'suspended'` — funcionário suspenso não entra. */
   status: string | null;
+  roles:
+    | { permissions?: unknown; is_owner?: boolean | null }
+    | { permissions?: unknown; is_owner?: boolean | null }[]
+    | null;
 }
 
 /**

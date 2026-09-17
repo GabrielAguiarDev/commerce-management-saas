@@ -643,12 +643,13 @@ const pt = {
    * Quem chega nelas já está procurando uma informação específica — quem faz o
    * sistema, como falar com alguém, o que está combinado.
    *
-   * ⚠️  DOIS PONTOS PENDENTES, os dois marcados no texto com colchetes:
-   *   · `terms` precisa da razão social, do CNPJ e do foro, e de UMA LEITURA
-   *     DE ADVOGADO antes de ir ao ar. O que está escrito é um rascunho em
-   *     português claro, não uma peça jurídica conferida.
-   *   · o e-mail de contato mora em `lib/links.ts` (`CONTACT_EMAIL`) e ainda é
-   *     um endereço de exemplo.
+   * ⚠️  DOIS PONTOS PENDENTES:
+   *   · `terms` ainda não identifica a empresa (razão social, CNPJ, sede) nem
+   *     o foro, e pede UMA LEITURA DE ADVOGADO. Os marcadores entre colchetes
+   *     que ficavam no texto saíram: publicados, eles viravam um "CNPJ
+   *     00.000.000/0001-00" no ar. Os dados reais entram quando existirem.
+   *   · o e-mail de contato vem da variável `CONTACT_EMAIL` (ver
+   *     `lib/links.ts`); sem ela, a página de contato não mostra endereço.
    */
   pages: {
     /** O link de volta, no alto das três páginas. */
@@ -683,7 +684,7 @@ const pt = {
       ],
       cta: {
         title: "Quer conversar antes de decidir?",
-        text: "A página de contato tem o WhatsApp e o e-mail de quem faz o sistema.",
+        text: "A página de contato reúne os canais para falar com quem faz o sistema.",
         button: "Falar com a gente",
       },
     },
@@ -696,7 +697,7 @@ const pt = {
       },
       eyebrow: "Contato",
       title: "Fale com a gente",
-      lead: "Dúvida sobre plano, sobre um módulo ou sobre como começar? Escreva pelo formulário ou chame no WhatsApp — quem responde é quem faz o sistema.",
+      lead: "Dúvida sobre plano, sobre um módulo ou sobre como começar? Fale com a gente pelos canais abaixo — quem responde é quem faz o sistema.",
       form: {
         title: "Mande uma mensagem",
         name: "Seu nome",
@@ -731,6 +732,12 @@ const pt = {
         title: "E-mail",
         text: "Se preferir escrever do seu próprio endereço, é para cá.",
       },
+      /* QUANDO NENHUM CANAL CARREGOU: sem WhatsApp do banco e sem e-mail
+         configurado. A página não pode virar um beco sem saída calado. */
+      unavailable: {
+        title: "Canais indisponíveis agora",
+        text: "Não conseguimos carregar o WhatsApp nem o e-mail de atendimento neste momento. Tente de novo em alguns minutos.",
+      },
       client: {
         title: "Já é cliente?",
         text: "Abra um chamado direto no sistema, em Suporte: ele chega junto com os dados do seu negócio, e a resposta fica registrada na mesma tela.",
@@ -749,7 +756,7 @@ const pt = {
       sections: [
         {
           title: "1. Quem oferece o serviço",
-          text: "O Aguiar One é operado por [razão social], inscrita no CNPJ [00.000.000/0001-00], com sede em [cidade/UF]. Nestes termos, “nós” é essa empresa e “você” é a pessoa ou o negócio que usa o sistema.",
+          text: "Nestes termos, “nós” é quem opera o Aguiar One e “você” é a pessoa ou o negócio que usa o sistema.",
         },
         {
           title: "2. O que o serviço faz",
@@ -785,7 +792,7 @@ const pt = {
         },
         {
           title: "10. Contato e foro",
-          text: "Dúvidas sobre estes termos podem ser enviadas pela página de contato. Para o que não for resolvido por lá, fica eleito o foro de [comarca/UF].",
+          text: "Dúvidas sobre estes termos podem ser enviadas pela página de contato.",
         },
       ],
       note: "Este texto é um resumo em linguagem simples e vale como termo de uso. Se algum ponto ficar em dúvida, fale com a gente antes de contratar.",
@@ -1298,7 +1305,7 @@ const en: Dic = {
       ],
       cta: {
         title: "Want to talk before deciding?",
-        text: "The contact page has the WhatsApp number and the email of the people who build it.",
+        text: "The contact page lists the ways to reach the people who build it.",
         button: "Talk to us",
       },
     },
@@ -1311,7 +1318,7 @@ const en: Dic = {
       },
       eyebrow: "Contact",
       title: "Talk to us",
-      lead: "A question about a plan, a module or how to get started? Write through the form or message us on WhatsApp — the people who answer are the ones who build the system.",
+      lead: "A question about a plan, a module or how to get started? Reach us through the channels below — the people who answer are the ones who build the system.",
       form: {
         title: "Send a message",
         name: "Your name",
@@ -1337,6 +1344,10 @@ const en: Dic = {
         title: "Email",
         text: "If you would rather write from your own address, here it is.",
       },
+      unavailable: {
+        title: "Contact channels unavailable",
+        text: "We could not load the WhatsApp number or the support email right now. Please try again in a few minutes.",
+      },
       client: {
         title: "Already a customer?",
         text: "Open a ticket inside the system, under Support: it arrives with your business details attached, and the answer stays on the same screen.",
@@ -1355,7 +1366,7 @@ const en: Dic = {
       sections: [
         {
           title: "1. Who provides the service",
-          text: "Aguiar One is operated by [legal name], registered under CNPJ [00.000.000/0001-00], based in [city/state]. In these terms, “we” is that company and “you” is the person or business using the system.",
+          text: "In these terms, “we” is whoever operates Aguiar One and “you” is the person or business using the system.",
         },
         {
           title: "2. What the service does",
@@ -1391,7 +1402,7 @@ const en: Dic = {
         },
         {
           title: "10. Contact and jurisdiction",
-          text: "Questions about these terms can be sent through the contact page. For anything not settled there, the courts of [district/state] apply.",
+          text: "Questions about these terms can be sent through the contact page.",
         },
       ],
       note: "This text is a plain-language summary and stands as the terms of use. If any point is unclear, talk to us before signing up.",

@@ -28,6 +28,8 @@ interface SessionState {
   user: User | null;
   tenantId: string | null;
   roleId: string | null;
+  rolePermissions: string[];
+  isOwner: boolean;
   /** Efêmero: o botão de Entrar em carregamento. */
   signingIn: boolean;
   /** `true` depois que a sessão gravada foi verificada (mesmo que não exista). */
@@ -41,10 +43,22 @@ interface SessionState {
   clear: () => void;
 }
 
-const EMPTY = { user: null, tenantId: null, roleId: null } as const;
+const EMPTY = {
+  user: null,
+  tenantId: null,
+  roleId: null,
+  rolePermissions: [] as string[],
+  isOwner: false,
+} as const;
 
 function fromSession(session: Session) {
-  return { user: session.user, tenantId: session.tenantId, roleId: session.roleId };
+  return {
+    user: session.user,
+    tenantId: session.tenantId,
+    roleId: session.roleId,
+    rolePermissions: session.rolePermissions,
+    isOwner: session.isOwner,
+  };
 }
 
 export const useSessionStore = create<SessionState>()((set) => ({

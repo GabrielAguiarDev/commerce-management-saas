@@ -158,7 +158,7 @@ export function Sidebar() {
               "margin-bottom:8px;padding:11px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);animation:pop .16s ease",
             )}
           >
-            <div style={css(`font:600 12px/1.4 ${SANS}`)}>Sair da account?</div>
+            <div style={css(`font:600 12px/1.4 ${SANS}`)}>Sair da conta?</div>
             <div style={css(`margin-top:3px;font:400 11px/1.4 ${SANS};color:var(--muted)`)}>
               Você precisará entrar de novo.
             </div>

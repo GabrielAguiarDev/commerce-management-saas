@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { TicketStatus } from "@/types/types";
+import type { Priority, TicketStatus } from "@/types/types";
 
 /**
- * Ações do Suporte: responder um chamado e mudar o status.
+ * Ações do Suporte: responder um chamado, mudar o status e a prioridade.
  *
  * POR QUE SERVER ACTION E NÃO ESCRITA DIRETO DO NAVEGADOR: quem escreve aqui é
  * o suporte da plataforma, e essa identidade precisa ser conferida no servidor.
@@ -29,6 +29,18 @@ const TO_DB: Record<TicketStatus, string> = {
   open: "open",
   inProgress: "in_progress",
   resolved: "resolved",
+};
+
+/**
+ * Prioridade, no vocabulário do CHECK de `support_tickets.priority`
+ * (`20260828000000_state_column_checks.sql`). A leitura lê "urgent" como alta,
+ * mas o painel só grava "high": quatro níveis na tela seriam um a mais do que
+ * a lista sabe mostrar.
+ */
+const PRIORITY_TO_DB: Record<Priority, string> = {
+  alta: "high",
+  media: "normal",
+  baixa: "low",
 };
 
 export type ActionResult = { ok: true } | { ok: false; message: string };
@@ -138,6 +150,33 @@ export async function setTicketStatus(
   if (error) {
     console.error("[mudarStatusChamado] falha ao atualizar:", error.message);
     return { ok: false, message: `Não foi possível atualizar o chamado: ${error.message}` };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function setTicketPriority(
+  chamadoId: string,
+  prioridade: Priority,
+): Promise<ActionResult> {
+  // O valor vem do navegador: fora do mapa, nem chega ao banco.
+  if (!Object.hasOwn(PRIORITY_TO_DB, prioridade)) {
+    return { ok: false, message: "Prioridade inválida." };
+  }
+  const valor = PRIORITY_TO_DB[prioridade];
+
+  const auth = await requireAdmin();
+  if (!("supabase" in auth)) return auth;
+
+  const { error } = await auth.supabase
+    .from("support_tickets")
+    .update({ priority: valor })
+    .eq("id", chamadoId);
+
+  if (error) {
+    console.error("[mudarPrioridadeChamado] falha ao atualizar:", error.message);
+    return { ok: false, message: `Não foi possível mudar a prioridade: ${error.message}` };
   }
 
   revalidatePath("/", "layout");

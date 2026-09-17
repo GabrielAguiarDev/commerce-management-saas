@@ -5,6 +5,7 @@ import { Button, field, css, MONO, NUM, PANEL, SANS, Select } from "@aguiar/ui";
 import { brl } from "@/lib/formato";
 import { isValidCpf } from "@/lib/dados/fiscal";
 import { PAYMENT_LABEL } from "@/lib/dados/vendas";
+import { effectiveMethod, paymentOptions } from "@/lib/estado";
 import { ROUTES } from "@/lib/rotas";
 import type { Product } from "@/types/types";
 
@@ -19,6 +20,8 @@ export function PdvView() {
   const { s, a, has, isMobile, isDesktop, d } = usePortal();
 
   const editing = s.editingSale != null;
+  const methods = paymentOptions(s, d);
+  const method = effectiveMethod(s, d);
 
   const available = d.products.filter((p) => p.active);
   const search = s.productSearch.trim().toLowerCase();
@@ -322,11 +325,11 @@ export function PdvView() {
                 Forma de pagamento
               </label>
               <Select
-                value={s.currentMethod}
+                value={method}
                 onChange={(e) => a.set({ currentMethod: e.target.value as typeof s.currentMethod })}
                 cssText={field(false, true).replace("padding:13px 14px", "padding:12px 12px")}
               >
-                {d.settings.acceptedMethods.map((f) => (
+                {methods.map((f) => (
                   <option key={f} value={f}>
                     {PAYMENT_LABEL[f]}
                   </option>

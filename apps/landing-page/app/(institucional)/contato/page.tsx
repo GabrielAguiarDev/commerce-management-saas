@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ContactForm } from "@/components/ContactForm";
 import { PageIntro } from "@/components/shared";
 import { COPY } from "@/lib/dictionary";
-import { CONTACT_EMAIL } from "@/lib/links";
+import { contactEmail } from "@/lib/links";
 import { DISPLAY } from "@/lib/styleKit";
 import { fetchWhatsapp, formatWhatsapp, whatsappLink } from "@/lib/whatsapp";
 
@@ -28,6 +28,11 @@ export const metadata: Metadata = {
  * não é desenhado: melhor uma página com um canal do que uma com um botão que
  * abre uma conversa com ninguém.
  *
+ * O E-MAIL VEM DE `CONTACT_EMAIL` (`lib/links.ts`), e segue a mesma regra: sem
+ * endereço, nem o formulário nem o bloco de e-mail aparecem — o formulário só
+ * sabe abrir um `mailto:`. Faltando os DOIS canais, a página diz isso com
+ * todas as letras em vez de ficar só com o cartão de "Já é cliente?".
+ *
  * A PÁGINA CONTINUA ESTÁTICA. A leitura acontece no build e na revalidação —
  * `revalidate` abaixo é a mesma hora da home, e pelo mesmo motivo: é o teto
  * para o caso de o número mudar no console sem ninguém publicar de novo.
@@ -44,6 +49,7 @@ const CARD_TEXT = "font-size:14.5px;line-height:1.6;color:var(--text2);margin:0 
 
 export default async function Contato() {
   const whatsapp = await fetchWhatsapp();
+  const email = contactEmail();
 
   return (
     <>
@@ -53,9 +59,11 @@ export default async function Contato() {
         <div style={css(COLUMNS)}>
           {/* O formulário é o bloco maior e vem primeiro na leitura e no HTML —
               inclusive no celular, onde as duas colunas viram uma pilha. */}
-          <div style={css(CARD + "padding:clamp(24px,3vw,30px)")}>
-            <ContactForm to={CONTACT_EMAIL} hasWhatsapp={whatsapp !== null} />
-          </div>
+          {email ? (
+            <div style={css(CARD + "padding:clamp(24px,3vw,30px)")}>
+              <ContactForm to={email} hasWhatsapp={whatsapp !== null} />
+            </div>
+          ) : null}
 
           <div style={css("display:flex;flex-direction:column;gap:16px")}>
             {whatsapp ? (
@@ -81,17 +89,26 @@ export default async function Contato() {
               </div>
             ) : null}
 
-            <div style={css(CARD)}>
-              <h2 style={css(CARD_TITLE)}>{P.email.title}</h2>
-              <p style={css(CARD_TEXT)}>{P.email.text}</p>
-              <a
-                className="lp-link"
-                href={`mailto:${CONTACT_EMAIL}`}
-                style={css("font-size:14.5px;font-weight:600;color:var(--accent-text);word-break:break-all")}
-              >
-                {CONTACT_EMAIL}
-              </a>
-            </div>
+            {email ? (
+              <div style={css(CARD)}>
+                <h2 style={css(CARD_TITLE)}>{P.email.title}</h2>
+                <p style={css(CARD_TEXT)}>{P.email.text}</p>
+                <a
+                  className="lp-link"
+                  href={`mailto:${email}`}
+                  style={css("font-size:14.5px;font-weight:600;color:var(--accent-text);word-break:break-all")}
+                >
+                  {email}
+                </a>
+              </div>
+            ) : null}
+
+            {!whatsapp && !email ? (
+              <div role="status" style={css(CARD)}>
+                <h2 style={css(CARD_TITLE)}>{P.unavailable.title}</h2>
+                <p style={css(CARD_TEXT + "margin-bottom:0")}>{P.unavailable.text}</p>
+              </div>
+            ) : null}
 
             {/* Quem já é cliente NÃO deveria estar nesta página, e mandá-lo
                 para a tela de Suporte do sistema não é despachar: lá o chamado

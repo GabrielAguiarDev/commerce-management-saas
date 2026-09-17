@@ -1,4 +1,4 @@
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import { useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
@@ -10,9 +10,9 @@ import {
   StartupError,
   StartupLoading,
 } from '@components';
-import { ROUTES, resolveAppGate } from '@domain/navigation/routes';
+import { ROUTES, isRouteAllowed, resolveAppGate } from '@domain/navigation/routes';
 import { useAppAccess } from '@domain/session';
-import { useCurrentTenant } from '@domain/tenant';
+import { useCapabilities, useCurrentTenant } from '@domain/tenant';
 import { useAppHydrated } from '@hooks/useAppHydrated';
 import { useAppTheme } from '@hooks/useAppTheme';
 import { selectIsAuthenticated, useSessionStore } from '@store/sessionStore';
@@ -65,6 +65,7 @@ export default function AppLayout() {
   const hydrated = useAppHydrated();
   const isAuthenticated = useSessionStore(selectIsAuthenticated);
   const signOut = useSessionStore((s) => s.signOut);
+  const pathname = usePathname();
 
   // `has_module('app')` direto no banco — não derivado da carga do tenant.
   // Ver o comentário em `useAppAccess`: esta é a pergunta que decide entre
@@ -76,6 +77,7 @@ export default function AppLayout() {
   // uma vez, antes de qualquer pixel de navegação. É o que permite à `TabBar`
   // não ter mais estado de carregamento nenhum.
   const { isPending: tenantPending } = useCurrentTenant();
+  const { capabilities } = useCapabilities();
 
   // A trava. Ajustada DURANTE o render, que é o padrão oficial do React para
   // estado derivado (`react.dev` › "Adjusting state when props change"): ela é
@@ -110,6 +112,10 @@ export default function AppLayout() {
   // na entrada. Já foi um `Box` vazio — tela lisa, sem uma palavra, e portanto
   // indistinguível de um app que travou logo depois do login. Ver StartupLoading.
   if (gate === 'hold') return <StartupLoading />;
+
+  if (!isRouteAllowed(pathname, capabilities)) {
+    return <Redirect href={ROUTES.home as never} />;
+  }
 
   return <AppShell />;
 }

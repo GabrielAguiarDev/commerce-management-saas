@@ -90,13 +90,13 @@ export function whatsappLink(digits: string, message: string): string {
  * chegar sabendo de onde o visitante veio (ver `COPY.cta.whatsapp`).
  *
  * ┌─ E QUANDO NÃO HÁ NÚMERO ───────────────────────────────────────────────┐
- * │ Cai na âncora da última dobra, que é o que os botões faziam antes.     │
- * │ Um botão que não vai a lugar nenhum é pior do que um que rola a        │
- * │ página, e a leitura do banco pode faltar por motivo banal: build sem   │
- * │ as variáveis de ambiente, banco fora do ar no minuto do deploy.        │
+ * │ Cai na página de contato (`SIGNUP`). Um botão que não vai a lugar      │
+ * │ nenhum é pior do que um que leva a quem atende, e a leitura do banco   │
+ * │ pode faltar por motivo banal: build sem as variáveis de ambiente,      │
+ * │ banco fora do ar no minuto do deploy.                                  │
  * │                                                                        │
- * │ `target` só existe no caminho do WhatsApp: abrir uma ÂNCORA em aba     │
- * │ nova seria uma segunda cópia da página.                                │
+ * │ `target` só existe no caminho do WhatsApp: abrir uma página do próprio │
+ * │ site em aba nova seria uma segunda cópia dele.                         │
  * └────────────────────────────────────────────────────────────────────────┘
  */
 export interface CtaLink {

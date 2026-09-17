@@ -101,6 +101,15 @@ describe('derivarCapacidades', () => {
     expect(caps.hasProducts).toBe(true);
   });
 
+  it('intersecta o plano com as permissões do funcionário', () => {
+    const caps = deriveCapabilities(completo, ['sales', 'products'], false);
+    expect(caps.hasSales).toBe(true);
+    expect(caps.hasProducts).toBe(true);
+    expect(caps.hasCash).toBe(false);
+    expect(caps.hasCosts).toBe(false);
+    expect(caps.hasSupport).toBe(true);
+  });
+
   it('plano vazio não liga nada', () => {
     expect(deriveCapabilities([])).toEqual({
       hasAppAccess: false,

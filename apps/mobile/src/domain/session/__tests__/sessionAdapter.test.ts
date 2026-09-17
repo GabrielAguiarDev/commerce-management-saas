@@ -20,6 +20,7 @@ const base: SessionAPI = {
     full_name: 'Maria Souza',
     is_platform_admin: false,
     status: 'active',
+    roles: { permissions: { modules: ['sales', 'products'] }, is_owner: false },
   },
 };
 
@@ -31,6 +32,8 @@ describe('toSession', () => {
     expect(s.user.name).toBe('Maria Souza');
     expect(s.tenantId).toBe('tnt_1');
     expect(s.roleId).toBe('rol_1');
+    expect(s.rolePermissions).toEqual(['sales', 'products']);
+    expect(s.isOwner).toBe(false);
   });
 
   it('deriva as iniciais aqui — a tela não deve saber fazer isso', () => {

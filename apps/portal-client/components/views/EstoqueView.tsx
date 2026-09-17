@@ -182,7 +182,7 @@ function ItemsTab({ tracked }: { tracked: Product[] }) {
             ))}
           </div>
           <p style={css(`margin:10px 0 0;font:500 12px ${SANS};color:var(--muted)`)}>
-            {sorted.length} de {tracked.length} items controlados
+            {sorted.length} de {tracked.length} itens controlados
           </p>
         </>
       )}

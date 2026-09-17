@@ -181,16 +181,13 @@ function dateLabel(iso: string): string {
 /**
  * ABRIR O CAIXA.
  *
- * Recusa se já houver turno aberto. Dois turnos abertos ao mesmo tempo tornam a
- * conferência impossível: as vendas do período pertenceriam aos dois.
+ * O índice parcial do banco recusa uma segunda abertura. Não fazemos uma
+ * leitura antes do insert: ela teria uma corrida entre dois aparelhos.
  */
 export async function openShift(
   tenantId: string,
   aberturaCentavos: number,
 ): Promise<CashShiftAPI> {
-  const existing = await fetchOpenShift(tenantId);
-  if (existing) throw new Error('Já existe um caixa aberto. Feche-o antes de abrir outro.');
-
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -1,5 +1,3 @@
-import { SALE_STATUS } from '@domain/shared/dbEnums';
-
 import { totalCents } from './cart';
 import { HISTORY_PAGE_SIZE, type SalesRange } from './salesHistory';
 import * as queue from './offlineQueueApi';
@@ -105,11 +103,9 @@ export async function getSale(saleId: string): Promise<Sale | null> {
  * divergem naquele dia. Apagar a venda faria o número fechar e a história
  * sumir.
  *
- * A ORDEM É DELIBERADA — primeiro o status, depois o estoque. Se a devolução
- * do estoque falhar no meio, o pior caso é uma venda estornada com saldo a
- * ajustar à mão, e o app diz isso em voz alta (ver `moveSaleStock`). Na ordem
- * inversa o pior caso seria mercadoria devolvida ao estoque com a venda ainda
- * contando no faturamento — dinheiro e prateleira mentindo ao mesmo tempo.
+ * Status e estoque mudam na MESMA transação, dentro de `set_sale_refunded`.
+ * Se qualquer item falhar, tudo volta ao estado anterior. A função também
+ * trava a venda: repetir a mesma operação não movimenta o estoque de novo.
  *
  * ⚠️ NÃO TEM CAMINHO OFFLINE. Ao contrário de vender, estornar depende de ler
  * os itens no servidor e chamar a função de estoque do banco: não há como
@@ -118,8 +114,8 @@ export async function getSale(saleId: string): Promise<Sale | null> {
  */
 export async function refundSale(saleId: string): Promise<RefundResult> {
   try {
-    await api.setSaleStatus(saleId, SALE_STATUS.refunded);
-    return { stockFailures: await api.moveSaleStock(saleId, 1) };
+    await api.setSaleRefunded(saleId, true);
+    return { stockFailures: 0 };
   } catch (e) {
     return normalize(e);
   }
@@ -128,8 +124,8 @@ export async function refundSale(saleId: string): Promise<RefundResult> {
 /** Desfaz o estorno: a venda volta a contar e o estoque é baixado de novo. */
 export async function undoRefund(saleId: string): Promise<RefundResult> {
   try {
-    await api.setSaleStatus(saleId, SALE_STATUS.completed);
-    return { stockFailures: await api.moveSaleStock(saleId, -1) };
+    await api.setSaleRefunded(saleId, false);
+    return { stockFailures: 0 };
   } catch (e) {
     return normalize(e);
   }
@@ -148,11 +144,9 @@ export async function undoRefund(saleId: string): Promise<RefundResult> {
  * O custo é honesto e visível: o histórico passa a ter DUAS linhas — a
  * estornada e a que a substituiu. É o que um caderno de balcão faria.
  *
- * `online` chega como argumento porque a nova venda passa pelo mesmo
- * `checkoutSale` de sempre — mas com `false` ele enfileiraria a venda nova
- * enquanto o estorno acabou de falhar. Por isso o useCase barra a edição
- * offline antes de chegar aqui, e este parâmetro só existe para o caminho
- * normal continuar sendo um só.
+ * `replace_sale` executa as duas mudanças dentro da mesma transação. O vínculo
+ * entre as linhas faz um retry devolver a substituta já criada, sem repetir
+ * estorno nem baixa de estoque.
  */
 export async function editSale(
   tenantId: string,
@@ -162,10 +156,15 @@ export async function editSale(
   online: boolean,
 ): Promise<CheckoutResult> {
   if (items.length === 0) throw new SaleError('empty_cart');
+  if (!paymentMethod.trim()) throw new SaleError('no_payment_method');
   if (!online) throw new SaleError('network');
 
-  await refundSale(saleId);
-  return checkoutSale(tenantId, items, paymentMethod, online);
+  try {
+    const payload = toSaleCreatePayload(tenantId, items, paymentMethod);
+    return { queued: false, sale: toSale(await api.replaceSale(saleId, payload)) };
+  } catch (e) {
+    return normalize(e);
+  }
 }
 
 const EMPTY_SUMMARY: DailySummary = {

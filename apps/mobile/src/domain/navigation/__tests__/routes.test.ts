@@ -212,6 +212,20 @@ describe('rotaPermitida', () => {
     expect(isRouteAllowed(ROUTES.sell, ESSENTIAL)).toBe(true);
   });
 
+  it('barra vendas e produtos quando o papel não os permite', () => {
+    const restrito = deriveCapabilities(
+      ['sales', 'products', 'costs', 'support', 'app'],
+      ['costs'],
+      false,
+    );
+    expect(isRouteAllowed(ROUTES.sell, restrito)).toBe(false);
+    expect(isRouteAllowed(ROUTES.sales, restrito)).toBe(false);
+    expect(isRouteAllowed(`${ROUTES.sales}/sale_1`, restrito)).toBe(false);
+    expect(isRouteAllowed(ROUTES.products, restrito)).toBe(false);
+    expect(isRouteAllowed(ROUTES.costs, restrito)).toBe(true);
+    expect(isRouteAllowed(ROUTES.support, restrito)).toBe(true);
+  });
+
   it('a fila de vendas offline passa em QUALQUER plano', () => {
     // Ela não é um módulo vendido à parte: é o caminho de volta das vendas que
     // o aparelho guardou. Trancá-la por plano deixaria dinheiro real preso no

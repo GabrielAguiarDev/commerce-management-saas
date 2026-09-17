@@ -68,7 +68,10 @@
     "lint": "eslint .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "export:ios": "expo export --platform ios"
+    "export:ios": "expo export --platform ios",
+    "build:android": "pnpm dlx eas-cli@latest build --platform android --profile production",
+    "build:android:apk": "pnpm dlx eas-cli@latest build --platform android --profile preview",
+    "build:android:install": "pnpm dlx eas-cli@latest build:run --platform android"
   },
   "private": true
 }

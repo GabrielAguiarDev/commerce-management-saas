@@ -41,7 +41,7 @@ export async function loadPortal(): Promise<PortalData> {
   // credenciais. A casca renderiza vazia em vez de estourar.
   if (!session.ok) return { ...EMPTY_DATA, error: session.message };
 
-  const { supabase, tenantId, userId, name } = session;
+  const { supabase, tenantId, userId, name, modules, isOwner } = session;
 
   try {
     const salesPromise = readSales(supabase);
@@ -49,7 +49,7 @@ export async function loadPortal(): Promise<PortalData> {
     // módulo `fiscal` antes de gastar consulta com ele, e quem sabe isso é a
     // leitura do negócio. Recebendo a promessa, ele entra no mesmo bloco em vez
     // de esperar todas as outras leituras terminarem.
-    const businessPromise = readBusiness(supabase, tenantId, name);
+    const businessPromise = readBusiness(supabase, tenantId, userId, name, isOwner, modules);
 
     const [
       { business, data },
@@ -70,7 +70,7 @@ export async function loadPortal(): Promise<PortalData> {
         salesPromise,
         readStockMovements(supabase),
         readCosts(supabase),
-        readTeam(supabase),
+        isOwner ? readTeam(supabase) : Promise.resolve({ roles: [], team: [] }),
         readTickets(supabase),
         readRegister(supabase, salesPromise),
         readFiscal(supabase, businessPromise),

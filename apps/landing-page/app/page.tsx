@@ -6,7 +6,6 @@ import { Hero } from "@/components/Hero";
 import { Modules } from "@/components/Modules";
 import { Numbers } from "@/components/Numbers";
 import { Plans } from "@/components/Plans";
-import { Testimonial } from "@/components/Testimonial";
 
 /**
  * A página de entrada do Aguiar One.
@@ -14,8 +13,11 @@ import { Testimonial } from "@/components/Testimonial";
  * A ordem das dobras é o argumento, e é por isso que ela mora inteira aqui, num
  * arquivo que se lê de uma vez: promete (Hero), diz para quem serve
  * (Audiences), mostra o que tem (Modules), tira o medo de começar (Numbers),
- * dá o preço (Plans), traz alguém que já usa (Testimonial) e pede a decisão
- * (FinalCta).
+ * dá o preço (Plans) e pede a decisão (FinalCta).
+ *
+ * A dobra de depoimentos só volta quando houver relatos reais autorizados. Os
+ * textos de marcador permanecem no dicionário como guia editorial, mas não são
+ * publicados como se fossem falas de clientes.
  *
  * `<Numbers>` está no lugar que era de `<HowItWorks>`, e faz o mesmo trabalho
  * na argumentação por outro caminho: em vez de dizer que começar é fácil em
@@ -54,7 +56,6 @@ export default function Home() {
         <Modules />
         <Numbers />
         <Plans />
-        <Testimonial />
         <FinalCta />
       </main>
       <Footer />

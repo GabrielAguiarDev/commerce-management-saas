@@ -138,7 +138,7 @@ export function CaixaView() {
               <div style={css("padding:14px 16px;border-bottom:1px solid var(--border)")}>
                 <div style={css(`font:700 14.5px ${SANS}`)}>Entradas do turno</div>
                 <div style={css(`margin-top:3px;font:400 12px/1.4 ${SANS};color:var(--muted)`)}>
-                  As vendas em dinheiro entram na gaveta automaticamente. pix e cartão são conferidos
+                  As vendas em dinheiro entram na gaveta automaticamente. Pix e cartão são conferidos
                   no extrato.
                 </div>
               </div>
@@ -194,7 +194,7 @@ export function CaixaView() {
               <div style={css("padding:14px 16px;border-bottom:1px solid var(--border)")}>
                 <div style={css(`font:700 14.5px ${SANS}`)}>Movimentações da gaveta</div>
                 <div style={css(`margin-top:3px;font:400 12px/1.4 ${SANS};color:var(--muted)`)}>
-                  Retiradas e entradas de dinheiro que não são sale.
+                  Retiradas e entradas de dinheiro que não são venda.
                 </div>
               </div>
 

@@ -4,7 +4,6 @@ import { usePortal } from "@/components/PortalProvider";
 import { Button, css, MONO, NUM, PANEL, SANS, PANEL_TITLE, SCREEN_TITLE } from "@aguiar/ui";
 import { MetricCard, type MetricCardProps } from "@/components/dashboard/MetricCard";
 import { SuggestedModuleCard } from "@/components/dashboard/SuggestedModuleCard";
-import { MODULES } from "@/lib/dados/perfis";
 import { PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { brl, shortBrl, longDate, weekday, dateLabel, greeting, totalV } from "@/lib/formato";
 import { layoutDaGrade } from "@/lib/grid";
@@ -293,21 +292,6 @@ export function DashboardView() {
               ))}
             </div>
           </div>
-
-          <div
-            style={css(
-              "padding:16px;border:1px dashed var(--border2);border-radius:14px;background:var(--surface2)",
-            )}
-          >
-            <div style={css(`font:600 12.5px/1.3 ${SANS};color:var(--text2)`)}>
-              Este customer has {Object.keys(MODULES).filter((m) => has(m as ModuleKey)).length} módulos
-              active
-            </div>
-            <p style={css(`margin:6px 0 0;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
-              O dashboard e o menu montam-se sozinhos: quem não tem Estoque ou Caixa não vê esses cards
-              nem esses items. Troque o perfil demo acima para comparar.
-            </p>
-          </div>
         </div>
       </div>
 
@@ -340,7 +324,7 @@ export function DashboardView() {
               `padding:30px 18px;border:1px dashed var(--border2);border-radius:12px;background:var(--surface2);text-align:center;font:500 13px/1.5 ${SANS};color:var(--muted)`,
             )}
           >
-            Nenhuma sale registrada hoje ainda.
+            Nenhuma venda registrada hoje ainda.
           </div>
         ) : (
           <div

@@ -302,7 +302,13 @@ export function moreItems(caps: Capabilities, unreadTickets = 0): MoreItem[] {
  * antes de montar.
  */
 export function isRouteAllowed(route: string, caps: Capabilities): boolean {
+  if (route === ROUTES.sell || route === ROUTES.sales || route.startsWith(`${ROUTES.sales}/`)) {
+    return caps.hasSales;
+  }
+
   switch (route) {
+    case ROUTES.products:
+      return caps.hasProducts;
     case ROUTES.cash:
       return caps.hasCash;
     case ROUTES.stock:
