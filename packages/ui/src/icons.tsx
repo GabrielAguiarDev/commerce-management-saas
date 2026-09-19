@@ -42,3 +42,32 @@ export function CloseIcon({ size = 15 }: IconProps) {
     </svg>
   );
 }
+
+export function EyeIcon({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M1.8 9S4.4 3.9 9 3.9 16.2 9 16.2 9 13.6 14.1 9 14.1 1.8 9 1.8 9Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <circle cx="9" cy="9" r="2.3" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+export function EyeOffIcon({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M7.2 4.1A7 7 0 0 1 9 3.9c4.6 0 7.2 5.1 7.2 5.1a12.4 12.4 0 0 1-1.9 2.6M11.3 11.2a3.2 3.2 0 0 1-4.5-4.5M4.7 5.3C2.8 6.6 1.8 9 1.8 9s2.6 5.1 7.2 5.1a6.8 6.8 0 0 0 3.7-1.1"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="m2.5 2.5 13 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}

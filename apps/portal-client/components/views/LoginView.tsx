@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, css, SANS } from "@aguiar/ui";
+import { Button, css, PasswordField, SANS } from "@aguiar/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,7 +11,8 @@ import { createClient } from "@/lib/supabase/client";
 /**
  * O motivo pelo qual a pessoa foi devolvida para cá.
  *
- * Os dois primeiros são do middleware. `link_invalido` vem de outro lugar — da
+ * Os três primeiros são do middleware (e da checagem de `signIn`, que usa as
+ * mesmas regras). `link_invalido` vem de outro lugar — da
  * rota que abre o link do e-mail de senha (`app/auth/confirmar/route.ts`) —,
  * mas chega no mesmo `?erro=` e é lido do mesmo jeito.
  */
@@ -20,6 +21,8 @@ const REASONS: Record<string, string> = {
     "Esta conta é de administrador da plataforma. Use o painel admin, não o portal do cliente.",
   "sem-negocio":
     "Esta conta ainda não está ligada a um negócio. Fale com o suporte para liberar o seu acesso.",
+  "acesso-suspenso":
+    "O acesso desta conta está suspenso. Fale com o responsável pelo seu negócio.",
   link_invalido:
     "Este link de redefinição não vale mais: ele expira depois de um tempo e só pode ser usado uma vez.",
 };
@@ -71,8 +74,8 @@ export function LoginView() {
    * Entra com e-mail e senha.
    *
    * Roda no NAVEGADOR e usa o cliente público — é o suficiente: o Supabase
-   * valida a credencial e devolve a sessão num cookie. Quem decide se esta
-   * conta pode usar o portal é o middleware, no próximo carregamento.
+   * valida a credencial e devolve a sessão num cookie. Quem decide de fato se
+   * esta conta pode usar o portal é o middleware, no próximo carregamento.
    */
   const signIn = async () => {
     const e = email.trim();
@@ -85,15 +88,43 @@ export function LoginView() {
     setErro(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: e,
       password: password,
     });
 
-    if (error) {
+    if (error || !data.user) {
       // Não distinguimos "e-mail não existe" de "senha errada": isso contaria a
       // quem tenta adivinhar quais e-mails têm conta.
       setErro("E-mail ou senha inválidos.");
+      setCarregando(false);
+      return;
+    }
+
+    // As mesmas regras do middleware, checadas aqui para responder na hora.
+    // Deixar só com ele travava o botão: o middleware devolve para o mesmo
+    // `/login?erro=…`, a tela não remonta, e na segunda tentativa com a mesma
+    // conta a query string nem muda — nada avisava que a espera acabou. O
+    // middleware continua sendo a barreira de verdade; esta é a explicação.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tenant_id, is_platform_admin, status")
+      .eq("id", data.user.id)
+      .single();
+
+    const refusal = profile?.is_platform_admin
+      ? "e-admin"
+      : !profile?.tenant_id
+        ? "sem-negocio"
+        : profile.status !== "active"
+          ? "acesso-suspenso"
+          : null;
+
+    if (refusal) {
+      // Sem o `signOut` a sessão recusada ficaria no cookie, e o middleware
+      // recusaria de novo a cada carregamento.
+      await supabase.auth.signOut();
+      setErro(REASONS[refusal]);
       setCarregando(false);
       return;
     }
@@ -147,15 +178,15 @@ export function LoginView() {
           <label style={css(LABEL)} htmlFor="senha">
             Senha
           </label>
-          <input
+          <PasswordField
             id="senha"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(ev) => setSenha(ev.target.value)}
             placeholder="••••••••"
-            className="field"
             style={css(FIELD)}
+            showLabel="Mostrar senha"
+            hideLabel="Ocultar senha"
           />
         </div>
 

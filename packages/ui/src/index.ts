@@ -17,7 +17,14 @@
 
 export { BRAND, type BrandColor } from "./brand";
 export { css, font, MONO, SANS } from "./css";
-export { ChevronDownIcon, CloseIcon, SearchIcon, type IconProps } from "./icons";
+export {
+  ChevronDownIcon,
+  CloseIcon,
+  EyeIcon,
+  EyeOffIcon,
+  SearchIcon,
+  type IconProps,
+} from "./icons";
 
 export {
   badge,
@@ -63,6 +70,7 @@ export {
   Labeled,
   LabeledField,
   MoneyField,
+  PasswordField,
   SearchField,
   Select,
   SimpleSelect,
