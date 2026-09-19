@@ -154,7 +154,7 @@ export function DashboardPreview() {
                 A marca é transparente, então aqui ela pousa no petrol da barra
                 — que é exatamente como o console a mostra na coluna dele. */}
             <div style={css("display:flex;align-items:center;gap:9px;padding:0 6px 14px")}>
-              <Logo size={28} />
+              <Logo size={18} />
               <span
                 style={css(
                   `font-family:${DISPLAY};font-weight:700;font-size:14px;` +

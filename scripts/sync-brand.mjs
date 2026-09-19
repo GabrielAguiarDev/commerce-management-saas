@@ -221,12 +221,12 @@ const ART = [
 /** Os binários. Ninguém os lê aqui; só se lembra de quem trocou a marca. */
 const BY_HAND = [
   "apps/portal-client/public/icons/icon-192.png (e -512, e as duas maskable)",
-  "apps/portal-admin/public/images/icon.png (e icon-bg.png; idem no portal-client)",
-  "apps/landing-page/public/images/logo.png (e app/icon.png, app/favicon.ico)",
+  "apps/portal-*/public/images/logo-ao.png (e icon-bg.png)",
+  "apps/landing-page/public/images/logo-ao.png (e app/icon.png, app/favicon.ico)",
   "apps/*/app/favicon.ico, apps/portal-admin/app/apple-icon.png",
   "apps/mobile/assets/icon.png (e splash-icon.png, adaptive-icon.png)",
   "apps/*/public/logo-email.png",
-  "apps/portal-*/public/images/banner-login.png (a ilustração, não só a marca)",
+  "apps/portal-*/public/images/banner-login-ao.png (a ilustração, não só a marca)",
 ];
 
 for (const { file, expects } of ART) {

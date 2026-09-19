@@ -16,7 +16,7 @@ export function Footer() {
             "display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between",
         )}
       >
-        <Wordmark brand={COPY.brand} size={26} fontSize={16} color="#fff" />
+        <Wordmark brand={COPY.brand} size={19} fontSize={16} color="#fff" />
 
         <nav style={css("display:flex;flex-wrap:wrap;gap:22px;font-size:14.5px")}>
           {/* `next/link` nos três: são páginas do próprio site, e o Link as

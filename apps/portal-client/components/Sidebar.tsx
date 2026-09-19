@@ -16,6 +16,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { usePortal } from "@/components/PortalProvider";
 import { Button, css, MONO, SANS } from "@aguiar/ui";
+import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
 import { GROUPS, MODULES } from "@/lib/dados/perfis";
 import { ModuleIcon } from "@/lib/icons";
@@ -67,11 +68,52 @@ export function Sidebar() {
           "transition:width .18s ease,transform .22s ease",
       )}
     >
+      {/*
+        A marca do produto. Fica na altura da `Topbar` (64px) para que as duas
+        bordas de baixo formem uma linha só, como no console.
+
+        Recolhida, a barra tem 68px: não cabem a marca e o botão lado a lado, e
+        o botão é o que não pode sumir — é a única volta. A marca sai; o nome do
+        produto continua na aba e no ícone instalado.
+      */}
+      <div
+        style={css(
+          "flex:none;display:flex;align-items:center;gap:10px;height:64px;" +
+            (collapsed ? "justify-content:center;padding:0 12px;" : "padding:0 12px 0 16px;") +
+            "border-bottom:1px solid var(--border)",
+        )}
+      >
+        {showLabels && (
+          <div style={css("min-width:0;flex:1;display:flex;align-items:center;gap:10px")}>
+            <Logo size={22} priority />
+            <span
+              style={css(
+                `font:600 15.5px/1 ${SANS};letter-spacing:-.015em;color:var(--text);white-space:nowrap`,
+              )}
+            >
+              Aguiar <span style={css("color:var(--accent)")}>One</span>
+            </span>
+          </div>
+        )}
+        <Button
+          onClick={() => (isMobile ? a.set({ navOpen: false }) : a.set({ collapsed: !s.collapsed }))}
+          title={isMobile ? "Fechar menu" : collapsed ? "Expandir menu" : "Recolher menu"}
+          className="hv-borda-tx"
+          style={css(
+            "flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--border);" +
+              `background:var(--surface2);color:var(--muted);display:flex;align-items:center;justify-content:center;font:600 13px ${MONO}`,
+          )}
+        >
+          {isMobile ? "×" : collapsed ? "»" : "«"}
+        </Button>
+      </div>
+
       {/* Identidade do negócio */}
       <div
         style={css(
-          "flex:none;display:flex;align-items:center;gap:10px;padding:14px 12px;" +
-            "border-bottom:1px solid var(--border);min-height:64px",
+          "flex:none;display:flex;align-items:center;gap:10px;padding:12px;" +
+            (collapsed ? "justify-content:center;" : "") +
+            "border-bottom:1px solid var(--border)",
         )}
       >
         <div
@@ -100,17 +142,6 @@ export function Sidebar() {
             </div>
           </div>
         )}
-        <Button
-          onClick={() => (isMobile ? a.set({ navOpen: false }) : a.set({ collapsed: !s.collapsed }))}
-          title={isMobile ? "Fechar menu" : collapsed ? "Expandir menu" : "Recolher menu"}
-          className="hv-borda-tx"
-          style={css(
-            "flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--border);" +
-              `background:var(--surface2);color:var(--muted);display:flex;align-items:center;justify-content:center;font:600 13px ${MONO}`,
-          )}
-        >
-          {isMobile ? "×" : collapsed ? "»" : "«"}
-        </Button>
       </div>
 
       {/* Módulos */}

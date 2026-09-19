@@ -175,7 +175,7 @@ export function AuthShell({
           )}
         >
           <Image
-            src="/images/banner-login.png"
+            src="/images/banner-login-ao.png"
             alt=""
             fill
             priority
@@ -225,7 +225,7 @@ export function AuthShell({
               fundo daqui. */}
           {isMobile && (
             <div style={css("display:flex;align-items:center;justify-content:center;gap:12px")}>
-              <Logo size={42} priority />
+              <Logo size={30} priority />
               <div style={css("display:flex;flex-direction:column;gap:2px")}>
                 <Wordmark size={20} on="surface" />
                 <span

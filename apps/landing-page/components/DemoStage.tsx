@@ -127,7 +127,7 @@ export function DemoStage() {
           <div className="lp-panel-body">
             <div className="lp-panel-rail lp-demo-rail">
               <div className="lp-demo-brand">
-                <Logo size={26} />
+                <Logo size={16} />
                 <span>{COPY.brand}</span>
               </div>
               {COPY.modules.items.map((item, i) => (

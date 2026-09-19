@@ -151,7 +151,7 @@ export function LoginView() {
           )}
         >
           <Image
-            src="/images/banner-login.png"
+            src="/images/banner-login-ao.png"
             alt=""
             fill
             priority
@@ -205,7 +205,7 @@ export function LoginView() {
               recebe cor nem fundo daqui. */}
           {isMobile && (
             <div style={css("align-self:center")}>
-              <Logo size={52} priority />
+              <Logo size={34} priority />
             </div>
           )}
 
