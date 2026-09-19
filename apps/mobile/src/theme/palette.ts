@@ -42,8 +42,9 @@ const alpha = (hex: string, a: number) => {
  * Nomeados, esses papéis se leem no lugar onde são usados.
  *
  * O VALOR não é decidido aqui: vem de `@aguiar/brand`, e é o mesmo que
- * `--brand` / `--brand-ink` levam para os portais e para o site, e que
- * `pnpm brand:sync` escreve no `app.json` do splash e do ícone adaptativo.
+ * `--brand` / `--brand-ink` levam para os portais e para o site. O `app.json`
+ * não usa nenhuma das duas como fundo: o splash e o ícone adaptativo são a
+ * marca sobre BRANCO, como o ícone do app.
  */
 const BRAND_PRIMARY = BRAND.primary;
 const BRAND_SECONDARY = BRAND.ink;

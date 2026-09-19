@@ -68,3 +68,11 @@ export const TAMANHO_BOTAO_VENDER = 48;
  * e os rótulos passariam por baixo do círculo.
  */
 export const VAO_BOTAO_VENDER = TAMANHO_BOTAO_VENDER + 32;
+
+/**
+ * A opacidade de um item da barra que o usuário não pode abrir (plano ou papel
+ * sem o módulo). Baixa o bastante para se ler como "indisponível" ao lado do
+ * cinza dos itens normais — que já é o `textMuted`: a 0,8 ficaria igual a ele,
+ * e a 0,4 ainda passava por item comum de relance.
+ */
+export const OPACIDADE_ITEM_BLOQUEADO = 0.3;

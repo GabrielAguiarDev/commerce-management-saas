@@ -359,6 +359,41 @@ export const en = {
     } as Record<string, string>,
   },
 
+  /** The plan card at the top of "More". */
+  planCard: {
+    title: 'Your plan',
+    included: 'Included in your plan',
+    modules: {
+      sales: 'Sales',
+      products: 'Products',
+      cash: 'Cash register',
+      stock: 'Stock',
+      costs: 'Costs',
+      reports: 'Reports',
+    },
+    upgradeHint: 'Want more modules? Ask for an upgrade and we will get back to you.',
+    upgradeButton: 'Request an upgrade',
+  },
+
+  /** The Support screen: the ticket list, or what support is when there is none. */
+  supportScreen: {
+    openTicket: 'Open a ticket',
+    empty: {
+      title: 'No tickets yet',
+      text: 'A question, a problem or a request? Talk to us.',
+    },
+    steps: {
+      open: 'You open',
+      reply: 'We reply',
+      solved: 'Solved',
+    },
+    stats: {
+      in_progress: 'In progress',
+      answered: 'Answered',
+      resolved: 'Resolved',
+    },
+  },
+
   home: {
     counters: {
       sales: (count: number) => `${count} ${count === 1 ? 'sale' : 'sales'}`,

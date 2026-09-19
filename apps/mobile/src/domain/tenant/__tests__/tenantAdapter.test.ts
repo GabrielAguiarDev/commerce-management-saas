@@ -110,7 +110,7 @@ describe('derivarCapacidades', () => {
     expect(caps.hasSupport).toBe(true);
   });
 
-  it('plano vazio não liga nada', () => {
+  it('plano vazio não liga nada — só o Suporte, que vale sempre', () => {
     expect(deriveCapabilities([])).toEqual({
       hasAppAccess: false,
       hasSales: false,
@@ -119,7 +119,7 @@ describe('derivarCapacidades', () => {
       hasStock: false,
       hasCosts: false,
       hasReports: false,
-      hasSupport: false,
+      hasSupport: true,
     });
   });
 });

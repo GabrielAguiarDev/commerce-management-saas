@@ -1,9 +1,20 @@
 import { router } from 'expo-router';
 
-import { Box, Card, Divider, Icon, Pill, Screen, Skeleton, Text, Touchable } from '@components';
+import {
+  Box,
+  Card,
+  Divider,
+  Icon,
+  OPACIDADE_ITEM_BLOQUEADO,
+  Pill,
+  Screen,
+  Skeleton,
+  Text,
+  Touchable,
+} from '@components';
 import { lowStockProducts, useCatalog } from '@domain/catalog';
 import { useOpenShift } from '@domain/cash';
-import { ROUTES, saleDetailRoute } from '@domain/navigation/routes';
+import { ROUTES, isRouteAllowed, saleDetailRoute } from '@domain/navigation/routes';
 import { useDailySummary, usePendingSalesCount, useRecentSales } from '@domain/sales';
 import { useCapabilities, useCurrentTenant } from '@domain/tenant';
 import { goTo } from '@hooks/navigation';
@@ -35,6 +46,10 @@ export default function HomeScreen() {
   const { data: shift } = useOpenShift();
   const { data: products = [] } = useCatalog();
   const pendingCount = usePendingSalesCount();
+  // Histórico e detalhe de venda são a mesma permissão. Sem ela, as portas
+  // deles ficam apagadas e sem toque, como os itens da tab bar — em vez de
+  // levar ao guardião, que devolveria a pessoa para cá com a tela piscando.
+  const canOpenSales = isRouteAllowed(ROUTES.sales, capabilities);
 
   const t = useTranslation();
 
@@ -270,6 +285,7 @@ export default function HomeScreen() {
             <Touchable
               accessibilityLabel={`${sale.time}, ${sale.itemsSummary}, ${formatBRL(sale.totalCents)}`}
               onPress={() => router.push(saleDetailRoute(sale.id) as never)}
+              disabled={!canOpenSales}
               flexDirection="row"
               alignItems="center"
               gap="s12"
@@ -313,16 +329,25 @@ export default function HomeScreen() {
         <Touchable
           accessibilityLabel={t.home.seeAllSales}
           onPress={() => router.push(ROUTES.sales as never)}
+          disabled={!canOpenSales}
+          pointerEvents={canOpenSales ? 'auto' : 'none'}
           flexDirection="row"
           alignItems="center"
           justifyContent="center"
           gap="s6"
           paddingVertical="s14"
         >
-          <Text variant="sectionLabel" color="primaryText">
-            {t.home.seeAllSales}
-          </Text>
-          <Icon name="chevronRight" size={16} color="primary" />
+          <Box
+            flexDirection="row"
+            alignItems="center"
+            gap="s6"
+            opacity={canOpenSales ? 1 : OPACIDADE_ITEM_BLOQUEADO}
+          >
+            <Text variant="sectionLabel" color="primaryText">
+              {t.home.seeAllSales}
+            </Text>
+            <Icon name="chevronRight" size={16} color="primary" />
+          </Box>
         </Touchable>
       </Card>
     </Screen>

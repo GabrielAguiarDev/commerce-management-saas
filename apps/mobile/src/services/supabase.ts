@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 
 import { env } from '@config';
+import { retryOnLostConnection } from '@utils/retryOnLostConnection';
 
 import { LargeSecureStore } from './secureSessionStorage';
 
@@ -48,6 +49,18 @@ export const supabase = createClient(env.supabaseUrl, env.supabaseAnonKey, {
     // existe. Se um dia entrar login por link mágico, a captura será via
     // `expo-linking` + `setSession`, não por aqui.
     detectSessionInUrl: false,
+  },
+
+  global: {
+    // Uma segunda tentativa quando a conexão reaproveitada já estava morta —
+    // ver `retryOnLostConnection`. Repete leitura sempre, e escrita só no
+    // Auth (`/auth/v1/`): pedir código, conferir código, trocar senha e
+    // renovar token não duplicam nada se o primeiro pedido tiver chegado. Um
+    // POST de venda ou de custo, sim, e esses ficam de fora.
+    fetch: retryOnLostConnection(
+      (...args) => fetch(...args),
+      (url, method) => method === 'GET' || method === 'HEAD' || url.includes('/auth/v1/'),
+    ),
   },
 });
 

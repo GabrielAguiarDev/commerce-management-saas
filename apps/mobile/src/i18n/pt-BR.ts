@@ -341,6 +341,39 @@ export const ptBR: Messages = {
     } as Record<string, string>,
   },
 
+  planCard: {
+    title: 'Seu plano',
+    included: 'Incluído no seu plano',
+    modules: {
+      sales: 'Vendas',
+      products: 'Produtos',
+      cash: 'Caixa',
+      stock: 'Estoque',
+      costs: 'Custos',
+      reports: 'Relatórios',
+    },
+    upgradeHint: 'Quer mais módulos? Peça um upgrade que a gente retorna.',
+    upgradeButton: 'Solicitar upgrade',
+  },
+
+  supportScreen: {
+    openTicket: 'Abrir chamado',
+    empty: {
+      title: 'Nenhum chamado ainda',
+      text: 'Dúvida, problema ou pedido? Fale com a gente.',
+    },
+    steps: {
+      open: 'Você abre',
+      reply: 'A gente responde',
+      solved: 'Resolvido',
+    },
+    stats: {
+      in_progress: 'Em andamento',
+      answered: 'Respondidos',
+      resolved: 'Resolvidos',
+    },
+  },
+
   home: {
     counters: {
       sales: (count: number) => `${count} ${count === 1 ? 'venda' : 'vendas'}`,

@@ -885,6 +885,27 @@ cd apps/mobile/ios && pod update --no-repo-update
 regenerá-las é seguro. Se `pod update` não bastar, o próximo passo é
 `npx expo prebuild --clean -p ios`.
 
+**27. Trocar a splash e o simulador continuar mostrando a antiga — e depois a
+nova.** Aconteceu na troca do "A" pelo "AO": o app instalado já tinha só os
+assets novos, e mesmo assim o primeiro quadro era a splash velha. Quem desenha
+esse quadro não é o app, é o SplashBoard do iOS, que guarda uma CAPTURA da
+launch screen (`Library/SplashBoard/Snapshots` no container de dados). Apagar
+o app, rodar pelo Xcode ou pelo `pnpm ios` não bastou: o sistema regravou a
+captura antiga na reinstalação. A splash "nova" que vinha em seguida era a
+view do `expo-splash-screen`, já montada com os assets certos.
+
+O que resolve é reiniciar o simulador com o app desinstalado:
+
+```bash
+xcrun simctl uninstall booted br.com.aguiarone.app
+xcrun simctl shutdown booted && xcrun simctl boot <UDID>
+pnpm ios
+```
+
+Antes, confirme que o problema é mesmo cache: a splash sai do `app.json`
+(`expo-splash-screen`) só depois de `npx expo prebuild`, e o que foi compilado
+se confere com `xcrun assetutil --info <App>.app/Assets.car`.
+
 ---
 
 ## 9. Mapa de progresso
@@ -1023,6 +1044,49 @@ versão velha demais.
 8. **Validação com `zod` dentro dos adapters**, quando o backend real entrar:
    um campo que sumiu no servidor vira erro nomeado na fronteira, e não
    `undefined` explodindo três telas adiante.
+
+### 10.3 A decidir: layout por quantidade de módulos (anotado em 19/09/2026)
+
+**O problema.** O app tem UM layout, desenhado para o plano completo, e quem
+tem poucos módulos recebe esse mesmo layout com partes apagadas. O caso que
+levantou isto é um funcionário cujo papel não inclui Vendas nem Produtos:
+
+- a **Início** é inteira um painel de vendas — faturamento do dia, "Sobrou
+  hoje" (que é o LUCRO), mais vendido, últimas vendas — e ele vê esses
+  números, mas não consegue abrir nada deles;
+- a **tab bar** mostra Produtos, Vender e Custos apagados (0,3, sem toque).
+  Sobram Início e Mais tocáveis, numa barra de cinco lugares;
+- o **"Mais"** mostra o plano do negócio inteiro no card de cima e só a parte
+  dele na grade.
+
+Funciona e não quebra nada, mas não é o ideal: o app parece um app completo
+com defeito, e não um app feito para o que a pessoa faz.
+
+**O que existe hoje, para não refazer:**
+
+- `deriveCapabilities` (plano ∩ papel) é a fonte única do que abre — e
+  `isRouteAllowed` sai dela. Qualquer layout novo deve partir daí.
+- `tabBarItems` devolve SEMPRE quatro itens, com `enabled`. Um teste garante
+  que `enabled` e o guardião nunca discordam.
+- Suporte abre sempre, em qualquer plano e papel.
+
+**Perguntas para decidir antes de desenhar:**
+
+1. A **Início** deve se montar por módulo? Um bloco por capacidade (vendas,
+   caixa, estoque, custos), e o que não abre simplesmente não aparece —
+   inclusive o lucro, para quem não tem Vendas.
+2. A **tab bar** deve encolher com poucos módulos (três itens em vez de cinco)
+   ou manter a posição fixa de cada item? Encolher some com os apagados, mas
+   muda a posição dos itens entre contas diferentes do mesmo negócio.
+3. Com **um único módulo** (só Custos, por exemplo), vale ter tab bar? Ou a
+   tela do módulo vira a Início?
+4. O botão **Vender** no centro faz sentido para quem não vende?
+
+**Ligado a isto, e ainda aberto:** na conta de teste que mostrou o problema, os
+dados do negócio NÃO carregavam (subtítulo da Início "— · sábado"). Com eles
+vazios, `deriveCapabilities([])` apaga tudo — então parte do que parecia "papel
+sem módulos" pode ser esta falha. `getTenant` loga o motivo em desenvolvimento;
+confirmar antes de desenhar em cima do caso.
 
 ---
 

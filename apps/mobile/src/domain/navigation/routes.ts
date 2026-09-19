@@ -208,16 +208,37 @@ export function resolveAppGate(state: AppGateState): AppGate {
  */
 export function tabBarShortcut(caps: Capabilities): TabBarItem {
   return caps.hasCash
-    ? { key: 'cash', label: 'Caixa', route: ROUTES.cash, icon: 'cash' }
-    : { key: 'costs', label: 'Custos', route: ROUTES.costs, icon: 'costs' };
+    ? { key: 'cash', label: 'Caixa', route: ROUTES.cash, icon: 'cash', enabled: true }
+    : {
+        key: 'costs',
+        label: 'Custos',
+        route: ROUTES.costs,
+        icon: 'costs',
+        enabled: isRouteAllowed(ROUTES.costs, caps),
+      };
 }
 
+/**
+ * Os quatro itens da barra — SEMPRE quatro, com ou sem acesso.
+ *
+ * `enabled` sai da MESMA regra do guardião (`isRouteAllowed`). Antes a barra
+ * não perguntava nada: um funcionário cujo papel não inclui Produtos via o item
+ * normal, tocava, e o guardião de `(app)/_layout.tsx` o mandava de volta para
+ * Início — a tela piscava e a navegação não acontecia. Agora o item já nasce
+ * apagado e sem toque, e o guardião fica só para o deep link.
+ */
 export function tabBarItems(caps: Capabilities): TabBarItem[] {
   return [
-    { key: 'home', label: 'Início', route: ROUTES.home, icon: 'home' },
-    { key: 'products', label: 'Produtos', route: ROUTES.products, icon: 'products' },
+    { key: 'home', label: 'Início', route: ROUTES.home, icon: 'home', enabled: true },
+    {
+      key: 'products',
+      label: 'Produtos',
+      route: ROUTES.products,
+      icon: 'products',
+      enabled: isRouteAllowed(ROUTES.products, caps),
+    },
     tabBarShortcut(caps),
-    { key: 'more', label: 'Mais', route: ROUTES.more, icon: 'more' },
+    { key: 'more', label: 'Mais', route: ROUTES.more, icon: 'more', enabled: true },
   ];
 }
 
@@ -317,9 +338,10 @@ export function isRouteAllowed(route: string, caps: Capabilities): boolean {
       return caps.hasCosts;
     case ROUTES.reports:
       return caps.hasReports;
-    case ROUTES.support:
-      return caps.hasSupport;
+    // Suporte abre em QUALQUER plano e para qualquer papel: é por ele que se
+    // pede ajuda e mudança de plano. Trancá-lo trancaria a saída por dentro.
     default:
       return true;
   }
 }
+

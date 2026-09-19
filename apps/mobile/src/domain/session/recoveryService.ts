@@ -46,11 +46,7 @@ export async function pedirCodigo(email: string): Promise<string> {
   const limpo = email.trim().toLowerCase();
   emailEmAndamento = limpo;
 
-  try {
-    await api.sendRecoveryCode(limpo);
-  } catch {
-    // Silêncio proposital — ver o cabeçalho.
-  }
+  await enviarCodigo(limpo);
 
   return mascararEmail(limpo);
 }
@@ -58,10 +54,25 @@ export async function pedirCodigo(email: string): Promise<string> {
 /** Reenviar é pedir de novo para o mesmo endereço, sem passar pela tela 1. */
 export async function reenviarCodigo(): Promise<void> {
   if (!emailEmAndamento) throw new RecoveryError('expired_flow');
+  await enviarCodigo(emailEmAndamento);
+}
+
+/**
+ * Pede o e-mail ao Supabase.
+ *
+ * A conexão que cai por ter ficado ociosa já é repetida no cliente (ver
+ * `retryOnLostConnection` em `@services/supabase`); o que chega aqui é falha
+ * que se repetiria igual.
+ */
+async function enviarCodigo(email: string): Promise<void> {
   try {
-    await api.sendRecoveryCode(emailEmAndamento);
-  } catch {
-    // Idem.
+    await api.sendRecoveryCode(email);
+  } catch (e) {
+    // Silêncio proposital NA TELA — ver `pedirCodigo`. Só em desenvolvimento o
+    // motivo vai para o log: sem ele, um e-mail que não chega (limite de envio
+    // do Supabase, SMTP recusando o destinatário, rede) é indistinguível de um
+    // que chegou e ninguém viu.
+    if (__DEV__) console.warn('sendRecoveryCode', mensagem(e));
   }
 }
 
@@ -81,6 +92,9 @@ export async function conferirCodigo(code: string): Promise<void> {
   try {
     await api.verifyRecoveryCode(emailEmAndamento, code);
   } catch (e) {
+    // A tela junta tudo em "não confere ou já venceu"; o log de
+    // desenvolvimento guarda o que o Supabase disse de fato.
+    if (__DEV__) console.warn('verifyRecoveryCode', mensagem(e));
     throw new RecoveryError(offline(e) ? 'network' : 'invalid_code');
   }
 }

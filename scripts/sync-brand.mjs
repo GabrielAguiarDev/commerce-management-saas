@@ -6,17 +6,12 @@
  *     pnpm brand:check         só confere; não escreve nada (sai 1 se divergir)
  *
  * ┌─ POR QUE ESTE SCRIPT EXISTE ────────────────────────────────────────────┐
- * │ `packages/brand/src/index.ts` é a fonte da verdade da identidade. Três  │
+ * │ `packages/brand/src/index.ts` é a fonte da verdade da identidade. Dois  │
  * │ tipos de consumidor não conseguem lê-la:                                │
  * │                                                                          │
  * │  1. CSS. Um `globals.css` não importa TS. → geramos `brand.css`, que os │
  * │     dois portais e o site importam e do qual derivam seus tokens.       │
- * │  2. O `app.json` do Expo. É JSON estático, lido pelo EAS sem avaliar    │
- * │     JavaScript — por isso ele CONTINUA JSON, e é remendado aqui, em vez │
- * │     de virar um `app.config.ts` que importaria a marca. Um `.ts` de     │
- * │     config não consegue `require` de um pacote publicado como TS puro:  │
- * │     o Node cairia no arquivo `.ts` do pacote em tempo de execução.      │
- * │  3. Os ARQUIVOS DE ARTE — os SVGs de ícone, o `offline.html`, os PNGs.  │
+ * │  2. Os ARQUIVOS DE ARTE — os SVGs de ícone, o `offline.html`, os PNGs.  │
  * │     Esses ninguém gera: a cor está dentro do desenho, e qual traço é a  │
  * │     marca e qual é o fundo não se descobre por regex. Aqui eles são     │
  * │     CONFERIDOS — cada um declara quais valores da marca tem que conter, │
@@ -131,58 +126,7 @@ ${CSS_VARS.map(([name, value]) =>
 emit("packages/ui/src/brand.css", brandCss);
 
 /* ---------------------------------------------------------------------------
-   2. `apps/mobile/app.json` — o petrol do splash.
-
-   Dois campos, no mesmo arquivo, que precisam ser o mesmo valor: o fundo do
-   splash e o fundo do splash no modo escuro. Eram literais escritos à mão;
-   agora saem daqui.
-
-   O fundo do ícone adaptativo do Android NÃO entra: desde o "AO" o ícone do
-   app é a marca sobre BRANCO (`docs/design/logo-aguiar-one/AppIcons`), e o
-   branco é do desenho, não da paleta.
-
-   O JSON é reescrito campo a campo, e não regerado: `app.json` tem muita coisa
-   que não é cor, e um arquivo de configuração do Expo não é lugar de conteúdo
-   gerado por nós.
---------------------------------------------------------------------------- */
-
-const APP_JSON = path("apps/mobile/app.json");
-const appJsonRaw = readFileSync(APP_JSON, "utf8");
-
-/**
- * Só as ocorrências de `"backgroundColor": "<hex>"` DENTRO da configuração do
- * `expo-splash-screen` — o trecho entre o nome do plugin e o `]` que fecha a
- * tupla dele. O `adaptiveIcon`, que também tem um `backgroundColor`, fica de
- * fora por construção.
- */
-const splashStart = appJsonRaw.indexOf('"expo-splash-screen"');
-const splashEnd = appJsonRaw.indexOf("]", splashStart);
-if (splashStart < 0 || splashEnd < 0) {
-  problems.push(`${show(APP_JSON)} não tem mais o plugin \`expo-splash-screen\``);
-}
-const appJsonNext =
-  splashStart < 0 || splashEnd < 0
-    ? appJsonRaw
-    : appJsonRaw.slice(0, splashStart) +
-      appJsonRaw
-        .slice(splashStart, splashEnd)
-        .replace(
-          /("backgroundColor"\s*:\s*")#[0-9a-fA-F]{3,8}(")/g,
-          `$1${BRAND.ink.toUpperCase()}$2`,
-        ) +
-      appJsonRaw.slice(splashEnd);
-
-if (appJsonNext !== appJsonRaw) {
-  if (CHECK_ONLY) {
-    problems.push(`${show(APP_JSON)} está desatualizado — rode \`pnpm brand:sync\``);
-  } else {
-    writeFileSync(APP_JSON, appJsonNext, "utf8");
-    written.push(show(APP_JSON));
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   3. Os arquivos que ninguém gera — CONFERIDOS, nunca reescritos.
+   2. Os arquivos que ninguém gera — CONFERIDOS, nunca reescritos.
 
    Sobram três tipos de arquivo em que a marca está escrita e de onde não dá
    para tirá-la: os SVGs de ícone (a cor está dentro do desenho), o

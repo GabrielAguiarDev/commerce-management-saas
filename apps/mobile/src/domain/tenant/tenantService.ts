@@ -60,6 +60,10 @@ export async function getTenant(tenantId: string): Promise<Tenant> {
     if (!raw) throw new TenantError('not_found');
     return toTenant(raw);
   } catch (e) {
+    // Quando isto falha o app segue, mas com as capacidades VAZIAS — abas
+    // apagadas, subtítulo "—" na Início. Na tela não há erro; em
+    // desenvolvimento, o motivo vai para o log.
+    if (__DEV__) console.warn('getTenant', e instanceof Error ? e.message : e);
     return normalize(e);
   }
 }

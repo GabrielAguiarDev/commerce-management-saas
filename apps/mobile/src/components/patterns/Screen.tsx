@@ -77,6 +77,16 @@ interface ScreenProps {
   onEndReached?: () => void;
   /** A que distância do fim (px) o aviso dispara. */
   onEndReachedThreshold?: number;
+  /**
+   * A AÇÃO PRINCIPAL presa na base da tela, fora da rolagem — "Abrir chamado"
+   * no Suporte. No fim do conteúdo ela subia para o meio da tela sempre que a
+   * lista fosse curta, e sumia rolagem abaixo quando fosse longa.
+   *
+   * Com rodapé, o espaço reservado no fim da rolagem encolhe: ele existe para
+   * a tab bar ou a barra do carrinho não cobrirem o último item, e aqui quem
+   * fica embaixo é o próprio rodapé, fora da rolagem.
+   */
+  footer?: ReactNode;
 }
 
 /**
@@ -101,6 +111,7 @@ export function Screen({
   padded = false,
   onEndReached,
   onEndReachedThreshold = 320,
+  footer,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
@@ -116,7 +127,11 @@ export function Screen({
   // exatamente onde a tab bar não está, sem nenhuma lista de rotas.
   const canGoBack = showBack ?? router.canGoBack();
 
-  const bottomSpace = onTab ? ESPACO_INFERIOR : ESPACO_INFERIOR_INTERNO + insets.bottom;
+  const bottomSpace = footer
+    ? theme.spacing.s16
+    : onTab
+      ? ESPACO_INFERIOR
+      : ESPACO_INFERIOR_INTERNO + insets.bottom;
 
   return (
     <Box flex={1} backgroundColor="bg" style={{ paddingTop: insets.top }}>
@@ -209,6 +224,16 @@ export function Screen({
           <Box gap="s12">{children}</Box>
         </ScrollView>
       )}
+
+      {footer ? (
+        <Box
+          paddingHorizontal="screen"
+          paddingTop="s12"
+          style={{ paddingBottom: insets.bottom + theme.spacing.s12 }}
+        >
+          {footer}
+        </Box>
+      ) : null}
     </Box>
   );
 }

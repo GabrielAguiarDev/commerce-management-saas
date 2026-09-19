@@ -128,6 +128,37 @@ describe('atalhoDaTabBar', () => {
     expect(tabBarItems(COMPLETO)).toHaveLength(4);
     expect(tabBarItems(ESSENTIAL)).toHaveLength(4);
   });
+
+  it('todos os itens abrem quando o plano e o papel permitem', () => {
+    expect(tabBarItems(COMPLETO).every((i) => i.enabled)).toBe(true);
+  });
+
+  it('apaga o item cujo módulo o papel não permite, sem tirá-lo da barra', () => {
+    const soCustos = deriveCapabilities(
+      ['sales', 'products', 'costs', 'support', 'app'],
+      ['costs'],
+      false,
+    );
+    const semNada = deriveCapabilities(
+      ['sales', 'products', 'costs', 'support', 'app'],
+      [],
+      false,
+    );
+
+    const enabled = (caps: Capabilities) =>
+      Object.fromEntries(tabBarItems(caps).map((i) => [i.key, i.enabled]));
+
+    expect(enabled(soCustos)).toEqual({ home: true, products: false, costs: true, more: true });
+    expect(enabled(semNada)).toEqual({ home: true, products: false, costs: false, more: true });
+  });
+
+  it('o item de cada aba segue a mesma regra do guardião', () => {
+    for (const caps of [COMPLETO, ESSENTIAL, deriveCapabilities([])]) {
+      for (const item of tabBarItems(caps)) {
+        expect(item.enabled).toBe(isRouteAllowed(item.route, caps));
+      }
+    }
+  });
 });
 
 describe('itensDoMais', () => {
@@ -302,4 +333,11 @@ describe('ROUTES x arquivos de rota', () => {
       expect(isTabRoute(route)).toBe(inTabsGroup.has(route));
     },
   );
+});
+
+describe('suporte', () => {
+  it('abre em qualquer plano e para qualquer papel', () => {
+    expect(isRouteAllowed(ROUTES.support, deriveCapabilities([]))).toBe(true);
+    expect(isRouteAllowed(ROUTES.support, deriveCapabilities(['app'], [], false))).toBe(true);
+  });
 });

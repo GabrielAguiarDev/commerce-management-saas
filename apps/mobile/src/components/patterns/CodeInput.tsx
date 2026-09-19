@@ -22,10 +22,10 @@ interface CodeInputProps {
  *
  * É esse desenho que dá de graça as três coisas que um campo por caixa custa
  * caro para ter: o **preenchimento automático do código do iOS**
- * (`textContentType="oneTimeCode"`, que preenche os quatro de uma vez), colar
+ * (`textContentType="oneTimeCode"`, que preenche todos de uma vez), colar
  * um código copiado do e-mail, e apagar sem a dança de foco entre campos — a
  * origem clássica dos bugs dessas telas (apagar no campo vazio não volta um
- * campo, colar quatro dígitos entra um só).
+ * campo, colar o código inteiro entra um dígito só).
  *
  * A caixa ATIVA é a próxima a ser preenchida, e ela acende sozinha a partir do
  * tamanho do valor: sem cursor visível, é o único sinal de onde o próximo
@@ -45,12 +45,20 @@ export function CodeInput({
 
   return (
     <Box>
-      <Box flexDirection="row" gap="s12" justifyContent="center">
+      {/* A fileira ocupa a largura do conteúdo, e a primeira e a última
+          caixa encostam nas mesmas margens do título e do botão: quem absorve
+          a sobra é o vão entre as caixas (`space-between`), não a borda. */}
+      <Box flexDirection="row" gap="s8" justifyContent="space-between">
         {Array.from({ length }, (_, i) => (
           <Box
             key={i}
-            width={58}
-            height={58}
+            // Até 46, e menos se a tela não comportar: `flex` deixa a caixa
+            // encolher numa tela estreita, e `aspectRatio` a mantém quadrada
+            // em qualquer largura. Largura FIXA foi o que fez a fileira vazar
+            // pelas duas bordas quando o código passou a ter seis dígitos.
+            flex={1}
+            maxWidth={46}
+            aspectRatio={1}
             // O mesmo raio dos campos das telas de entrada: as caixas do código
             // são um campo, e um raio maior aqui as faria parecer botões.
             borderRadius="r12"
@@ -63,7 +71,7 @@ export function CodeInput({
             alignItems="center"
             justifyContent="center"
             // As caixas somem do leitor de tela: quem se anuncia é o campo de
-            // verdade, embaixo. Quatro "3, vazio, vazio, vazio" seguidos não
+            // verdade, embaixo. Um "3, vazio, vazio, vazio…" seguido não
             // dizem o que está acontecendo.
             accessibilityElementsHidden
             importantForAccessibility="no-hide-descendants"
@@ -88,7 +96,7 @@ export function CodeInput({
         maxLength={length}
         autoFocus={autoFocus}
         // iOS: oferece o código do e-mail/SMS na barra do teclado e preenche as
-        // quatro caixas de uma vez.
+        // caixas de uma vez.
         textContentType="oneTimeCode"
         autoComplete="one-time-code"
         caretHidden

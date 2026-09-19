@@ -39,6 +39,11 @@ module.exports = {
     {
       displayName: 'logica',
       testEnvironment: 'node',
+      // O global do React Native que diz "build de desenvolvimento". Sem o
+      // preset RN ninguém o define, e um service que loga só em dev quebraria
+      // aqui com ReferenceError. `true` é o valor com que o código é escrito e
+      // depurado.
+      globals: { __DEV__: true },
       transform: {
         '^.+\\.[jt]sx?$': ['babel-jest', { configFile: './babel.config.test.js' }],
       },

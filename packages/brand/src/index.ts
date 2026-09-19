@@ -56,12 +56,13 @@ export const BRAND = {
   primary: "#387a9f",
 
   /**
-   * The near-black petrol the mark sits on in the dark: the PWA tile, the
-   * splash. Hue 207°, the same family as the mark's 201°.
+   * The near-black petrol the mark sits on in the dark. Hue 207°, the same
+   * family as the mark's 201°.
    *
-   * It is also the console's side rail, the mobile splash, the site's footer
-   * and the color the OS paints around an installed portal window. Those four
-   * meet without a seam precisely because they are this one value.
+   * It is the console's side rail, the site's footer and the color the OS
+   * paints around an installed portal window. Those three meet without a seam
+   * precisely because they are this one value. (The mobile splash left it:
+   * like the app icon, it is the mark on white.)
    */
   ink: "#020e18",
 

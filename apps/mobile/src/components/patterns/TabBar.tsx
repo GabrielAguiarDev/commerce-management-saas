@@ -14,6 +14,7 @@ import {
   ALTURA_TAB_BAR,
   BASE_ROTULO_TAB,
   GAP_ITEM_TAB,
+  OPACIDADE_ITEM_BLOQUEADO,
   TAMANHO_ICONE_TAB,
   VAO_BOTAO_VENDER,
 } from './tabBarGeometry';
@@ -78,7 +79,13 @@ export function TabBar() {
             <Touchable
               accessibilityLabel={item.label}
               accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
+              accessibilityState={{ selected: active, disabled: !item.enabled }}
+              // Sem acesso: apagado e sem toque. Antes o toque levava ao
+              // guardião, que devolvia a pessoa para Início — a tela piscava e
+              // nada acontecia. `pointerEvents` além de `disabled` para não
+              // haver nem o feedback de pressionar.
+              disabled={!item.enabled}
+              pointerEvents={item.enabled ? 'auto' : 'none'}
               onPress={() => {
                 if (active) return;
                 // As quatro abas ZERAM a pilha, como o `go()` do protótipo.
@@ -92,8 +99,12 @@ export function TabBar() {
                   área útil. Medido daqui de baixo, e não centralizado por conta
                   própria, porque é esta mesma medida que o "Vender" usa para
                   alinhar o rótulo dele com estes quatro. */}
+              {/* A opacidade mora AQUI, no conteúdo, e não no `Touchable`: o
+                  `style` dele é a função do "pressionado", que reescreve a
+                  opacidade a cada render e engolia a do item bloqueado. */}
               <Box
                 alignItems="center"
+                opacity={item.enabled ? 1 : OPACIDADE_ITEM_BLOQUEADO}
                 style={{ gap: GAP_ITEM_TAB, paddingBottom: BASE_ROTULO_TAB }}
               >
                 <Icon

@@ -4,10 +4,11 @@ import { Box } from '@components/ui/Box';
 import { Icon } from '@components/ui/Icon';
 import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
-import { ROUTES } from '@domain/navigation/routes';
+import { ROUTES, isRouteAllowed } from '@domain/navigation/routes';
+import { useCapabilities } from '@domain/tenant';
 import { goToRoot } from '@hooks/navigation';
 
-import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
+import { BASE_ROTULO_TAB, OPACIDADE_ITEM_BLOQUEADO, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
 
 /**
  * O botão CENTRAL da tab bar — "Vender".
@@ -34,6 +35,11 @@ import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
  */
 export function NewSaleButton() {
   const insets = useSafeAreaInsets();
+  const { capabilities } = useCapabilities();
+
+  // A mesma regra das abas (ver `TabBar`): sem acesso a vendas, o botão fica
+  // no lugar, apagado e sem toque, em vez de levar ao guardião.
+  const enabled = isRouteAllowed(ROUTES.sell, capabilities);
 
   return (
     <Box
@@ -48,29 +54,34 @@ export function NewSaleButton() {
     >
       <Touchable
         accessibilityLabel="Nova venda"
+        accessibilityState={{ disabled: !enabled }}
+        disabled={!enabled}
+        pointerEvents={enabled ? 'auto' : 'none'}
         // EMPILHA, não troca de aba: `goToRoot` limpa a pilha e sobe Vender
         // sobre as abas, em tela cheia. Voltar de lá cai na aba de origem, com
         // a tab bar de volta.
         onPress={() => goToRoot(ROUTES.sell)}
-        alignItems="center"
-        gap="s8"
       >
-        <Box
-          width={TAMANHO_BOTAO_VENDER}
-          height={TAMANHO_BOTAO_VENDER}
-          borderRadius="full"
-          backgroundColor="primary"
-          alignItems="center"
-          justifyContent="center"
-        >
-          {/* 22 acompanha o círculo: o design usa 20 num círculo de 44, e é
-              essa proporção (~0,45) que mantém o ícone respirando dentro dele. */}
-          <Icon name="cart" size={22} color="onPrimary" />
-        </Box>
+        {/* A opacidade no conteúdo, não no `Touchable` — ver o mesmo comentário
+            na `TabBar`. */}
+        <Box alignItems="center" gap="s8" opacity={enabled ? 1 : OPACIDADE_ITEM_BLOQUEADO}>
+          <Box
+            width={TAMANHO_BOTAO_VENDER}
+            height={TAMANHO_BOTAO_VENDER}
+            borderRadius="full"
+            backgroundColor="primary"
+            alignItems="center"
+            justifyContent="center"
+          >
+            {/* 22 acompanha o círculo: o design usa 20 num círculo de 44, e é
+                essa proporção (~0,45) que mantém o ícone respirando dentro dele. */}
+            <Icon name="cart" size={22} color="onPrimary" />
+          </Box>
 
-        <Text variant="tabLabel" color="textMuted">
-          Vender
-        </Text>
+          <Text variant="tabLabel" color="textMuted">
+            Vender
+          </Text>
+        </Box>
       </Touchable>
     </Box>
   );

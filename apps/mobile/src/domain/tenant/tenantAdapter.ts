@@ -104,9 +104,11 @@ export function deriveCapabilities(
     hasStock: tem('stock') && roleAllows('stock'),
     hasCosts: tem('costs') && roleAllows('costs'),
     hasReports: tem('reports') && roleAllows('reports'),
-    // Suporte é a porta para pedir ajuda e mudar o plano; todo usuário que
-    // pode abrir o app precisa alcançá-lo, independentemente do papel.
-    hasSupport: hasAppAccess,
+    // Suporte é a porta para pedir ajuda e mudar o plano: vale em QUALQUER
+    // plano e para qualquer papel. Já dependeu do módulo `app` — e quando os
+    // dados do negócio não carregavam, o Suporte trancava junto com o resto,
+    // justamente a porta de quem precisa de ajuda.
+    hasSupport: true,
   };
 }
 

@@ -47,7 +47,7 @@ export { AuthScreen } from './patterns/AuthScreen';
 export { BarcodeScanner } from './patterns/BarcodeScanner';
 export { ConnectionBanner } from './patterns/ConnectionBanner';
 export { TabBar } from './patterns/TabBar';
-export { ALTURA_TAB_BAR } from './patterns/tabBarGeometry';
+export { ALTURA_TAB_BAR, OPACIDADE_ITEM_BLOQUEADO } from './patterns/tabBarGeometry';
 export { CartBar } from './patterns/CartBar';
 export { NewSaleButton } from './patterns/NewSaleButton';
 export { BottomSheet } from './patterns/BottomSheet';

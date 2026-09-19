@@ -26,4 +26,10 @@ export interface TabBarItem {
   label: string;
   route: string;
   icon: IconName;
+  /**
+   * `false` quando o usuário não pode abrir o destino (plano ou papel). O item
+   * continua na barra — sumir deixaria um buraco no desenho —, mas apagado e
+   * sem toque. Ver `tabBarItems`.
+   */
+  enabled: boolean;
 }
