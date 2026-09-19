@@ -47,7 +47,7 @@ export function EsqueciSenhaView() {
           de spam.
         </AuthNotice>
 
-        <p style={css(`margin:0;text-align:center;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
+        <p style={css(`margin:0;text-align:left;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
           Não chegou?{" "}
           {/* Volta ao formulário no próprio componente: recarregar a rota
               perderia o e-mail que a pessoa acabou de digitar. */}
@@ -63,7 +63,7 @@ export function EsqueciSenhaView() {
           </button>
         </p>
 
-        <p style={css(`margin:0;text-align:center;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
+        <p style={css(`margin:0;text-align:left;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
           <Link href="/login" style={css("color:var(--accent-text);text-decoration:underline")}>
             Voltar para a entrada
           </Link>
@@ -112,7 +112,7 @@ export function EsqueciSenhaView() {
           Enviar link
         </Button>
 
-        <p style={css(`margin:0;text-align:center;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
+        <p style={css(`margin:0;text-align:left;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
           Lembrou a senha?{" "}
           <Link href="/login" style={css("color:var(--accent-text);text-decoration:underline")}>
             Voltar para a entrada

@@ -167,7 +167,7 @@ export function RedefinirSenhaView({ email }: { email: string }) {
 
         <p
           style={css(
-            "margin:0;text-align:center;font-size:12px;line-height:1.5;color:var(--muted)",
+            "margin:0;text-align:left;font-size:12px;line-height:1.5;color:var(--muted)",
           )}
         >
           {L.entrarDeNovo}

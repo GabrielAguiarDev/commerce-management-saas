@@ -177,7 +177,7 @@ export function LoginView() {
         href={ROUTES.esqueciSenha}
         className="hv-acc-hi"
         style={css(
-          "align-self:center;background:none;border:none;color:var(--accent-text);" +
+          "align-self:flex-start;background:none;border:none;color:var(--accent-text);" +
             "font-size:12.5px;cursor:pointer;padding:0;text-decoration:none",
         )}
       >

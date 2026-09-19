@@ -226,7 +226,8 @@ const BY_HAND = [
   "apps/*/app/favicon.ico, apps/portal-admin/app/apple-icon.png",
   "apps/mobile/assets/icon.png (e splash-icon.png, adaptive-icon.png)",
   "apps/*/public/logo-email.png",
-  "apps/portal-*/public/images/banner-login-ao.png (a ilustração, não só a marca)",
+  "apps/portal-admin/public/images/banner-login-ao.png e " +
+    "apps/portal-client/public/images/banner-login-client.png (as ilustrações, não só a marca)",
 ];
 
 for (const { file, expects } of ART) {
