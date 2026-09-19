@@ -184,7 +184,7 @@ export function AuthScreen({
 }
 
 /**
- * A MARCA, empilhada e centrada: o "A" sobre "Aguiar One" sobre a assinatura.
+ * A MARCA, empilhada e centrada: o "AO" sobre "Aguiar One" sobre a assinatura.
  *
  * "One" sai em azul e "Aguiar" em branco DENTRO do mesmo `Text`, e não em dois
  * lado a lado numa linha: assim as duas palavras compartilham a linha de base e
@@ -197,10 +197,11 @@ export function AuthScreen({
 function Brand({ tagline }: { tagline: string }) {
   return (
     <Box alignItems="center" marginBottom="s38">
-      {/* 72 e não 92: o "A" é a marca, mas quem nomeia o app é a palavra logo
-          abaixo. Maior que ~3,5× a altura das maiúsculas do letreiro, o símbolo
-          passa a ser o assunto do topo e o nome vira legenda dele. */}
-      <Logo size={72} />
+      {/* 56 de ALTURA (≈95 de largura): o "AO" é a marca, mas quem nomeia o app
+          é a palavra logo abaixo. O símbolo é 1,7× mais largo que alto; com a
+          altura do antigo "A" (72) ele passaria da largura do próprio letreiro,
+          e o nome viraria legenda do símbolo. */}
+      <Logo size={56} />
 
       <Text
         variant="brandWordmark"

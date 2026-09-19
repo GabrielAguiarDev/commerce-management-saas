@@ -142,7 +142,7 @@ export function RedefinirSenhaView({
           {copy.submit}
         </Button>
 
-        <p style={css(`margin:0;text-align:center;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
+        <p style={css(`margin:0;text-align:left;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
           {copy.footer}
         </p>
       </form>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type {
   InputHTMLAttributes,
   ReactNode,
@@ -7,7 +8,7 @@ import type {
   TextareaHTMLAttributes,
 } from "react";
 import { css, MONO, SANS } from "../css";
-import { ChevronDownIcon, SearchIcon } from "../icons";
+import { ChevronDownIcon, EyeIcon, EyeOffIcon, SearchIcon } from "../icons";
 import { field, FIELD_LABEL, NUM } from "../styleKit";
 
 /**
@@ -39,6 +40,55 @@ export function TextArea({
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & WithCssText) {
   return <textarea className="field" style={cssText ? css(cssText) : undefined} {...props} />;
+}
+
+/** Room reserved for `PasswordField`'s eye button. */
+const EYE_ROOM = 42;
+
+/**
+ * A password input with an eye button that shows and hides what was typed.
+ *
+ * Takes everything an `<input>` takes except `type`, which is what the button
+ * owns. The labels arrive as props, already translated: they are what a screen
+ * reader announces, since the button itself only draws the icon.
+ */
+export function PasswordField({
+  showLabel,
+  hideLabel,
+  style,
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  showLabel: string;
+  hideLabel: string;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div style={css("position:relative")}>
+      <input
+        className="field"
+        {...props}
+        type={visible ? "text" : "password"}
+        // Same reasoning as `Select`: the room comes last so a `padding` from
+        // outside does not push the text underneath the button.
+        style={{ ...style, paddingRight: EYE_ROOM }}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? hideLabel : showLabel}
+        aria-pressed={visible}
+        title={visible ? hideLabel : showLabel}
+        disabled={props.disabled}
+        style={css(
+          "position:absolute;top:50%;right:6px;transform:translateY(-50%);display:flex;" +
+            "padding:7px;border:none;border-radius:7px;background:none;color:var(--muted);cursor:pointer",
+        )}
+      >
+        {visible ? <EyeOffIcon /> : <EyeIcon />}
+      </button>
+    </div>
+  );
 }
 
 /**

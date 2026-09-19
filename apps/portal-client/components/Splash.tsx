@@ -103,7 +103,7 @@ export function Splash({ ready }: { ready: boolean }) {
             dentro da linha. A marca não recebe cor nem fundo daqui: o PNG é
             transparente e pousa direto sobre o `--bg` da espera. */}
         <span aria-hidden style={css("flex:none;display:flex")}>
-          <Logo size={44} priority />
+          <Logo size={30} priority />
         </span>
         <span>
           <span style={css(`display:block;font:700 17px/1.2 ${SANS};color:var(--text)`)}>

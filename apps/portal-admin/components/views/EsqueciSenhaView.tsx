@@ -46,7 +46,7 @@ export function EsqueciSenhaView() {
   };
 
   const voltar = (
-    <p style={css("margin:0;text-align:center;font-size:12px;line-height:1.5;color:var(--muted)")}>
+    <p style={css("margin:0;text-align:left;font-size:12px;line-height:1.5;color:var(--muted)")}>
       <Link
         href={ROUTES.login}
         style={css("color:var(--accent-text);text-decoration:underline")}
@@ -59,7 +59,7 @@ export function EsqueciSenhaView() {
   if (sent)
     return (
       <AuthShell title={L.verifiqueEmail} subtitle={L.linkEnviado} header={false}>
-        <div style={css(stack("14px") + ";align-items:center;text-align:center")}>
+        <div style={css(stack("14px") + ";align-items:flex-start;text-align:left")}>
           <div
             style={css(
               "width:38px;height:38px;border-radius:10px;background:var(--pos-soft);" +

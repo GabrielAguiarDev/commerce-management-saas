@@ -32,12 +32,12 @@ const alpha = (hex: string, a: number) => {
 };
 
 /**
- * As duas cores da MARCA, lidas do arquivo do logo: o azul do "A" e o petrol
- * quase preto em que ele se assenta.
+ * As duas cores da MARCA: o azul do "AO", lido do arquivo do logo, e o petrol
+ * quase preto em que ele se assenta no escuro.
  *
  * Ganham um apelido local — em vez de `BRAND.primary` repetido pelo objeto
  * inteiro — porque cada uma tem MAIS DE UM PAPEL aqui: a primária é a cor do
- * tema claro e também a base do degradê do próprio "A" e o fim do degradê do
+ * tema claro e também a base do degradê do próprio "AO" e o fim do degradê do
  * botão "Entrar"; o secundário é o fundo do ícone e o chão do tema escuro.
  * Nomeados, esses papéis se leem no lugar onde são usados.
  *
@@ -51,7 +51,7 @@ const BRAND_SECONDARY = BRAND.ink;
 /**
  * A marca nos dois outros pontos de luminosidade de que os temas precisam.
  *
- * As duas são o MESMO AZUL — matiz 193°, o do "A" — e só isso: uma é a marca
+ * As duas são o MESMO AZUL — matiz 201°, o do "AO" — e só isso: uma é a marca
  * aberta para sobreviver sobre o fundo escuro, a outra é a marca fechada para
  * poder ser LIDA sobre o fundo claro. Não existem sozinhas: são degraus da
  * primária, e por isso moram junto com ela, em `@aguiar/brand`.
@@ -62,9 +62,9 @@ const BRAND_SECONDARY = BRAND.ink;
  * lucro, de forma que "primário" e "positivo" viravam a mesma cor de relance.
  * Azul é a marca; verde é dinheiro. Nunca a mesma família.
  *
- * `PRIMARY_DARK` dá 7,1:1 sobre `surfaceDark`, contra 5,2:1 da marca chapada.
- * `PRIMARY_TEXT` dá 5,3:1 sobre branco e 4,7:1 sobre `bgLight`, onde a marca
- * chapada dá 3,3:1 — suficiente para um botão ou uma borda, não para uma
+ * `PRIMARY_DARK` dá 7,3:1 sobre `surfaceDark`, contra 3,6:1 da marca chapada.
+ * `PRIMARY_TEXT` dá 5,6:1 sobre branco e 5,0:1 sobre `bgLight`, onde a marca
+ * chapada dá 4,2:1 — suficiente para um botão ou uma borda, não para uma
  * palavra.
  */
 const BRAND_PRIMARY_DARK = BRAND.lifted;
@@ -141,7 +141,7 @@ export const palette = {
    * `primary`, a sombra saía de uma família de cor diferente do objeto que a
    * projeta.
    */
-  primaryShadow: '#0b5f77',
+  primaryShadow: '#234b62',
 
   /**
    * Fundo do toast. Fixo nos dois temas de propósito: no protótipo o toast é
@@ -189,7 +189,7 @@ export const palette = {
    * nos dois temas — daí ser a marca aberta, e não o `primary` do tema.
    */
   shiftPillBg: alpha(BRAND_PRIMARY_DARK, 0.22),
-  shiftPillFg: '#8ad4ea',
+  shiftPillFg: '#98c7e1',
 
   /** Borda do card de alerta de estoque (âmbar com alpha). */
   amberBorder: alpha(BRAND.warn, 0.2),
@@ -205,8 +205,11 @@ export const palette = {
   // marca continua o azul sobre petrol, só que agora é o petrol que está na
   // tinta e o azul que está no fundo, lavado.
 
-  /** O "A" da marca, do topo claro à base na cor primária. */
-  logoTop: BRAND.hi,
+  /**
+   * O "AO" da marca, do topo um degrau acima à base na cor primária. O arquivo
+   * do logo é chapado; o degradê é só um passo, para dar volume sem trocar a cor.
+   */
+  logoTop: BRAND.bright,
   logoBottom: BRAND_PRIMARY,
 
   /**
@@ -257,7 +260,7 @@ export const palette = {
    * O azul ESCRITO da entrada — "Esqueceu a senha?", "Fale com o suporte".
    *
    * É a marca fechada (`BRAND_PRIMARY_TEXT`), e não a chapada: sobre branco, a
-   * chapada dá 3,3:1, que sustenta um botão ou uma borda, não uma palavra. Era
+   * chapada dá 4,7:1, no limite para uma palavra; a fechada dá 5,6:1. Era
    * a marca ABERTA enquanto o fundo era escuro — a inversão do fundo inverte
    * também qual das três luminosidades da marca pode ser lida.
    */

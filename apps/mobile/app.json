@@ -14,7 +14,8 @@
     "android": {
       "package": "br.com.aguiarone.app",
       "adaptiveIcon": {
-        "backgroundColor": "#020E18"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
       },
       "predictiveBackGestureEnabled": false,
       "edgeToEdgeEnabled": true

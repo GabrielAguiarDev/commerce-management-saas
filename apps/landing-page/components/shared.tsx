@@ -4,45 +4,31 @@ import Image from "next/image";
 import { CONTAINER, CONTAINER_NARROW, EYEBROW, H2, LEAD, SECTION_INTRO } from "@/lib/styleKit";
 
 /**
- * A marca — o "A" do arquivo, não um desenho parecido com ele.
+ * A marca — o "AO" do arquivo, não um desenho parecido com ele.
  *
- * É o `public/images/icon.png` dos dois portais, byte a byte: o "A" azul da
- * marca (`#1b9abd`) SOBRE FUNDO TRANSPARENTE. Ele pousa direto no fundo de
- * quem o hospeda — a barra clara do topo, o petrol do rodapé e o petrol da
- * barra lateral do painel ilustrado —, e é por isso que não recebe cor, fundo
- * nem canto arredondado: arredondar um PNG sem fundo não recorta nada, só
- * finge uma borda que não existe.
+ * É o `public/images/logo-ao.png` dos dois portais, byte a byte: o "AO" azul
+ * da marca (`#387a9f`) SOBRE FUNDO TRANSPARENTE, recortado rente ao desenho.
+ * Ele pousa direto no fundo de quem o hospeda — a barra clara do topo, o
+ * petrol do rodapé e o petrol da barra lateral do painel ilustrado —, e é por
+ * isso que não recebe cor, fundo nem canto arredondado.
  *
- * ┌─ POR QUE `logo.png` E NÃO `icon.png`, QUE É O NOME DOS PORTAIS ────────┐
- * │ Porque neste app o nome `icon.png` JÁ TINHA SIDO USADO — e para o      │
- * │ arquivo errado: o que estava em `public/images/icon.png` era o "A"     │
- * │ dentro do ladrilho petrol, isto é, o `icon-bg.png` dos portais com o   │
- * │ nome do outro. Trocar só o conteúdo, mantendo o caminho, deixa toda    │
- * │ cópia já baixada — a do navegador, a de um proxy, a do otimizador de   │
- * │ imagem — servindo o ladrilho velho de uma URL que agora promete outra  │
- * │ coisa, e não há reload que conserte isso do lado de quem só visita.    │
- * │                                                                        │
- * │ Nome novo, URL nova, cache impossível de acertar por engano. É a       │
- * │ mesma razão pela qual arquivo estático versionado troca de nome em     │
- * │ vez de trocar de conteúdo.                                             │
- * │                                                                        │
- * │ A VERSÃO COM O LADRILHO não sumiu do site: ela é `app/icon.png`, o     │
- * │ favicon, e é de propósito que ele continue opaco — uma marca           │
- * │ transparente numa aba de navegador escura desaparece.                  │
- * └────────────────────────────────────────────────────────────────────────┘
+ * `size` é a ALTURA; a largura sai da proporção do desenho (≈1,7 : 1).
  *
- * O arquivo é quadrado e tem a folga própria de ícone de app nas bordas; por
- * isso o desenho ocupa cerca de 44% do lado, e não o lado inteiro.
+ * O nome do arquivo é novo de propósito: `logo.png` era o "A", e trocar só o
+ * conteúdo deixaria toda cópia já baixada — navegador, otimizador de imagem —
+ * servindo a marca velha de uma URL que agora promete outra.
  *
- * O arquivo de design desenhava um quadradinho com a letra "A" em Manrope. Era
- * um "A" genérico, e o console já passou por essa troca pelo mesmo motivo.
+ * O favicon é `app/icon.png`: o ladrilho branco do ícone do app, opaco porque
+ * uma marca transparente numa aba escura desaparece.
  */
-export function Logo({ size = 28 }: { size?: number }) {
+const PROPORCAO = 927 / 545;
+
+export function Logo({ size = 20 }: { size?: number }) {
   return (
     <Image
-      src="/images/logo.png"
+      src="/images/logo-ao.png"
       alt=""
-      width={size}
+      width={Math.round(size * PROPORCAO)}
       height={size}
       priority
       style={{ flex: "none", display: "block" }}
@@ -53,7 +39,7 @@ export function Logo({ size = 28 }: { size?: number }) {
 /** Marca + nome, do cabeçalho e do rodapé. */
 export function Wordmark({
   brand,
-  size = 28,
+  size = 22,
   fontSize = 17,
   color = "var(--petrol)",
 }: {

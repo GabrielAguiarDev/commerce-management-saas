@@ -88,13 +88,13 @@
   --on-petrol3: #bfd4d9;
   --on-petrol-muted: #8faab2;
   --on-petrol-faint: #6e8b94;
-  /* O azul que sobrevive sobre o petrol: `--brand-hi`, o topo do degradê do
-     próprio "A" — o mesmo tom que o app usa como `logoTop` e que os portais
-     usam como accent vivo no tema escuro. A primária chapada não serve aqui:
+  /* O azul que sobrevive sobre o petrol: `--brand-hi`, a ponta clara da rampa
+     da marca — o mesmo tom que os portais usam como accent vivo no tema
+     escuro. A primária chapada não serve aqui:
      sobre o petrol ela fecha demais e o texto some. */
   --on-petrol-accent: var(--brand-hi);
 
-  /* A PRIMÁRIA DA MARCA: o azul do "A" do logo. Ela não tem valor escrito
+  /* A PRIMÁRIA DA MARCA: o azul do "AO" do logo. Ela não tem valor escrito
      aqui — é `--brand`, que chega de `@aguiar/ui/brand.css`, o mesmo de onde
      saem o `--accent` dos portais e o `palette.brandPrimary` do app.
 
@@ -108,17 +108,17 @@
      │ Com dois azuis-esverdeados diferentes brigando pela mesma função,  │
      │ o visitante lia duas marcas.                                       │
      │                                                                     │
-     │ Agora é uma matiz (193°) em DOIS DEGRAUS, que é a divisão que os   │
+     │ Agora é uma matiz (201°) em DOIS DEGRAUS, que é a divisão que os   │
      │ portais fazem, e pelo mesmo motivo — contraste:                     │
      │                                                                     │
      │   PREENCHIDO ou DESENHADO → `--accent`. Fundo grande, com branco   │
      │     por cima: chamada da primeira dobra, cartão de plano, forma.    │
      │   ESCRITO → `--accent-text`. É `--brand-text`, o mesmo degrau que  │
      │     os portais chamam de `--accent-text`. A primária chapada dá     │
-     │     3.3:1 sobre branco e não é texto; este degrau dá 5.3:1 e é.     │
+     │     4.7:1 sobre branco, no limite; este degrau dá 5.6:1 e sobra.     │
      │                                                                     │
      │ O botão do cabeçalho fica no degrau ESCRITO, e não no vivo: ele    │
-     │ tem 14px, e branco sobre `--accent` daria 3.3:1 num alvo pequeno.  │
+     │ tem 14px, e branco sobre `--accent` ficaria no limite do 4.5:1.    │
      │ Mesma matiz da chamada grande, um degrau abaixo.                    │
      └─────────────────────────────────────────────────────────────────────┘
 
@@ -130,19 +130,19 @@
 
      `glow` é o halo sob a chamada da primeira dobra: a própria marca a 28%.
      Ela sai de `--brand-rgb`, os canais da marca separados, e não de um
-     `rgba(27,154,189,.28)` escrito à mão — naquela forma ninguém reconhecia o
+     `rgba(56,122,159,.28)` escrito à mão — naquela forma ninguém reconhecia o
      azul do logo, e uma troca de marca deixaria o halo para trás. (Não é
      `color-mix`: o Lightning CSS gera para ele um fallback com a cor chapada,
      e um halo de 28% chapado é um borrão azul. Ver `brand.css`.) */
   --accent: var(--brand);
-  --accent-hi: #157e9b;
+  --accent-hi: #306888;
   --accent-glow: rgba(var(--brand-rgb), 0.28);
 
   /* O degrau de TEXTO da primária, e o hover dele. `soft` é a lavagem de
      fundo — o ladrilho de ícone da dobra "Para quem é". Os dois primeiros vêm
      da marca; o hover é desta página, pelo motivo do bloco acima. */
   --accent-text: var(--brand-text);
-  --accent-text-hi: #0b5b70;
+  --accent-text-hi: #285771;
   --accent-soft: var(--brand-soft);
 
   /* Positivo: lucro, item incluído no plano, variação para cima.
@@ -340,7 +340,7 @@ section[id] {
     height: 24px !important;
   }
 
-  /* O vão entre o "A" e o nome, dentro do `Wordmark`. */
+  /* O vão entre o "AO" e o nome, dentro do `Wordmark`. */
   .lp-brand > a > div {
     gap: 7px !important;
   }
@@ -369,12 +369,12 @@ section[id] {
     background:
       linear-gradient(
         180deg,
-        rgba(27, 154, 189, 0.2) 0,
-        rgba(27, 154, 189, 0.13) 120px,
-        rgba(27, 154, 189, 0.07) 250px,
-        rgba(27, 154, 189, 0.03) 380px,
-        rgba(27, 154, 189, 0.01) 470px,
-        rgba(27, 154, 189, 0) 540px
+        rgba(var(--brand-rgb), 0.2) 0,
+        rgba(var(--brand-rgb), 0.13) 120px,
+        rgba(var(--brand-rgb), 0.07) 250px,
+        rgba(var(--brand-rgb), 0.03) 380px,
+        rgba(var(--brand-rgb), 0.01) 470px,
+        rgba(var(--brand-rgb), 0) 540px
       ),
       #fff !important;
   }

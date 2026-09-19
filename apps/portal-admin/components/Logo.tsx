@@ -1,41 +1,50 @@
 import Image from "next/image";
 
 /**
- * A marca do Aguiar One — o "A" do arquivo, não um desenho parecido com ele.
+ * A marca do Aguiar One — o "AO" do arquivo, não um desenho parecido com ele.
  *
  * Antes daqui o console tinha um `MarcaIcone`: um triângulo com uma barrinha,
  * traçado à mão em `lib/icons.tsx`, pintado de `currentColor` e assentado sobre
  * um quadrado da cor de destaque. Era uma letra "A" genérica, e mudava de cor
  * junto com o tema — ou seja, não era a marca.
  *
- * O que este componente mostra é `public/images/icon.png`: o "A" azul da marca
- * (`#1b9abd`) SOBRE FUNDO TRANSPARENTE. É a mesma arte que o app mobile instala
- * como ícone, só que sem o ladrilho petrol — a versão com fundo continua em
- * `public/images/icon-bg.png`, para onde um quadrado opaco for mesmo o certo
- * (loja de aplicativos, favicon).
+ * O que este componente mostra é `public/images/logo-ao.png`: o "AO" azul da
+ * marca (`#387a9f`) SOBRE FUNDO TRANSPARENTE e RECORTADO rente ao desenho, sem
+ * folga. É a mesma arte nos três apps web, traçada de `MARK` em `@aguiar/brand`.
  *
- * Por ser transparente, a marca pousa direto no fundo de quem a hospeda: o
- * `--side` da barra lateral no console, a superfície clara na tela de entrada.
- * Daí ela NÃO ter cor, fundo nem canto arredondado aqui — arredondar um PNG sem
- * fundo não recorta nada, só finge uma borda que não existe.
+ * Por ser transparente, a marca pousa direto no fundo de quem a hospeda, claro
+ * ou escuro. Daí ela NÃO receber cor, fundo nem canto arredondado aqui —
+ * arredondar um PNG sem fundo não recorta nada, só finge uma borda que não
+ * existe.
  *
- * O arquivo é quadrado e tem a folga própria de ícone de app nas bordas; por
- * isso o desenho ocupa cerca de 44% do lado, e não o lado inteiro.
+ * `size` é a ALTURA. A marca é larga (≈1,7 : 1), e a largura acompanha: numa
+ * caixa quadrada ela ficaria com 45% da altura disponível e sumiria no
+ * cabeçalho — foi o que aconteceu na primeira versão do rebrand.
+ *
+ * ┌─ POR QUE `logo-ao.png`, E NÃO O NOME ANTIGO ────────────────────────────┐
+ * │ O arquivo anterior (`icon.png` nos portais, `logo.png` no site) era o   │
+ * │ "A". Trocar só o conteúdo mantendo o caminho deixa toda cópia já        │
+ * │ baixada — a do navegador, a do otimizador de imagem do Next — servindo  │
+ * │ a marca velha de uma URL que agora promete outra. Nome novo, URL nova.  │
+ * └──────────────────────────────────────────────────────────────────────────┘
  */
 
+/** A proporção do desenho recortado — a mesma de `MARK` (927 × 545). */
+const PROPORCAO = 927 / 545;
+
 interface LogoProps {
-  /** O LADO da caixa da marca, em pixels. A imagem é quadrada. */
+  /** A ALTURA da marca, em pixels. A largura sai da proporção do desenho. */
   size?: number;
-  /** Só na primeira dobra: evita o quadro vazio no primeiro frame do console. */
+  /** Só na primeira dobra: evita o quadro vazio no primeiro frame. */
   priority?: boolean;
 }
 
-export function Logo({ size = 36, priority = false }: LogoProps) {
+export function Logo({ size = 24, priority = false }: LogoProps) {
   return (
     <Image
-      src="/images/icon.png"
+      src="/images/logo-ao.png"
       alt="Aguiar One"
-      width={size}
+      width={Math.round(size * PROPORCAO)}
       height={size}
       priority={priority}
       style={{ flex: "none", display: "block" }}

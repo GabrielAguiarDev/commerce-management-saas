@@ -132,12 +132,10 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
             (col ? "padding:0 30px 0 13px;" : "padding:0 42px 0 16px;"),
         )}
       >
-        {/* Sem o ladrilho petrol atrás, o "A" pousa direto na barra e podia
-            crescer: o arquivo é um ícone de app, com folga própria nas bordas,
-            então o desenho só ganha presença se a caixa ganhar. Recolhida, a
-            barra tem 84px de largura e a caixa cede o suficiente para não
-            encostar no botão. */}
-        <Logo size={col ? 38 : 44} priority />
+        {/* O "AO" pousa direto na barra, sem ladrilho. `size` é a ALTURA — a
+            marca tem 1,7× isso de largura. Recolhida, a barra tem 84px, e
+            20px de altura (34 de largura) é o que cabe sem encostar no botão. */}
+        <Logo size={col ? 20 : 24} priority />
         <div
           style={css(
             col

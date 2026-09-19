@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useAdmin } from "@/components/AdminProvider";
-import { Button, css } from "@aguiar/ui";
+import { Button, css, PasswordField } from "@aguiar/ui";
 import { AUTH_BUTTON, AuthNotice, AuthShell, FIELD, LABEL } from "@/components/AuthShell";
 import { ROUTES } from "@/lib/rotas";
 import { createClient } from "@/lib/supabase/client";
@@ -144,8 +144,7 @@ export function LoginView() {
 
       <label style={css("display:flex;flex-direction:column;gap:6px")}>
         <span style={css(LABEL)}>{L.password}</span>
-        <input
-          type="password"
+        <PasswordField
           autoComplete="current-password"
           value={s.loginPassword}
           onChange={(e) => {
@@ -154,8 +153,9 @@ export function LoginView() {
           }}
           onKeyDown={(e) => e.key === "Enter" && void signIn()}
           placeholder="••••••••"
-          className="field"
           style={css(FIELD)}
+          showLabel={L.showPassword}
+          hideLabel={L.hidePassword}
         />
       </label>
 
@@ -177,7 +177,7 @@ export function LoginView() {
         href={ROUTES.esqueciSenha}
         className="hv-acc-hi"
         style={css(
-          "align-self:center;background:none;border:none;color:var(--accent-text);" +
+          "align-self:flex-start;background:none;border:none;color:var(--accent-text);" +
             "font-size:12.5px;cursor:pointer;padding:0;text-decoration:none",
         )}
       >

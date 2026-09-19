@@ -53,10 +53,9 @@ export default function manifest(): MetadataRoute.Manifest {
 
     // A cor que o sistema pinta em volta da janela (barra de status no Android,
     // barra de título no desktop). É o SECUNDÁRIO DA MARCA — o mesmo petrol
-    // quase preto do fundo do ícone que está logo acima dela na tela de início,
-    // do splash do app mobile e da barra lateral do console. Emendar a moldura
-    // do sistema com o fundo do ícone é o que faz o portal instalado parecer um
-    // programa e não uma página.
+    // quase preto do splash do app mobile e da barra lateral do console. O
+    // ícone, desde o "AO", é o ladrilho branco do app; a moldura continua
+    // petrol, que é a cor do produto aberto, e não a do ícone fechado.
     theme_color: BRAND.ink,
 
     orientation: "any",
@@ -70,7 +69,7 @@ export default function manifest(): MetadataRoute.Manifest {
 
       // `maskable`: o Android recorta o ícone na forma do sistema (círculo,
       // gota, quadrado). Estes trazem a marca menor, dentro da área segura, e
-      // fundo até a borda — sem eles o "A" sai cortado nos aparelhos que
+      // fundo até a borda — sem eles o "AO" sai cortado nos aparelhos que
       // recortam em círculo.
       {
         src: "/icons/icon-maskable-192.png",

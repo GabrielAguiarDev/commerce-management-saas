@@ -1,6 +1,6 @@
 "use client";
 
-import { BRAND, css, SANS } from "@aguiar/ui";
+import { css, SANS } from "@aguiar/ui";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/Logo";
@@ -14,9 +14,8 @@ import { usePortal } from "@/components/PortalProvider";
  * escritos três vezes, e a primeira mudança na arte da entrada deixaria as
  * telas de senha para trás.
  *
- * O `LoginView` NÃO passou a usar esta moldura, de propósito: ele é a tela
- * mais exercitada do portal e não ganharia nada em ser mexido — o combinado
- * deste trabalho é acrescentar o fluxo de senha, não reescrever o login.
+ * O `LoginView` também usa esta moldura. Assim, login e recuperação mantêm a
+ * mesma lateral, largura de conteúdo e ritmo vertical sem duplicar o layout.
  */
 
 /**
@@ -34,8 +33,67 @@ export const AUTH_BUTTON =
   `padding:14px;border-radius:11px;font:700 14px ${SANS};color:var(--accent-ink);` +
   "background:linear-gradient(90deg, var(--accent), var(--accent-hi))";
 
-/** O petrol do canto da arte, para o instante ANTES da imagem carregar. */
-const BANNER_INK = BRAND.ink;
+/** O branco azulado da arte, para o instante ANTES da imagem carregar. */
+const BANNER_PAPER = "#f4f9fb";
+
+/** A narrativa da marca que ocupa o respiro superior da ilustração. */
+function ClientBrandPanel() {
+  return (
+    <aside
+      style={css(
+        `position:relative;flex:1 1 50%;min-width:0;overflow:hidden;background:${BANNER_PAPER}`,
+      )}
+      aria-label="Aguiar One"
+    >
+      <Image
+        src="/images/banner-login-client.png"
+        alt=""
+        fill
+        priority
+        sizes="50vw"
+        style={{ objectFit: "cover", objectPosition: "center" }}
+      />
+
+      <div
+        style={css(
+          "position:absolute;z-index:1;top:clamp(32px,5vh,56px);" +
+            "left:clamp(40px,5.5vw,76px);right:clamp(40px,5vw,72px);max-width:440px;color:#0b2d3c",
+        )}
+      >
+        <div style={css("display:flex;align-items:center;gap:11px")}>
+          <Logo size={24} priority />
+          <span style={css(`font:700 15px/1 ${SANS};letter-spacing:-.01em`)}>Aguiar One</span>
+        </div>
+
+        <h2
+          style={css(
+            `margin:26px 0 0;font:700 clamp(30px,2.8vw,42px)/1.08 ${SANS};` +
+              "letter-spacing:-.04em;max-width:430px",
+          )}
+        >
+          Seu negócio, em ordem.
+        </h2>
+        <p
+          style={css(
+            `margin:14px 0 0;max-width:410px;font:400 clamp(15px,1.1vw,16px)/1.55 ${SANS};` +
+              "color:rgba(11,45,60,.74)",
+          )}
+        >
+          Registre vendas, acompanhe o lucro e feche o caixa no mesmo lugar.
+        </p>
+      </div>
+
+      <p
+        style={css(
+          `position:absolute;z-index:1;left:clamp(40px,5.5vw,76px);right:40px;bottom:34px;margin:0;` +
+            `font:400 12px/1.5 ${SANS};color:rgba(0,34,52,.62)`,
+        )}
+      >
+        Copyright © {new Date().getFullYear()} Aguiar One. Todos os direitos reservados.
+      </p>
+    </aside>
+  );
+}
 
 /** O aviso em vermelho e o em verde: o mesmo bloco, trocando o tom. */
 export function AuthNotice({ tone, children }: { tone: "danger" | "pos"; children: ReactNode }) {
@@ -97,7 +155,7 @@ export function AuthSkeleton({
 
         <div className="sk" style={{ width: "100%", height: 47, borderRadius: 11 }} />
 
-        <div className="sk" style={{ width: 180, height: 12, alignSelf: "center" }} />
+        <div className="sk" style={{ width: 180, height: 12 }} />
       </div>
     </AuthShell>
   );
@@ -117,61 +175,34 @@ export function AuthShell({
 
   return (
     <div style={css("min-height:100vh;display:flex;background:var(--surface)")}>
-      {/*
-        A metade da marca, igual à do login: só no desktop, e decorativa para
-        quem usa leitor de tela — a mensagem inteira está dentro da imagem, e o
-        nome do produto já vem no `<title>` da página.
-      */}
-      {!isMobile && (
-        <div
-          aria-hidden
-          style={css(
-            `position:relative;flex:1 1 50%;min-width:0;overflow:hidden;background:${BANNER_INK}`,
-          )}
-        >
-          <Image
-            src="/images/banner-login.png"
-            alt=""
-            fill
-            priority
-            sizes="50vw"
-            style={{ objectFit: "cover", objectPosition: "12% center" }}
-          />
-
-          <div
-            style={css(
-              "position:absolute;left:0;right:0;bottom:0;height:200px;pointer-events:none;" +
-                `background:linear-gradient(to top, ${BANNER_INK}, transparent)`,
-            )}
-          />
-
-          <p
-            style={css(
-              "position:absolute;left:44px;right:44px;bottom:34px;margin:0;" +
-                `font:400 12px/1.5 ${SANS};color:rgba(234,244,245,.6)`,
-            )}
-          >
-            Copyright © {new Date().getFullYear()} Aguiar One. Todos os direitos reservados.
-          </p>
-        </div>
-      )}
+      {!isMobile && <ClientBrandPanel />}
 
       <div
         style={css(
-          "flex:1 1 50%;min-width:0;display:flex;align-items:center;justify-content:center;" +
-            `padding:${isMobile ? "32px 22px" : "40px 48px"};background:var(--surface)`,
+          "flex:1 1 50%;min-width:0;overflow-y:auto;display:flex;align-items:center;" +
+            "justify-content:center;background:var(--surface);" +
+            `padding:${isMobile ? "30px 22px 24px" : "clamp(48px,7vh,80px) clamp(40px,5vw,72px)"}`,
         )}
       >
-        <div style={css("width:100%;max-width:360px;display:flex;flex-direction:column;gap:18px")}>
+        <div style={css("width:100%;max-width:400px;display:flex;flex-direction:column;gap:28px")}>
           {isMobile && (
-            <div style={css("align-self:center")}>
-              <Logo size={52} priority />
+            <div style={css("display:flex;align-items:center;gap:10px")}>
+              <Logo size={27} priority />
+              <span style={css(`font:700 15px/1 ${SANS};color:var(--text);letter-spacing:-.01em`)}>
+                Aguiar One
+              </span>
             </div>
           )}
 
-          <div style={css("text-align:center")}>
-            <h1 style={css(`margin:0;font:700 26px/1.2 ${SANS};color:var(--text)`)}>{title}</h1>
-            <p style={css(`margin:8px 0 0;font:400 13.5px/1.5 ${SANS};color:var(--muted)`)}>
+          <div style={css("text-align:left")}>
+            <h1
+              style={css(
+                `margin:0;font:700 28px/1.2 ${SANS};letter-spacing:-.025em;color:var(--text)`,
+              )}
+            >
+              {title}
+            </h1>
+            <p style={css(`margin:9px 0 0;font:400 14px/1.5 ${SANS};color:var(--muted)`)}>
               {subtitle}
             </p>
           </div>
@@ -179,11 +210,7 @@ export function AuthShell({
           {children}
 
           {isMobile && (
-            <p
-              style={css(
-                `margin:6px 0 0;text-align:center;font:400 11px/1.5 ${SANS};color:var(--muted)`,
-              )}
-            >
+            <p style={css(`margin:0;text-align:left;font:400 11px/1.5 ${SANS};color:var(--muted)`)}>
               Copyright © {new Date().getFullYear()} Aguiar One. Todos os direitos reservados.
             </p>
           )}

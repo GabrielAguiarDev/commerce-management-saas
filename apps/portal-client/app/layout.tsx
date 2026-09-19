@@ -50,14 +50,14 @@ export const metadata: Metadata = {
    * É o MESMO ARQUIVO do `portal-admin`, byte a byte, e de FUNDO BRANCO: os
    * dois apps ficam lado a lado na barra de abas de quem administra a
    * plataforma, e ali eles precisam se parecer. O branco é opaco de propósito —
-   * transparente, o "A" azul mudava de aparência conforme o tema do navegador,
+   * transparente, o "AO" azul mudava de aparência conforme o tema do navegador,
    * e as duas abas nunca ficavam iguais.
    *
    * Os ladrilhos opacos (`/icons/icon-*.png`) continuam valendo onde o sistema
    * pede um ícone quadrado e cheio, e só lá: o manifesto os declara para o app
-   * instalado, e o `apple-touch-icon` faz esse papel no iOS. Eles seguem em
-   * petrol, que é o que emenda com o `theme_color` da barra do sistema — trocar
-   * o fundo deles por branco mudaria o ícone na tela de início do celular.
+   * instalado, e o `apple-touch-icon` faz esse papel no iOS. São o ladrilho
+   * BRANCO do ícone do app mobile, de propósito: na tela de início do celular,
+   * o portal instalado e o app têm de ser reconhecidos como a mesma marca.
    */
   icons: {
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],

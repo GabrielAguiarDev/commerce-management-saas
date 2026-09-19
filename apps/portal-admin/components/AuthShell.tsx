@@ -1,11 +1,10 @@
 "use client";
 
-import { BRAND, css, MOBILE_BREAKPOINT } from "@aguiar/ui";
+import { BRAND, css, MOBILE_BREAKPOINT, SANS } from "@aguiar/ui";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { useAdmin } from "@/components/AdminProvider";
 import { Logo } from "@/components/Logo";
-import { Wordmark } from "@/components/Wordmark";
 
 /**
  * A moldura das quatro telas de acesso do console: entrar, pedir o link,
@@ -45,7 +44,7 @@ export const AUTH_BUTTON =
 
 /** O link discreto embaixo do formulário — "voltar para o login" e parentes. */
 export const AUTH_LINK =
-  "align-self:center;background:none;border:none;color:var(--muted);font-size:12.5px;" +
+  "align-self:flex-start;background:none;border:none;color:var(--muted);font-size:12.5px;" +
   "cursor:pointer;padding:0";
 
 /** O empilhamento do miolo. A tela de "link enviado" respira mais apertado. */
@@ -61,6 +60,87 @@ export const STACK = stack();
  * tela é metade branca, e a página pisca ao ser preenchida.
  */
 const BANNER_INK = BRAND.ink;
+
+/**
+ * A metade da marca, só no desktop. A arte agora é só ilustração — a mensagem
+ * (rótulo, título, texto) é HTML por cima dela, traduzida pelo dicionário e
+ * lida por leitor de tela, em vez de pintada dentro do PNG.
+ */
+function AdminBrandPanel({
+  label,
+  title,
+  description,
+  copyright,
+}: {
+  label: string;
+  title: string;
+  description: string;
+  copyright: string;
+}) {
+  return (
+    <aside
+      style={css(
+        `position:relative;flex:1 1 50%;min-width:0;overflow:hidden;background:${BANNER_INK}`,
+      )}
+      aria-label={label}
+    >
+      <Image
+        src="/images/banner-login-ao.png"
+        alt=""
+        fill
+        priority
+        sizes="50vw"
+        style={{ objectFit: "cover", objectPosition: "center" }}
+      />
+
+      <div
+        style={css(
+          "position:absolute;z-index:2;top:clamp(32px,5vh,56px);" +
+            "left:clamp(40px,5.5vw,76px);right:clamp(40px,5vw,72px);max-width:460px;color:#f4fbfd",
+        )}
+      >
+        <div style={css("display:flex;align-items:center;gap:11px")}>
+          <Logo size={24} priority />
+          <span style={css(`font:700 15px/1 ${SANS};letter-spacing:-.01em`)}>{label}</span>
+        </div>
+
+        <h2
+          style={css(
+            `margin:26px 0 0;font:700 clamp(30px,2.8vw,42px)/1.08 ${SANS};` +
+              "letter-spacing:-.04em;max-width:450px",
+          )}
+        >
+          {title}
+        </h2>
+        <p
+          style={css(
+            `margin:14px 0 0;max-width:420px;font:400 clamp(15px,1.1vw,16px)/1.55 ${SANS};` +
+              "color:rgba(234,244,245,.76)",
+          )}
+        >
+          {description}
+        </p>
+      </div>
+
+      <div
+        aria-hidden
+        style={css(
+          "position:absolute;z-index:1;left:0;right:0;bottom:0;height:190px;pointer-events:none;" +
+            `background:linear-gradient(to top, ${BANNER_INK}, transparent)`,
+        )}
+      />
+
+      <p
+        style={css(
+          `position:absolute;z-index:2;left:clamp(40px,5.5vw,76px);right:40px;bottom:34px;margin:0;` +
+            `font:400 12px/1.5 ${SANS};color:rgba(234,244,245,.64)`,
+        )}
+      >
+        {copyright}
+      </p>
+    </aside>
+  );
+}
 
 /** O aviso em vermelho e o em verde: o mesmo bloco, trocando o tom. */
 export function AuthNotice({ tone, children }: { tone: "danger" | "pos"; children: ReactNode }) {
@@ -119,7 +199,7 @@ export function AuthSkeleton({
         ))}
 
         <div className="sk" style={{ width: "100%", height: 47, borderRadius: 11 }} />
-        <div className="sk" style={{ width: 180, height: 12, alignSelf: "center" }} />
+        <div className="sk" style={{ width: 180, height: 12 }} />
       </div>
     </AuthShell>
   );
@@ -152,61 +232,15 @@ export function AuthShell({
   const isMobile = s.screenWidth < MOBILE_BREAKPOINT;
 
   const copyright = `Copyright © ${new Date().getFullYear()} Aguiar One. ${L.direitosReservados}`;
-
   return (
     <div style={css("position:fixed;inset:0;z-index:60;display:flex;background:var(--surface)")}>
-      {/*
-        A metade da marca. Só no desktop: abaixo de 900px ela viraria uma tarja
-        de imagem espremida por cima do formulário, e o que a pessoa veio fazer
-        aqui é entrar. No lugar dela, o formulário ganha o ladrilho do "A".
-
-        Toda a mensagem — logo, tarja "Área administrativa", título, subtítulo e
-        os três pilares — está DENTRO do arquivo: é a arte da marca, não um
-        texto que esta tela remonta com `<h1>` e `<p>` por cima de um fundo. Por
-        isso o `alt` é vazio e o painel é `aria-hidden`: para quem usa leitor de
-        tela isto é decoração, e o nome do console já vem no `<title>` da página
-        e no letreiro ao lado do formulário.
-      */}
       {!isMobile && (
-        <div
-          aria-hidden
-          style={css(
-            `position:relative;flex:1 1 50%;min-width:0;overflow:hidden;background:${BANNER_INK}`,
-          )}
-        >
-          <Image
-            src="/images/banner-login.png"
-            alt=""
-            fill
-            priority
-            sizes="50vw"
-            /**
-             * A imagem é quadrada e o painel é uma coluna alta: com `cover` o
-             * que sobra é cortado nas LATERAIS. `object-position` puxa o corte
-             * para a direita — o texto da arte mora na metade esquerda, e é ele
-             * que não pode encostar na borda; o que cede é o "A" de fundo.
-             */
-            style={{ objectFit: "cover", objectPosition: "12% center" }}
-          />
-
-          {/* A base da arte é escura, mas não uniformemente: esta sombra é o
-              que garante o contraste da linha de copyright em cima dela. */}
-          <div
-            style={css(
-              "position:absolute;left:0;right:0;bottom:0;height:200px;pointer-events:none;" +
-                `background:linear-gradient(to top, ${BANNER_INK}, transparent)`,
-            )}
-          />
-
-          <p
-            style={css(
-              "position:absolute;left:44px;right:44px;bottom:34px;margin:0;font-size:12px;" +
-                "line-height:1.5;color:rgba(234,244,245,.6)",
-            )}
-          >
-            {copyright}
-          </p>
-        </div>
+        <AdminBrandPanel
+          label={L.bannerRotulo}
+          title={L.bannerTitulo}
+          description={L.bannerTexto}
+          copyright={copyright}
+        />
       )}
 
       {/* A metade do formulário. `overflow-y` porque a moldura é `fixed`: a tela
@@ -215,47 +249,36 @@ export function AuthShell({
       <div
         style={css(
           "flex:1 1 50%;min-width:0;overflow-y:auto;display:flex;align-items:center;" +
-            `justify-content:center;padding:${isMobile ? "32px 22px" : "40px 48px"}`,
+            "justify-content:center;background:var(--surface);" +
+            `padding:${isMobile ? "30px 22px 24px" : "clamp(48px,7vh,80px) clamp(40px,5vw,72px)"}`,
         )}
       >
-        <div style={css("width:100%;max-width:380px;display:flex;flex-direction:column;gap:26px")}>
+        <div style={css("width:100%;max-width:400px;display:flex;flex-direction:column;gap:28px")}>
           {/* No celular o banner não entra, e sem ele a tela chegaria sem
-              nenhuma marca. É o "A" azul em PNG transparente, o mesmo do topo
+              nenhuma marca. É o "AO" azul em PNG transparente, o mesmo do topo
               do console: pousa direto na superfície clara e não recebe cor nem
               fundo daqui. */}
           {isMobile && (
-            <div style={css("display:flex;align-items:center;justify-content:center;gap:12px")}>
-              <Logo size={42} priority />
-              <div style={css("display:flex;flex-direction:column;gap:2px")}>
-                <Wordmark size={20} on="surface" />
-                <span
-                  style={css(
-                    "font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)",
-                  )}
-                >
-                  {L.console}
-                </span>
-              </div>
+            <div style={css("display:flex;align-items:center;gap:10px")}>
+              <Logo size={27} priority />
+              <span style={css(`font:700 15px/1 ${SANS};color:var(--text);letter-spacing:-.01em`)}>
+                {L.bannerRotulo}
+              </span>
             </div>
           )}
 
           {header ? (
             <div style={css(STACK)}>
-              {/* O cabeçalho de cada tela, centrado como na entrada do portal
-                  do cliente. */}
-              <div style={css("text-align:center")}>
+              <div style={css("text-align:left")}>
                 <h1
                   style={css(
-                    "margin:0;font-size:26px;font-weight:700;line-height:1.2;color:var(--text)",
+                    "margin:0;font-size:28px;font-weight:700;line-height:1.2;" +
+                      "letter-spacing:-.025em;color:var(--text)",
                   )}
                 >
                   {title}
                 </h1>
-                <p
-                  style={css(
-                    "margin:8px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted)",
-                  )}
-                >
+                <p style={css("margin:9px 0 0;font-size:14px;line-height:1.5;color:var(--muted)")}>
                   {subtitle}
                 </p>
               </div>
@@ -268,7 +291,7 @@ export function AuthShell({
 
           {footer}
 
-          <div style={css("display:flex;flex-direction:column;align-items:center;gap:8px")}>
+          <div style={css("display:flex;flex-direction:column;align-items:flex-start;gap:8px")}>
             <span style={css("font-size:11.5px;color:var(--muted)")}>{L.acessoRestrito}</span>
 
             {/* No desktop o copyright fica sobre o banner; sem ele, é aqui. */}

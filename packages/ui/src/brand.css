@@ -15,14 +15,14 @@
 
 :root {
   /* A marca */
-  --brand: #1b9abd;
-  --brand-rgb: 27, 154, 189;
+  --brand: #387a9f;
+  --brand-rgb: 56, 122, 159;
   --brand-ink: #020e18;
-  --brand-lifted: #35b5da;
-  --brand-text: #0e7590;
-  --brand-hi: #4cc4e6;
-  --brand-bright: #38b7de;
-  --brand-soft: #e4f3f7;
+  --brand-lifted: #71b1d6;
+  --brand-text: #326e8f;
+  --brand-hi: #86bfdf;
+  --brand-bright: #3d8cb8;
+  --brand-soft: #e7eff3;
   --brand-petrol: #123c4a;
 
   /* Estados, sobre fundo claro */
