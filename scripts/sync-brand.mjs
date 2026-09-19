@@ -65,7 +65,7 @@ function emit(file, content) {
    aponta direto. Nenhuma superfície mora aqui — ver o cabeçalho do pacote.
 --------------------------------------------------------------------------- */
 
-/** `#1b9abd` → `27, 154, 189`, para quem precisa da marca COM ALFA. */
+/** `#387a9f` → `56, 122, 159`, para quem precisa da marca COM ALFA. */
 const rgbOf = (hex) => {
   const n = parseInt(hex.slice(1), 16);
   return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
@@ -131,11 +131,15 @@ ${CSS_VARS.map(([name, value]) =>
 emit("packages/ui/src/brand.css", brandCss);
 
 /* ---------------------------------------------------------------------------
-   2. `apps/mobile/app.json` — o petrol do splash e do ícone adaptativo.
+   2. `apps/mobile/app.json` — o petrol do splash.
 
-   Três campos, no mesmo arquivo, que precisam ser o mesmo valor: o fundo do
-   splash, o fundo do splash no modo escuro e o fundo do ícone adaptativo do
-   Android. Eram três literais escritos à mão; agora saem daqui.
+   Dois campos, no mesmo arquivo, que precisam ser o mesmo valor: o fundo do
+   splash e o fundo do splash no modo escuro. Eram literais escritos à mão;
+   agora saem daqui.
+
+   O fundo do ícone adaptativo do Android NÃO entra: desde o "AO" o ícone do
+   app é a marca sobre BRANCO (`docs/design/logo-aguiar-one/AppIcons`), e o
+   branco é do desenho, não da paleta.
 
    O JSON é reescrito campo a campo, e não regerado: `app.json` tem muita coisa
    que não é cor, e um arquivo de configuração do Expo não é lugar de conteúdo
@@ -146,14 +150,27 @@ const APP_JSON = path("apps/mobile/app.json");
 const appJsonRaw = readFileSync(APP_JSON, "utf8");
 
 /**
- * Só as ocorrências de `"backgroundColor": "<hex>"`. É o único campo de cor do
- * arquivo; se um dia houver outro, ele entra aqui explicitamente em vez de a
- * regex ficar mais esperta.
+ * Só as ocorrências de `"backgroundColor": "<hex>"` DENTRO da configuração do
+ * `expo-splash-screen` — o trecho entre o nome do plugin e o `]` que fecha a
+ * tupla dele. O `adaptiveIcon`, que também tem um `backgroundColor`, fica de
+ * fora por construção.
  */
-const appJsonNext = appJsonRaw.replace(
-  /("backgroundColor"\s*:\s*")#[0-9a-fA-F]{3,8}(")/g,
-  `$1${BRAND.ink.toUpperCase()}$2`,
-);
+const splashStart = appJsonRaw.indexOf('"expo-splash-screen"');
+const splashEnd = appJsonRaw.indexOf("]", splashStart);
+if (splashStart < 0 || splashEnd < 0) {
+  problems.push(`${show(APP_JSON)} não tem mais o plugin \`expo-splash-screen\``);
+}
+const appJsonNext =
+  splashStart < 0 || splashEnd < 0
+    ? appJsonRaw
+    : appJsonRaw.slice(0, splashStart) +
+      appJsonRaw
+        .slice(splashStart, splashEnd)
+        .replace(
+          /("backgroundColor"\s*:\s*")#[0-9a-fA-F]{3,8}(")/g,
+          `$1${BRAND.ink.toUpperCase()}$2`,
+        ) +
+      appJsonRaw.slice(splashEnd);
 
 if (appJsonNext !== appJsonRaw) {
   if (CHECK_ONLY) {
@@ -184,9 +201,11 @@ if (appJsonNext !== appJsonRaw) {
 --------------------------------------------------------------------------- */
 
 const ART = [
-  { file: "apps/portal-client/public/icons/icon.svg", expects: ["primary", "ink"] },
-  { file: "apps/portal-client/public/icons/icon-maskable.svg", expects: ["primary", "ink"] },
-  { file: "apps/portal-client/public/icons/apple-icon.svg", expects: ["primary", "ink"] },
+  // Os ladrilhos do PWA são a marca sobre BRANCO, como o ícone do app mobile:
+  // o único valor da paleta que eles carregam é a primária.
+  { file: "apps/portal-client/public/icons/icon.svg", expects: ["primary"] },
+  { file: "apps/portal-client/public/icons/icon-maskable.svg", expects: ["primary"] },
+  { file: "apps/portal-client/public/icons/apple-icon.svg", expects: ["primary"] },
   {
     /**
      * A última tela do portal. Ela copia a paleta à mão porque não carrega o
@@ -202,9 +221,12 @@ const ART = [
 /** Os binários. Ninguém os lê aqui; só se lembra de quem trocou a marca. */
 const BY_HAND = [
   "apps/portal-client/public/icons/icon-192.png (e -512, e as duas maskable)",
-  "apps/portal-admin/public/images/icon.png (e icon-bg.png)",
+  "apps/portal-admin/public/images/icon.png (e icon-bg.png; idem no portal-client)",
+  "apps/landing-page/public/images/logo.png (e app/icon.png, app/favicon.ico)",
+  "apps/*/app/favicon.ico, apps/portal-admin/app/apple-icon.png",
   "apps/mobile/assets/icon.png (e splash-icon.png, adaptive-icon.png)",
   "apps/*/public/logo-email.png",
+  "apps/portal-*/public/images/banner-login.png (a ilustração, não só a marca)",
 ];
 
 for (const { file, expects } of ART) {

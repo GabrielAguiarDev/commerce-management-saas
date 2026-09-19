@@ -125,7 +125,7 @@ const textVariants = {
    * com o "Aguiar One" logo acima.
    */
   authWelcome: { fontFamily: fontFamily.extrabold, fontSize: 23, lineHeight: 29, letterSpacing: -0.4 },
-  /** "Aguiar One" por extenso, sob o "A", na abertura do app. */
+  /** "Aguiar One" por extenso, sob o "AO", na abertura do app. */
   brandWordmark: { fontFamily: fontFamily.extrabold, fontSize: 29, lineHeight: 36, letterSpacing: -0.7 },
   brandTitle: { fontFamily: fontFamily.extrabold, fontSize: 22, lineHeight: 22, letterSpacing: -0.4 },
   screenTitle: { fontFamily: fontFamily.extrabold, fontSize: 21, lineHeight: 24, letterSpacing: -0.3 },

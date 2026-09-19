@@ -132,7 +132,7 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
             (col ? "padding:0 30px 0 13px;" : "padding:0 42px 0 16px;"),
         )}
       >
-        {/* Sem o ladrilho petrol atrás, o "A" pousa direto na barra e podia
+        {/* Sem o ladrilho petrol atrás, o "AO" pousa direto na barra e podia
             crescer: o arquivo é um ícone de app, com folga própria nas bordas,
             então o desenho só ganha presença se a caixa ganhar. Recolhida, a
             barra tem 84px de largura e a caixa cede o suficiente para não

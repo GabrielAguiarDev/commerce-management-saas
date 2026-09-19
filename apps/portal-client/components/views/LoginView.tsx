@@ -135,7 +135,7 @@ export function LoginView() {
       {/*
         A metade da marca. Só no desktop: abaixo de 900px ela viraria uma tarja
         de imagem espremida por cima do formulário, e o que a pessoa veio fazer
-        aqui é entrar. No lugar dela, o formulário ganha o ladrilho do "A".
+        aqui é entrar. No lugar dela, o formulário ganha o ladrilho do "AO".
 
         Toda a mensagem — logo, título, subtítulo e os três módulos — está
         DENTRO do arquivo: é a arte da marca, não um texto que esta tela
@@ -200,7 +200,7 @@ export function LoginView() {
           }}
         >
           {/* No celular o banner não entra, e sem ele o formulário chegaria sem
-              nenhuma marca. É o "A" azul em PNG transparente, o mesmo da
+              nenhuma marca. É o "AO" azul em PNG transparente, o mesmo da
               espera de entrada: pousa direto na superfície do formulário e não
               recebe cor nem fundo daqui. */}
           {isMobile && (

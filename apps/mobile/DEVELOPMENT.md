@@ -450,13 +450,13 @@ de ser e não devem ser mexidas por gosto:
 - **Cada marca se DISSOLVE em direção ao próprio pé** (`Logo fadeBase`), então
   nenhuma termina numa linha reta atravessada na tela — elas somem antes de
   acabar. O gradiente do fade usa `gradientUnits="userSpaceOnUse"` medindo a
-  altura do desenho, e **não** o padrão (a caixa de cada `Path`): o "A" são dois
-  caminhos com caixas diferentes, e pelo padrão a perna estaria apagada com a
-  haste ainda cheia, na mesma altura da tela.
+  altura do desenho, e **não** o padrão (a caixa de cada `Path`): o "AO" são três
+  caminhos com caixas diferentes, e pelo padrão a barra estaria apagada com o
+  "A" ainda cheio, na mesma altura da tela.
 - **A lavagem é OPACIDADE, não cor.** O `authWatermark` é a marca chapada e quem
   a esmaece é o `OPACIDADE_MARCA` (8,5%) da moldura, como já era com o
   `authGlow`. Uma cor `rgba(...)` ali não funciona: o `stopColor` do
-  react-native-svg **descarta o alfa**, e o "A" sai chapado na marca cheia,
+  react-native-svg **descarta o alfa**, e o "AO" sai chapado na marca cheia,
   gritando no topo da tela. Acima de ~8,5% os vincos ganham aresta nítida atrás
   do letreiro e o fundo vira o assunto do topo.
 

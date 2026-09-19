@@ -11,7 +11,7 @@ import { useAppTheme } from '@hooks/useAppTheme';
  *
  *  1. o degradê de base, do azul lavado do topo ao branco do rodapé;
  *  2. o halo, um clarão redondo atrás de onde a marca cai;
- *  3. a marca d'água: o mesmo "A" em três tamanhos, cruzando a faixa do topo.
+ *  3. a marca d'água: o mesmo "AO" em três tamanhos, cruzando a faixa do topo.
  *
  * A ordem importa: a marca d'água vem DEPOIS do halo porque ela é o relevo mais
  * próximo da superfície — passada por baixo, o clarão a lavaria justamente na
@@ -26,7 +26,7 @@ import { useAppTheme } from '@hooks/useAppTheme';
  */
 /**
  * O quanto a marca d'água aparece no seu ponto MAIS FORTE — o ápice de cada
- * "A", de onde ela só se dissolve para baixo.
+ * "AO", de onde ela só se dissolve para baixo.
  *
  * 8,5% e não mais: acima disso os vincos do desenho ganham aresta nítida atrás
  * do letreiro, e o fundo passa a ser o assunto do topo em vez da marca.
@@ -76,7 +76,7 @@ export function AuthBackdrop() {
           entre elas vem só do tamanho.
 
           Nenhuma passa da FAIXA DO TOPO: a mais baixa termina por volta dos
-          300pt, acima do primeiro rótulo. Descendo até os campos, a aresta do
+          260pt, acima do primeiro rótulo. Descendo até os campos, a aresta do
           "A" cruzava a borda do campo branco e o desenho passava a ler como
           risco na tela, não como relevo do fundo.
 
@@ -90,16 +90,19 @@ export function AuthBackdrop() {
           própria opacidade de 1 a 0 no espaço do desenho. Fossem as duas coisas
           na cor, uma teria de multiplicar a outra — e o `stopColor` do
           react-native-svg descarta o alfa, então a conta não fecharia. */}
-      <Box position="absolute" top={-34} right={-84} opacity={OPACIDADE_MARCA}>
-        <Logo size={300} color="authWatermark" fadeBase />
+      {/* As alturas são as do antigo "A" (300, 218, 162) divididas por √1,7:
+          o "AO" é 1,7× mais largo que alto, e assim cada marca cobre a mesma
+          ÁREA de fundo que cobria antes, em vez de 70% a mais. */}
+      <Box position="absolute" top={-30} right={-130} opacity={OPACIDADE_MARCA}>
+        <Logo size={230} color="authWatermark" fadeBase />
       </Box>
 
-      <Box position="absolute" top={54} left={-92} opacity={OPACIDADE_MARCA}>
-        <Logo size={218} color="authWatermark" fadeBase />
+      <Box position="absolute" top={70} left={-120} opacity={OPACIDADE_MARCA}>
+        <Logo size={168} color="authWatermark" fadeBase />
       </Box>
 
-      <Box position="absolute" top={-58} left={52} opacity={OPACIDADE_MARCA}>
-        <Logo size={162} color="authWatermark" fadeBase />
+      <Box position="absolute" top={-50} left={30} opacity={OPACIDADE_MARCA}>
+        <Logo size={124} color="authWatermark" fadeBase />
       </Box>
     </Box>
   );

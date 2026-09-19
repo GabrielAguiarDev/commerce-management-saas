@@ -43,7 +43,7 @@ import { css } from "@aguiar/ui";
 /** A paleta da landing, congelada. Ver o bloco acima antes de mexer. */
 const LP = {
   petrol: "#123c4a",
-  accent: "#1b9abd",
+  accent: "#387a9f",
   surface: "#ffffff",
   surface2: "#fbfcfd",
   border: "#e4eaec",

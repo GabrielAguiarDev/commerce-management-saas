@@ -4,10 +4,10 @@ import Image from "next/image";
 import { CONTAINER, CONTAINER_NARROW, EYEBROW, H2, LEAD, SECTION_INTRO } from "@/lib/styleKit";
 
 /**
- * A marca — o "A" do arquivo, não um desenho parecido com ele.
+ * A marca — o "AO" do arquivo, não um desenho parecido com ele.
  *
- * É o `public/images/icon.png` dos dois portais, byte a byte: o "A" azul da
- * marca (`#1b9abd`) SOBRE FUNDO TRANSPARENTE. Ele pousa direto no fundo de
+ * É o `public/images/icon.png` dos dois portais, byte a byte: o "AO" azul da
+ * marca (`#387a9f`) SOBRE FUNDO TRANSPARENTE. Ele pousa direto no fundo de
  * quem o hospeda — a barra clara do topo, o petrol do rodapé e o petrol da
  * barra lateral do painel ilustrado —, e é por isso que não recebe cor, fundo
  * nem canto arredondado: arredondar um PNG sem fundo não recorta nada, só
@@ -27,12 +27,12 @@ import { CONTAINER, CONTAINER_NARROW, EYEBROW, H2, LEAD, SECTION_INTRO } from "@
  * │ vez de trocar de conteúdo.                                             │
  * │                                                                        │
  * │ A VERSÃO COM O LADRILHO não sumiu do site: ela é `app/icon.png`, o     │
- * │ favicon, e é de propósito que ele continue opaco — uma marca           │
- * │ transparente numa aba de navegador escura desaparece.                  │
+ * │ favicon — o ladrilho branco do ícone do app —, e é de propósito que    │
+ * │ ele seja opaco: uma marca transparente numa aba escura desaparece.     │
  * └────────────────────────────────────────────────────────────────────────┘
  *
- * O arquivo é quadrado e tem a folga própria de ícone de app nas bordas; por
- * isso o desenho ocupa cerca de 44% do lado, e não o lado inteiro.
+ * O arquivo é quadrado e a marca é larga (1,7 : 1): ela ocupa 76% da largura e
+ * cerca de 45% da altura — a mesma altura óptica que o antigo "A" tinha.
  *
  * O arquivo de design desenhava um quadradinho com a letra "A" em Manrope. Era
  * um "A" genérico, e o console já passou por essa troca pelo mesmo motivo.

@@ -158,7 +158,7 @@ export function AuthShell({
       {/*
         A metade da marca. Só no desktop: abaixo de 900px ela viraria uma tarja
         de imagem espremida por cima do formulário, e o que a pessoa veio fazer
-        aqui é entrar. No lugar dela, o formulário ganha o ladrilho do "A".
+        aqui é entrar. No lugar dela, o formulário ganha o ladrilho do "AO".
 
         Toda a mensagem — logo, tarja "Área administrativa", título, subtítulo e
         os três pilares — está DENTRO do arquivo: é a arte da marca, não um
@@ -220,7 +220,7 @@ export function AuthShell({
       >
         <div style={css("width:100%;max-width:380px;display:flex;flex-direction:column;gap:26px")}>
           {/* No celular o banner não entra, e sem ele a tela chegaria sem
-              nenhuma marca. É o "A" azul em PNG transparente, o mesmo do topo
+              nenhuma marca. É o "AO" azul em PNG transparente, o mesmo do topo
               do console: pousa direto na superfície clara e não recebe cor nem
               fundo daqui. */}
           {isMobile && (

@@ -47,7 +47,7 @@ body {
      the monorepo where the identity has a literal value; the mobile app's
      palette and the site's tokens read the very same source.
 
-     Everything accent-colored in either theme is the brand's hue — 193° — and
+     Everything accent-colored in either theme is the brand's hue — 201° — and
      nothing else. `--accent` aliases `--brand` outright in the light theme,
      and the dark theme takes `--brand-lifted`, which is that same hue with
      only its LUMINANCE opened so it survives on a petrol surface. What this
@@ -102,15 +102,15 @@ body {
      never drift into a teal that belongs to no one — which is what the old
      `#e0f1f2` did.
 
-     `text` is the accent WHEN IT IS TEXT. `--accent` on white is 3.3:1, which
+     `text` is the accent WHEN IT IS TEXT. `--accent` on white is 4.7:1 (4.2:1 on `--bg`), which
      is enough for a filled button or a border but not for a label or a link;
-     this is the same hue (192.5°) taken darker, at 5.3:1 on `--surface` and
-     4.7:1 on `--bg`. Rule: filled or drawn → `--accent`; written → this.
+     this is the same hue (201°) taken darker, at 5.6:1 on `--surface` and
+     5.0:1 on `--bg`. Rule: filled or drawn → `--accent`; written → this.
      `text-hi` is its hover, which opens back up into the brand itself. */
   --accent: var(--brand);
   --accent-ink: #ffffff;
   --accent-soft: var(--brand-soft);
-  --accent-line: #c6e6ef;
+  --accent-line: #cddee7;
   --accent-hi: var(--brand-bright);
   --accent-text: var(--brand-text);
   --accent-text-hi: var(--brand);
@@ -148,8 +148,8 @@ body {
 
   /* The blue of "One" in the wordmark, and of any link standing on the rail.
      It is NOT `--accent-hi`: that one flips with the theme, and the rail does
-     not. Same value the app uses for the links on its entrance. */
-  --side-accent: #35abd6;
+     not. It is the brand opened for dark grounds — 8.3:1 on the rail. */
+  --side-accent: var(--brand-lifted);
 
   /* The collapsed rail's tooltip — the balloon that names an icon on hover.
      It is NOT part of the `--side-*` family above, and that distinction is the
@@ -195,8 +195,8 @@ body[data-theme="dark"] {
   --muted: #94aeb8;
 
   /* The dark accent is THE BRAND, lifted in luminance and not in hue: same
-     193° as `--brand`, opened up until it carries on a petrol surface (7.1:1
-     on `--surface`, against 5.2:1 for the flat brand). It is emphatically NOT
+     201° as `--brand`, opened up until it carries on a petrol surface (7.3:1
+     on `--surface`, against 3.6:1 for the flat brand). It is emphatically NOT
      a teal — see the note at the top of the file. `soft` and `line` are this
      same blue washed onto the dark ground.
 
@@ -205,8 +205,8 @@ body[data-theme="dark"] {
      opens one more step into `hi`. */
   --accent: var(--brand-lifted);
   --accent-ink: #02202b;
-  --accent-soft: #103343;
-  --accent-line: #195368;
+  --accent-soft: #183343;
+  --accent-line: #2e5167;
   --accent-hi: var(--brand-hi);
   --accent-text: var(--accent);
   --accent-text-hi: var(--accent-hi);
@@ -214,7 +214,7 @@ body[data-theme="dark"] {
 
   /* Green, and never anything but green: `--pos` is money going the right way
      and it has to be told apart from the accent at a glance, on a chart and
-     in a badge. Pushed a touch greener (153° against the accent's 193°) now
+     in a badge. Pushed a touch greener (153° against the accent's 201°) now
      that both live on the same dark ground. */
   --pos: var(--pos-dark);
   --pos-soft: #0d3328;

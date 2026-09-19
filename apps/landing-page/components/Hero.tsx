@@ -21,7 +21,7 @@ import { CTA_GHOST, ctaPrimary } from "@/lib/styleKit";
  * mancha entra na tela, e é isso que evita o "olho" — um círculo de cor com
  * centro visível, que é o que denuncia um degradê radial mal colocado.
  *
- * `rgba(27,154,189,0)` e NÃO `transparent` no fim de cada parada. `transparent`
+ * `rgba(var(--brand-rgb),0)` e NÃO `transparent` no fim de cada parada. `transparent`
  * é preto com alfa zero, e alguns navegadores interpolam passando pelo cinza:
  * a mancha ganharia um halo sujo na borda. Terminar na mesma cor com alfa zero
  * interpola dentro do mesmo tom.
@@ -41,23 +41,23 @@ const WASH =
   "background:" +
   /* Canto de cima à ESQUERDA. Pico em 55%. */
   "radial-gradient(60% 62% at 1% -6%," +
-  "rgba(27,154,189,.55) 0%," +
-  "rgba(27,154,189,.40) 20%," +
-  "rgba(27,154,189,.24) 38%," +
-  "rgba(27,154,189,.12) 54%," +
-  "rgba(27,154,189,.05) 68%," +
-  "rgba(27,154,189,.015) 80%," +
-  "rgba(27,154,189,0) 90%)," +
+  "rgba(var(--brand-rgb),.55) 0%," +
+  "rgba(var(--brand-rgb),.40) 20%," +
+  "rgba(var(--brand-rgb),.24) 38%," +
+  "rgba(var(--brand-rgb),.12) 54%," +
+  "rgba(var(--brand-rgb),.05) 68%," +
+  "rgba(var(--brand-rgb),.015) 80%," +
+  "rgba(var(--brand-rgb),0) 90%)," +
   /* Canto de cima à DIREITA. Um degrau abaixo — duas manchas de peso idêntico
      em espelho leem como um desenho, e não como luz. */
   "radial-gradient(58% 58% at 100% -3%," +
-  "rgba(27,154,189,.50) 0%," +
-  "rgba(27,154,189,.36) 20%," +
-  "rgba(27,154,189,.22) 38%," +
-  "rgba(27,154,189,.11) 54%," +
-  "rgba(27,154,189,.045) 68%," +
-  "rgba(27,154,189,.013) 80%," +
-  "rgba(27,154,189,0) 90%)," +
+  "rgba(var(--brand-rgb),.50) 0%," +
+  "rgba(var(--brand-rgb),.36) 20%," +
+  "rgba(var(--brand-rgb),.22) 38%," +
+  "rgba(var(--brand-rgb),.11) 54%," +
+  "rgba(var(--brand-rgb),.045) 68%," +
+  "rgba(var(--brand-rgb),.013) 80%," +
+  "rgba(var(--brand-rgb),0) 90%)," +
   "#fff;";
 
 /**
