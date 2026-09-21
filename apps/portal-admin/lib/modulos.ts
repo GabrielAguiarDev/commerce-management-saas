@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isComingSoon, MODULE_INITIALS } from "@/lib/planos";
+import { isComingSoon, isCoreCapability, MODULE_INITIALS } from "@/lib/planos";
 import { createClient } from "@/lib/supabase/server";
 import type { Module, Plan } from "@/types/types";
 
@@ -87,7 +87,12 @@ export async function listModules(plans: Plan[] | Promise<Plan[]>): Promise<Modu
     };
   }
 
-  const catalog = (data as ModuleRow[]).map((l) => toModule(l, planList));
+  const fullCatalog = (data as ModuleRow[]).map((l) => toModule(l, planList));
+
+  // Capacidades essenciais têm navegação própria e não entram em planos,
+  // contagens de adoção ou seletores. O filtro também protege o intervalo
+  // entre publicar o código e aplicar a migration que remove a linha legada.
+  const catalog = fullCatalog.filter((m) => !isCoreCapability(m.k));
 
   // A separação acontece aqui, na leitura, e não em cada tela: assim `modulos`
   // é sempre o que se pode vender, e nenhuma grade, contagem ou chip precisa se
@@ -103,7 +108,7 @@ export async function listModules(plans: Plan[] | Promise<Plan[]>): Promise<Modu
   // módulo em breve não é um plano quebrado — é um plano cuja chave vai ser
   // ignorada na hora de ativar (`resolveModules`), e avisar de órfão aqui só
   // produziria ruído no log.
-  const keys = new Set(catalog.map((m) => m.k));
+  const keys = new Set(fullCatalog.map((m) => m.k));
   const orphans = planList.flatMap((p) => p.mods).filter((k) => !keys.has(k));
   if (orphans.length > 0) {
     console.error(

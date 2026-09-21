@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isComingSoon } from "@/lib/planos";
+import { isSellableModule } from "@/lib/planos";
 import { createClient } from "@/lib/supabase/server";
 import type { SettingItem, Loc } from "@/types/types";
 
@@ -112,7 +112,7 @@ export async function listSettings(): Promise<SettingsResult> {
             ? defaultValue(type)
             : type === "mods"
               ? Array.isArray(gross)
-                ? (gross as string[])
+                ? (gross as string[]).filter(isSellableModule)
                 : []
               : type === "numero"
                 ? Number(gross) || 0
@@ -142,5 +142,5 @@ export async function defaultModules(): Promise<string[]> {
     .maybeSingle();
 
   if (error || !data || !Array.isArray(data.value)) return [];
-  return (data.value as string[]).filter((k) => !isComingSoon(k));
+  return (data.value as string[]).filter(isSellableModule);
 }

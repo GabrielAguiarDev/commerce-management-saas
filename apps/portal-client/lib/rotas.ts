@@ -42,6 +42,6 @@ export function moduleFromRoute(pathname: string): ModuleKey | null {
 
 /** O id do chamado numa rota /suporte/1084, ou `null` fora dela. */
 export function ticketFromRoute(pathname: string): string | null {
-  const m = /^\/support\/([^/]+)$/.exec(pathname);
+  const m = /^\/suporte\/([^/]+)$/.exec(pathname);
   return m ? m[1] : null;
 }

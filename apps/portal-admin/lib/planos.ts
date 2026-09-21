@@ -24,10 +24,26 @@ export const MODULE_INITIALS: Record<string, string> = {
   cash: "CX",
   costs: "CT",
   reports: "RL",
-  support: "SP",
   fiscal: "NF",
   app: "AP",
 };
+
+// =====================================================================
+// CAPACIDADES ESSENCIAIS
+// =====================================================================
+
+/**
+ * Capacidades disponíveis para toda conta ativa, fora da oferta comercial.
+ *
+ * `support` já é autorizado dessa forma pelo RLS. Mantê-lo também no catálogo
+ * vendável criava duas verdades: o sistema liberava o atendimento para todos,
+ * enquanto planos e clientes ainda podiam ligá-lo ou desligá-lo no console.
+ */
+export const CORE_CAPABILITIES: readonly string[] = ["support"];
+
+export function isCoreCapability(k: string): boolean {
+  return CORE_CAPABILITIES.includes(k);
+}
 
 // =====================================================================
 // EM BREVE
@@ -50,6 +66,11 @@ export const COMING_SOON_MODULES: readonly string[] = ["fiscal"];
 
 export function isComingSoon(k: string): boolean {
   return COMING_SOON_MODULES.includes(k);
+}
+
+/** Só capacidades que podem compor um plano ou um cliente. */
+export function isSellableModule(k: string): boolean {
+  return !isCoreCapability(k) && !isComingSoon(k);
 }
 
 // =====================================================================
@@ -78,11 +99,9 @@ export function resolveModules(
   // ponto por onde passam as duas escritas de módulo de um cliente (cadastro e
   // ficha). Um plano antigo que ainda carregue a chave no `module_keys`, ou uma
   // requisição forjada, morre neste ponto em vez de ligar uma tela inacabada.
-  const vendavel = (k: string) => !isComingSoon(k);
-
-  if (!ehCustom) return planModules.filter(vendavel);
+  if (!ehCustom) return planModules.filter(isSellableModule);
   // Customizado: só o que foi marcado, sem repetição.
-  return [...new Set(picked)].filter(vendavel);
+  return [...new Set(picked)].filter(isSellableModule);
 }
 
 /** Plano de pacote fechado — a grade de módulos fica só de leitura. */
@@ -109,7 +128,8 @@ export function planModules(plan: Plan | undefined, picked: readonly string[] = 
  * mostrar o catálogo inteiro, que é o que o admin de fato pode escolher.
  */
 export function plansWithCatalog(plans: Plan[], chavesDoBanco: string[]): Plan[] {
+  const vendaveis = chavesDoBanco.filter(isSellableModule);
   return plans.map((p) =>
-    p.type === "custom" && p.mods.length === 0 ? { ...p, mods: chavesDoBanco } : p,
+    p.type === "custom" && p.mods.length === 0 ? { ...p, mods: vendaveis } : p,
   );
 }

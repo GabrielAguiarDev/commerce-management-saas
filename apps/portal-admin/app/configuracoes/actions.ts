@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, type ActionResult } from "@/lib/autorizacao";
+import { isSellableModule } from "@/lib/planos";
 import { normalizeWhatsapp } from "@/lib/telefone";
 
 /**
@@ -48,6 +49,10 @@ export async function saveSetting(
   // `platform_whatsapp_contact()`) monta um `wa.me` direto com o que estiver
   // gravado, então a garantia do formato tem que ficar do lado do servidor.
   let value: string | number | string[] = amount;
+
+  if (key === "default_modules" && Array.isArray(amount)) {
+    value = [...new Set(amount)].filter(isSellableModule);
+  }
 
   if (key === "whatsapp_contact") {
     const phone = normalizeWhatsapp(amount);

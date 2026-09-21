@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isSellableModule } from "@/lib/planos";
 import { createClient } from "@/lib/supabase/server";
 import type { Plan } from "@/types/types";
 
@@ -52,7 +53,9 @@ export function toPlan(linha: PlanRow): Plan {
     type: linha.is_custom ? ("custom" as const) : ("fixed" as const),
     price: linha.is_custom ? null : formatPrice(linha.price),
     desc: umTexto(linha.description ?? "—"),
-    mods: linha.module_keys ?? [],
+    // Leitura defensiva para deploys em que o código chegue antes da migration
+    // de limpeza: capacidade essencial nunca volta a aparecer como item do plano.
+    mods: (linha.module_keys ?? []).filter(isSellableModule),
   };
 }
 

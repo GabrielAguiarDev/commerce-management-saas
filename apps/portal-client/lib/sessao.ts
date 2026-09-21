@@ -70,14 +70,13 @@ export async function requireCustomer(
   } | null;
   const isOwner = role?.is_owner === true;
 
-  const { data: activeRows, error: moduleError } = await supabase
+  const { data: activeRows } = await supabase
     .from("v_active_modules")
     .select("key, is_access");
 
-  if (moduleError) {
-    return { ok: false, message: `Você não tem permissão para ${action}.` };
-  }
-
+  // Falha fechada para o que é vendável e aberta somente para o núcleo: se a
+  // view de entitlements estiver indisponível, a conta ainda alcança dashboard,
+  // configurações e suporte, mas não ganha nenhum módulo comercial por engano.
   const planModules = tenantModules(activeRows ?? []);
   const roleAllowed = new Set<ModuleKey>([
     ...BASE_MODULES,

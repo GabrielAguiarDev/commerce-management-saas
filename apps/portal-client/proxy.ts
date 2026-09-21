@@ -134,6 +134,13 @@ export async function proxy(request: NextRequest) {
 
   const requiredModule = moduleForPath(request.nextUrl.pathname);
   if (requiredModule) {
+    // Dashboard, configurações e suporte pertencem à conta, não ao plano. Em
+    // especial, /suporte precisa continuar acessível mesmo quando a leitura de
+    // entitlements estiver temporariamente indisponível.
+    if (BASE_MODULES.includes(requiredModule)) {
+      return inLogin ? redirect("/") : response;
+    }
+
     const role = (Array.isArray(perfil.roles) ? perfil.roles[0] : perfil.roles) as {
       permissions?: unknown;
       is_owner?: boolean | null;

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, type ActionResult } from "@/lib/autorizacao";
 import { revalidarLanding } from "@/lib/revalidarLanding";
-import { isComingSoon } from "@/lib/planos";
+import { isCoreCapability, isSellableModule } from "@/lib/planos";
 
 /**
  * Edição do catálogo de planos — grava em `plans` de verdade.
@@ -50,7 +50,7 @@ function toNumber(amount: string): number | null {
  * uma coisa e entrega outra. Ver `COMING_SOON_MODULES` em `lib/planos.ts`.
  */
 function sellableModules(keys: string[]): string[] {
-  return [...new Set(keys)].filter((k) => !isComingSoon(k));
+  return [...new Set(keys)].filter(isSellableModule);
 }
 
 export async function savePlan(
@@ -122,6 +122,13 @@ export async function saveModule(
 ): Promise<ActionResult> {
   const auth = await requireAdmin("editar módulos");
   if (!auth.ok) return auth;
+
+  if (isCoreCapability(moduloKey)) {
+    return {
+      ok: false,
+      message: "Suporte é uma capacidade essencial e não pode ser editado como módulo.",
+    };
+  }
 
   // O nome fica de fora: o formulário não expõe field para ele, então gravá-lo
   // aqui só criaria a chance de sobrescrever com um valor que ninguém editou.

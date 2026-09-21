@@ -713,9 +713,10 @@ function TeamTab() {
 function AccountTab() {
   const { a, has, isDesktop } = usePortal();
 
-  // `dashboard` e `config` não são vendidos: todo cliente os tem.
+  // Dashboard, configurações e suporte pertencem à conta; só as capacidades
+  // comerciais entram nesta conta e nesta grade de plano.
   const all = (Object.keys(MODULES) as ModuleKey[]).filter(
-    (m) => m !== "dashboard" && m !== "settings",
+    (m) => m !== "dashboard" && m !== "settings" && m !== "support",
   );
   const moduleCols = isDesktop ? "repeat(3,minmax(0,1fr))" : "1fr 1fr";
   const on = all.filter((m) => has(m)).length;
@@ -796,6 +797,14 @@ function AccountTab() {
                 </div>
               );
             })}
+          </div>
+          <div
+            style={css(
+              `margin-top:12px;padding:11px 13px;border-radius:11px;background:var(--pos-soft);` +
+                `color:var(--pos);font:600 12px/1.45 ${SANS}`,
+            )}
+          >
+            Suporte direto com a nossa equipe está incluído em todas as contas.
           </div>
         </div>
 

@@ -19,7 +19,6 @@ export const DB_TO_PORTAL: Record<string, ModuleKey> = {
   costs: "costs",
   reports: "reports",
   fiscal: "fiscal",
-  support: "support",
 };
 
 /** O caminho inverso, para quando a interface precisa perguntar pelo banco. */
@@ -27,7 +26,7 @@ export const PORTAL_TO_DB: Partial<Record<ModuleKey, string>> = Object.fromEntri
   Object.entries(DB_TO_PORTAL).map(([db, portal]) => [portal, db]),
 ) as Partial<Record<ModuleKey, string>>;
 
-/** Módulos que todo cliente tem, sem depender do plano. */
+/** Capacidades essenciais da interface, disponíveis sem depender do plano. */
 export const BASE_MODULES: ModuleKey[] = ["dashboard", "settings", "support"];
 
 /**
