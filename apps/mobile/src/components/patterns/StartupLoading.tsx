@@ -49,7 +49,7 @@ export function StartupLoading() {
       backgroundColor="bg"
       justifyContent="center"
       alignItems="center"
-      paddingHorizontal="s30"
+      paddingHorizontal="screen"
       accessibilityLabel={t.startup.a11yLabel}
     >
       {/* A mesma marca da tela de login, no mesmo tamanho. Vindo de lá, é o

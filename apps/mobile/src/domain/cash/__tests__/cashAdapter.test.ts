@@ -17,10 +17,10 @@ const SHIFT_API: CashShiftAPI = {
   opening_cents: 15000,
   drawer_cents: 74250,
   method_totals: [
-    { method: 'Dinheiro', amount_cents: 59250 },
-    { method: 'Pix', amount_cents: 31800 },
-    { method: 'Cartão de débito', amount_cents: 21000 },
-    { method: 'Cartão de crédito', amount_cents: 15390 },
+    { method: 'cash', amount_cents: 59250 },
+    { method: 'pix', amount_cents: 31800 },
+    { method: 'debit', amount_cents: 21000 },
+    { method: 'credit', amount_cents: 15390 },
   ],
 };
 
@@ -40,7 +40,7 @@ describe('toTurnoAberto', () => {
   it('não quebra quando não há linha de dinheiro', () => {
     const semDinheiro = toOpenShift({
       ...SHIFT_API,
-      method_totals: [{ method: 'Pix', amount_cents: 100 }],
+      method_totals: [{ method: 'pix', amount_cents: 100 }],
     });
     expect(semDinheiro.cashSalesCents).toBe(0);
   });
@@ -63,12 +63,13 @@ describe('linhasDeConferencia', () => {
   const rows = countRows(shift);
 
   it('agrupa débito e crédito numa única linha "Cartão"', () => {
-    expect(rows.map((l) => l.method)).toEqual(['Dinheiro', 'Pix', 'Cartão']);
-    expect(rows.find((l) => l.method === 'Cartão')?.esperadoCentavos).toBe(21000 + 15390);
+    expect(rows.map((l) => l.method)).toEqual(['cash', 'pix', 'card']);
+    expect(rows.map((l) => l.label)).toEqual(['Dinheiro', 'Pix', 'Cartão']);
+    expect(rows.find((l) => l.method === 'card')?.esperadoCentavos).toBe(21000 + 15390);
   });
 
   it('espera a GAVETA no dinheiro, não a venda em dinheiro', () => {
-    expect(rows.find((l) => l.method === 'Dinheiro')?.esperadoCentavos).toBe(74250);
+    expect(rows.find((l) => l.method === 'cash')?.esperadoCentavos).toBe(74250);
   });
 
   it('reproduz os esperados do protótipo (742,50 / 318,00 / 363,90)', () => {
@@ -78,9 +79,9 @@ describe('linhasDeConferencia', () => {
   it('omite a linha de cartão quando o turno não recebeu cartão', () => {
     const soDinheiro = toOpenShift({
       ...SHIFT_API,
-      method_totals: [{ method: 'Dinheiro', amount_cents: 1000 }],
+      method_totals: [{ method: 'cash', amount_cents: 1000 }],
     });
-    expect(countRows(soDinheiro).map((l) => l.method)).toEqual(['Dinheiro']);
+    expect(countRows(soDinheiro).map((l) => l.method)).toEqual(['cash']);
   });
 });
 
@@ -89,7 +90,7 @@ describe('calcularDiferenca', () => {
 
   it('não informa nada enquanto nenhum campo foi preenchido', () => {
     expect(computeDifference(rows, {})).toEqual({ informado: false, diferencaCentavos: 0 });
-    expect(computeDifference(rows, { Dinheiro: '', Pix: '   ' })).toEqual({
+    expect(computeDifference(rows, { cash: '', pix: '   ' })).toEqual({
       informado: false,
       diferencaCentavos: 0,
     });
@@ -98,38 +99,38 @@ describe('calcularDiferenca', () => {
   it('IGNORA linha em branco em vez de tratá-la como zero', () => {
     // Se branco valesse zero, conferir só o dinheiro acusaria falta de todo o
     // Pix e cartão e assustaria o dono no meio do fechamento.
-    const r = computeDifference(rows, { Dinheiro: '742,50' });
+    const r = computeDifference(rows, { cash: '742,50' });
     expect(r).toEqual({ informado: true, diferencaCentavos: 0 });
   });
 
   it('acusa a falta quando o conferido é menor', () => {
-    const r = computeDifference(rows, { Dinheiro: '739,50' });
+    const r = computeDifference(rows, { cash: '739,50' });
     expect(r.diferencaCentavos).toBe(-300);
   });
 
   it('acusa a sobra quando o conferido é maior', () => {
-    const r = computeDifference(rows, { Dinheiro: '752,50' });
+    const r = computeDifference(rows, { cash: '752,50' });
     expect(r.diferencaCentavos).toBe(1000);
   });
 
   it('soma as diferenças de todas as linhas preenchidas', () => {
     const r = computeDifference(rows, {
-      Dinheiro: '740,00',
-      Pix: '318,00',
-      'Cartão': '365,00',
+      cash: '740,00',
+      pix: '318,00',
+      card: '365,00',
     });
     expect(r.diferencaCentavos).toBe(-250 + 0 + 110);
   });
 
   it('trata texto sem número como zero conferido, não como NaN', () => {
-    const r = computeDifference(rows, { Dinheiro: 'abc' });
+    const r = computeDifference(rows, { cash: 'abc' });
     expect(Number.isNaN(r.diferencaCentavos)).toBe(false);
     expect(r.diferencaCentavos).toBe(-74250);
   });
 
   it('aceita o formato brasileiro com milhar', () => {
-    const r = computeDifference([{ method: 'Dinheiro', esperadoCentavos: 123456 }], {
-      Dinheiro: 'R$ 1.234,56',
+    const r = computeDifference([{ method: 'cash', label: 'Dinheiro', esperadoCentavos: 123456 }], {
+      cash: 'R$ 1.234,56',
     });
     expect(r.diferencaCentavos).toBe(0);
   });

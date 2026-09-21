@@ -139,7 +139,7 @@ export default function SalesHistoryScreen() {
                   value={fromText}
                   onChangeText={(v) => setFromText(maskDayInput(v))}
                   label={t.sales.period.from}
-                  placeholder="dd/mm/aaaa"
+                  placeholder={t.sales.datePlaceholder}
                   keyboardType="number-pad"
                   accessibilityLabel={t.sales.period.from}
                   height={46}
@@ -150,7 +150,7 @@ export default function SalesHistoryScreen() {
                   value={toText}
                   onChangeText={(v) => setToText(maskDayInput(v))}
                   label={t.sales.period.to}
-                  placeholder="dd/mm/aaaa"
+                  placeholder={t.sales.datePlaceholder}
                   keyboardType="number-pad"
                   accessibilityLabel={t.sales.period.to}
                   height={46}

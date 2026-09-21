@@ -1048,8 +1048,9 @@ export function PortalProvider({
   /* Suporte                                                                 */
   /* ---------------------------------------------------------------------- */
 
-  const openNewTicket = useCallback(
-    () => set({ modal: { k: "newTicket" }, ticketForm: { ...EMPTY_TICKET_FORM } }),
+  const openNewTicket = useCallback<PortalActions["openNewTicket"]>(
+    (prefill) =>
+      set({ modal: { k: "newTicket" }, ticketForm: { ...EMPTY_TICKET_FORM, ...prefill } }),
     [set],
   );
 

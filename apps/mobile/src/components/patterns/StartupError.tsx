@@ -2,6 +2,7 @@ import { Box } from '@components/ui/Box';
 import { Button } from '@components/ui/Button';
 import { Icon } from '@components/ui/Icon';
 import { Text } from '@components/ui/Text';
+import { useTranslation } from '@i18n';
 
 /**
  * A TELA DE FALHA NA ABERTURA.
@@ -19,10 +20,31 @@ import { Text } from '@components/ui/Text';
  * Não é a tela de bloqueio (`/blocked`): aquela diz "seu plano não inclui", uma
  * afirmação sobre o contrato do cliente. Esta diz "não consegui verificar", que
  * é uma afirmação sobre nós.
+ *
+ * Ela cobre as duas cargas de entrada: o entitlement do app e o plano (tenant +
+ * módulos). O plano falhando já abriu o app sem nenhum módulo, como se o
+ * cliente não tivesse contratado nada.
+ *
+ * "Falar com o suporte" vai pelo canal EXTERNO (WhatsApp): o suporte in-app
+ * mora dentro do shell que esta tela está justamente impedindo de abrir.
  */
-export function StartupError({ onRetry, onSignOut }: { onRetry: () => void; onSignOut: () => void }) {
+export function StartupError({
+  onRetry,
+  retrying = false,
+  onContactSupport,
+  contactLoading = false,
+  onSignOut,
+}: {
+  onRetry: () => void;
+  retrying?: boolean;
+  onContactSupport: () => void;
+  contactLoading?: boolean;
+  onSignOut: () => void;
+}) {
+  const t = useTranslation();
+
   return (
-    <Box flex={1} backgroundColor="bg" justifyContent="center" paddingHorizontal="s30">
+    <Box flex={1} backgroundColor="bg" justifyContent="center" paddingHorizontal="screen">
       <Box
         width={76}
         height={76}
@@ -37,21 +59,40 @@ export function StartupError({ onRetry, onSignOut }: { onRetry: () => void; onSi
       </Box>
 
       <Text variant="blockTitle" textAlign="center" marginBottom="s10" accessibilityRole="header">
-        Não conseguimos abrir o aplicativo
+        {t.startupError.title}
       </Text>
 
       <Text variant="bodyLoose" color="textMuted" textAlign="center" marginBottom="s28">
-        Não deu para confirmar o seu plano agora. Verifique a conexão e tente de novo.
+        {t.startupError.text}
       </Text>
 
-      <Button title="Tentar de novo" onPress={onRetry} height={54} radius={16} />
+      <Button
+        title={t.startupError.retry}
+        onPress={onRetry}
+        loading={retrying}
+        height={54}
+        radius={16}
+      />
 
       <Box marginTop="s10">
         <Button
-          title="Sair da conta"
-          onPress={onSignOut}
+          title={t.startupError.contactSupport}
+          onPress={onContactSupport}
+          loading={contactLoading}
           variant="contorno"
           textColor="textPrimary"
+          height={50}
+          radius={16}
+          textVariant="buttonSm"
+        />
+      </Box>
+
+      <Box marginTop="s10">
+        <Button
+          title={t.startupError.signOut}
+          onPress={onSignOut}
+          variant="contorno"
+          textColor="textMuted"
           height={50}
           radius={16}
           textVariant="buttonSm"

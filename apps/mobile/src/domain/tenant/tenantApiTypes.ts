@@ -43,9 +43,10 @@ export interface TenantAPI {
 
 export interface TeamMemberAPI {
   id: string;
-  full_name: string;
+  /** `null` quando o perfil não tem nome — o texto de reserva é do adapter. */
+  full_name: string | null;
   role_name: string | null;
-  access_summary: string | null;
+  is_owner: boolean;
 }
 
 /**

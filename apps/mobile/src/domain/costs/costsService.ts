@@ -13,11 +13,13 @@ import {
   type CostType,
   type MonthlySummary,
 } from './costsTypes';
+import { throwIfAccessDenied } from '@domain/shared/accessDenied';
 
 /** AS REGRAS dos custos. */
 
 function normalize(error: unknown): never {
   if (error instanceof CostError) throw error;
+  throwIfAccessDenied(error);
   const message = (error as { message?: unknown } | null)?.message;
   throw new CostError(toCostErrorCode(error), typeof message === 'string' ? message : undefined);
 }

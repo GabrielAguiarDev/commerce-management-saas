@@ -1,6 +1,7 @@
 import { contains } from '@utils/text';
 
 import type { CatalogSortKey, Product } from './catalogTypes';
+import { currentMessages } from '@i18n/active';
 
 /**
  * Seletores puros do catálogo.
@@ -29,7 +30,7 @@ export function filterCatalog(products: Product[], criterion: CatalogSortKey): P
     if (criterion.filter === 'special') {
       const label = criterion.specialCategory;
       if (!label) return true;
-      if (label === 'Serviços') return p.ehServico;
+      if (label === currentMessages().catalog.services) return p.ehServico;
       return (p.category ?? '') === label;
     }
     return true;
@@ -54,7 +55,7 @@ export function filterCatalog(products: Product[], criterion: CatalogSortKey): P
  *  3. senão, `null` — e a tela simplesmente não mostra o terceiro chip.
  */
 export function specialCategoryOf(products: Product[]): string | null {
-  if (products.some((p) => p.ehServico)) return 'Serviços';
+  if (products.some((p) => p.ehServico)) return currentMessages().catalog.services;
 
   const count = new Map<string, number>();
   for (const p of products) {

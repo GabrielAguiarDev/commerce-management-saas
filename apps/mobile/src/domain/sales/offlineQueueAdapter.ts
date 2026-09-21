@@ -1,6 +1,7 @@
 import type { QueuedSaleRow } from './offlineQueueTypes';
 import type { QueuedSaleCreate, SaleItemAPI } from './salesApiTypes';
 import type { CartItem, PendingSale, SyncFailure } from './salesTypes';
+import { currentMessages } from '@i18n/active';
 
 /**
  * TRADUÇÃO DA FILA LOCAL — linhas do SQLite ⇄ modelo de domínio.
@@ -36,11 +37,11 @@ export function relativeDay(iso: string, now: Date = new Date()): string {
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate();
 
-  if (sameDay(d, now)) return 'hoje';
+  if (sameDay(d, now)) return currentMessages().time.todayLower;
 
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  if (sameDay(d, yesterday)) return 'ontem';
+  if (sameDay(d, yesterday)) return currentMessages().time.yesterday;
 
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 }

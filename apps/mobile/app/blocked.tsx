@@ -42,7 +42,7 @@ export default function BlockedScreen() {
   }
 
   return (
-    <Box flex={1} backgroundColor="bg" justifyContent="center" paddingHorizontal="s30">
+    <Box flex={1} backgroundColor="bg" justifyContent="center" paddingHorizontal="screen">
       <Box
         width={76}
         height={76}
@@ -57,16 +57,15 @@ export default function BlockedScreen() {
       </Box>
 
       <Text variant="blockTitle" textAlign="center" marginBottom="s10" accessibilityRole="header">
-        Seu plano ainda não inclui o aplicativo
+        {t.blocked.title}
       </Text>
 
       <Text variant="bodyLoose" color="textMuted" textAlign="center" marginBottom="s28">
-        Sem problema: você continua com tudo funcionando pelo navegador. Se quiser vender pelo
-        celular, é só falar com a gente.
+        {t.blocked.text}
       </Text>
 
       <Button
-        title="Falar com o suporte"
+        title={t.blocked.contactSupport}
         onPress={falarComSuporte}
         loading={carregando}
         height={54}
@@ -75,7 +74,7 @@ export default function BlockedScreen() {
 
       <Box marginTop="s10">
         <Button
-          title="Voltar para a entrada"
+          title={t.blocked.backToEntry}
           onPress={voltarParaEntrada}
           variant="contorno"
           textColor="textPrimary"

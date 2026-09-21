@@ -70,39 +70,39 @@ export function TicketSheet() {
   }
 
   return (
-    <BottomSheet title="Abrir chamado" onClose={closeSheet}>
+    <BottomSheet title={t.ticketSheet.title} onClose={closeSheet}>
       <Box gap="s13">
         <Field
-          label="Assunto"
+          label={t.ticketSheet.subject}
           value={assunto}
           onChangeText={setAssunto}
-          placeholder="Do que você precisa?"
+          placeholder={t.ticketSheet.subjectPlaceholder}
           autoFocus
         />
 
         <Box>
           <Text variant="fieldLabel" color="textMuted" marginBottom="s6">
-            Categoria
+            {t.ticketSheet.category}
           </Text>
           <Select
             value={category}
-            options={TICKET_CATEGORIES.map((c) => ({ value: c.key, label: c.label }))}
+            options={TICKET_CATEGORIES.map((key) => ({ value: key, label: t.support.categories[key] }))}
             onSelect={(v) => setCategory(v as TicketCategory)}
-            accessibilityLabel="Categoria do chamado"
+            accessibilityLabel={t.ticketSheet.categoryA11y}
             height={50}
           />
         </Box>
 
         <Field
-          label="Descrição"
+          label={t.ticketSheet.description}
           value={description}
           onChangeText={setDescription}
-          placeholder="Conte com suas palavras o que aconteceu"
+          placeholder={t.ticketSheet.descriptionPlaceholder}
           multiline
         />
 
         <Button
-          title={anexo ? `Anexado: ${attachmentName(anexo)}` : 'Anexar foto'}
+          title={anexo ? t.ticketSheet.attached(attachmentName(anexo)) : t.ticketSheet.attach}
           onPress={anexo ? () => setAnexo('') : anexar}
           loading={anexando}
           variant="tracejado"
@@ -113,12 +113,12 @@ export function TicketSheet() {
 
         {anexo !== '' && (
           <Text variant="hint" color="textMuted" textAlign="center">
-            Toque no anexo para tirá-lo do chamado.
+            {t.ticketSheet.removeHint}
           </Text>
         )}
 
         <Button
-          title="Enviar chamado"
+          title={t.ticketSheet.send}
           onPress={send}
           height={54}
           textVariant="buttonMd"

@@ -5,6 +5,7 @@ import { daysAgoISO, relativeLabel, todayDateOnly } from '@utils/dates';
 import { centsToReal } from '@utils/money';
 
 import type { StockMovementAPI, StockMovementCreateAPI } from './stockApiTypes';
+import { currentMessages } from '@i18n/active';
 
 /**
  * FRONTEIRA DE REDE das movimentações de estoque.
@@ -42,7 +43,7 @@ export async function listStockMovements(tenantId: string): Promise<StockMovemen
       product_id: m.product_id,
       // Produto apagado não pode sumir do histórico: o saldo mudou por causa
       // dele, e uma linha sem nome é pior do que uma linha explícita.
-      product_name: product?.name ?? 'Produto removido',
+      product_name: product?.name ?? currentMessages().stock.removedProduct,
       // O banco já guarda a quantidade ASSINADA (a função `apply_stock_movement`
       // soma o que recebe), então o `delta` do app é a coluna direta.
       delta: Number(m.quantity ?? 0),

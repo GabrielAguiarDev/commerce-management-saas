@@ -60,6 +60,7 @@ describe('resolveAppGate', () => {
     hasAppAccess: true,
     accessFailed: false,
     capabilitiesSettled: true,
+    capabilitiesFailed: false,
     released: false,
   };
 
@@ -88,6 +89,16 @@ describe('resolveAppGate', () => {
     expect(resolveAppGate({ ...OK, capabilitiesSettled: false })).toBe('hold');
   });
 
+  it('mostra erro quando o plano não carregou, em vez de abrir sem módulos', () => {
+    expect(resolveAppGate({ ...OK, capabilitiesFailed: true })).toBe('error');
+  });
+
+  it('plano sem o app continua sendo bloqueio, mesmo com a carga do plano falhando', () => {
+    expect(resolveAppGate({ ...OK, hasAppAccess: false, capabilitiesFailed: true })).toBe(
+      'blocked',
+    );
+  });
+
   it('libera quando tudo está no lugar', () => {
     expect(resolveAppGate(OK)).toBe('allow');
   });
@@ -110,6 +121,10 @@ describe('resolveAppGate', () => {
 
     it('não mostra erro por uma falha de rede depois de já ter entrado', () => {
       expect(resolveAppGate({ ...OK, released: true, accessFailed: true })).toBe('allow');
+    });
+
+    it('não mostra erro se o plano falhar num refetch depois de já ter entrado', () => {
+      expect(resolveAppGate({ ...OK, released: true, capabilitiesFailed: true })).toBe('allow');
     });
 
     it('MAS a sessão sumir expulsa mesmo quem já entrou', () => {

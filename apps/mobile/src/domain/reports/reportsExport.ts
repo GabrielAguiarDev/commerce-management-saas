@@ -2,6 +2,7 @@ import { formatBRL } from '@utils/money';
 import type { Sheet } from '@utils/xlsx';
 
 import type { Report } from './reportsTypes';
+import { currentLocale, currentMessages } from '@i18n/active';
 
 /**
  * O RELATÓRIO EM ARQUIVO — a planilha e a página que vira PDF.
@@ -31,7 +32,7 @@ export function reportFileName(periodLabel: string, ext: 'pdf' | 'xlsx'): string
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  return `relatorio-${periodo || 'periodo'}-${dia}.${ext}`;
+  return `${currentMessages().reports.export.fileName}-${periodo || 'periodo'}-${dia}.${ext}`;
 }
 
 /**
@@ -49,20 +50,21 @@ export function reportFileName(periodLabel: string, ext: 'pdf' | 'xlsx'): string
  * └────────────────────────────────────────────────────────────────────────┘
  */
 export function reportSheets(report: Report, periodLabel: string): Sheet[] {
+  const t = currentMessages().reports.export;
   return [
     {
-      name: 'Resumo',
-      header: ['Indicador', 'Valor', 'Comparação'],
+      name: t.summarySheet,
+      header: [t.indicator, t.value, t.comparison],
       rows: report.finance.map((l) => [l.label, l.formattedAmount, l.trend]),
     },
     {
-      name: 'Vendas por dia',
-      header: ['Dia', `Vendido (R$) — ${periodLabel}`],
-      rows: report.bars.map((b) => [b.dia, reais(b.amountCents)]),
+      name: t.byDaySheet,
+      header: [t.day, t.soldIn(periodLabel)],
+      rows: report.bars.map((b) => [b.rotuloCompleto, reais(b.amountCents)]),
     },
     {
-      name: 'Mais vendidos',
-      header: ['Produto', 'Quantidade', 'Total (R$)'],
+      name: t.topSheet,
+      header: [t.product, t.quantity, t.totalBrl],
       rows: report.topProducts.map((p) => [p.name, p.quantityLabel, reais(p.totalCents)]),
     },
   ];
@@ -93,25 +95,26 @@ function linhas(cells: string[], tag: 'td' | 'th'): string {
  * fonte padrão do sistema sem avisar.
  */
 export function reportHtml(report: Report, periodLabel: string): string {
-  const gerado = new Date().toLocaleString('pt-BR');
+  const t = currentMessages().reports.export;
+  const gerado = new Date().toLocaleString(currentLocale());
 
   const resumo = report.finance
     .map((l) => linhas([l.label, l.formattedAmount, l.trend], 'td'))
     .join('');
 
   const dias = report.bars
-    .map((b) => linhas([b.dia, formatBRL(b.amountCents)], 'td'))
+    .map((b) => linhas([b.rotuloCompleto, formatBRL(b.amountCents)], 'td'))
     .join('');
 
   const produtos = report.topProducts
     .map((p) => linhas([p.name, p.quantityLabel, formatBRL(p.totalCents)], 'td'))
     .join('');
 
-  const vazio = '<tr><td colspan="3" class="vazio">Nada no período.</td></tr>';
+  const vazio = `<tr><td colspan="3" class="vazio">${escapeHtml(t.empty)}</td></tr>`;
 
   return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><title>Relatório</title>
+<html lang="${currentLocale()}">
+<head><meta charset="utf-8"><title>${escapeHtml(t.title)}</title>
 <style>
   @page { margin: 18mm 14mm; }
   body { font: 12px -apple-system, Roboto, sans-serif; color: #10202c; }
@@ -126,18 +129,18 @@ export function reportHtml(report: Report, periodLabel: string): string {
   footer { margin-top: 26px; color: #6b7c88; font-size: 10px; }
 </style></head>
 <body>
-  <h1>Relatório</h1>
-  <p class="sub">${escapeHtml(periodLabel)} · gerado em ${escapeHtml(gerado)}</p>
+  <h1>${escapeHtml(t.title)}</h1>
+  <p class="sub">${escapeHtml(t.generatedAt(periodLabel, gerado))}</p>
 
-  <h2>Resumo financeiro</h2>
-  <table>${linhas(['Indicador', 'Valor', 'Comparação'], 'th')}${resumo || vazio}</table>
+  <h2>${escapeHtml(currentMessages().reports.financeSummary)}</h2>
+  <table>${linhas([t.indicator, t.value, t.comparison], 'th')}${resumo || vazio}</table>
 
-  <h2>Vendas por dia</h2>
-  <table>${linhas(['Dia', 'Vendido'], 'th')}${dias || vazio}</table>
+  <h2>${escapeHtml(t.byDaySheet)}</h2>
+  <table>${linhas([t.day, t.sold], 'th')}${dias || vazio}</table>
 
-  <h2>Mais vendidos</h2>
-  <table>${linhas(['Produto', 'Quantidade', 'Total'], 'th')}${produtos || vazio}</table>
+  <h2>${escapeHtml(t.topSheet)}</h2>
+  <table>${linhas([t.product, t.quantity, t.total], 'th')}${produtos || vazio}</table>
 
-  <footer>Aguiar One · os valores seguem o que estava registrado no momento da geração.</footer>
+  <footer>${escapeHtml(t.footer)}</footer>
 </body></html>`;
 }

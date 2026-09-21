@@ -4,6 +4,7 @@ import { StyleSheet } from 'react-native';
 import { Screen } from '@components';
 import { useAppTheme } from '@hooks/useAppTheme';
 import { fontFamily } from '@theme';
+import { useTranslation } from '@i18n';
 
 /**
  * AS ABAS SUPERIORES DE CONFIGURAÇÕES.
@@ -29,9 +30,10 @@ import { fontFamily } from '@theme';
  */
 export default function SettingsLayout() {
   const theme = useAppTheme();
+  const t = useTranslation();
 
   return (
-    <Screen title="Configurações" subtitle="Seu negócio do seu jeito" noScroll>
+    <Screen title={t.settings.title} subtitle={t.settings.subtitle} noScroll>
       <TopTabs
         // Mesma razão do navegador de abas de baixo (ver `(tabs)/_layout.tsx`):
         // com o padrão `firstRoute`, o voltar do Android andaria PARA TRÁS pelas
@@ -94,10 +96,10 @@ export default function SettingsLayout() {
         }}
       >
         {/* A ORDEM das abas é a ordem destas linhas. `title` é o rótulo. */}
-        <TopTabs.Screen name="index" options={{ title: 'Negócio' }} />
-        <TopTabs.Screen name="preferences" options={{ title: 'Preferências' }} />
-        <TopTabs.Screen name="team" options={{ title: 'Equipe' }} />
-        <TopTabs.Screen name="plan" options={{ title: 'Conta e plano' }} />
+        <TopTabs.Screen name="index" options={{ title: t.settings.tabs.business }} />
+        <TopTabs.Screen name="preferences" options={{ title: t.settings.tabs.preferences }} />
+        <TopTabs.Screen name="team" options={{ title: t.settings.tabs.team }} />
+        <TopTabs.Screen name="plan" options={{ title: t.settings.tabs.plan }} />
       </TopTabs>
     </Screen>
   );

@@ -1,3 +1,5 @@
+import { currentMessages } from '@i18n/active';
+
 /**
  * As réguas de tempo das consultas ao Supabase.
  *
@@ -53,6 +55,34 @@ export function todayDateOnly(): string {
 /** `YYYY-MM-DD` de N dias atrás, no fuso local. */
 export function daysAgoDateOnly(days: number): string {
   return toDateOnly(new Date(startOfToday().getTime() - days * MS_DAY));
+}
+
+/**
+ * `YYYY-MM-DD` → meia-noite LOCAL daquele dia.
+ *
+ * `new Date('2026-09-04')` seria meia-noite UTC — no Brasil, 21h do dia 3.
+ * Toda conta de calendário dos relatórios passa por aqui por isso.
+ */
+export function parseDateOnly(day: string): Date {
+  const [y, m, d] = day.split('-').map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
+}
+
+/** `YYYY-MM-DD` deslocado N dias (negativo volta). */
+export function addDaysDateOnly(day: string, days: number): string {
+  const d = parseDateOnly(day);
+  d.setDate(d.getDate() + days);
+  return toDateOnly(d);
+}
+
+/** Meia-noite local de um `YYYY-MM-DD`, como ISO absoluto — para `timestamptz`. */
+export function startOfDayISO(day: string): string {
+  return parseDateOnly(day).toISOString();
+}
+
+/** Quantos dias de calendário cobre `from..to`, contando os dois. */
+export function daysInclusive(from: string, to: string): number {
+  return Math.round((parseDateOnly(to).getTime() - parseDateOnly(from).getTime()) / MS_DAY) + 1;
 }
 
 /** Dias completos entre uma data e hoje. `0` = hoje, `1` = ontem. */
@@ -125,20 +155,20 @@ export function formatDayInput(date: Date): string {
  * suporte, atividades) mostram a mesma coisa e já divergiram uma vez.
  */
 export function relativeLabel(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '—';
+  const t = currentMessages().time;
+  const at = new Date(iso).getTime();
+  if (Number.isNaN(at)) return '—';
 
-  const minutes = Math.floor((Date.now() - t) / 60_000);
-  if (minutes < 1) return 'agora';
-  if (minutes < 60) return `há ${minutes} min`;
+  const minutes = Math.floor((Date.now() - at) / 60_000);
+  if (minutes < 1) return t.now;
+  if (minutes < 60) return t.minutesAgo(minutes);
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `há ${hours} h`;
+  if (hours < 24) return t.hoursAgo(hours);
 
   const days = daysSince(iso);
-  if (days === 1) return 'ontem';
-  if (days < 30) return `há ${days} d`;
+  if (days === 1) return t.yesterday;
+  if (days < 30) return t.daysAgo(days);
 
-  const months = Math.floor(days / 30);
-  return months === 1 ? 'há 1 mês' : `há ${months} meses`;
+  return t.monthsAgo(Math.floor(days / 30));
 }

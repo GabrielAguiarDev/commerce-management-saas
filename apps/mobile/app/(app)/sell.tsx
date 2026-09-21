@@ -54,22 +54,22 @@ export default function SellScreen() {
   }
 
   return (
-    <Screen title="Nova venda" subtitle="Toque nos itens para montar a venda" padded>
+    <Screen title={t.sell.title} subtitle={t.sell.subtitle} padded>
       <Box flexDirection="row" gap="s9">
         <Box flex={1}>
           <Field
             value={search}
             onChangeText={setSearch}
-            placeholder="Buscar produto"
+            placeholder={t.sell.searchPlaceholder}
             height={48}
             radius={15}
-            accessibilityLabel="Buscar produto"
+            accessibilityLabel={t.sell.searchPlaceholder}
             returnKeyType="search"
             prefix={<Icon name="search" size={17} color="textMuted" />}
           />
         </Box>
         <Touchable
-          accessibilityLabel="Ler código de barras"
+          accessibilityLabel={t.sell.scanBarcode}
           onPress={() => setLendoCodigo(true)}
           width={48}
           height={48}
@@ -91,7 +91,7 @@ export default function SellScreen() {
       />
 
       <Text variant="gridLabel" color="textMuted" marginTop="s2">
-        {search.trim() ? 'Resultados da busca' : 'Produtos'}
+        {search.trim() ? t.sell.searchResults : t.sell.products}
       </Text>
 
       <Box flexDirection="row" flexWrap="wrap" gap="s10">
@@ -112,9 +112,9 @@ export default function SellScreen() {
 
       {isEmpty ? (
         <EmptyState
-          title="Nada encontrado"
-          text="Tente outro nome ou cadastre esse produto agora mesmo."
-          actionLabel="Cadastrar produto"
+          title={t.sell.emptyTitle}
+          text={t.sell.emptyText}
+          actionLabel={t.sell.createProduct}
           onActionPress={() => openSheet({ type: 'product' })}
         />
       ) : null}
@@ -123,9 +123,10 @@ export default function SellScreen() {
 }
 
 function SaleCard({ product, onPress }: { product: Product; onPress: () => void }) {
+  const t = useTranslation();
   return (
     <Touchable
-      accessibilityLabel={`Adicionar ${product.name}, ${formatBRL(product.priceCents)}`}
+      accessibilityLabel={t.sell.addItem(product.name, formatBRL(product.priceCents))}
       onPress={onPress}
       // Dois por linha com 10 de gap: 48% aproxima sem precisar medir a tela.
       // `flexBasis` em vez de largura fixa mantém o desenho em tela pequena.

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { endExpiredSession } from "@/lib/autorizacao";
 import { createClient } from "@/lib/supabase/server";
 import type { FormState, CustomerResult } from "@/app/clientes/estadoFormulario";
 import { defaultModules } from "@/lib/configuracoes";
@@ -186,9 +187,7 @@ export async function createCustomer(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return error("Sessão expirada. Entre novamente para continuar.");
-  }
+  if (!user) return endExpiredSession(supabase);
 
   const { data: perfil, error: erroPerfil } = await supabase
     .from("profiles")
@@ -447,7 +446,7 @@ async function requireAdmin(): Promise<
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { ok: false, message: "Sessão expirada. Entre novamente para continuar." };
+  if (!user) return endExpiredSession(supabase);
 
   const { data: perfil, error } = await supabase
     .from("profiles")

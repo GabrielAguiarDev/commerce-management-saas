@@ -43,13 +43,15 @@ export interface AppAccess {
    * de "carregando" e o app trava sem dizer nada.
    */
   failed: boolean;
+  /** Uma consulta está em voo — o "tentar de novo" mostra carregamento. */
+  fetching: boolean;
   retry: () => void;
 }
 
 export function useAppAccess(): AppAccess {
   const tenantId = useSessionStore((s) => s.tenantId);
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: sessionKeys.appAccess(tenantId ?? 'sem-tenant'),
     queryFn: () => service.checkAppAccess(),
     enabled: Boolean(tenantId),
@@ -65,6 +67,7 @@ export function useAppAccess(): AppAccess {
     hasAppAccess: data ?? null,
     loading: isPending,
     failed: isError,
+    fetching: isFetching,
     retry: () => void refetch(),
   };
 }

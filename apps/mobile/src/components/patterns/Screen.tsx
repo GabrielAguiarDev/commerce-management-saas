@@ -10,10 +10,12 @@ import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
 import { useAppTheme } from '@hooks/useAppTheme';
 import { useOnTabScreen } from '@hooks/navigation';
+import { useRefreshControl } from '@hooks/usePullToRefresh';
 import { useSessionStore } from '@store/sessionStore';
 
 import { ConnectionBanner } from './ConnectionBanner';
 import { ALTURA_TAB_BAR } from './tabBarGeometry';
+import { useTranslation } from '@i18n';
 
 /**
  * Altura reservada no fim do conteúdo para a tab bar, a barra do carrinho e o
@@ -77,6 +79,12 @@ interface ScreenProps {
   onEndReached?: () => void;
   /** A que distância do fim (px) o aviso dispara. */
   onEndReachedThreshold?: number;
+  /**
+   * "Puxar para atualizar" (ver `usePullToRefresh`). Ligado por padrão: toda
+   * tela que rola mostra dado, e o gesto recarrega o que ela está lendo.
+   * Desligue só onde puxar para baixo competiria com outro gesto.
+   */
+  refreshable?: boolean;
 }
 
 /**
@@ -101,11 +109,14 @@ export function Screen({
   padded = false,
   onEndReached,
   onEndReachedThreshold = 320,
+  refreshable = true,
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
+  const t = useTranslation();
   const user = useSessionStore((s) => s.user);
   const onTab = useOnTabScreen();
+  const refreshControl = useRefreshControl();
 
   // `router.canGoBack()` é a fonte da verdade da pilha: replicar isso num
   // estado próprio (como a `pilha` do protótipo) desincroniza na primeira vez
@@ -137,7 +148,7 @@ export function Screen({
       >
         {canGoBack ? (
           <Touchable
-            accessibilityLabel="Voltar"
+            accessibilityLabel={t.common.back}
             onPress={() => router.back()}
             width={38}
             height={38}
@@ -190,6 +201,7 @@ export function Screen({
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          refreshControl={refreshable ? refreshControl : undefined}
           // `onScroll` só é ligado quando alguém quer saber — uma tela comum
           // não paga por um callback a cada quadro de rolagem.
           onScroll={

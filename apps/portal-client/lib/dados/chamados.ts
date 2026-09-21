@@ -30,11 +30,23 @@ export const SP_STATUS: Record<
   },
 };
 
-/** As quatro portas de entrada do chamado, com o exemplo que explica cada uma. */
+/**
+ * "Plano e módulos" — a porta de quem quer contratar mais.
+ *
+ * Tem nome próprio, e não é mais um pedaço de "Financeiro", porque é onde
+ * desemboca o "Quero este módulo" do dashboard: quem chega querendo o Caixa
+ * precisa se reconhecer numa opção, e "Cobrança, plano ou pagamento" lia como
+ * problema de fatura. O rótulo é o mesmo do app (`TICKET_CATEGORIES` no
+ * mobile), para o suporte ler a mesma coisa venha o pedido de onde vier.
+ */
+export const PLAN_CATEGORY = "Plano e módulos";
+
+/** As portas de entrada do chamado, com o exemplo que explica cada uma. */
 export const SP_CATEGORIES: [string, string][] = [
+  [PLAN_CATEGORY, "Quero um módulo novo ou mudar de plano"],
   ["Dúvida", "Não sei como fazer algo no portal"],
   ["Problema técnico", "Algo travou, sumiu ou deu erro"],
-  ["Financeiro", "Cobrança, plano ou pagamento"],
+  ["Financeiro", "Cobrança ou pagamento"],
   ["Sugestão", "Uma ideia para melhorar o sistema"],
 ];
 

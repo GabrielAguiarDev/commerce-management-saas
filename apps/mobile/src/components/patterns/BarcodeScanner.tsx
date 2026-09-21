@@ -1,6 +1,6 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useEffect, useRef } from 'react';
-import { Modal, StyleSheet } from 'react-native';
+import { Keyboard, Modal, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box } from '../ui/Box';
@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { Text } from '../ui/Text';
 import { Touchable } from '../ui/Touchable';
+import { useTranslation } from '@i18n';
 
 /**
  * O LEITOR DE CÓDIGO DE BARRAS.
@@ -48,13 +49,20 @@ export function BarcodeScanner({
 }) {
   const [permission, requestPermission] = useCameraPermissions();
   const insets = useSafeAreaInsets();
+  const t = useTranslation();
   const travado = useRef(false);
 
   // A trava é solta ao ABRIR, não ao fechar: fechar por gesto ou por botão
   // seguem caminhos diferentes, e um deles esqueceria de soltar — deixando a
   // câmera aberta e cega na vez seguinte.
+  //
+  // O teclado fecha junto: o scanner costuma abrir pelo botão ao lado da
+  // busca, com ela ainda em foco, e o teclado do iOS ficaria por cima da
+  // câmera em tela cheia.
   useEffect(() => {
-    if (visible) travado.current = false;
+    if (!visible) return;
+    travado.current = false;
+    Keyboard.dismiss();
   }, [visible]);
 
   // Pergunta a permissão quando a tela abre, e só então: pedir câmera no boot
@@ -84,21 +92,21 @@ export function BarcodeScanner({
           <Box flex={1} alignItems="center" justifyContent="center" padding="s24" gap="s12">
             <Icon name="scan" size={40} color="textMuted" />
             <Text variant="titleSm" textAlign="center">
-              Precisamos da câmera para ler o código
+              {t.scanner.needCamera}
             </Text>
             <Text variant="captionSm" color="textMuted" textAlign="center">
               {permission?.canAskAgain === false
-                ? 'A permissão foi negada. Libere a câmera para o Aguiar One nos ajustes do aparelho.'
-                : 'Toque em permitir quando o aparelho perguntar.'}
+                ? t.scanner.denied
+                : t.scanner.askHint}
             </Text>
-            <Button title="Digitar o código" onPress={onClose} />
+            <Button title={t.scanner.typeCode} onPress={onClose} />
           </Box>
         )}
 
         {/* Fica FORA do `if`: sem ele, uma permissão negada deixaria a pessoa
             presa numa tela preta sem saída. */}
         <Touchable
-          accessibilityLabel="Fechar o leitor"
+          accessibilityLabel={t.scanner.close}
           onPress={onClose}
           position="absolute"
           top={insets.top + 12}

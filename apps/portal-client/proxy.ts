@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { AUTH_COOKIE_OPTIONS } from "@/lib/supabase/cookie";
 import { NextResponse, type NextRequest } from "next/server";
 import { roleModules } from "@/lib/dados/equipe";
 import { BASE_MODULES, DB_TO_PORTAL, tenantModules } from "@/lib/modulos";
@@ -68,6 +69,7 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(url, anonKey, {
+    cookieOptions: AUTH_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();

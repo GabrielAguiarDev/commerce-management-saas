@@ -55,7 +55,7 @@ export function SuporteView() {
       <ScreenHeader
         title="Suporte"
         subtitle="Precisa de ajuda? Abra um chamado e a gente responde por aqui — normalmente em até 1 dia útil."
-        action={<NewButton text="Abrir chamado" onClick={a.openNewTicket} wide={isMobile} />}
+        action={<NewButton text="Abrir chamado" onClick={() => a.openNewTicket()} wide={isMobile} />}
       />
 
       {d.tickets.length === 0 ? (
@@ -79,7 +79,7 @@ export function SuporteView() {
             aconteceu — a gente responde aqui mesmo.
           </p>
           <Button
-            onClick={a.openNewTicket}
+            onClick={() => a.openNewTicket()}
             className="hv-brilho"
             style={css(
               `margin-top:10px;padding:14px 24px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font:700 14px ${SANS}`,

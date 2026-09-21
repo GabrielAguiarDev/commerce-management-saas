@@ -8,6 +8,7 @@ import type {
   Report,
   TrendTone,
 } from './reportsTypes';
+import type { DateRange } from './reportsPeriod';
 
 function toTom(tone: string | null): TrendTone {
   if (tone === 'up_bad') return 'warning';
@@ -50,17 +51,24 @@ function toLinha(raw: ReportRowAPI): FinanceLine {
 export function toBarras(raws: ReportBarAPI[]): DayBar[] {
   const maior = raws.reduce((m, b) => Math.max(m, b.amount_cents), 0);
 
-  return raws.map((b) => ({
-    dia: b.day_label,
-    amountCents: b.amount_cents,
-    ratio: maior > 0 ? b.amount_cents / maior : 0,
-    destacada: maior > 0 && b.amount_cents === maior,
-  }));
+  return raws.map((b) => {
+    const [, month = '', day = ''] = b.day.split('-');
+    return {
+      key: b.day,
+      dia: b.day_label,
+      diaDoMes: String(Number(day) || day),
+      rotuloCompleto: day && month ? `${b.day_label}, ${day}/${month}` : b.day_label,
+      amountCents: b.amount_cents,
+      ratio: maior > 0 ? b.amount_cents / maior : 0,
+      destacada: maior > 0 && b.amount_cents === maior,
+    };
+  });
 }
 
-export function toReport(raw: ReportAPI, period: ReportPeriod): Report {
+export function toReport(raw: ReportAPI, period: ReportPeriod, range: DateRange): Report {
   return {
     period,
+    range,
     finance: raw.rows.map(toLinha),
     bars: toBarras(raw.daily_bars),
     topProducts: raw.top_products.map((t) => ({

@@ -45,6 +45,7 @@ const MAX_MS = 8000;
 
 export function Splash({ ready }: { ready: boolean }) {
   const { s, a } = usePortal();
+  const setPortal = a.set;
   const entering = s.entering;
 
   const [waited, setWaited] = useState(false);
@@ -75,10 +76,12 @@ export function Splash({ ready }: { ready: boolean }) {
     const t = setTimeout(() => {
       setWaited(false);
       setForced(false);
-      a.set({ entering: false });
+      setPortal({ entering: false });
     }, FADE_MS);
     return () => clearTimeout(t);
-  }, [leaving, a]);
+    // `a.set`, e não `a`: `a` muda a cada estado do portal e reiniciaria o
+    // temporizador do desvanecer a cada mudança.
+  }, [leaving, setPortal]);
 
   if (!entering) return null;
 

@@ -22,11 +22,13 @@ import {
 } from './salesTypes';
 import { classifySyncError, isDuplicate } from './syncErrors';
 import { uuidV4 } from '@utils/uuid';
+import { throwIfAccessDenied } from '@domain/shared/accessDenied';
 
 /** AS REGRAS das vendas. */
 
 function normalize(error: unknown): never {
   if (error instanceof SaleError) throw error;
+  throwIfAccessDenied(error);
   throw new SaleError('network', error instanceof Error ? error.message : undefined);
 }
 

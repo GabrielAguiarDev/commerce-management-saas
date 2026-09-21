@@ -35,9 +35,9 @@ export default function BusinessTab() {
   return (
     <TabPane>
       <Card padding="s18" gap="s14">
-        <Field label="Nome do negócio" value={name} onChangeText={setName} height={48} radius={13} />
+        <Field label={t.settings.business.name} value={name} onChangeText={setName} height={48} radius={13} />
         <Field
-          label="Telefone / WhatsApp"
+          label={t.settings.business.phone}
           value={phone}
           onChangeText={setPhone}
           height={48}
@@ -45,7 +45,7 @@ export default function BusinessTab() {
           keyboardType="phone-pad"
         />
         <Button
-          title="Salvar"
+          title={t.settings.business.save}
           onPress={() =>
             save(
               { name, phone },

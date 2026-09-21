@@ -38,40 +38,14 @@ interface SheetConfig {
   keyboard2: 'decimal-pad' | 'default' | 'numbers-and-punctuation';
 }
 
-const SHEET_CONFIG: Record<SimpleSheetType, SheetConfig> = {
-  withdrawal: {
-    title: 'Retirar dinheiro',
-    text: 'Retirada de dinheiro da gaveta. Fica registrado no turno.',
-    label1: 'Valor',
-    placeholder1: 'R$ 0,00',
-    label2: 'Motivo',
-    placeholder2: 'Ex: pagamento do gás',
-    button: 'Registrar retirada',
-    keyboard1: 'decimal-pad',
-    keyboard2: 'default',
-  },
-  topUp: {
-    title: 'Colocar dinheiro',
-    text: 'Dinheiro colocado na gaveta para troco.',
-    label1: 'Valor',
-    placeholder1: 'R$ 0,00',
-    label2: 'Motivo',
-    placeholder2: 'Ex: pagamento do gás',
-    button: 'Registrar entrada',
-    keyboard1: 'decimal-pad',
-    keyboard2: 'default',
-  },
-  movement: {
-    title: 'Movimentar estoque',
-    text: 'Entrada com custo vira despesa automaticamente, na aba Custos.',
-    label1: 'Produto',
-    placeholder1: 'Ração premium 15kg',
-    label2: 'Quantidade (use − para saída)',
-    placeholder2: '+10',
-    button: 'Salvar movimentação',
-    keyboard1: 'default',
-    keyboard2: 'numbers-and-punctuation',
-  },
+/**
+ * O teclado de cada campo. Os TEXTOS do sheet vêm do idioma
+ * (`t.simpleSheet[type]`) — só o que não é texto mora aqui.
+ */
+const KEYBOARDS: Record<SimpleSheetType, Pick<SheetConfig, 'keyboard1' | 'keyboard2'>> = {
+  withdrawal: { keyboard1: 'decimal-pad', keyboard2: 'default' },
+  topUp: { keyboard1: 'decimal-pad', keyboard2: 'default' },
+  movement: { keyboard1: 'default', keyboard2: 'numbers-and-punctuation' },
 };
 
 interface SimpleSheetProps {
@@ -83,7 +57,7 @@ interface SimpleSheetProps {
 
 export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheetProps) {
   const t = useTranslation();
-  const conf = SHEET_CONFIG[type];
+  const conf: SheetConfig = { ...t.simpleSheet[type], ...KEYBOARDS[type] };
 
   const closeSheet = useUIStore((s) => s.closeSheet);
   const showToast = useUIStore((s) => s.showToast);
@@ -111,7 +85,7 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
     if (error instanceof CashError) return showToast(t.errors.cash[error.code], { tone: 'erro' });
     if (error instanceof StockError)
       return showToast(t.errors.stock[error.code], { tone: 'erro' });
-    return showToast('Não deu para salvar agora.', { tone: 'erro' });
+    return showToast(t.simpleSheet.saveFailed, { tone: 'erro' });
   }
 
   function confirmar() {
@@ -180,7 +154,7 @@ export function SimpleSheet({ type, openingAmount = '', productId }: SimpleSheet
 
         {entradaDeEstoque && (
           <Field
-            label="Custo por unidade (opcional)"
+            label={t.simpleSheet.unitCost}
             value={custo}
             onChangeText={setCusto}
             placeholder="R$ 0,00"

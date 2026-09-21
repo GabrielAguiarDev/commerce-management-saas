@@ -31,6 +31,10 @@ export function LoginView() {
   const router = useRouter();
   const params = useSearchParams();
   const { a } = usePortal();
+  // `a` é recriado a cada mudança de estado do portal; `a.set` é estável. Pôr
+  // `a` nas dependências do efeito abaixo fazia um loop: o efeito chamava
+  // `set`, o estado mudava, `a` mudava, o efeito rodava de novo.
+  const setPortal = a.set;
 
   // O nome do parâmetro é o que o middleware escreve (`?erro=…`).
   const reasonKey = params.get("erro") ?? "";
@@ -67,8 +71,8 @@ export function LoginView() {
    * — por cima justamente da explicação que a pessoa precisa ler.
    */
   useEffect(() => {
-    if (reason) a.set({ entering: false });
-  }, [reason, a]);
+    if (reason) setPortal({ entering: false });
+  }, [reason, setPortal]);
 
   /**
    * Entra com e-mail e senha.

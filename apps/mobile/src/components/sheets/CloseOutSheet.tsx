@@ -77,30 +77,30 @@ export function CloseOutSheet() {
   }
 
   return (
-    <BottomSheet title="Fechar o caixa" onClose={closeSheet}>
+    <BottomSheet title={t.closeOut.title} onClose={closeSheet}>
       <Text variant="bodySm" color="textMuted" marginBottom="s14">
-        Confira quanto realmente tem em cada forma. A gente calcula a diferença pra você.
+        {t.closeOut.text}
       </Text>
 
       {rows.map((row) => (
         <Box key={row.method}>
           <Box flexDirection="row" alignItems="center" gap="s10" paddingVertical="s10">
             <Box flex={1}>
-              <Text variant="sectionTitle">{row.method}</Text>
+              <Text variant="sectionTitle">{row.label}</Text>
               <Text variant="hint" color="textMuted" marginTop="s2">
-                sistema {formatBRL(row.esperadoCentavos)}
+                {t.closeOut.system(formatBRL(row.esperadoCentavos))}
               </Text>
             </Box>
             <Box width={104}>
               <Field
                 value={conferido[row.method] ?? ''}
-                onChangeText={(t) => setConferido((current) => ({ ...current, [row.method]: t }))}
+                onChangeText={(text) => setConferido((current) => ({ ...current, [row.method]: text }))}
                 placeholder="0,00"
                 keyboardType="decimal-pad"
                 height={44}
                 radius={12}
                 alignRight
-                accessibilityLabel={`Valor conferido em ${row.method}`}
+                accessibilityLabel={t.closeOut.countedIn(row.label)}
               />
             </Box>
           </Box>
@@ -115,7 +115,7 @@ export function CloseOutSheet() {
         paddingVertical="s16"
       >
         <Text variant="sectionTitle" color="textMuted">
-          Diferença
+          {t.closeOut.difference}
         </Text>
         <Text variant="statValue">
           {diferenca.informado
@@ -125,7 +125,7 @@ export function CloseOutSheet() {
       </Box>
 
       <Button
-        title="Conferir e fechar"
+        title={t.closeOut.submit}
         onPress={requestCloseOut}
         height={54}
         textVariant="buttonMd"

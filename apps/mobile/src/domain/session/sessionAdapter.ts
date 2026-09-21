@@ -2,6 +2,7 @@ import { initials } from '@utils/text';
 
 import type { SessionAPI } from './sessionApiTypes';
 import { AuthError, type Session } from './sessionTypes';
+import { currentMessages } from '@i18n/active';
 
 /** `profiles.status` — funcionário suspenso continua existindo, mas não entra. */
 const ACTIVE = 'active';
@@ -54,7 +55,7 @@ export function toSession(raw: SessionAPI): Session {
   }
 
   const email = raw.user.email ?? '';
-  const name = profile.full_name?.trim() || email.split('@')[0] || 'Você';
+  const name = profile.full_name?.trim() || email.split('@')[0] || currentMessages().time.you;
 
   return {
     user: { id: raw.user.id, email, name, initials: initials(name) },

@@ -1,4 +1,4 @@
-import { UPGRADE_MESSAGE, sanitizePhone, whatsappLink } from '../whatsapp';
+import { sanitizePhone, upgradeMessage, whatsappLink } from '../whatsapp';
 
 /**
  * O link do WhatsApp é o tipo de coisa que "parece certa" em revisão de código
@@ -50,7 +50,7 @@ describe('whatsappLink', () => {
     // metade — ou o WhatsApp nem abre.
     expect(url).not.toContain(' ');
     expect(url).toContain('https://wa.me/5573999935628?text=');
-    expect(decodeURIComponent(url.split('?text=')[1] as string)).toBe(UPGRADE_MESSAGE);
+    expect(decodeURIComponent(url.split('?text=')[1] as string)).toBe(upgradeMessage());
   });
 
   it('usa https, e não o esquema whatsapp://', () => {
@@ -60,6 +60,6 @@ describe('whatsappLink', () => {
   });
 
   it('a mensagem padrão diz o que a pessoa quer, em uma linha', () => {
-    expect(UPGRADE_MESSAGE).toContain('ativar o aplicativo');
+    expect(upgradeMessage()).toContain('ativar o aplicativo');
   });
 });

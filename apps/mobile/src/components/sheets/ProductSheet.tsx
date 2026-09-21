@@ -33,6 +33,7 @@ interface ProductSheetProps {
  * mostrar em lugar nenhum.
  */
 export function ProductSheet({ productId }: ProductSheetProps) {
+  const t = useTranslation();
   const closeSheet = useUIStore((s) => s.closeSheet);
   const { data: products = [], isPending } = useCatalog();
 
@@ -45,7 +46,7 @@ export function ProductSheet({ productId }: ProductSheetProps) {
   // porque outra pessoa desativou o produto no portal).
   if (productId && !product) {
     return (
-      <BottomSheet title="Editar produto" onClose={closeSheet}>
+      <BottomSheet title={t.productSheet.editTitle} onClose={closeSheet}>
         <Box gap="s13">
           {isPending ? (
             <>
@@ -54,7 +55,7 @@ export function ProductSheet({ productId }: ProductSheetProps) {
             </>
           ) : (
             <Text variant="captionSm" color="textMuted">
-              Este produto não está mais no catálogo. Feche e puxe a lista de novo.
+              {t.productSheet.missing}
             </Text>
           )}
         </Box>
@@ -139,27 +140,30 @@ function ProductForm({ product }: { product: Product | null }) {
   }
 
   return (
-    <BottomSheet title={editando ? 'Editar produto' : 'Cadastro rápido'} onClose={closeSheet}>
+    <BottomSheet
+      title={editando ? t.productSheet.editTitle : t.productSheet.quickTitle}
+      onClose={closeSheet}
+    >
       <Box gap="s13">
         <Field
-          label="Nome"
+          label={t.productSheet.name}
           value={name}
           onChangeText={setName}
-          placeholder="Ex: Coleira antipulgas"
+          placeholder={t.productSheet.namePlaceholder}
           autoFocus
         />
 
         <Field
-          label="Código (opcional)"
+          label={t.productSheet.code}
           value={code}
           onChangeText={setCode}
-          placeholder="Ex: 7891000100011"
+          placeholder={t.productSheet.codePlaceholder}
           keyboardType="number-pad"
           autoCorrect={false}
         />
 
         <Field
-          label="Preço de venda"
+          label={t.productSheet.price}
           value={price}
           onChangeText={setPreco}
           placeholder="R$ 0,00"
@@ -174,7 +178,7 @@ function ProductForm({ product }: { product: Product | null }) {
             {editando ? null : (
               <Box flex={1}>
                 <Field
-                  label="Quanto tem"
+                  label={t.productSheet.quantity}
                   value={stock}
                   onChangeText={setStock}
                   placeholder="0"
@@ -185,7 +189,7 @@ function ProductForm({ product }: { product: Product | null }) {
             {editando && !product.stock ? null : (
               <Box flex={1}>
                 <Field
-                  label="Avisar abaixo de"
+                  label={t.productSheet.minimum}
                   value={minimo}
                   onChangeText={setMinimo}
                   placeholder="0"
@@ -198,7 +202,7 @@ function ProductForm({ product }: { product: Product | null }) {
 
         {capabilities.hasCosts ? (
           <Field
-            label="Quanto te custa (opcional)"
+            label={t.productSheet.cost}
             value={cost}
             onChangeText={setCost}
             placeholder="R$ 0,00"
@@ -208,12 +212,12 @@ function ProductForm({ product }: { product: Product | null }) {
 
         {editando && capabilities.hasStock && product.stock ? (
           <Text variant="captionSm" color="textMuted">
-            {`Em estoque: ${product.stock.quantity}. Para mudar a quantidade, use Estoque.`}
+            {t.productSheet.stockHint(product.stock.quantity)}
           </Text>
         ) : null}
 
         <Button
-          title={editando ? 'Salvar alterações' : 'Salvar produto'}
+          title={editando ? t.productSheet.saveChanges : t.productSheet.save}
           onPress={save}
           height={54}
           textVariant="buttonMd"

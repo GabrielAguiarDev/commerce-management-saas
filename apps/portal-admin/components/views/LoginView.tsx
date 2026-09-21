@@ -52,7 +52,9 @@ export function LoginView() {
         : "This account is not a platform administrator."
       : reason === "link_invalido"
         ? L.erroLinkInvalido
-        : null;
+        : reason === "sessao-expirada"
+          ? L.sessaoExpirada
+          : null;
 
   const [error, setErro] = useState<string | null>(initialNotice);
 

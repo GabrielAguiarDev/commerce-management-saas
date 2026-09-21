@@ -11,6 +11,7 @@ import type {
   TicketMessageAPI,
   TicketReplyAPI,
 } from './supportApiTypes';
+import { currentMessages } from '@i18n/active';
 
 /**
  * FRONTEIRA DE REDE do suporte.
@@ -50,7 +51,7 @@ export async function listTickets(tenantId: string): Promise<TicketAPI[]> {
       // O resumo da lista é a última mensagem da conversa. Um chamado sem
       // mensagem nenhuma é possível (criado e a inserção da mensagem falhou),
       // e o texto diz isso em vez de aparecer em branco.
-      summary: last?.body ?? 'Aguardando nossa análise',
+      summary: last?.body ?? currentMessages().support.awaiting,
       status: toAppStatus(t.status),
       has_unread: messages.some(isUnreadForClient),
       updated_at: t.last_message_at ?? t.created_at,

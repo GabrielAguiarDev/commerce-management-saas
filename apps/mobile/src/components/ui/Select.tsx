@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Modal } from 'react-native';
+import { Keyboard, Modal } from 'react-native';
 
 import { Box } from './Box';
 import { Text } from './Text';
 import { Touchable } from './Touchable';
+import { useTranslation } from '@i18n';
 
 export interface SelectOption {
   value: string;
@@ -37,14 +38,20 @@ export function Select({
   height = 52,
 }: SelectProps) {
   const [isOpen, setOpen] = useState(false);
+  const t = useTranslation();
   const current = options.find((o) => o.value === value);
 
   return (
     <>
       <Touchable
-        accessibilityLabel={`${accessibilityLabel}: ${current?.label ?? 'nenhuma'}`}
+        accessibilityLabel={`${accessibilityLabel}: ${current?.label ?? t.common.none}`}
         accessibilityRole="button"
-        onPress={() => setOpen(true)}
+        onPress={() => {
+          // O `Modal` abre abaixo do teclado do iOS; sem fechar, as opções
+          // de baixo ficariam escondidas atrás dele.
+          Keyboard.dismiss();
+          setOpen(true);
+        }}
         height={height}
         borderRadius="r15"
         borderWidth={1}
@@ -68,7 +75,7 @@ export function Select({
         onRequestClose={() => setOpen(false)}
       >
         <Touchable
-          accessibilityLabel="Fechar lista"
+          accessibilityLabel={t.common.closeList}
           onPress={() => setOpen(false)}
           flex={1}
           backgroundColor="scrimDialog"

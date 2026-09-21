@@ -6,6 +6,7 @@ import { useTickets, useMarkAsRead } from '@domain/support';
 import type { TicketStatus } from '@domain/support';
 import { useUIStore } from '@store/uiStore';
 import type { ThemeColor } from '@theme';
+import { useTranslation } from '@i18n';
 
 const CORES_DO_STATUS: Record<TicketStatus, { fundo: ThemeColor; text: ThemeColor }> = {
   answered: { fundo: 'primarySoft', text: 'primary' },
@@ -17,13 +18,14 @@ export default function SupportScreen() {
   const { data: tickets = [] } = useTickets();
   const { mutate: markAsRead } = useMarkAsRead();
   const openSheet = useUIStore((s) => s.openSheet);
+  const t = useTranslation();
 
   return (
-    <Screen title="Suporte" subtitle="A gente responde por aqui" padded>
+    <Screen title={t.support.title} subtitle={t.support.subtitle} padded>
       {tickets.map((ticket) => (
         <Touchable
           key={ticket.id}
-          accessibilityLabel={`${ticket.assunto}. ${ticket.statusRotulo}${ticket.naoLida ? '. Não lida' : ''}`}
+          accessibilityLabel={`${ticket.assunto}. ${ticket.statusRotulo}${ticket.naoLida ? `. ${t.support.unread}` : ''}`}
           onPress={() => {
             // Marcar como lido ANTES de navegar: o badge da tela "Mais" precisa
             // apagar mesmo que o usuário volte imediatamente.
@@ -64,7 +66,7 @@ export default function SupportScreen() {
       ))}
 
       <Button
-        title="Abrir chamado"
+        title={t.support.openTicket}
         onPress={() => openSheet({ type: 'ticket' })}
         height={52}
         radius={18}

@@ -7,6 +7,7 @@ import { Touchable } from '@components/ui/Touchable';
 import { useUIStore } from '@store/uiStore';
 
 import { AO_FADE, AO_UP } from './animations';
+import { useTranslation } from '@i18n';
 
 /**
  * O diálogo de confirmação (`aoUp` sobre um véu `aoFade`).
@@ -17,6 +18,7 @@ import { AO_FADE, AO_UP } from './animations';
  */
 export function ConfirmHost() {
   const confirm = useUIStore((s) => s.confirm);
+  const t = useTranslation();
   const close = useUIStore((s) => s.closeConfirm);
 
   if (!confirm) return null;
@@ -29,7 +31,7 @@ export function ConfirmHost() {
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       >
         <Touchable
-          accessibilityLabel="Fechar"
+          accessibilityLabel={t.common.close}
           onPress={close}
           flex={1}
           backgroundColor="scrimDialog"
@@ -65,7 +67,7 @@ export function ConfirmHost() {
 
           <Box marginTop="s8">
             <Button
-              title="Agora não"
+              title={t.common.notNow}
               onPress={close}
               variant="fantasma"
               height={48}

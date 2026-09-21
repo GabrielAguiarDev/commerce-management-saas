@@ -1,15 +1,21 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { ThemeProvider } from '@shopify/restyle';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ConfirmHost } from '@components/patterns/ConfirmHost';
 import { ToastProviderWithViewport } from '@components/ui/toast';
+import { ModuleAccessError } from '@domain/shared/accessDenied';
+import { sessionKeys } from '@domain/session/useCases/useAppAccess';
+import { tenantKeys } from '@domain/tenant/useCases/useTenant';
 import { useSessionSync } from '@hooks/useSessionSync';
+import { getMessages } from '@i18n';
 import { usePreferencesStore } from '@store/preferencesStore';
+import { useSessionStore } from '@store/sessionStore';
+import { useUIStore } from '@store/uiStore';
 import { darkTheme, lightTheme } from '@theme';
 
 /**
@@ -57,21 +63,54 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   // `useState` e não módulo: um QueryClient no escopo do módulo sobrevive ao
   // Fast Refresh com cache de outra sessão e produz bugs fantasma em dev.
-  const [client] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            // Cada useCase declara o próprio `staleTime`; este é só o piso.
-            staleTime: 30 * 1000,
-            retry: 1,
-            // Reconsultar ao voltar para o app é o comportamento certo num app
-            // de balcão: o dado pode ter mudado no portal enquanto isso.
-            refetchOnWindowFocus: true,
-          },
-          mutations: { retry: 0 },
+  const [client] = useState(() => {
+    const created: QueryClient = new QueryClient({
+      // Toda escrita recusada por permissão passa por aqui, de qualquer tela.
+      // Ver `onModuleAccessRevoked`.
+      mutationCache: new MutationCache({
+        onError: (error) => {
+          if (error instanceof ModuleAccessError) onModuleAccessRevoked(created);
         },
       }),
+      defaultOptions: {
+        queries: {
+          // Cada useCase declara o próprio `staleTime`; este é só o piso.
+          staleTime: 30 * 1000,
+          retry: 1,
+          // Reconsultar ao voltar para o app é o comportamento certo num app
+          // de balcão: o dado pode ter mudado no portal enquanto isso.
+          refetchOnWindowFocus: true,
+        },
+        mutations: { retry: 0 },
+      },
+    });
+    return created;
+  });
+
+  // O cache morre com a sessão. Sem isto, o próximo login no mesmo aparelho
+  // herdava as consultas da sessão anterior — inclusive um erro: um tenant que
+  // falhou antes do logout continuava falhado depois de entrar de novo, e o
+  // app abria sem nenhum módulo até um reload completo. Vale para os dois
+  // jeitos de a sessão acabar: "Sair" e sessão revogada por fora
+  // (`useSessionSync` → `clear()`).
+  useEffect(
+    () =>
+      useSessionStore.subscribe((state, previous) => {
+        if (previous.user !== null && state.user === null) client.clear();
+      }),
+    [client],
+  );
+
+  // Trocar de idioma refaz as consultas. Boa parte do texto das telas é
+  // montada nos adapters ("há 2 h", "vs. período anterior", os rótulos do
+  // gráfico) e fica guardada no cache já pronta — sem isto, ela continuaria
+  // no idioma anterior até o próximo refetch.
+  useEffect(
+    () =>
+      usePreferencesStore.subscribe((state, previous) => {
+        if (state.language !== previous.language) void client.invalidateQueries();
+      }),
+    [client],
   );
 
   return (
@@ -88,4 +127,37 @@ export function AppProviders({ children }: { children: ReactNode }) {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+/**
+ * O plano ou o papel perdeu um módulo com o app aberto.
+ *
+ * O banco já recusou a escrita (`ModuleAccessError`, ver
+ * `domain/shared/accessDenied.ts`); falta o app parar de oferecer o módulo.
+ * Sem isto, o Caixa continuava na barra por até 5 minutos (o `staleTime` do
+ * plano) e cada toque em "Abrir caixa" falhava calado.
+ *
+ *  1. fecha sheet e confirmação — eles pertencem ao módulo que saiu;
+ *  2. recarrega o plano, o acesso ao app e o papel (as permissões do papel
+ *     vêm da sessão, não do plano). Com as capacidades novas, a tab bar perde
+ *     o item e o guardião em `(app)/_layout.tsx` tira a pessoa da rota;
+ *  3. avisa. No tick seguinte de propósito: o `onError` da própria tela roda
+ *     DEPOIS deste e costuma mostrar um "tente de novo" genérico — como o app
+ *     mostra um toast por vez, o aviso certo precisa ser o último.
+ */
+function onModuleAccessRevoked(client: QueryClient) {
+  const ui = useUIStore.getState();
+  ui.closeSheet();
+  ui.closeConfirm();
+
+  void client.invalidateQueries({ queryKey: tenantKeys.all });
+  void client.invalidateQueries({ queryKey: sessionKeys.all });
+  void useSessionStore.getState().refreshRole();
+
+  const { language } = usePreferencesStore.getState();
+  setTimeout(() => {
+    useUIStore.getState().showToast(getMessages(language).toasts.moduleAccessRevoked, {
+      tone: 'erro',
+    });
+  }, 0);
 }

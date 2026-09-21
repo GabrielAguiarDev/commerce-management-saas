@@ -7,6 +7,7 @@ import type {
   CostType,
   MonthlySummary,
 } from './costsTypes';
+import { currentMessages } from '@i18n/active';
 
 function toTipo(kind: string): CostType {
   // Qualquer valor desconhecido cai em variável: um custo classificado errado
@@ -20,6 +21,12 @@ export function toCompetenceLabel(competence: string | null): string | null {
   return match ? `${match[2]}/${match[1]}` : null;
 }
 
+function typeLabelOf(type: CostType, repeating: boolean): string {
+  const t = currentMessages().costs.kindLabel;
+  if (type !== 'fixed') return t.variable;
+  return repeating ? t.fixedMonthly : t.fixed;
+}
+
 export function toCost(raw: CostAPI): Cost {
   const type = toTipo(raw.kind);
   const recurring = raw.recurrence_id != null;
@@ -31,7 +38,7 @@ export function toCost(raw: CostAPI): Cost {
     name: raw.name,
     amountCents: raw.amount_cents ?? 0,
     type,
-    typeLabel: type === 'fixed' ? (repeating ? 'Fixo · todo mês' : 'Fixo') : 'Variável',
+    typeLabel: typeLabelOf(type, repeating),
     quando: raw.due_label ?? '—',
     recurring,
     repeating,

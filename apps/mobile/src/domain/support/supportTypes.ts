@@ -27,14 +27,10 @@ export interface TicketMessage {
   quando: string;
 }
 
-export const TICKET_CATEGORIES = [
-  { key: 'duvida', label: 'Dúvida' },
-  { key: 'problema', label: 'Algo não funcionou' },
-  { key: 'plano', label: 'Plano e módulos' },
-  { key: 'sugestao', label: 'Sugestão' },
-] as const;
+/** As chaves gravadas em `support_tickets.category`. O rótulo vem do idioma. */
+export const TICKET_CATEGORIES = ['duvida', 'problema', 'plano', 'sugestao'] as const;
 
-export type TicketCategory = (typeof TICKET_CATEGORIES)[number]['key'];
+export type TicketCategory = (typeof TICKET_CATEGORIES)[number];
 
 export interface NewTicket {
   assunto: string;

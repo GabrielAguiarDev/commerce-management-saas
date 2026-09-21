@@ -8,6 +8,7 @@ import type {
   OpenShift,
   ClosedShift,
 } from './cashTypes';
+import { currentMessages } from '@i18n/active';
 
 function localTime(iso: string): string {
   const d = new Date(iso);
@@ -15,12 +16,20 @@ function localTime(iso: string): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** O rótulo que o dono usa para "dinheiro vivo" no turno. */
-export const CASH_METHOD = 'Dinheiro';
+/** A chave do "dinheiro vivo" — a única forma que passa pela gaveta. */
+export const CASH_METHOD = 'cash';
+/** Débito e crédito são conferidos juntos, como "Cartão". */
+const CARD_METHODS = ['debit', 'credit'];
+
+function methodLabel(method: string): string {
+  const labels: Record<string, string> = currentMessages().paymentMethods;
+  return labels[method] ?? method;
+}
 
 export function toOpenShift(raw: CashShiftAPI): OpenShift {
   const receipts = raw.method_totals.map((m) => ({
     method: m.method,
+    label: methodLabel(m.method),
     amountCents: m.amount_cents,
   }));
 
@@ -73,16 +82,18 @@ export function countRows(shift: OpenShift): CountLine[] {
   const porForma = new Map(shift.receipts.map((r) => [r.method, r.amountCents]));
 
   const card = shift.receipts
-    .filter((r) => r.method.toLowerCase().startsWith('cartão'))
+    .filter((r) => CARD_METHODS.includes(r.method))
     .reduce((s, r) => s + r.amountCents, 0);
 
   const rows: CountLine[] = [
-    { method: CASH_METHOD, esperadoCentavos: shift.gavetaCentavos },
+    { method: CASH_METHOD, label: methodLabel(CASH_METHOD), esperadoCentavos: shift.gavetaCentavos },
   ];
 
-  const pix = porForma.get('Pix');
-  if (pix !== undefined) rows.push({ method: 'Pix', esperadoCentavos: pix });
-  if (card > 0) rows.push({ method: 'Cartão', esperadoCentavos: card });
+  const pix = porForma.get('pix');
+  if (pix !== undefined) rows.push({ method: 'pix', label: methodLabel('pix'), esperadoCentavos: pix });
+  if (card > 0) {
+    rows.push({ method: 'card', label: currentMessages().cash.card, esperadoCentavos: card });
+  }
 
   return rows;
 }
@@ -141,7 +152,8 @@ export function labelDifference(
   centavos: number,
   formatar: (c: number) => string,
 ): { text: string; tone: 'neutral' | 'warning' } {
-  if (centavos === 0) return { text: 'sem diferença', tone: 'neutral' };
-  if (centavos < 0) return { text: `faltou ${formatar(-centavos)}`, tone: 'warning' };
-  return { text: `sobrou ${formatar(centavos)}`, tone: 'warning' };
+  const t = currentMessages().cash.difference;
+  if (centavos === 0) return { text: t.none, tone: 'neutral' };
+  if (centavos < 0) return { text: t.short(formatar(-centavos)), tone: 'warning' };
+  return { text: t.over(formatar(centavos)), tone: 'warning' };
 }

@@ -11,6 +11,7 @@ import type {
   CostUpdateAPI,
   MonthSummaryAPI,
 } from './costsApiTypes';
+import { currentLocale, currentMessages } from '@i18n/active';
 
 /**
  * FRONTEIRA DE REDE dos custos.
@@ -120,7 +121,7 @@ export async function listCosts(tenantId: string): Promise<CostAPI[]> {
 function dueLabel(costDate: string, isRecurring: boolean | null): string | null {
   const [, month, day] = costDate.split('-');
   if (!month || !day) return null;
-  return isRecurring ? `dia ${Number(day)}` : `${day}/${month}`;
+  return isRecurring ? currentMessages().costs.dueDay(Number(day)) : `${day}/${month}`;
 }
 
 /**
@@ -160,25 +161,16 @@ export async function fetchMonthlySummary(tenantId: string): Promise<MonthSummar
   };
 }
 
-const MONTHS = [
-  'Janeiro',
-  'Fevereiro',
-  'Março',
-  'Abril',
-  'Maio',
-  'Junho',
-  'Julho',
-  'Agosto',
-  'Setembro',
-  'Outubro',
-  'Novembro',
-  'Dezembro',
-];
 
-/** `v_monthly_result.month` chega como data do primeiro dia do mês. */
+/**
+ * `v_monthly_result.month` chega como data do primeiro dia do mês. O nome do
+ * mês vem do `Intl`, no idioma do app ("Julho" / "July").
+ */
 function monthLabel(month: string): string {
-  const [, m] = String(month).split('-');
-  return MONTHS[Number(m) - 1] ?? String(month);
+  const [y, m] = String(month).split('-').map(Number);
+  if (!y || !m) return String(month);
+  const name = new Date(y, m - 1, 1).toLocaleDateString(currentLocale(), { month: 'long' });
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 function rangeLabel(month: string): string {
@@ -188,7 +180,8 @@ function rangeLabel(month: string): string {
   // Dia 0 do mês seguinte é o último dia deste — evita a tabela de 28/30/31 e
   // acerta fevereiro bissexto sozinho.
   const lastDay = new Date(Number(year), monthIndex, 0).getDate();
-  return `01/${String(monthIndex).padStart(2, '0')} a ${lastDay}/${String(monthIndex).padStart(2, '0')}`;
+  const mm = String(monthIndex).padStart(2, '0');
+  return currentMessages().costs.monthRange(`01/${mm}`, `${lastDay}/${mm}`);
 }
 
 function brl(cents: number): string {

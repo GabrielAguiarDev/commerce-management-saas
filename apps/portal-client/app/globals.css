@@ -63,6 +63,26 @@
   gap: 10px;
 }
 
+/*
+   O cartão "Módulo sugerido": uma faixa (ícone e texto à esquerda, botão à
+   direita, tudo centrado na vertical) quando o cartão é largo; empilhado, com
+   o botão no rodapé, quando ele tem a largura de uma coluna. Mesma herança de
+   `--dir-*`/`--align-*` do `.kpi-head`, e pelo mesmo motivo: escolher antes do
+   primeiro pixel.
+
+   `space-between` faz os dois papéis: na linha, afasta o botão para a direita;
+   na coluna, empurra-o para o rodapé. Na coluna o botão não estica
+   (`--btn-*: flex-start`), mesmo com o cartão em `stretch`.
+*/
+.suggest-card {
+  display: flex;
+  flex-direction: var(--dir-d);
+  align-items: var(--align-d);
+  justify-content: space-between;
+  gap: 16px;
+  --btn-self: var(--btn-d);
+}
+
 @media (max-width: 899.98px) {
   .kpi-grid {
     grid-template-columns: repeat(var(--cols-m), minmax(0, 1fr));
@@ -74,5 +94,11 @@
 
   .kpi-head {
     flex-direction: var(--dir-m);
+  }
+
+  .suggest-card {
+    flex-direction: var(--dir-m);
+    align-items: var(--align-m);
+    --btn-self: var(--btn-m);
   }
 }

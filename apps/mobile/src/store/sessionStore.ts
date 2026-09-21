@@ -39,6 +39,15 @@ interface SessionState {
   signOut: () => Promise<void>;
   /** Chamado uma vez no boot pelo `useSessionSync`. */
   restore: () => Promise<void>;
+  /**
+   * Relê papel e permissões sem mexer no resto da sessão.
+   *
+   * Existe para quando o banco recusa uma escrita por permissão: o dono pode
+   * ter tirado um módulo do papel deste funcionário. Ao contrário de
+   * `restore`, NUNCA encerra a sessão — uma leitura que falha ou volta vazia
+   * deixa tudo como estava, em vez de deslogar alguém por um soluço de rede.
+   */
+  refreshRole: () => Promise<void>;
   /** A sessão sumiu por fora (token revogado, expirado, logout em outro lugar). */
   clear: () => void;
 }
@@ -93,6 +102,15 @@ export const useSessionStore = create<SessionState>()((set) => ({
     // flag em `false` prenderia o app na splash para sempre; o pior cenário
     // aceitável é pedir login de novo.
     set(session ? { ...fromSession(session), hydrated: true } : { ...EMPTY, hydrated: true });
+  },
+
+  refreshRole: async () => {
+    try {
+      const session = await sessionService.getCurrentSession();
+      if (session) set({ rolePermissions: session.rolePermissions, isOwner: session.isOwner });
+    } catch {
+      // Fica o papel que já estava; o próximo login ou a próxima recusa relê.
+    }
   },
 
   clear: () => set({ ...EMPTY }),

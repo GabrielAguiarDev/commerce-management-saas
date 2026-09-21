@@ -3,6 +3,7 @@ import type { CostAPI } from '../costsApiTypes';
 import { toCost } from '../costsAdapter';
 import { deleteCost, recordCost, updateCost } from '../costsService';
 import { CostError } from '../costsTypes';
+import { ModuleAccessError } from '@domain/shared/accessDenied';
 
 jest.mock('../costsApi', () => ({
   createCost: jest.fn(),
@@ -129,13 +130,22 @@ describe('updateCost', () => {
     expect(apiUpdateCost).not.toHaveBeenCalled();
   });
 
-  it('traduz o erro do servidor em código do domínio', async () => {
-    apiUpdateCost.mockRejectedValue({ code: '42501', message: 'sem permissão para custos' });
+  it('traduz regra de negócio do servidor em código do domínio', async () => {
+    apiUpdateCost.mockRejectedValue({
+      code: '42501',
+      message: 'custo que repete todo mês só pode ser editado pelo portal ou app',
+    });
 
     const attempt = updateCost(series, changes);
 
     await expect(attempt).rejects.toBeInstanceOf(CostError);
     await expect(attempt).rejects.toMatchObject({ code: 'forbidden' });
+  });
+
+  it('recusa por módulo vira ModuleAccessError, para o app tirar o módulo da tela', async () => {
+    apiUpdateCost.mockRejectedValue({ code: '42501', message: 'sem permissão para custos' });
+
+    await expect(updateCost(series, changes)).rejects.toBeInstanceOf(ModuleAccessError);
   });
 });
 

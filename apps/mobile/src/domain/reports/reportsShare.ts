@@ -6,6 +6,7 @@ import { createXlsx } from '@utils/xlsx';
 
 import { reportFileName, reportHtml, reportSheets } from './reportsExport';
 import type { Report } from './reportsTypes';
+import { currentMessages } from '@i18n/active';
 
 /**
  * GERAR E COMPARTILHAR o relatório.
@@ -68,7 +69,7 @@ export async function shareReportPdf(report: Report, periodLabel: string): Promi
     if (destino.exists) destino.delete();
     new File(uri).move(destino);
 
-    return await compartilhar(destino.uri, 'application/pdf', 'Enviar relatório em PDF');
+    return await compartilhar(destino.uri, 'application/pdf', currentMessages().reports.export.sharePdf);
   } catch {
     return { ok: false, reason: 'failed' };
   }
@@ -82,7 +83,7 @@ export async function shareReportXlsx(report: Report, periodLabel: string): Prom
     return await compartilhar(
       file.uri,
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Enviar a planilha',
+      currentMessages().reports.export.shareSheet,
     );
   } catch {
     return { ok: false, reason: 'failed' };

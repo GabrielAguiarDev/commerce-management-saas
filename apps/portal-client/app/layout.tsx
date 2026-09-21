@@ -1,7 +1,9 @@
 import { BRAND } from "@aguiar/ui";
+import { Suspense } from "react";
 import { SerwistProvider } from "@serwist/turbopack/react";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Public_Sans } from "next/font/google";
+import { AccessRevoked } from "@/components/AccessRevoked";
 import { PortalProvider } from "@/components/PortalProvider";
 import { PortalShell } from "@/components/PortalShell";
 import { loadPortal } from "@/lib/dados/carregar";
@@ -128,6 +130,10 @@ export default async function RootLayout({
               e aparência sobrevivem à troca de tela. */}
           <PortalProvider data={data}>
             <PortalShell>{children}</PortalShell>
+            {/* `useSearchParams` pede um limite de Suspense. */}
+            <Suspense fallback={null}>
+              <AccessRevoked />
+            </Suspense>
           </PortalProvider>
         </SerwistProvider>
       </body>

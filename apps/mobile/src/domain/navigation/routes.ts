@@ -1,6 +1,8 @@
 import type { Capabilities } from '@domain/tenant/tenantTypes';
 
 import type { TabBarItem, MoreItem } from './navigationTypes';
+import { currentMessages } from '@i18n/active';
+import type { Messages } from '@i18n/en';
 
 /**
  * DECISÕES DE NAVEGAÇÃO COMO FUNÇÃO PURA.
@@ -168,6 +170,14 @@ export interface AppGateState {
   /** As capacidades do plano já chegaram (sucesso OU erro). */
   capabilitiesSettled: boolean;
   /**
+   * A carga do plano (tenant + módulos) falhou e não há dado nenhum em mãos.
+   *
+   * Sem este estado, a falha era tratada como "chegou": o portão liberava com
+   * as capacidades todas `false` e o app abria só com Início e Mais — um plano
+   * completo parecendo o plano mais pobre, sem uma palavra sobre o erro.
+   */
+  capabilitiesFailed: boolean;
+  /**
    * O guardião JÁ LIBEROU uma vez nesta sessão.
    *
    * Esta é a trava que separa "verificar na entrada" de "verificar a cada
@@ -192,7 +202,9 @@ export interface AppGateState {
  *  3. já liberou? então libera de novo, sem reconsultar nada;
  *  4. a consulta falhou de vez? tela de erro com "tentar de novo";
  *  5. o PLANO inclui o app? o bloqueio é entitlement, não erro de senha;
- *  6. as capacidades chegaram? sem elas a tab bar mostraria o plano mais pobre
+ *  6. a carga do plano falhou? tela de erro — liberar sem capacidades
+ *     esconderia os módulos contratados como se o plano não os tivesse;
+ *  7. as capacidades chegaram? sem elas a tab bar mostraria o plano mais pobre
  *     por uma fração de segundo — esperar UMA vez aqui é o que permite à barra
  *     nunca mais ter estado de carregamento.
  */
@@ -203,6 +215,7 @@ export function resolveAppGate(state: AppGateState): AppGate {
   if (state.accessFailed) return 'error';
   if (state.hasAppAccess === null) return 'hold';
   if (!state.hasAppAccess) return 'blocked';
+  if (state.capabilitiesFailed) return 'error';
   if (!state.capabilitiesSettled) return 'hold';
   return 'allow';
 }
@@ -213,12 +226,12 @@ export function resolveAppGate(state: AppGateState): AppGate {
  * Caixa preserva a prioridade do protótipo quando os dois existem. Quando o
  * plano ∩ papel não libera nenhum deles, não existe slot vazio: o atalho some.
  */
-export function tabBarShortcut(caps: Capabilities): TabBarItem | null {
+export function tabBarShortcut(caps: Capabilities, t: Messages = currentMessages()): TabBarItem | null {
   if (caps.hasCash) {
-    return { key: 'cash', label: 'Caixa', route: ROUTES.cash, icon: 'cash' };
+    return { key: 'cash', label: t.nav.tabs.cash, route: ROUTES.cash, icon: 'cash' };
   }
   if (caps.hasCosts) {
-    return { key: 'costs', label: 'Custos', route: ROUTES.costs, icon: 'costs' };
+    return { key: 'costs', label: t.nav.tabs.costs, route: ROUTES.costs, icon: 'costs' };
   }
   return null;
 }
@@ -232,15 +245,15 @@ export function tabBarShortcut(caps: Capabilities): TabBarItem | null {
  * registradas no `Tabs` estrutural — esta função decide somente o que a barra
  * desenha.
  */
-export function tabBarItems(caps: Capabilities): TabBarItem[] {
-  const shortcut = tabBarShortcut(caps);
+export function tabBarItems(caps: Capabilities, t: Messages = currentMessages()): TabBarItem[] {
+  const shortcut = tabBarShortcut(caps, t);
   const items: TabBarItem[] = [
-    { key: 'home', label: 'Início', route: ROUTES.home, icon: 'home' },
+    { key: 'home', label: t.nav.tabs.home, route: ROUTES.home, icon: 'home' },
     ...(caps.hasProducts
-      ? [{ key: 'products', label: 'Produtos', route: ROUTES.products, icon: 'products' } as const]
+      ? [{ key: 'products', label: t.nav.tabs.products, route: ROUTES.products, icon: 'products' } as const]
       : []),
     ...(shortcut ? [shortcut] : []),
-    { key: 'more', label: 'Mais', route: ROUTES.more, icon: 'more' },
+    { key: 'more', label: t.nav.tabs.more, route: ROUTES.more, icon: 'more' },
   ];
 
   // Defesa da chrome contra divergência futura: acrescentar um destino acima
@@ -274,6 +287,7 @@ export function tabBarSalePlacement(
 export function tabBarInlineSaleItems(
   items: readonly TabBarItem[],
   caps: Capabilities,
+  t: Messages = currentMessages(),
 ): TabBarItem[] | null {
   if (tabBarSalePlacement(items, caps) !== 'inline') return null;
 
@@ -281,7 +295,7 @@ export function tabBarInlineSaleItems(
   const insertAt = moreIndex >= 0 ? moreIndex : items.length;
   const saleItem: TabBarItem = {
     key: 'sell',
-    label: 'Vender',
+    label: t.nav.tabs.sell,
     route: ROUTES.sell,
     icon: 'cart',
   };
@@ -316,14 +330,23 @@ export function tabBarSaleLayout(
  * também: é por ele que se pede a mudança de plano, então tirá-lo do plano
  * mais barato seria trancar a porta por dentro.
  */
-export function moreItems(caps: Capabilities, unreadTickets = 0): MoreItem[] {
+/**
+ * `t` é opcional só para os testes (caem no idioma corrente, o pt-BR padrão).
+ * A tela passa o dela, de `useTranslation`, e é isso que a faz redesenhar a
+ * grade quando o idioma muda.
+ */
+export function moreItems(
+  caps: Capabilities,
+  unreadTickets = 0,
+  t: Messages = currentMessages(),
+): MoreItem[] {
   const items: MoreItem[] = [];
 
   if (caps.hasCash) {
     items.push({
       key: 'cash',
-      name: 'Caixa',
-      description: 'Abrir, sangria e fechamento',
+      name: t.nav.items.cash.name,
+      description: t.nav.items.cash.description,
       route: ROUTES.cash,
       icon: 'cash',
       badge: '',
@@ -332,8 +355,8 @@ export function moreItems(caps: Capabilities, unreadTickets = 0): MoreItem[] {
   if (caps.hasStock) {
     items.push({
       key: 'stock',
-      name: 'Estoque',
-      description: 'O que tem e o que falta',
+      name: t.nav.items.stock.name,
+      description: t.nav.items.stock.description,
       route: ROUTES.stock,
       icon: 'stock',
       badge: '',
@@ -342,8 +365,8 @@ export function moreItems(caps: Capabilities, unreadTickets = 0): MoreItem[] {
   if (caps.hasCosts) {
     items.push({
       key: 'costs',
-      name: 'Custos',
-      description: 'O que sai do seu bolso',
+      name: t.nav.items.costs.name,
+      description: t.nav.items.costs.description,
       route: ROUTES.costs,
       icon: 'costs',
       badge: '',
@@ -352,8 +375,8 @@ export function moreItems(caps: Capabilities, unreadTickets = 0): MoreItem[] {
   if (caps.hasReports) {
     items.push({
       key: 'reports',
-      name: 'Relatórios',
-      description: 'Entrou, saiu e sobrou',
+      name: t.nav.items.reports.name,
+      description: t.nav.items.reports.description,
       route: ROUTES.reports,
       icon: 'reports',
       badge: '',
@@ -362,8 +385,8 @@ export function moreItems(caps: Capabilities, unreadTickets = 0): MoreItem[] {
 
   items.push({
     key: 'settings',
-    name: 'Configurações',
-    description: 'Negócio, equipe e plano',
+    name: t.nav.items.settings.name,
+    description: t.nav.items.settings.description,
     route: ROUTES.settings,
     icon: 'settings',
     badge: '',
@@ -371,8 +394,8 @@ export function moreItems(caps: Capabilities, unreadTickets = 0): MoreItem[] {
 
   items.push({
     key: 'support',
-    name: 'Suporte',
-    description: 'Fale com a gente',
+    name: t.nav.items.support.name,
+    description: t.nav.items.support.description,
     route: ROUTES.support,
     icon: 'support',
     badge: unreadTickets > 0 ? String(unreadTickets) : '',

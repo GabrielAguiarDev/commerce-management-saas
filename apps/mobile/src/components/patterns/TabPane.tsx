@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box } from '@components/ui/Box';
 import { useAppTheme } from '@hooks/useAppTheme';
+import { useRefreshControl } from '@hooks/usePullToRefresh';
 
 import { ESPACO_INFERIOR_INTERNO } from './Screen';
 
@@ -22,6 +23,9 @@ import { ESPACO_INFERIOR_INTERNO } from './Screen';
 export function TabPane({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
+  // As abas de Configurações rolam aqui, e não no `Screen` (que é `noScroll`
+  // nelas) — o gesto de atualizar precisa morar neste ScrollView também.
+  const refreshControl = useRefreshControl();
 
   return (
     <ScrollView
@@ -39,6 +43,7 @@ export function TabPane({ children }: { children: ReactNode }) {
       // "Salvar": sem isto o primeiro toque só fecharia o teclado.
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
+      refreshControl={refreshControl}
     >
       <Box gap="s12">{children}</Box>
     </ScrollView>

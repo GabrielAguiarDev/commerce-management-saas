@@ -25,7 +25,7 @@ export default function MoreScreen() {
   const cancelCart = useCartStore((s) => s.cancel);
   const requestConfirm = useUIStore((s) => s.requestConfirm);
 
-  const items = moreItems(capabilities, countUnread(tickets));
+  const items = moreItems(capabilities, countUnread(tickets), t);
 
   function requestSignOut() {
     requestConfirm({
@@ -43,12 +43,12 @@ export default function MoreScreen() {
   }
 
   return (
-    <Screen title="Mais" subtitle="Tudo o que seu plano inclui" showBack={false} padded>
+    <Screen title={t.more.title} subtitle={t.more.subtitle} showBack={false} padded>
       <Box flexDirection="row" flexWrap="wrap" gap="s12">
         {items.map((item) => (
           <Touchable
             key={item.key}
-            accessibilityLabel={`${item.name}. ${item.description}${item.badge ? `. ${item.badge} não lida` : ''}`}
+            accessibilityLabel={`${item.name}. ${item.description}${item.badge ? `. ${t.more.unread(item.badge)}` : ''}`}
             // `goTo`, e não `push`: Caixa e Custos são ABAS, e empilhar sobre
             // uma aba não funciona. Ver o comentário em `goTo`.
             onPress={() => goTo(item.route)}
@@ -104,7 +104,7 @@ export default function MoreScreen() {
 
       <Box marginTop="s6">
         <Button
-          title="Sair da conta"
+          title={t.more.signOut}
           onPress={requestSignOut}
           variant="contorno"
           textColor="danger"
@@ -115,7 +115,7 @@ export default function MoreScreen() {
       </Box>
 
       <Text variant="hint" color="textMuted" textAlign="center" paddingTop="s4">
-        Aguiar One · versão 1.0
+        {t.more.version('1.0')}
       </Text>
     </Screen>
   );

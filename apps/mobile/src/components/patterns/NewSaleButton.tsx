@@ -9,6 +9,7 @@ import { useCapabilities } from '@domain/tenant';
 import { goToRoot } from '@hooks/navigation';
 
 import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
+import { useTranslation } from '@i18n';
 
 /**
  * O botão CENTRAL da tab bar — "Vender".
@@ -34,7 +35,8 @@ import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
 export function NewSaleButton() {
   const insets = useSafeAreaInsets();
   const { capabilities } = useCapabilities();
-  const items = tabBarItems(capabilities);
+  const t = useTranslation();
+  const items = tabBarItems(capabilities, t);
 
   if (tabBarSalePlacement(items, capabilities) !== 'raised') return null;
 
@@ -50,7 +52,7 @@ export function NewSaleButton() {
       pointerEvents="box-none"
     >
       <Touchable
-        accessibilityLabel="Nova venda"
+        accessibilityLabel={t.sell.title}
         // EMPILHA, não troca de aba: `goToRoot` limpa a pilha e sobe Vender
         // sobre as abas, em tela cheia. Voltar de lá cai na aba de origem, com
         // a tab bar de volta.
@@ -72,7 +74,7 @@ export function NewSaleButton() {
         </Box>
 
         <Text variant="tabLabel" color="textMuted">
-          Vender
+          {t.nav.tabs.sell}
         </Text>
       </Touchable>
     </Box>

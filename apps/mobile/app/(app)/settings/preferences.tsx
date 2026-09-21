@@ -40,7 +40,7 @@ export default function PreferencesTab() {
     <TabPane>
       <Card paddingVertical="s6" paddingHorizontal="s16">
         <Text variant="sectionTitle" paddingTop="s13" paddingBottom="s6">
-          Formas de pagamento aceitas
+          {t.settings.preferences.paymentMethods}
         </Text>
         {PAYMENT_METHODS.map((method) => (
           <Box key={method}>
@@ -52,7 +52,7 @@ export default function PreferencesTab() {
               <Switch
                 on={acceptedMethods[method]}
                 onToggle={() => togglePaymentMethod(method)}
-                label={`Aceitar ${t.paymentMethods[method]}`}
+                label={t.settings.preferences.accept(t.paymentMethods[method])}
               />
             </Box>
           </Box>
@@ -97,9 +97,9 @@ export default function PreferencesTab() {
 
       <Card padding="s16" flexDirection="row" alignItems="center" gap="s12">
         <Box flex={1}>
-          <Text variant="rowLabel">Tema escuro</Text>
+          <Text variant="rowLabel">{t.settings.preferences.darkTheme}</Text>
         </Box>
-        <Switch on={darkTheme} onToggle={toggleTheme} label="Tema escuro" />
+        <Switch on={darkTheme} onToggle={toggleTheme} label={t.settings.preferences.darkTheme} />
       </Card>
     </TabPane>
   );

@@ -11,6 +11,7 @@ import { daysAgoISO, daysSince } from '@utils/dates';
 import { centsToReal, realToCents } from '@utils/money';
 
 import type { CashAdjustmentAPI, CashHistoryAPI, CashShiftAPI } from './cashApiTypes';
+import { currentMessages } from '@i18n/active';
 
 /**
  * FRONTEIRA DE REDE do caixa.
@@ -73,14 +74,6 @@ async function salesByMethodCents(from: string, to: string | null) {
   return totals;
 }
 
-/** Os rótulos que a tela de conferência mostra, na ordem do design. */
-const METHOD_LABEL: Record<string, string> = {
-  cash: 'Dinheiro',
-  pix: 'Pix',
-  debit: 'Cartão de débito',
-  credit: 'Cartão de crédito',
-};
-
 /**
  * O TURNO ABERTO, se houver.
  *
@@ -113,8 +106,10 @@ export async function fetchOpenShift(tenantId: string): Promise<CashShiftAPI | n
     opening_cents: openingCents,
     // Só `cash`: Pix e cartão não passam pela gaveta.
     drawer_cents: openingCents + (totals.get('cash') ?? 0) + movementsBalanceCents(row),
+    // A CHAVE (`cash`, `pix`…), não o rótulo: o nome exibido é do idioma e
+    // quem o escolhe é o adapter.
     method_totals: PAYMENT_METHODS.map((method) => ({
-      method: METHOD_LABEL[method] ?? method,
+      method,
       amount_cents: totals.get(method) ?? 0,
     })),
   };
@@ -172,8 +167,8 @@ function clock(iso: string | null): string {
 
 function dateLabel(iso: string): string {
   const days = daysSince(iso);
-  if (days === 0) return 'Hoje';
-  if (days === 1) return 'Ontem';
+  if (days === 0) return currentMessages().time.today;
+  if (days === 1) return currentMessages().cash.yesterday;
   const d = new Date(iso);
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
@@ -218,10 +213,7 @@ export async function openShift(
     closed_at: null,
     opening_cents: aberturaCentavos,
     drawer_cents: aberturaCentavos,
-    method_totals: PAYMENT_METHODS.map((method) => ({
-      method: METHOD_LABEL[method] ?? method,
-      amount_cents: 0,
-    })),
+    method_totals: PAYMENT_METHODS.map((method) => ({ method, amount_cents: 0 })),
   };
 }
 

@@ -7,6 +7,7 @@ import { CartSheet } from './CartSheet';
 import { TicketSheet } from './TicketSheet';
 import { CloseOutSheet } from './CloseOutSheet';
 import { CostSheet } from './CostSheet';
+import { DateRangeSheet } from './DateRangeSheet';
 import { ProductSheet } from './ProductSheet';
 import { SimpleSheet } from './SimpleSheet';
 
@@ -59,6 +60,8 @@ function conteudo(sheet: Sheet) {
       return <SimpleSheet type="topUp" />;
     case 'cost':
       return <CostSheet costId={sheet.costId} />;
+    case 'dateRange':
+      return <DateRangeSheet initial={sheet.initial} onApply={sheet.onApply} />;
     case 'movement':
       return (
         <SimpleSheet

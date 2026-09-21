@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { endExpiredSession } from "@/lib/autorizacao";
 import { createClient } from "@/lib/supabase/server";
 import type { Priority, TicketStatus } from "@/types/types";
 
@@ -58,7 +59,7 @@ async function requireAdmin(): Promise<
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return { ok: false, message: "Sessão expirada. Entre novamente para continuar." };
+  if (!user) return endExpiredSession(supabase);
 
   const { data: perfil, error } = await supabase
     .from("profiles")

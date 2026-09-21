@@ -4,17 +4,12 @@ import type { Product, StockStatus } from '@domain/catalog';
 import { useStockMovements } from '@domain/stock';
 import { useUIStore } from '@store/uiStore';
 import type { ThemeColor } from '@theme';
+import { useTranslation } from '@i18n';
 
 const STATUS_COLOR: Record<StockStatus, ThemeColor> = {
   ok: 'success',
   low: 'warning',
   out: 'danger',
-};
-
-const STATUS_WORD: Record<StockStatus, string> = {
-  ok: 'em dia',
-  low: 'está baixo',
-  out: 'out',
 };
 
 /**
@@ -28,16 +23,17 @@ export default function StockScreen() {
   const { data: products = [] } = useCatalog();
   const { data: movements = [] } = useStockMovements();
   const openSheet = useUIStore((s) => s.openSheet);
+  const t = useTranslation();
 
   const inStock = productsInStock(products);
   const summary = stockSummary(products);
 
   return (
-    <Screen title="Estoque" subtitle="O que tem e o que está acabando" padded>
+    <Screen title={t.stock.title} subtitle={t.stock.subtitle} padded>
       <Box flexDirection="row" gap="s10">
-        <Contador label="Em dia" amount={summary.emDia} color="success" />
-        <Contador label="Baixo" amount={summary.low} color="warning" />
-        <Contador label="Zerado" amount={summary.out} color="danger" />
+        <Contador label={t.stock.counters.ok} amount={summary.emDia} color="success" />
+        <Contador label={t.stock.counters.low} amount={summary.low} color="warning" />
+        <Contador label={t.stock.counters.out} amount={summary.out} color="danger" />
       </Box>
 
       {inStock.map((product) => (
@@ -51,7 +47,7 @@ export default function StockScreen() {
       ))}
 
       <Text variant="sectionLabel" color="textMuted" marginTop="s6">
-        Últimas movimentações
+        {t.stock.recentMovements}
       </Text>
 
       <Card paddingVertical="s4" paddingHorizontal="s16">
@@ -79,7 +75,7 @@ export default function StockScreen() {
       </Card>
 
       <Button
-        title="+ Registrar movimentação"
+        title={t.stock.addMovement}
         onPress={() => openSheet({ type: 'movement' })}
         variant="tracejado"
         height={52}
@@ -110,6 +106,7 @@ function StockLine({
   product: Product;
   onMove: () => void;
 }) {
+  const t = useTranslation();
   const stock = product.stock;
   if (!stock) return null;
 
@@ -133,12 +130,11 @@ function StockLine({
       <Box flex={1} minWidth={0}>
         <Text variant="titleXs">{product.name}</Text>
         <Text variant="captionSm" color="textMuted" marginTop="s3">
-          {stock.quantity} em stock · mínimo {stock.minimo} ·{' '}
-          {STATUS_WORD[stock.status]}
+          {t.stock.line(stock.quantity, stock.minimo, t.stock.status[stock.status])}
         </Text>
       </Box>
       <Touchable
-        accessibilityLabel={`Movimentar ${product.name}`}
+        accessibilityLabel={t.stock.moveProduct(product.name)}
         onPress={onMove}
         height={36}
         paddingHorizontal="s13"
@@ -149,7 +145,7 @@ function StockLine({
         justifyContent="center"
       >
         <Text variant="buttonTiny" color="primaryText">
-          Movimentar
+          {t.stock.move}
         </Text>
       </Touchable>
     </Box>

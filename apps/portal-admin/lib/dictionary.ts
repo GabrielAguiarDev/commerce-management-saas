@@ -286,6 +286,7 @@ const pt = {
   definindoSenhaDe: "Você está definindo a senha de {email}.",
   entrarDeNovo: "Por segurança, você vai entrar de novo com a senha nova.",
   erroLinkInvalido: "O link expirou ou já foi usado. Peça outro para continuar.",
+  sessaoExpirada: "Sua sessão expirou. Entre novamente para continuar.",
   senhaAlterada: "Senha alterada. Entre com a sua nova senha.",
   vazioClientesTitulo: "Nenhum cliente cadastrado ainda",
   vazioClientesTexto:
@@ -750,6 +751,7 @@ const en: Dic = {
   definindoSenhaDe: "You are setting the password for {email}.",
   entrarDeNovo: "For security, you will sign in again with the new password.",
   erroLinkInvalido: "The link has expired or was already used. Request another one to continue.",
+  sessaoExpirada: "Your session has expired. Sign in again to continue.",
   senhaAlterada: "Password changed. Sign in with your new password.",
   vazioClientesTitulo: "No customers yet",
   vazioClientesTexto:

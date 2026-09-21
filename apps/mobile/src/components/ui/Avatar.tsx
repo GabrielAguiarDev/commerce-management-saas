@@ -1,5 +1,6 @@
 import { Box } from './Box';
 import { Text } from './Text';
+import { useTranslation } from '@i18n';
 
 interface AvatarProps {
   initials: string;
@@ -8,6 +9,7 @@ interface AvatarProps {
 
 /** Círculo azul-claro da marca com as iniciais. Header e lista de equipe usam o mesmo. */
 export function Avatar({ initials, size = 38 }: AvatarProps) {
+  const t = useTranslation();
   return (
     <Box
       width={size}
@@ -18,7 +20,7 @@ export function Avatar({ initials, size = 38 }: AvatarProps) {
       justifyContent="center"
       accessible
       accessibilityRole="image"
-      accessibilityLabel={`Avatar de ${initials}`}
+      accessibilityLabel={t.common.avatar(initials)}
     >
       <Text variant="avatarInitials" color="primaryText">
         {initials}

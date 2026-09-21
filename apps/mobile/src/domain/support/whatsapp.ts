@@ -1,3 +1,5 @@
+import { currentMessages } from '@i18n/active';
+
 /**
  * O CANAL EXTERNO de suporte — WhatsApp.
  *
@@ -16,7 +18,9 @@
  * A mensagem que já vai digitada. Primeira pessoa, direta ao ponto — quem
  * recebe do outro lado precisa saber em uma linha o que fazer.
  */
-export const UPGRADE_MESSAGE = 'Olá! Quero ativar o aplicativo do Aguiar One para o meu negócio.';
+export function upgradeMessage(): string {
+  return currentMessages().support.upgradeMessage;
+}
 
 /**
  * Deixa só os dígitos e recusa o que não pode ser telefone.
@@ -43,6 +47,6 @@ export function sanitizePhone(raw: unknown): string | null {
  * "aplicativo do Aguiar One". Sem codificar, o link quebra no primeiro espaço e
  * o WhatsApp abre com o texto pela metade — ou não abre.
  */
-export function whatsappLink(phone: string, message = UPGRADE_MESSAGE): string {
+export function whatsappLink(phone: string, message = upgradeMessage()): string {
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }

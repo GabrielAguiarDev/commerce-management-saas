@@ -20,7 +20,7 @@ import { useCapabilities, useCurrentTenant } from '@domain/tenant';
 import { goTo } from '@hooks/navigation';
 import { useSessionStore } from '@store/sessionStore';
 import type { Messages } from '@i18n';
-import { useTranslation } from '@i18n';
+import { currentLocale, useTranslation } from '@i18n';
 import { formatBRL } from '@utils/money';
 
 /** Cinco linhas mantêm o resumo útil sem transformar a Home numa lista. */
@@ -56,14 +56,14 @@ export default function HomeScreen() {
 
   return (
     <Screen
-      title={`Bom dia, ${firstName(user?.name)}`}
+      title={t.home.greetingName(greeting(t), firstName(user?.name, t))}
       subtitle={`${tenant?.name ?? '—'} · ${longDate()}`}
       showBack={false}
       padded
     >
       <Box backgroundColor="secondary" borderRadius="r22" padding="s20">
         <Text variant="chipLabel" color="onPetrol" opacity={0.65}>
-          Vendas de hoje
+          {t.home.todaySales}
         </Text>
         {/* Sem esqueleto, este número aparecia como R$ 0,00 e depois pulava
             para o valor real — pior que esperar: por um instante o app AFIRMA
@@ -119,7 +119,7 @@ export default function HomeScreen() {
       <Box flexDirection="row" gap="s12">
         <Card flex={1}>
           <Text variant="label" color="textMuted">
-            Sobrou hoje
+            {t.home.leftToday}
           </Text>
           {summaryPending ? (
             <Skeleton height={22} width="70%" marginTop="s6" />
@@ -129,13 +129,13 @@ export default function HomeScreen() {
             </Text>
           )}
           <Text variant="hint" color="textMuted" marginTop="s4">
-            depois dos custos
+            {t.home.afterCosts}
           </Text>
         </Card>
 
         <Card flex={1}>
           <Text variant="label" color="textMuted">
-            Mais vendido
+            {t.home.bestSeller}
           </Text>
           {summaryPending ? (
             <Skeleton height={19} width="85%" marginTop="s6" />
@@ -154,7 +154,7 @@ export default function HomeScreen() {
 
       {capabilities.hasCash ? (
         <Touchable
-          accessibilityLabel={shift ? 'Ver caixa aberto' : 'Abrir o caixa'}
+          accessibilityLabel={shift ? t.home.cash.seeOpen : t.home.cash.openIt}
           // Caixa é uma ABA: `goTo` faz o jumpTo, `push` não teria pilha onde
           // empilhar. Estoque, logo abaixo, continua sendo `push`.
           onPress={() => goTo(ROUTES.cash)}
@@ -178,15 +178,15 @@ export default function HomeScreen() {
             <Icon name="cash" size={20} color="primary" />
           </Box>
           <Box flex={1}>
-            <Text variant="titleSm">{shift ? 'Caixa aberto' : 'Caixa fechado'}</Text>
+            <Text variant="titleSm">{shift ? t.home.cash.open : t.home.cash.closed}</Text>
             <Text variant="caption" color="textMuted" marginTop="s3">
               {shift
-                ? `Na gaveta agora: ${formatBRL(shift.gavetaCentavos)}`
-                : 'Abra para começar o turno'}
+                ? t.home.cash.drawer(formatBRL(shift.gavetaCentavos))
+                : t.home.cash.openToStart}
             </Text>
           </Box>
           <Text variant="sectionLabel" color="primaryText">
-            Ver
+            {t.home.cash.see}
           </Text>
         </Touchable>
       ) : null}
@@ -313,16 +313,28 @@ export default function HomeScreen() {
   );
 }
 
-function firstName(name: string | undefined): string {
-  return (name ?? 'você').trim().split(/\s+/)[0] ?? 'você';
+function firstName(name: string | undefined, t: Messages): string {
+  return (name ?? t.home.you).trim().split(/\s+/)[0] ?? t.home.you;
 }
 
-/** "domingo, 26 de julho" — como o subtítulo do protótipo. */
+/** Pelo relógio do aparelho: "Bom dia" era fixo, também às 22h. */
+function greeting(t: Messages): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return t.home.greeting.morning;
+  if (hour < 18) return t.home.greeting.afternoon;
+  return t.home.greeting.evening;
+}
+
+/**
+ * "segunda-feira, 21 de setembro" / "Monday, September 21" — a ordem e as
+ * preposições são do idioma, então quem monta é o `Intl`, não uma template.
+ */
 function longDate(): string {
-  const today = new Date();
-  const dia = today.toLocaleDateString('pt-BR', { weekday: 'long' });
-  const mes = today.toLocaleDateString('pt-BR', { month: 'long' });
-  return `${dia}, ${today.getDate()} de ${mes}`;
+  return new Date().toLocaleDateString(currentLocale(), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 }
 
 function summarizeAlerts(

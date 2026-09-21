@@ -12,6 +12,8 @@ export interface ReportRowAPI {
 }
 
 export interface ReportBarAPI {
+  /** O dia de calendário, `YYYY-MM-DD` — único dentro do período. */
+  day: string;
   day_label: string;
   amount_cents: number;
 }
@@ -23,7 +25,6 @@ export interface ReportTopProductAPI {
 }
 
 export interface ReportAPI {
-  period: string;
   rows: ReportRowAPI[];
   daily_bars: ReportBarAPI[];
   top_products: ReportTopProductAPI[];

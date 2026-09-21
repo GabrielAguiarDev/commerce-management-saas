@@ -295,17 +295,28 @@ export function DashboardView() {
           )}
 
           {showShortcuts && (
-            <div style={css("display:flex;flex-direction:column;gap:12px")}>
-              <div style={css(`padding:18px;${PANEL}`)}>
-                <h2 style={css(`margin:0 0 14px;font:600 15px/1.2 ${SANS}`)}>Atalhos</h2>
-                <div style={css("display:grid;grid-template-columns:1fr 1fr;gap:8px")}>
+            // O painel acompanha a altura da linha, igual ao gráfico ao lado:
+            // antes ele parava no fim dos botões e deixava um degrau embaixo.
+            // A grade cresce junto (`flex:1` + linhas `1fr`), e o título usa o
+            // mesmo `PANEL_TITLE` e o mesmo respiro de 18px do gráfico, para os
+            // dois conteúdos começarem na mesma altura.
+            <div style={css("display:flex;flex-direction:column")}>
+              <div style={css(`flex:1;display:flex;flex-direction:column;padding:18px;${PANEL}`)}>
+                <h2 style={css(PANEL_TITLE)}>Atalhos</h2>
+                <div
+                  style={css(
+                    "flex:1;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:8px;margin-top:18px",
+                  )}
+                >
                   {shortcuts.map((x) => (
                     <Button
                       key={x.name}
                       onClick={() => a.goTo(x.rota)}
                       className="hv-linha"
                       style={css(
-                        "display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--border);" +
+                        // Ícone no topo e nome no pé: com o botão mais alto, o nome
+                        // fica alinhado à base, e não flutuando no meio.
+                        "display:flex;flex-direction:column;justify-content:space-between;gap:8px;padding:12px;border:1px solid var(--border);" +
                           "border-radius:11px;background:var(--surface2);text-align:left",
                       )}
                     >

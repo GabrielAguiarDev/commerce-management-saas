@@ -21,6 +21,7 @@ import {
   TAMANHO_ICONE_TAB,
   VAO_BOTAO_VENDER,
 } from './tabBarGeometry';
+import { useTranslation } from '@i18n';
 
 /**
  * A CASCA DAS ABAS — estável nelas, ausente fora delas.
@@ -49,9 +50,11 @@ export function TabBar() {
   const insets = useSafeAreaInsets();
   const path = usePathname();
   const { capabilities } = useCapabilities();
+  // Os rótulos vêm do idioma: ler `t` aqui é o que redesenha a barra na troca.
+  const t = useTranslation();
 
-  const items = tabBarItems(capabilities);
-  const inlineItems = tabBarInlineSaleItems(items, capabilities);
+  const items = tabBarItems(capabilities, t);
+  const inlineItems = tabBarInlineSaleItems(items, capabilities, t);
   const saleLayout = tabBarSaleLayout(items, capabilities);
 
   const renderItem = (item: TabBarItem) => {

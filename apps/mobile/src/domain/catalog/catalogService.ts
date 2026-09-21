@@ -6,11 +6,13 @@ import {
   type Product,
   type ProductUpdate,
 } from './catalogTypes';
+import { throwIfAccessDenied } from '@domain/shared/accessDenied';
 
 /** AS REGRAS do catálogo. Valida antes da rede, normaliza o erro na saída. */
 
 function normalize(error: unknown): never {
   if (error instanceof CatalogError) throw error;
+  throwIfAccessDenied(error);
   // Violação de unicidade do Postgres. Só acontece nas escritas que carregam
   // código de barras, e chega aqui como erro de rede se não for separada —
   // mandando o dono "tentar de novo" para sempre num conflito que só ele pode

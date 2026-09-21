@@ -7,7 +7,7 @@ export type {
 } from './supportTypes';
 export { TICKET_CATEGORIES, SupportError } from './supportTypes';
 export { countUnread } from './supportAdapter';
-export { UPGRADE_MESSAGE, sanitizePhone, whatsappLink } from './whatsapp';
+export { sanitizePhone, upgradeMessage, whatsappLink } from './whatsapp';
 export {
   suporteKeys,
   useOpenTicket,

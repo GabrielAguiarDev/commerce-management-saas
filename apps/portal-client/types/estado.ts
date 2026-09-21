@@ -472,7 +472,8 @@ export interface PortalActions {
   changeEmployeeRole: (id: string, roleId: string) => Promise<void>;
 
   /* Suporte */
-  openNewTicket: () => void;
+  /** `prefill` preenche o formulário — o "Quero este módulo" chega pronto. */
+  openNewTicket: (prefill?: Partial<Pick<TicketForm, "subject" | "category" | "description">>) => void;
   sendTicket: () => Promise<void>;
   replyToTicket: (id: string) => Promise<void>;
   resolveTicket: (id: string) => Promise<void>;

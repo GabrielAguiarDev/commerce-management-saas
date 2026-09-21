@@ -12,10 +12,13 @@ import {
 } from '@components';
 import { ROUTES, isRouteAllowed, resolveAppGate } from '@domain/navigation/routes';
 import { useAppAccess } from '@domain/session';
+import { useSupportWhatsApp } from '@domain/support';
 import { useCapabilities, useCurrentTenant, usePaymentPreferencesSync } from '@domain/tenant';
 import { useAppHydrated } from '@hooks/useAppHydrated';
 import { useAppTheme } from '@hooks/useAppTheme';
+import { useTranslation } from '@i18n';
 import { selectIsAuthenticated, useSessionStore } from '@store/sessionStore';
+import { useUIStore } from '@store/uiStore';
 
 /** O grupo `(tabs)` é o piso da pilha: um deep link em `/stock` cai sobre ele. */
 export const unstable_settings = { anchor: '(tabs)' };
@@ -66,18 +69,35 @@ export default function AppLayout() {
   const isAuthenticated = useSessionStore(selectIsAuthenticated);
   const signOut = useSessionStore((s) => s.signOut);
   const pathname = usePathname();
+  const t = useTranslation();
+  const showToast = useUIStore((s) => s.showToast);
 
   // `has_module('app')` direto no banco — não derivado da carga do tenant.
   // Ver o comentário em `useAppAccess`: esta é a pergunta que decide entre
   // entrar e a tela de bloqueio, e não pode depender de outra consulta ter
   // dado certo.
-  const { hasAppAccess, failed, retry } = useAppAccess();
+  const { hasAppAccess, failed, fetching: accessFetching, retry } = useAppAccess();
 
   // O plano é consultado AQUI, e não só na tab bar, para que a espera aconteça
   // uma vez, antes de qualquer pixel de navegação. É o que permite à `TabBar`
   // não ter mais estado de carregamento nenhum.
-  const { isPending: tenantPending } = useCurrentTenant();
+  //
+  // Falha só conta sem dado em mãos: um refetch que falha com o plano já
+  // carregado não é motivo para trancar ninguém (e a trava já cobre isso depois
+  // da liberação).
+  const {
+    data: tenant,
+    isPending: tenantPending,
+    isError: tenantError,
+    isFetching: tenantFetching,
+    refetch: refetchTenant,
+  } = useCurrentTenant();
   const { capabilities } = useCapabilities();
+  const tenantFailed = tenantError && !tenant;
+
+  // Só usado pela tela de falha, mas o hook precisa ser chamado antes de
+  // qualquer `return` condicional.
+  const { abrir: abrirWhatsApp, carregando: whatsappLoading } = useSupportWhatsApp();
 
   // A trava. Ajustada DURANTE o render, que é o padrão oficial do React para
   // estado derivado (`react.dev` › "Adjusting state when props change"): ela é
@@ -92,6 +112,7 @@ export default function AppLayout() {
     hasAppAccess,
     accessFailed: failed,
     capabilitiesSettled: !tenantPending,
+    capabilitiesFailed: tenantFailed,
     released,
   });
 
@@ -100,12 +121,29 @@ export default function AppLayout() {
   if (gate === 'login') return <Redirect href={ROUTES.login as never} />;
   if (gate === 'blocked') return <Redirect href={ROUTES.blocked as never} />;
 
-  // A consulta do entitlement desistiu. Antes isto era indistinguível de
+  // A consulta do entitlement ou a do plano desistiu. Antes isto era indistinguível de
   // "carregando" e o portão ficava em branco PARA SEMPRE — sem rota e sem
   // mensagem. O portão pode não saber para onde ir; o que ele não pode é ficar
   // calado. Ver StartupError.
   if (gate === 'error') {
-    return <StartupError onRetry={retry} onSignOut={() => void signOut()} />;
+    const retryAll = () => {
+      if (failed) retry();
+      if (tenantFailed) void refetchTenant();
+    };
+    const contactSupport = async () => {
+      if (!(await abrirWhatsApp(t.startupError.whatsappMessage))) {
+        showToast(t.toasts.whatsappUnavailable, { tone: 'erro' });
+      }
+    };
+    return (
+      <StartupError
+        onRetry={retryAll}
+        retrying={accessFetching || tenantFetching}
+        onContactSupport={() => void contactSupport()}
+        contactLoading={whatsappLoading}
+        onSignOut={() => void signOut()}
+      />
+    );
   }
 
   // `hold` é a única espera do app inteiro, e dura o tempo de UMA verificação

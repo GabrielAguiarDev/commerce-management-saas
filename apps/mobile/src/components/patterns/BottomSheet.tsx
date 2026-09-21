@@ -16,6 +16,7 @@ import { useAppTheme } from '@hooks/useAppTheme';
 
 import { AO_SHEET } from './animations';
 import { InsideSheetProvider, useSheetVisibility } from './sheetContext';
+import { useTranslation } from '@i18n';
 
 /** 82% da tela, como no protótipo (`max-height:82%`). */
 const ALTURA_MAXIMA = Dimensions.get('window').height * 0.82;
@@ -53,6 +54,7 @@ interface BottomSheetProps {
 export function BottomSheet({ title, onClose, children }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
+  const t = useTranslation();
   const { open, onClosed } = useSheetVisibility();
   const sheetRef = useRef<BottomSheetModal>(null);
 
@@ -89,14 +91,14 @@ export function BottomSheet({ title, onClose, children }: BottomSheetProps) {
         appearsOnIndex={0}
         disappearsOnIndex={-1}
         pressBehavior="close"
-        accessibilityLabel="Fechar"
+        accessibilityLabel={t.common.close}
         // A opacidade já vive no token (`rgba(...,0.5)`), então aqui ela é 1 —
         // senão o scrim sairia pela metade do que o design pede.
         opacity={1}
         style={{ backgroundColor: theme.colors.scrimSheet }}
       />
     ),
-    [theme.colors.scrimSheet],
+    [theme.colors.scrimSheet, t.common.close],
   );
 
   const renderHandle = useCallback(
@@ -118,7 +120,7 @@ export function BottomSheet({ title, onClose, children }: BottomSheetProps) {
             </Text>
           </Box>
           <Touchable
-            accessibilityLabel="Fechar"
+            accessibilityLabel={t.common.close}
             onPress={dismiss}
             width={34}
             height={34}
@@ -135,7 +137,7 @@ export function BottomSheet({ title, onClose, children }: BottomSheetProps) {
         </Box>
       </Box>
     ),
-    [title, dismiss],
+    [title, dismiss, t.common.close],
   );
 
   return (

@@ -5,7 +5,7 @@ import { Button, LabeledField, css, MONO, ModalFooter, FIELD_LABEL, SANS } from 
 import { EnviarArquivo } from "@/components/EnviarArquivo";
 import { usePortal } from "@/components/PortalProvider";
 import { fileNameOf, SUPPORT_BUCKET } from "@/lib/arquivos";
-import { SP_CATEGORIES } from "@/lib/dados/chamados";
+import { PLAN_CATEGORY, SP_CATEGORIES } from "@/lib/dados/chamados";
 
 /**
  * Abrir chamado.
@@ -22,6 +22,10 @@ export function NewTicketModal() {
   const descriptionError = f.submitted && f.description.trim().length < 15;
 
   const set = (p: Partial<typeof f>) => a.set({ ticketForm: { ...f, ...p } });
+
+  // Pedir um módulo não é relatar um problema: "O que aconteceu" e "passo a
+  // passo" empurrariam quem quer contratar para descrever um defeito.
+  const isPlanRequest = f.category === PLAN_CATEGORY;
 
   return (
     <ModalFrame
@@ -58,6 +62,10 @@ export function NewTicketModal() {
                 key={name}
                 onClick={() => set({ category: name })}
                 style={css(
+                  // Plano ocupa a linha inteira no topo: é a porta de quem quer
+                  // mais, e com cinco opções numa grade de dois ela seria a que
+                  // sobra sozinha no fim.
+                  (name === PLAN_CATEGORY ? "grid-column:1/-1;" : "") +
                   `display:flex;flex-direction:column;gap:3px;padding:11px 13px;border:1px solid ${active ? "var(--accent)" : "var(--border)"};` +
                     `border-radius:11px;background:${active ? "var(--accent-soft)" : "var(--surface2)"};text-align:left`,
                 )}
@@ -83,12 +91,16 @@ export function NewTicketModal() {
       </div>
 
       <div>
-        <label style={css(FIELD_LABEL)}>O que aconteceu</label>
+        <label style={css(FIELD_LABEL)}>{isPlanRequest ? "O que você precisa" : "O que aconteceu"}</label>
         <textarea
           value={f.description}
           onChange={(e) => set({ description: e.target.value })}
           rows={5}
-          placeholder="Descreva o passo a passo, o que você esperava e o que apareceu na tela."
+          placeholder={
+            isPlanRequest
+              ? "Conte qual módulo ou plano te interessa e como pretende usar."
+              : "Descreva o passo a passo, o que você esperava e o que apareceu na tela."
+          }
           style={css(
             `width:100%;box-sizing:border-box;resize:vertical;padding:12px 13px;border:1px solid ${descriptionError ? "var(--danger)" : "var(--border)"};` +
               `border-radius:11px;background:var(--surface2);font:400 13.5px/1.55 ${SANS};color:var(--text);outline:none`,

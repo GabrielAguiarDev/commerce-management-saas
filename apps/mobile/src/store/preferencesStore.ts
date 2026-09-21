@@ -8,6 +8,7 @@ import {
 } from '@domain/shared/dbEnums';
 import type { Language } from '@i18n/languages';
 import { DEFAULT_LANGUAGE, isSupportedLanguage } from '@i18n/languages';
+import { setActiveLanguage } from '@i18n/active';
 import { STORAGE_KEYS } from '@services/storageAdapter';
 
 /**
@@ -145,6 +146,12 @@ export const usePreferencesStore = create<PreferencesState>()(
     },
   ),
 );
+
+// O idioma ativo de `@i18n/active` segue este store — na hidratação e em cada
+// troca. É por aqui, e não o contrário, para o domínio poder ler o idioma sem
+// importar store nenhuma (ver o cabeçalho de `@i18n/active`).
+setActiveLanguage(usePreferencesStore.getState().language);
+usePreferencesStore.subscribe((s) => setActiveLanguage(s.language));
 
 /** Only the enabled methods, in canonical order — feeds the cart's selector. */
 export function activePaymentMethods(

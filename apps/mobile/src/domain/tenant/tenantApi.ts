@@ -58,21 +58,29 @@ export async function upsertAcceptedPaymentMethods(
 /**
  * O negócio, o plano e os módulos ativos.
  *
- * Três leituras em UMA ida: `tenants` embute `plans` pela FK `tenants.plan →
- * plans.key`, e `v_active_modules` vai em paralelo. Encadear com `await`
- * somaria os tempos de ida e volta; num app de balcão isso aparece.
+ * Três leituras em paralelo. Encadear com `await` somaria os tempos de ida e
+ * volta; num app de balcão isso aparece.
+ *
+ * `plans` NÃO vai como embed de `tenants`: não existe FK `tenants.plan →
+ * plans.key`, e o PostgREST recusa a consulta inteira (PGRST200) quando o
+ * relacionamento não existe. Foi o que deixava o app sem nenhum módulo — o
+ * tenant não carregava e as capacidades caíam todas para `false`. O catálogo
+ * de planos é pequeno e legível por qualquer sessão autenticada; o nome sai
+ * dele pela chave. E ele é só rótulo: se falhar, a tela cai na chave do plano
+ * em vez de perder os módulos junto.
  */
 export async function fetchTenant(tenantId: string): Promise<TenantAPI | null> {
-  const [tenantResult, modulesResult] = await Promise.all([
+  const [tenantResult, modulesResult, plansResult] = await Promise.all([
     supabase
       .from('tenants')
       // O `select` PRECISA ser uma string literal: o PostgREST infere o tipo do
       // texto, e uma concatenação vira `string` — aí o resultado perde a forma
       // e o TypeScript para de ajudar.
-      .select('id, name, segment, phone, status, plan, monthly_fee, plans(name)')
+      .select('id, name, segment, phone, status, plan, monthly_fee')
       .eq('id', tenantId)
       .maybeSingle(),
     supabase.from('v_active_modules').select('key, name, is_access'),
+    supabase.from('plans').select('key, name'),
   ]);
 
   if (tenantResult.error) throw tenantResult.error;
@@ -81,10 +89,7 @@ export async function fetchTenant(tenantId: string): Promise<TenantAPI | null> {
   const row = tenantResult.data;
   if (!row) return null;
 
-  // O PostgREST devolve o embed como objeto ou array conforme a cardinalidade
-  // que ele infere da FK. Aceitar as duas formas evita que o nome do plano
-  // suma da tela se alguém mexer no relacionamento.
-  const plan = Array.isArray(row.plans) ? row.plans[0] : row.plans;
+  const plan = (plansResult.data ?? []).find((p) => p.key === row.plan);
 
   return {
     id: row.id,
@@ -93,7 +98,7 @@ export async function fetchTenant(tenantId: string): Promise<TenantAPI | null> {
     phone: row.phone,
     status: row.status,
     plan: row.plan,
-    plan_name: (plan as { name?: string } | null)?.name ?? null,
+    plan_name: plan?.name ?? null,
     monthly_fee: row.monthly_fee,
     // Não existe coluna de renovação em `tenants`. Ver tenantApiTypes.ts.
     renews_at: null,
@@ -128,9 +133,9 @@ export async function listTeam(tenantId: string): Promise<TeamMemberAPI[]> {
 
     return {
       id: p.id,
-      full_name: p.full_name ?? 'Sem nome',
+      full_name: p.full_name ?? null,
       role_name: role?.name ?? null,
-      access_summary: role?.is_owner ? 'Acesso total' : (role?.name ?? null),
+      is_owner: role?.is_owner === true,
     };
   });
 }

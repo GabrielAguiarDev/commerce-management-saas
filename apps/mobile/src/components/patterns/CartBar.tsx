@@ -68,7 +68,7 @@ export function CartBar() {
       style={[{ position: 'absolute', left: 12, right: 12 }, posicao]}
     >
       <Touchable
-        accessibilityLabel={`Abrir carrinho: ${t.cart.summary(quantity)}, total ${formatBRL(total)}`}
+        accessibilityLabel={t.common.openCart(t.cart.summary(quantity), formatBRL(total))}
         onPress={() => openSheet({ type: 'cart' })}
         height={60}
         borderRadius="r20"

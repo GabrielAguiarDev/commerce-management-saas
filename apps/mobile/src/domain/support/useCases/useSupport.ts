@@ -66,11 +66,15 @@ export function useReplyToTicket(ticketId: string | undefined) {
 }
 
 /**
- * O CANAL EXTERNO de suporte, pronto para o botão da tela de bloqueio.
+ * O CANAL EXTERNO de suporte, pronto para as telas de fora do shell (bloqueio e
+ * falha na abertura) — as que não alcançam o suporte in-app.
  *
  * Devolve `abrir()` em vez de a URL: montar o link e abrir o WhatsApp são a
  * mesma decisão, e espalhá-la faria a próxima tela que precisar do canal
  * remontar o link do seu jeito.
+ *
+ * `abrir(message)` troca a mensagem pré-digitada; sem ela vai o pedido de
+ * ativação do app (`upgradeMessage()`).
  *
  * `abrir()` resolve para `false` quando não deu — número ausente (RLS ou chave
  * não cadastrada) ou o sistema recusou a URL. Quem mostra o aviso é a TELA, não
@@ -90,10 +94,10 @@ export function useSupportWhatsApp() {
 
   const phone = data ?? null;
 
-  const abrir = useCallback(async (): Promise<boolean> => {
+  const abrir = useCallback(async (message?: string): Promise<boolean> => {
     if (!phone) return false;
 
-    const url = whatsappLink(phone);
+    const url = whatsappLink(phone, message);
     try {
       // `canOpenURL` antes de abrir: sem WhatsApp instalado, o iOS pode recusar
       // em silêncio e o toque não faria absolutamente nada — o pior desfecho,

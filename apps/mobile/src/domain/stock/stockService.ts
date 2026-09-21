@@ -1,11 +1,13 @@
 import * as api from './stockApi';
 import { toStockMovement, toStockMovementPayload } from './stockAdapter';
 import { StockError, type StockMovement } from './stockTypes';
+import { throwIfAccessDenied } from '@domain/shared/accessDenied';
 
 /** AS REGRAS das movimentações de estoque. */
 
 function normalize(error: unknown): never {
   if (error instanceof StockError) throw error;
+  throwIfAccessDenied(error);
   throw new StockError('network', error instanceof Error ? error.message : undefined);
 }
 

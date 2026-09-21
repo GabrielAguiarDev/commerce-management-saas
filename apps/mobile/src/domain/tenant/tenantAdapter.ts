@@ -10,6 +10,8 @@ import {
   type Membro,
   type Tenant,
 } from './tenantTypes';
+import { currentMessages } from '@i18n/active';
+import type { Messages } from '@i18n/en';
 
 /** Só chaves que o app conhece entram no domínio — o resto é ruído do banco. */
 function ehChaveConhecida(k: string): k is ChaveModulo {
@@ -44,12 +46,16 @@ export function toTenant(raw: TenantAPI): Tenant {
 }
 
 export function toMembro(raw: TeamMemberAPI): Membro {
+  const t = currentMessages().team;
+  const name = raw.full_name ?? t.noName;
   return {
     id: raw.id,
-    name: raw.full_name,
+    name,
     papel: raw.role_name ?? '—',
-    acesso: raw.access_summary ?? '—',
-    initials: initials(raw.full_name),
+    // O resumo de acesso sai do nome do papel: `roles.permissions` é um jsonb
+    // cujo resumo legível é decisão de UI. O dono tem tudo.
+    acesso: raw.is_owner ? t.fullAccess : (raw.role_name ?? '—'),
+    initials: initials(name),
   };
 }
 
@@ -66,7 +72,7 @@ export function toActivity(raw: ActivityAPI): Activity {
     action: raw.action,
     // Autor nulo é o funcionário removido depois: o registro do que ele fez
     // fica, e a tela precisa dizer alguma coisa no lugar do nome.
-    autor: raw.actor_name ?? 'Alguém da equipe',
+    autor: raw.actor_name ?? currentMessages().team.someone,
     detalhe: raw.summary ?? '',
     quando: relativeLabel(raw.created_at),
   };
@@ -115,19 +121,14 @@ export function deriveCapabilities(
  * Ordem fixa (a do menu), não a que o banco devolveu — assim o texto não muda
  * sozinho entre duas cargas.
  */
-const LABEL_ORDER: { key: ChaveModulo; label: string }[] = [
-  { key: 'sales', label: 'Vendas' },
-  { key: 'products', label: 'Produtos' },
-  { key: 'cash', label: 'Caixa' },
-  { key: 'stock', label: 'Estoque' },
-  { key: 'costs', label: 'Custos' },
-  { key: 'reports', label: 'Relatórios' },
-  { key: 'app', label: 'App' },
-];
+const LABEL_ORDER = ['sales', 'products', 'cash', 'stock', 'costs', 'reports', 'app'] as const;
 
-export function labelModules(modules: readonly ChaveModulo[]): string {
-  const names = LABEL_ORDER.filter((m) => modules.includes(m.key)).map((m) => m.label);
-  if (names.length === 0) return 'nenhum';
+export function labelModules(
+  modules: readonly ChaveModulo[],
+  t: Messages = currentMessages(),
+): string {
+  const names = LABEL_ORDER.filter((k) => modules.includes(k)).map((k) => t.modules.names[k]);
+  if (names.length === 0) return t.modules.none;
   if (names.length === 1) return names[0] as string;
-  return `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
+  return t.modules.list(names.slice(0, -1).join(', '), names[names.length - 1] as string);
 }

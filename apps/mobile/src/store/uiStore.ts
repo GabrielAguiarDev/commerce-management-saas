@@ -1,9 +1,12 @@
+import { Keyboard } from 'react-native';
 import { create } from 'zustand';
 
 import { Toast } from '@components/ui/toast';
+import type { DateRange } from '@domain/reports/reportsPeriod';
 import { palette } from '@theme';
 
 import { usePreferencesStore } from './preferencesStore';
+import { currentMessages } from '@i18n/active';
 
 /**
  * Estado da CHROME do app: toast, confirmação e bottom sheet.
@@ -49,7 +52,7 @@ export interface Confirm {
   onConfirm: () => void;
 }
 
-/** Os cinco sheets do produto. Uma união fechada, não uma string solta. */
+/** Os sheets do produto. Uma união fechada, não uma string solta. */
 export type Sheet =
   | { type: 'cart' }
   /** Sem `productId` é cadastro rápido; com ele, edição do mesmo formulário. */
@@ -60,7 +63,13 @@ export type Sheet =
   | { type: 'topUp' }
   | { type: 'movement'; productId?: string; productName?: string }
   /** Sem `costId` é registro; com ele, edição/exclusão do mesmo custo. */
-  | { type: 'cost'; costId?: string };
+  | { type: 'cost'; costId?: string }
+  /**
+   * O calendário do período Personalizado dos relatórios. Devolve a escolha
+   * por callback, como `Confirm.onConfirm`: o intervalo é estado da TELA, não
+   * da chrome, e não tem por que morar aqui.
+   */
+  | { type: 'dateRange'; initial: DateRange | null; onApply: (range: DateRange) => void };
 
 export type SheetType = Sheet['type'];
 
@@ -122,7 +131,7 @@ export const useUIStore = create<UIState>()((set) => ({
       // e o "i" é o que faz o balconista reconhecer a caixa de longe.
       type: tone === 'erro' ? 'error' : tone === 'sucesso' ? 'success' : 'info',
       backgroundColor: corDeFundo(tone),
-      action: withUndo && onUndo ? { label: 'Desfazer', onPress: onUndo } : null,
+      action: withUndo && onUndo ? { label: currentMessages().common.undo, onPress: onUndo } : null,
       onClose: () => {
         if (toastAtual === id) toastAtual = null;
       },
@@ -135,9 +144,23 @@ export const useUIStore = create<UIState>()((set) => ({
     toastAtual = null;
   },
 
-  requestConfirm: (c) => set({ confirm: c }),
+  // Confirmação e sheet cobrem a tela: o teclado fecha ANTES de eles
+  // aparecerem. O teclado do iOS mora numa janela acima do app, então nenhum
+  // overlay passa por cima dele — o diálogo de "Fechar o caixa" abria atrás
+  // do teclado numérico do campo que estava em foco. Fechar aqui, na ação, e
+  // não em cada tela, é o que garante que nenhuma chamada esqueça.
+  //
+  // O toast não entra: ele aparece no topo sem bloquear nada, e fechar o
+  // teclado a cada aviso de validação atrapalharia quem está digitando.
+  requestConfirm: (c) => {
+    Keyboard.dismiss();
+    set({ confirm: c });
+  },
   closeConfirm: () => set({ confirm: null }),
 
-  openSheet: (s) => set({ sheet: s }),
+  openSheet: (s) => {
+    Keyboard.dismiss();
+    set({ sheet: s });
+  },
   closeSheet: () => set({ sheet: null }),
 }));

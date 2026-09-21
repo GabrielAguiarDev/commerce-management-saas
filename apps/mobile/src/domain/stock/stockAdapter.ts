@@ -1,5 +1,6 @@
 import type { StockMovementAPI, StockMovementCreateAPI } from './stockApiTypes';
 import type { StockMovement } from './stockTypes';
+import { currentMessages } from '@i18n/active';
 
 /**
  * `reason` é um enum técnico no banco ('sale', 'purchase'...). A frase que o
@@ -11,15 +12,16 @@ import type { StockMovement } from './stockTypes';
  * por que aquele custo apareceu sozinho na aba Custos.
  */
 function descreverOrigem(reason: string, ator: string | null): string {
+  const t = currentMessages().stock.origin;
   switch (reason) {
     case 'sale':
-      return 'saída automática por venda';
+      return t.sale;
     case 'purchase':
-      return 'entrada · virou custo variável';
+      return t.purchase;
     case 'loss':
-      return ator ? `perda registrada por ${ator}` : 'perda registrada';
+      return ator ? t.lossBy(ator) : t.loss;
     default:
-      return ator ? `ajuste manual de ${ator}` : 'ajuste manual';
+      return ator ? t.adjustmentBy(ator) : t.adjustment;
   }
 }
 

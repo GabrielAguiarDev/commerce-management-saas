@@ -150,6 +150,9 @@ export const en = {
       `The refund was undone, but the stock of ${count} ${count === 1 ? 'item' : 'items'} was not deducted. Adjust it in Stock.`,
     saleUpdated: (total: string) => `Sale updated to ${total}. The previous one was refunded.`,
     editingSale: 'Adjust the items and finish to replace the sale.',
+    /** The plan or role lost a module while the app was open. */
+    moduleAccessRevoked:
+      "You no longer have access to this module. The app was updated with your current plan.",
     cashOpened: 'Register open. Have a good shift!',
     cashClosed: 'Register closed. Enjoy your rest!',
     withdrawalRecorded: 'Withdrawal recorded at the register.',
@@ -225,6 +228,16 @@ export const en = {
     text: 'Just a moment while we set up your business.',
     /** Read by screen readers in place of the dots, which are decorative. */
     a11yLabel: 'Opening the app',
+  },
+
+  startupError: {
+    title: "We couldn't open the app",
+    text: "We couldn't load your plan right now. Check your connection and try again. If it keeps happening, get in touch.",
+    retry: 'Try again',
+    contactSupport: 'Contact support',
+    signOut: 'Sign out',
+    /** Pre-filled WhatsApp message sent to the support team. */
+    whatsappMessage: "Hi! The Aguiar One app won't open for me: it says it couldn't load my plan.",
   },
 
   /**
@@ -305,6 +318,13 @@ export const en = {
   },
 
   cart: {
+    title: 'Your sale',
+    decrease: (name: string) => `Decrease ${name}`,
+    increase: (name: string) => `Increase ${name}`,
+    total: 'Total',
+    paymentMethod: 'Payment method',
+    finish: (total: string) => `Finish sale · ${total}`,
+    cancel: 'Cancel sale',
     /** "1 item in the cart" / "3 items in the cart". */
     summary: (count: number) => `${count} ${count === 1 ? 'item' : 'items'} in the cart`,
     /** The cart in EDIT mode — the button replaces a sale that already exists. */
@@ -360,6 +380,24 @@ export const en = {
   },
 
   home: {
+    /** By the device clock: before noon, before 6 p.m., and after. */
+    greeting: { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening' },
+    greetingName: (greeting: string, name: string) => `${greeting}, ${name}`,
+    /** Stands in for the name when the profile has none. */
+    you: 'there',
+    todaySales: "Today's sales",
+    leftToday: 'Left today',
+    afterCosts: 'after costs',
+    bestSeller: 'Best seller',
+    cash: {
+      open: 'Register open',
+      closed: 'Register closed',
+      drawer: (amount: string) => `In the drawer now: ${amount}`,
+      openToStart: 'Open it to start the shift',
+      seeOpen: 'See the open register',
+      openIt: 'Open the register',
+      see: 'See',
+    },
     counters: {
       sales: (count: number) => `${count} ${count === 1 ? 'sale' : 'sales'}`,
       items: (count: number) => `${count} ${count === 1 ? 'item' : 'items'}`,
@@ -382,6 +420,8 @@ export const en = {
   },
 
   sales: {
+    /** The day field keeps the dd/mm/yyyy order in both languages. */
+    datePlaceholder: 'dd/mm/yyyy',
     title: 'Sales',
     subtitle: 'Everything you have sold so far',
     today: 'Today',
@@ -458,6 +498,18 @@ export const en = {
   },
 
   products: {
+    title: 'Products',
+    count: (count: number) => `${count} ${count === 1 ? 'product' : 'products'}`,
+    searchPlaceholder: 'Search by name or code',
+    filters: { all: 'All', favorites: 'Favorites' },
+    favorite: (name: string) => `Favorite ${name}`,
+    unfavorite: (name: string) => `Unfavorite ${name}`,
+    edit: (name: string) => `Edit ${name}`,
+    quickAdd: '+ Quick add',
+    /** Meta line under the name: "Code 7891 · costs R$ 132,00". */
+    service: 'Service',
+    code: (code: string) => `Code ${code}`,
+    withCost: (base: string, cost: string) => `${base} · costs ${cost}`,
     badge: {
       out: 'Out of stock',
       low: (quantity: number) => `${quantity} — running low`,
@@ -466,6 +518,10 @@ export const en = {
   },
 
   costs: {
+    kindLabel: { fixedMonthly: 'Fixed · every month', fixed: 'Fixed', variable: 'Variable' },
+    /** "day 5": when a monthly cost comes back. */
+    dueDay: (day: number) => `day ${day}`,
+    monthRange: (from: string, to: string) => `${from} to ${to}`,
     sheetText: 'Record a one-off expense, or a fixed cost that repeats every month.',
     typeLabel: 'Cost type',
     variable: 'Variable',
@@ -610,6 +666,311 @@ export const en = {
       allFailed: (count: number) =>
         `${count} ${count === 1 ? 'sale' : 'sales'} did not go through. They are still saved here.`,
     },
+  },
+  /** Reports: the chart window and the date-range picker of "Custom". */
+  reports: {
+    /** Short weekday under each bar, Sunday first. */
+    weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    rows: { income: 'In', expense: 'Out', profit: 'Left', margin: 'Margin' },
+    samePrevious: 'same as the previous period',
+    vsPrevious: (value: string) => `${value} vs. previous period`,
+    units: (count: number) => `${count} ${count === 1 ? 'unit' : 'units'}`,
+    export: {
+      fileName: 'report',
+      title: 'Report',
+      summarySheet: 'Summary',
+      byDaySheet: 'Sales by day',
+      topSheet: 'Best sellers',
+      indicator: 'Indicator',
+      value: 'Value',
+      comparison: 'Comparison',
+      day: 'Day',
+      sold: 'Sold',
+      soldIn: (period: string) => `Sold (R$) — ${period}`,
+      product: 'Product',
+      quantity: 'Quantity',
+      total: 'Total',
+      totalBrl: 'Total (R$)',
+      empty: 'Nothing in the period.',
+      generatedAt: (period: string, when: string) => `${period} · generated on ${when}`,
+      footer: 'Aguiar One · amounts reflect what was recorded when this was generated.',
+      sharePdf: 'Send PDF report',
+      shareSheet: 'Send the spreadsheet',
+    },
+    title: 'Reports',
+    periods: { today: 'Today', week: 'This week', month: 'This month', custom: 'Custom' },
+    financeSummary: 'Financial summary',
+    salesByDay: 'Sales by day',
+    topProducts: 'Best sellers',
+    exportPdf: 'Export PDF',
+    exportSheet: 'Export spreadsheet',
+    chartEmpty: 'Sales by day chart, no data.',
+    chartA11y: (parts: string) => `Sales by day. ${parts}.`,
+    window: {
+      today: 'Today',
+      lastDays: (count: number) => `Last ${count} days`,
+    },
+    rangePicker: {
+      title: 'Choose period',
+      /** Sunday first, like the Brazilian calendar. */
+      weekdays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+      previousMonth: 'Previous month',
+      nextMonth: 'Next month',
+      pickStart: 'Tap the start date.',
+      pickEnd: 'Now tap the end date — or apply to see only this day.',
+      summary: (from: string, to: string) => `From ${from} to ${to}`,
+      maxRange: (days: number) => `Periods go up to ${days} days.`,
+      apply: 'View report',
+    },
+  },
+  stock: {
+    origin: {
+      sale: 'automatic exit from a sale',
+      purchase: 'entry · became a variable cost',
+      lossBy: (who: string) => `loss recorded by ${who}`,
+      loss: 'loss recorded',
+      adjustmentBy: (who: string) => `manual adjustment by ${who}`,
+      adjustment: 'manual adjustment',
+    },
+    removedProduct: 'Removed product',
+    title: 'Stock',
+    subtitle: 'What you have and what is running out',
+    counters: { ok: 'In stock', low: 'Low', out: 'Out' },
+    /** Tail of the product line: "4 in stock · minimum 2 · low". */
+    status: { ok: 'fine', low: 'low', out: 'out' },
+    line: (quantity: number, minimum: number, status: string) =>
+      `${quantity} in stock · minimum ${minimum} · ${status}`,
+    move: 'Move',
+    moveProduct: (name: string) => `Move ${name}`,
+    recentMovements: 'Latest movements',
+    addMovement: '+ Record movement',
+  },
+  sell: {
+    title: 'New sale',
+    subtitle: 'Tap the items to build the sale',
+    searchPlaceholder: 'Search product',
+    scanBarcode: 'Scan barcode',
+    searchResults: 'Search results',
+    products: 'Products',
+    emptyTitle: 'Nothing found',
+    emptyText: 'Try another name or create this product right now.',
+    createProduct: 'Create product',
+    addItem: (name: string, price: string) => `Add ${name}, ${price}`,
+  },
+  cash: {
+    /** The close-out groups: cards are counted together. */
+    card: 'Card',
+    yesterday: 'Yesterday',
+    difference: {
+      none: 'no difference',
+      short: (amount: string) => `short ${amount}`,
+      over: (amount: string) => `over ${amount}`,
+    },
+    title: 'Register',
+    subtitleOpen: 'Shift open today',
+    subtitleClosed: 'No open shift',
+    closedTitle: 'The register is closed',
+    closedText: 'Open the register to start the day and track the cash coming in and going out.',
+    open: 'Open register',
+    previousShifts: 'Previous shifts',
+    drawerNow: 'In the drawer now',
+    openedAt: (time: string) => `Opened at ${time}`,
+    drawerBreakdown: (opening: string, cashSales: string) =>
+      `Opening ${opening} · cash sales ${cashSales}`,
+    receivedInShift: 'Received this shift',
+    withdrawal: 'Withdrawal',
+    topUp: 'Top-up',
+    close: 'Close register',
+  },
+  more: {
+    title: 'More',
+    subtitle: 'Everything your plan includes',
+    signOut: 'Sign out',
+    version: (version: string) => `Aguiar One · version ${version}`,
+    unread: (count: string) => `${count} unread`,
+  },
+  nav: {
+    /** Tab bar. */
+    tabs: { home: 'Home', products: 'Products', cash: 'Register', costs: 'Costs', more: 'More', sell: 'Sell' },
+    /** The "More" grid: name and one line under it. */
+    items: {
+      cash: { name: 'Register', description: 'Open, withdraw and close' },
+      stock: { name: 'Stock', description: 'What you have and what is missing' },
+      costs: { name: 'Costs', description: 'What comes out of your pocket' },
+      reports: { name: 'Reports', description: 'In, out and left' },
+      settings: { name: 'Settings', description: 'Business, team and plan' },
+      support: { name: 'Support', description: 'Talk to us' },
+    },
+  },
+  notFound: {
+    title: "We couldn't find this screen",
+    text: 'The link you opened no longer exists or has a typo.',
+    goHome: 'Go to the start',
+  },
+  blocked: {
+    title: "Your plan doesn't include the app yet",
+    text: 'No problem: everything keeps working in the browser. If you want to sell from your phone, just talk to us.',
+    contactSupport: 'Contact support',
+    backToEntry: 'Back to sign in',
+  },
+  support: {
+    status: { answered: 'Answered', in_progress: 'In progress', resolved: 'Resolved' },
+    awaiting: 'Waiting for our review',
+    categories: {
+      duvida: 'Question',
+      problema: 'Something did not work',
+      plano: 'Plan and modules',
+      sugestao: 'Suggestion',
+    },
+    /** Pre-filled WhatsApp message from the blocked screen. */
+    upgradeMessage: 'Hi! I want to enable the Aguiar One app for my business.',
+    title: 'Support',
+    subtitle: 'We answer right here',
+    unread: 'Unread',
+    openTicket: 'Open ticket',
+    ticketTitle: 'Ticket',
+    ticketSubtitle: 'Reply within 1 business day',
+    openAttachment: (name: string) => `Open the attachment ${name}`,
+    replyPlaceholder: 'Write your reply',
+    sendReply: 'Send reply',
+  },
+  settings: {
+    title: 'Settings',
+    subtitle: 'Your business, your way',
+    tabs: { business: 'Business', preferences: 'Preferences', team: 'Team', plan: 'Account and plan' },
+    business: { name: 'Business name', phone: 'Phone / WhatsApp', save: 'Save' },
+    preferences: {
+      paymentMethods: 'Accepted payment methods',
+      accept: (method: string) => `Accept ${method}`,
+      darkTheme: 'Dark theme',
+    },
+    team: { activity: 'Who did what' },
+    plan: {
+      activeModules: (modules: string) => `Active modules: ${modules}`,
+      renewsOn: (date: string) => `Renews on ${date}`,
+      noRenewal: 'No renewal date',
+      changePlan: 'I want to change my plan',
+    },
+  },
+  time: {
+    /** Lowercase, mid-sentence: "saved today at 14:02". */
+    todayLower: 'today',
+    you: 'You',
+    now: 'now',
+    minutesAgo: (count: number) => `${count} min ago`,
+    hoursAgo: (count: number) => `${count} h ago`,
+    yesterday: 'yesterday',
+    daysAgo: (count: number) => `${count} d ago`,
+    monthsAgo: (count: number) => (count === 1 ? '1 month ago' : `${count} months ago`),
+    today: 'Today',
+  },
+  team: {
+    noName: 'No name',
+    fullAccess: 'Full access',
+    someone: 'Someone from the team',
+  },
+  modules: {
+    names: {
+      sales: 'Sales',
+      products: 'Products',
+      cash: 'Register',
+      stock: 'Stock',
+      costs: 'Costs',
+      reports: 'Reports',
+      app: 'App',
+    },
+    none: 'none',
+    /** "Sales, Products and Register". */
+    list: (head: string, last: string) => `${head} and ${last}`,
+  },
+  closeOut: {
+    title: 'Close the register',
+    text: 'Check how much you really have in each method. We work out the difference for you.',
+    system: (amount: string) => `system ${amount}`,
+    countedIn: (method: string) => `Amount counted in ${method}`,
+    difference: 'Difference',
+    submit: 'Check and close',
+  },
+  catalog: {
+    /** The third chip on Products when the catalog has services. */
+    services: 'Services',
+  },
+  common: {
+    close: 'Close',
+    back: 'Back',
+    notNow: 'Not now',
+    undo: 'Undo',
+    none: 'none',
+    closeList: 'Close list',
+    avatar: (initials: string) => `Avatar for ${initials}`,
+    openCart: (summary: string, total: string) => `Open cart: ${summary}, total ${total}`,
+  },
+  scanner: {
+    needCamera: 'We need the camera to read the code',
+    denied: 'Permission was denied. Allow the camera for Aguiar One in the device settings.',
+    askHint: 'Tap allow when the device asks.',
+    typeCode: 'Type the code',
+    close: 'Close the scanner',
+  },
+  simpleSheet: {
+    withdrawal: {
+      title: 'Withdraw cash',
+      text: 'Cash taken out of the drawer. It is recorded in the shift.',
+      label1: 'Amount',
+      placeholder1: 'R$ 0,00',
+      label2: 'Reason',
+      placeholder2: 'E.g. paying for gas',
+      button: 'Record withdrawal',
+    },
+    topUp: {
+      title: 'Add cash',
+      text: 'Cash put in the drawer for change.',
+      label1: 'Amount',
+      placeholder1: 'R$ 0,00',
+      label2: 'Reason',
+      placeholder2: 'E.g. change for the day',
+      button: 'Record top-up',
+    },
+    movement: {
+      title: 'Move stock',
+      text: 'An entry with a cost becomes an expense automatically, in the Costs tab.',
+      label1: 'Product',
+      placeholder1: 'Premium dog food 15kg',
+      label2: 'Quantity (use − for an exit)',
+      placeholder2: '+10',
+      button: 'Save movement',
+    },
+    unitCost: 'Cost per unit (optional)',
+    saveFailed: 'Could not save right now.',
+  },
+  ticketSheet: {
+    title: 'Open ticket',
+    subject: 'Subject',
+    subjectPlaceholder: 'What do you need?',
+    category: 'Category',
+    categoryA11y: 'Ticket category',
+    description: 'Description',
+    descriptionPlaceholder: 'Tell us in your own words what happened',
+    attached: (name: string) => `Attached: ${name}`,
+    attach: 'Attach photo',
+    removeHint: 'Tap the attachment to remove it from the ticket.',
+    send: 'Send ticket',
+  },
+  productSheet: {
+    stockHint: (quantity: number) => `In stock: ${quantity}. To change the quantity, use Stock.`,
+    editTitle: 'Edit product',
+    quickTitle: 'Quick add',
+    missing: 'This product is no longer in the catalog. Close and pull the list again.',
+    name: 'Name',
+    namePlaceholder: 'E.g. Flea collar',
+    code: 'Code (optional)',
+    codePlaceholder: 'E.g. 7891000100011',
+    price: 'Sale price',
+    quantity: 'How many you have',
+    minimum: 'Warn below',
+    cost: 'What it costs you (optional)',
+    saveChanges: 'Save changes',
+    save: 'Save product',
   },
 };
 

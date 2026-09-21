@@ -162,7 +162,7 @@ export function CartSheet() {
   }
 
   return (
-    <BottomSheet title={editing ? t.cart.editTitle : 'Sua venda'} onClose={closeSheet}>
+    <BottomSheet title={editing ? t.cart.editTitle : t.cart.title} onClose={closeSheet}>
       {editing ? (
         <Box backgroundColor="warningSoft" borderRadius="r12" padding="s12" marginBottom="s4">
           <Text variant="caption" color="warning" lineHeight={18}>
@@ -183,7 +183,7 @@ export function CartSheet() {
 
             <Box flexDirection="row" alignItems="center" gap="s8">
               <StepButton
-                label={`Diminuir ${item.name}`}
+                label={t.cart.decrease(item.name)}
                 simbolo="−"
                 onPress={() => decrement(item.productId)}
               />
@@ -191,7 +191,7 @@ export function CartSheet() {
                 <Text variant="moneyMd">{item.quantity}</Text>
               </Box>
               <StepButton
-                label={`Aumentar ${item.name}`}
+                label={t.cart.increase(item.name)}
                 simbolo="+"
                 onPress={() => increment(item.productId)}
               />
@@ -213,25 +213,25 @@ export function CartSheet() {
         paddingBottom="s14"
       >
         <Text variant="rowLabel" color="textMuted" fontSize={14}>
-          Total
+          {t.cart.total}
         </Text>
         <Text variant="totalValue">{formatBRL(total)}</Text>
       </Box>
 
       <Text variant="label" color="textMuted" marginBottom="s7">
-        Forma de pagamento
+        {t.cart.paymentMethod}
       </Text>
       <Select
         value={selectedMethod}
         options={options}
         onSelect={setMethod}
-        accessibilityLabel="Forma de pagamento"
+        accessibilityLabel={t.cart.paymentMethod}
       />
 
       <Box marginTop="s14">
         <Button
           title={
-            editing ? t.cart.saveEdit(formatBRL(total)) : `Finalizar venda · ${formatBRL(total)}`
+            editing ? t.cart.saveEdit(formatBRL(total)) : t.cart.finish(formatBRL(total))
           }
           onPress={editing ? saveEditedSale : checkout}
           height={56}
@@ -244,7 +244,7 @@ export function CartSheet() {
 
       <Box marginTop="s8">
         <Button
-          title={editing ? t.cart.cancelEdit : 'Cancelar venda'}
+          title={editing ? t.cart.cancelEdit : t.cart.cancel}
           onPress={requestCancel}
           variant="fantasma"
           height={46}

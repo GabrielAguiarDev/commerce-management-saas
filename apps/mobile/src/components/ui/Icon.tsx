@@ -56,7 +56,9 @@ export type IconName =
   /** A loja do convite ao suporte, o "entra aqui" dele e o selo do rodapé. */
   | 'store'
   | 'chevronRight'
-  | 'shield';
+  | 'shield'
+  /** Enviar mensagem — a seta para cima dos apps de conversa. */
+  | 'send';
 
 interface IconProps {
   name: IconName;
@@ -92,6 +94,7 @@ const STROKE_WIDTH: Record<IconName, number> = {
   store: 1.9,
   chevronRight: 2.2,
   shield: 1.9,
+  send: 2.4,
 };
 
 export function Icon({ name, size = 22, color = 'textPrimary', colorOverride }: IconProps) {
@@ -269,6 +272,8 @@ export function Icon({ name, size = 22, color = 'textPrimary', colorOverride }: 
       )}
 
       {name === 'chevronRight' && <Path d="M9 5l7 7-7 7" {...common} />}
+
+      {name === 'send' && <Path d="M12 19V5M6 11l6-6 6 6" {...common} />}
 
       {name === 'shield' && (
         <>

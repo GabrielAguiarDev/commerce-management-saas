@@ -6,11 +6,13 @@ import {
   type OpenShift,
   type ClosedShift,
 } from './cashTypes';
+import { throwIfAccessDenied } from '@domain/shared/accessDenied';
 
 /** AS REGRAS do caixa. */
 
 function normalize(error: unknown): never {
   if (error instanceof CashError) throw error;
+  throwIfAccessDenied(error);
   throw new CashError('network', error instanceof Error ? error.message : undefined);
 }
 

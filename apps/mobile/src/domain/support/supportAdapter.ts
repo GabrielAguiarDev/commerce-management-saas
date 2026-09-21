@@ -1,11 +1,6 @@
 import type { TicketAPI, TicketCreateAPI, TicketMessageAPI } from './supportApiTypes';
 import type { Ticket, TicketMessage, NewTicket, TicketStatus } from './supportTypes';
-
-const LABEL: Record<TicketStatus, string> = {
-  answered: 'Respondido',
-  in_progress: 'Em andamento',
-  resolved: 'Resolvido',
-};
+import { currentMessages } from '@i18n/active';
 
 /**
  * Enum do banco → status de domínio.
@@ -27,7 +22,7 @@ export function toTicket(raw: TicketAPI): Ticket {
     assunto: raw.subject,
     summary: raw.summary ?? '',
     status,
-    statusRotulo: LABEL[status],
+    statusRotulo: currentMessages().support.status[status],
     naoLida: raw.has_unread === true,
   };
 }

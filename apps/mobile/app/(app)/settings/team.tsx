@@ -37,7 +37,7 @@ export default function TeamTab() {
 
       <Card paddingVertical="s6" paddingHorizontal="s16">
         <Text variant="sectionTitle" paddingTop="s13" paddingBottom="s6">
-          Quem fez o quê
+          {t.settings.team.activity}
         </Text>
         {activities.length === 0 && (
           <Box paddingVertical="s11">

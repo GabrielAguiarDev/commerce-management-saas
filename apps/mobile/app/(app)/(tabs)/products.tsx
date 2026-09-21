@@ -64,23 +64,23 @@ export default function ProductsScreen() {
   const specialCategory = specialCategoryOf(products);
 
   const options: ChipOption<CatalogFilter>[] = [
-    { key: 'all', label: 'Todos' },
-    { key: 'favorites', label: 'Favoritos' },
+    { key: 'all', label: t.products.filters.all },
+    { key: 'favorites', label: t.products.filters.favorites },
     ...(specialCategory ? [{ key: 'special' as const, label: specialCategory }] : []),
   ];
 
   const list = filterCatalog(products, { search, filter, specialCategory });
 
   return (
-    <Screen title="Produtos" subtitle={`${products.length} cadastrados`}>
+    <Screen title={t.products.title} subtitle={t.products.count(products.length)}>
       <Gutter>
         <Field
           value={search}
           onChangeText={setSearch}
-          placeholder="Buscar por nome ou código"
+          placeholder={t.products.searchPlaceholder}
           height={48}
           radius={15}
-          accessibilityLabel="Buscar por nome ou código"
+          accessibilityLabel={t.products.searchPlaceholder}
           returnKeyType="search"
           prefix={<Icon name="search" size={17} color="textMuted" />}
         />
@@ -113,7 +113,7 @@ export default function ProductsScreen() {
           >
             <Touchable
               accessibilityLabel={
-                product.favorite ? `Desfavoritar ${product.name}` : `Favoritar ${product.name}`
+                product.favorite ? t.products.unfavorite(product.name) : t.products.favorite(product.name)
               }
               accessibilityState={{ selected: product.favorite }}
               onPress={() => toggleFavorite(product.id)}
@@ -132,7 +132,7 @@ export default function ProductsScreen() {
             <Box flex={1} minWidth={0}>
               <Text variant="titleSm">{product.name}</Text>
               <Text variant="captionSm" color="textMuted" marginTop="s3">
-                {productMeta(product, capabilities.hasCosts)}
+                {productMeta(product, capabilities.hasCosts, t)}
               </Text>
 
               <Box flexDirection="row" gap="s6" marginTop="s9" flexWrap="wrap" alignItems="center">
@@ -148,7 +148,7 @@ export default function ProductsScreen() {
             </Box>
 
             <Touchable
-              accessibilityLabel={`Editar ${product.name}`}
+              accessibilityLabel={t.products.edit(product.name)}
               // Mesmo sheet do cadastro rápido, com os campos preenchidos.
               onPress={() => openSheet({ type: 'product', productId: product.id })}
               width={34}
@@ -168,7 +168,7 @@ export default function ProductsScreen() {
 
         <Box marginTop="s2">
           <Button
-            title="+ Cadastro rápido"
+            title={t.products.quickAdd}
             onPress={() => openSheet({ type: 'product' })}
             variant="tracejado"
             height={52}
@@ -182,10 +182,10 @@ export default function ProductsScreen() {
 }
 
 /** "Código 7891 · custa R$ 132,00" — a linha de meta abaixo do nome. */
-function productMeta(product: Product, hasCosts: boolean): string {
-  const base = product.ehServico ? 'Serviço' : `Código ${product.code ?? '—'}`;
+function productMeta(product: Product, hasCosts: boolean, t: Messages): string {
+  const base = product.ehServico ? t.products.service : t.products.code(product.code ?? '—');
   if (hasCosts && product.costCents !== null) {
-    return `${base} · custa ${formatBRL(product.costCents)}`;
+    return t.products.withCost(base, formatBRL(product.costCents));
   }
   return base;
 }
