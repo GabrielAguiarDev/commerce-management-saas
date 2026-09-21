@@ -162,6 +162,7 @@ function AppShell() {
           <Stack.Screen name="sell" />
           <Stack.Screen name="stock" />
           <Stack.Screen name="pending-sales" />
+          <Stack.Screen name="today-sales" />
           {/* O histórico e o detalhe de uma venda. Como `support`, são uma
               pasta sem layout próprio: as duas telas empilham direto aqui, e é
               o que faz o botão voltar do detalhe cair no histórico e o do

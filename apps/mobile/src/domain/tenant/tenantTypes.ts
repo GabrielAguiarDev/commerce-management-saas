@@ -2,9 +2,9 @@
  * MODELO DE DOMÍNIO do negócio (tenant) e do que o plano dele libera.
  *
  * Este é o arquivo mais importante do app: os módulos NÃO são flags de demo,
- * são entitlements do plano contratado. Eles decidem a grade da tela "Mais", o
- * destino e o rótulo do 3º item da tab bar, quais cards aparecem no Início e
- * quais campos existem no cadastro rápido de produto.
+ * são entitlements do plano contratado. Eles decidem a grade da tela "Mais",
+ * quais destinos aparecem na tab bar, quais cards aparecem no Início e quais
+ * campos existem no cadastro rápido de produto.
  *
  * As chaves são exatamente as de `modules.key` no Supabase do monorepo
  * (ver supabase/migrations e apps/portal-client/lib/modulos.ts). Manter a mesma

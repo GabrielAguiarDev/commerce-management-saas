@@ -45,8 +45,8 @@ const ALTURA_ITEM_TAB = TAMANHO_ICONE_TAB + GAP_ITEM_TAB + ALTURA_ROTULO_TAB;
  *
  * É o que centraliza o item na altura escolhida, e é POR ISSO que ele é
  * exportado: o "Vender" não vive dentro da barra (é um overlay que transborda
- * por cima dela), e sem esta medida o rótulo dele desalinharia dos outros
- * quatro a cada mudança de altura.
+ * por cima dela), e sem esta medida o rótulo dele desalinharia das tabs
+ * visíveis a cada mudança de altura.
  */
 export const BASE_ROTULO_TAB = (ALTURA_TAB_BAR - ALTURA_ITEM_TAB) / 2;
 
@@ -63,8 +63,8 @@ export const TAMANHO_BOTAO_VENDER = 48;
 /**
  * O vão que a barra reserva para ele: o círculo mais 16 de folga de cada lado.
  *
- * Precisa sair do FLUXO da barra, e não ser só um recuo do botão: as quatro
- * abas são `flex: 1` e, sem tirar essa largura, se repartiriam a barra inteira
- * e os rótulos passariam por baixo do círculo.
+ * Precisa sair do FLUXO da barra, e não ser só um recuo do botão: as tabs são
+ * `flex: 1` dentro de duas metades e, sem tirar essa largura, seus rótulos
+ * passariam por baixo do círculo.
  */
 export const VAO_BOTAO_VENDER = TAMANHO_BOTAO_VENDER + 32;

@@ -50,6 +50,7 @@ export { TabBar } from './patterns/TabBar';
 export { ALTURA_TAB_BAR } from './patterns/tabBarGeometry';
 export { CartBar } from './patterns/CartBar';
 export { NewSaleButton } from './patterns/NewSaleButton';
+export { SaleListRow } from './patterns/SaleListRow';
 export { BottomSheet } from './patterns/BottomSheet';
 export { CodeInput } from './patterns/CodeInput';
 export { ConfirmHost } from './patterns/ConfirmHost';

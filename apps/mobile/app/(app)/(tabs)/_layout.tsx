@@ -75,11 +75,11 @@ export default function TabsLayout() {
       >
         <Tabs.Screen name="home" />
         <Tabs.Screen name="products" />
-        {/* Caixa e Custos: o 3º item da barra é um OU o outro conforme o plano
-            (ver `tabBarShortcut`). Os dois moram aqui porque os dois são
-            destino de raiz — o que o plano não contratou simplesmente nunca é
-            alcançado, e o que ele contratou mas não está na barra continua
-            acessível pela grade do "Mais", como aba, sem empilhar. */}
+        {/* Caixa e Custos: no máximo um aparece como atalho conforme o acesso
+            efetivo (ver `tabBarShortcut`). Os dois moram aqui porque os dois
+            são destino de raiz — o que não foi liberado nunca é alcançado, e o
+            que foi liberado mas não está na barra continua acessível pela
+            grade do "Mais", como aba, sem empilhar. */}
         <Tabs.Screen name="cash" />
         <Tabs.Screen name="costs" />
         <Tabs.Screen name="more" />

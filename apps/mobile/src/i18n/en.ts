@@ -367,7 +367,18 @@ export const en = {
     noSalesYet: 'no sales yet today',
     recentSales: 'Latest sales',
     noSalesToday: 'No sales recorded today yet.',
-    seeAllSales: 'See all sales',
+    seeTodaySales: "See today's sales",
+  },
+
+  todaySales: {
+    title: "Today's sales",
+    subtitle: 'Everything recorded since the start of the day',
+    totalLabel: 'Total today',
+    end: "That's every sale from today.",
+    empty: {
+      title: 'No sales today yet',
+      text: 'Sales recorded today will appear here in chronological order.',
+    },
   },
 
   sales: {

@@ -5,7 +5,7 @@ import type { TabBarItem, MoreItem } from './navigationTypes';
 /**
  * DECISÕES DE NAVEGAÇÃO COMO FUNÇÃO PURA.
  *
- * Três lugares precisam da mesma resposta ("para onde vai o 3º item da tab
+ * Três lugares precisam da mesma resposta ("qual atalho de módulo entra na tab
  * bar?", "que módulos aparecem na grade?", "esta rota é permitida?"). Se cada
  * um respondesse por conta própria, uma mudança de plano deixaria a tab bar e
  * a grade discordando — e rota fixa espalhada por tela é como nasce laço de
@@ -45,12 +45,19 @@ export const ROUTES = {
    */
   pendingSales: '/pending-sales',
   /**
+   * O detalhamento do resumo diário da Home. Diferente de `/sales`, não libera
+   * o histórico completo: mostra somente o dia corrente e, para papéis sem a
+   * permissão `sales`, não oferece entrada no detalhe de uma venda.
+   */
+  todaySales: '/today-sales',
+  /**
    * O HISTÓRICO de vendas.
    *
-   * Também não está na tab bar nem na grade do "Mais", e pelo motivo oposto ao
-   * da fila offline: o histórico não é um destino que se procura, é o "e as
-   * outras?" do card de últimas vendas do Início. A porta dele é o botão "Ver
-   * todas" desse card.
+   * Também não está na tab bar nem na grade do "Mais". A Home abre o recorte
+   * diário acima; este caminho completo continua reservado à permissão
+   * `sales` e aos fluxos que realmente precisam do passado (como voltar de uma
+   * edição). Assim um papel restrito não ganha o histórico só porque pode
+   * acompanhar o movimento de hoje.
    *
    * O DETALHE de uma venda mora em `saleDetailRoute`, no fim deste arquivo, e
    * não aqui: `ROUTES` é um mapa de caminhos FIXOS — é isso que permite ao
@@ -91,8 +98,8 @@ export function saleDetailRoute(saleId: string): string {
  * funciona — o navegador de abas não tem pilha —, e é o tipo de erro que só
  * aparece em runtime, num plano específico, na terceira tela.
  *
- * Note que Caixa E Custos estão aqui, embora só um dos dois seja o 3º item da
- * barra em cada plano (ver `tabBarShortcut`): os dois são destino de raiz, e o
+ * Note que Caixa E Custos estão aqui, embora no máximo um dos dois seja o atalho
+ * de módulo da barra (ver `tabBarShortcut`): os dois são destino de raiz, e o
  * que não está na barra continua alcançável pela grade do "Mais".
  *
  * `/sell` NÃO está, e é a exceção que vale explicar: ela é acionada pelo botão
@@ -201,24 +208,70 @@ export function resolveAppGate(state: AppGateState): AppGate {
 }
 
 /**
- * O 3º item da tab bar: Caixa quando o plano inclui caixa, senão Custos.
+ * O atalho de módulo da tab bar: Caixa quando está acessível; senão Custos.
  *
- * Vem do protótipo (`irCaixaOuCustos`, linha 1173) e é a expressão mais visível
- * do entitlement: o mesmo botão, dois destinos, conforme o que foi contratado.
+ * Caixa preserva a prioridade do protótipo quando os dois existem. Quando o
+ * plano ∩ papel não libera nenhum deles, não existe slot vazio: o atalho some.
  */
-export function tabBarShortcut(caps: Capabilities): TabBarItem {
-  return caps.hasCash
-    ? { key: 'cash', label: 'Caixa', route: ROUTES.cash, icon: 'cash' }
-    : { key: 'costs', label: 'Custos', route: ROUTES.costs, icon: 'costs' };
+export function tabBarShortcut(caps: Capabilities): TabBarItem | null {
+  if (caps.hasCash) {
+    return { key: 'cash', label: 'Caixa', route: ROUTES.cash, icon: 'cash' };
+  }
+  if (caps.hasCosts) {
+    return { key: 'costs', label: 'Custos', route: ROUTES.costs, icon: 'costs' };
+  }
+  return null;
 }
 
+/**
+ * A chrome visível das abas, derivada das capacidades já resolvidas.
+ *
+ * Início e Mais são as âncoras. Produtos e o atalho Caixa/Custos só entram
+ * quando a mesma regra do guardião libera suas rotas; por isso não há item
+ * apagado, sem toque ou que pisca e volta para Início. As cinco rotas continuam
+ * registradas no `Tabs` estrutural — esta função decide somente o que a barra
+ * desenha.
+ */
 export function tabBarItems(caps: Capabilities): TabBarItem[] {
-  return [
+  const shortcut = tabBarShortcut(caps);
+  const items: TabBarItem[] = [
     { key: 'home', label: 'Início', route: ROUTES.home, icon: 'home' },
-    { key: 'products', label: 'Produtos', route: ROUTES.products, icon: 'products' },
-    tabBarShortcut(caps),
+    ...(caps.hasProducts
+      ? [{ key: 'products', label: 'Produtos', route: ROUTES.products, icon: 'products' } as const]
+      : []),
+    ...(shortcut ? [shortcut] : []),
     { key: 'more', label: 'Mais', route: ROUTES.more, icon: 'more' },
   ];
+
+  // Defesa da chrome contra divergência futura: acrescentar um destino acima
+  // sem acrescentá-lo ao guardião não pode criar uma tab que ele bloquearia.
+  return items.filter((item) => isRouteAllowed(item.route, caps));
+}
+
+export interface TabBarSaleLayout {
+  leading: TabBarItem[];
+  trailing: TabBarItem[];
+}
+
+/**
+ * Divide as tabs ao redor do Vender sem deslocar o botão do centro da tela.
+ *
+ * O equilíbrio vem das duas metades de mesma largura na `TabBar`, não da mesma
+ * quantidade de itens: com três tabs, a metade inicial recebe duas e a final
+ * recebe uma. Sem Vender não há partição — os itens ocupam diretamente a
+ * largura inteira, sem metades nem vão reservados.
+ */
+export function tabBarSaleLayout(
+  items: readonly TabBarItem[],
+  caps: Capabilities,
+): TabBarSaleLayout | null {
+  if (!isRouteAllowed(ROUTES.sell, caps)) return null;
+
+  const splitIndex = Math.ceil(items.length / 2);
+  return {
+    leading: items.slice(0, splitIndex),
+    trailing: items.slice(splitIndex),
+  };
 }
 
 /**

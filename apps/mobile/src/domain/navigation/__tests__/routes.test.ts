@@ -8,6 +8,7 @@ import type { Capabilities } from '@domain/tenant/tenantTypes';
 
 import {
   ROUTES,
+  tabBarSaleLayout,
   tabBarShortcut,
   tabBarItems,
   moreItems,
@@ -120,14 +121,112 @@ describe('atalhoDaTabBar', () => {
     expect(tabBarShortcut(COMPLETO)).toMatchObject({ label: 'Caixa', route: ROUTES.cash });
   });
 
-  it('vira Custos quando não tem', () => {
+  it('preserva a prioridade de Caixa quando Caixa e Custos estão acessíveis', () => {
+    expect(COMPLETO.hasCash).toBe(true);
+    expect(COMPLETO.hasCosts).toBe(true);
+    expect(tabBarShortcut(COMPLETO)?.route).toBe(ROUTES.cash);
+  });
+
+  it('vira Custos quando não tem Caixa', () => {
     expect(tabBarShortcut(ESSENTIAL)).toMatchObject({ label: 'Custos', route: ROUTES.costs });
   });
 
-  it('a tab bar tem sempre 4 itens, em qualquer plano', () => {
-    expect(tabBarItems(COMPLETO)).toHaveLength(4);
-    expect(tabBarItems(ESSENTIAL)).toHaveLength(4);
+  it('não existe quando o papel não permite Caixa nem Custos', () => {
+    const semAtalho = deriveCapabilities(
+      ['sales', 'products', 'cash', 'costs', 'app'],
+      ['products'],
+      false,
+    );
+
+    expect(tabBarShortcut(semAtalho)).toBeNull();
   });
+});
+
+describe('itensDaTabBar', () => {
+  const modulos = ['sales', 'products', 'cash', 'costs', 'app'] as const;
+  const semPermissoes = deriveCapabilities(modulos, [], false);
+  const soVendas = deriveCapabilities(modulos, ['sales'], false);
+  const soProdutos = deriveCapabilities(modulos, ['products'], false);
+  const soCustos = deriveCapabilities(modulos, ['costs'], false);
+
+  it('tem de 2 a 4 tabs conforme as capacidades atuais', () => {
+    expect(tabBarItems(semPermissoes).map((item) => item.key)).toEqual(['home', 'more']);
+    expect(tabBarItems(soProdutos).map((item) => item.key)).toEqual([
+      'home',
+      'products',
+      'more',
+    ]);
+    expect(tabBarItems(soCustos).map((item) => item.key)).toEqual([
+      'home',
+      'costs',
+      'more',
+    ]);
+    expect(tabBarItems(COMPLETO).map((item) => item.key)).toEqual([
+      'home',
+      'products',
+      'cash',
+      'more',
+    ]);
+  });
+
+  it('Produtos e Vender acompanham as permissões do papel', () => {
+    expect(tabBarItems(soVendas).some((item) => item.route === ROUTES.products)).toBe(false);
+    expect(isRouteAllowed(ROUTES.sell, soVendas)).toBe(true);
+
+    expect(tabBarItems(soProdutos).some((item) => item.route === ROUTES.products)).toBe(true);
+    expect(isRouteAllowed(ROUTES.sell, soProdutos)).toBe(false);
+  });
+
+  it('nunca devolve uma tab que o guardião bloquearia', () => {
+    for (const caps of [semPermissoes, soVendas, soProdutos, soCustos, ESSENTIAL, COMPLETO]) {
+      for (const item of tabBarItems(caps)) {
+        expect(isRouteAllowed(item.route, caps)).toBe(true);
+      }
+    }
+  });
+});
+
+describe('layoutDaTabBarComVender', () => {
+  const modulos = ['sales', 'products', 'cash', 'costs', 'app'] as const;
+  const soVendas = deriveCapabilities(modulos, ['sales'], false);
+  const vendasECustos = deriveCapabilities(modulos, ['sales', 'costs'], false);
+  const itensPorQuantidade = {
+    2: { caps: soVendas, items: tabBarItems(soVendas) },
+    3: { caps: vendasECustos, items: tabBarItems(vendasECustos) },
+    4: { caps: COMPLETO, items: tabBarItems(COMPLETO) },
+  } as const;
+
+  it.each([
+    [2, 1, 1],
+    [3, 2, 1],
+    [4, 2, 2],
+  ] as const)(
+    'com %i tabs e Vender cria metades %i+%i ao redor do vão central',
+    (quantidade, leading, trailing) => {
+      const { caps, items } = itensPorQuantidade[quantidade];
+      const layout = tabBarSaleLayout(items, caps);
+
+      expect(layout?.leading).toEqual(items.slice(0, leading));
+      expect(layout?.trailing).toEqual(items.slice(leading));
+      expect(layout?.leading).toHaveLength(leading);
+      expect(layout?.trailing).toHaveLength(trailing);
+    },
+  );
+
+  const semVendasPorQuantidade = {
+    2: deriveCapabilities(modulos, [], false),
+    3: deriveCapabilities(modulos, ['costs'], false),
+    4: deriveCapabilities(modulos, ['products', 'cash'], false),
+  } as const;
+
+  it.each([2, 3, 4] as const)(
+    'com %i tabs e sem Vender não cria metades nem reserva vão',
+    (quantidade) => {
+      const caps = semVendasPorQuantidade[quantidade];
+      expect(tabBarItems(caps)).toHaveLength(quantidade);
+      expect(tabBarSaleLayout(tabBarItems(caps), caps)).toBeNull();
+    },
+  );
 });
 
 describe('itensDoMais', () => {
@@ -182,13 +281,28 @@ describe('isTabRoute', () => {
     expect(isTabRoute(ROUTES.support)).toBe(false);
   });
 
-  it('todo destino do 3º item da tab bar é uma aba, em qualquer plano', () => {
-    expect(isTabRoute(tabBarShortcut(COMPLETO).route)).toBe(true);
-    expect(isTabRoute(tabBarShortcut(ESSENTIAL).route)).toBe(true);
+  it('todo atalho de módulo visível é uma aba', () => {
+    for (const shortcut of [
+      tabBarShortcut(COMPLETO),
+      tabBarShortcut(ESSENTIAL),
+      tabBarShortcut(deriveCapabilities([])),
+    ]) {
+      if (shortcut) expect(isTabRoute(shortcut.route)).toBe(true);
+    }
   });
 
-  it('todo item da tab bar é uma aba, em qualquer plano', () => {
-    for (const item of [...tabBarItems(COMPLETO), ...tabBarItems(ESSENTIAL)]) {
+  it('todo item dinâmico da tab bar continua sendo uma rota do Tabs estrutural', () => {
+    const restrito = deriveCapabilities(
+      ['sales', 'products', 'cash', 'costs', 'app'],
+      ['products'],
+      false,
+    );
+
+    for (const item of [
+      ...tabBarItems(COMPLETO),
+      ...tabBarItems(ESSENTIAL),
+      ...tabBarItems(restrito),
+    ]) {
       expect(isTabRoute(item.route)).toBe(true);
     }
   });
@@ -208,6 +322,7 @@ describe('rotaPermitida', () => {
 
   it('rotas base passam sempre', () => {
     expect(isRouteAllowed(ROUTES.home, ESSENTIAL)).toBe(true);
+    expect(isRouteAllowed(ROUTES.todaySales, ESSENTIAL)).toBe(true);
     expect(isRouteAllowed(ROUTES.settings, ESSENTIAL)).toBe(true);
     expect(isRouteAllowed(ROUTES.sell, ESSENTIAL)).toBe(true);
   });
@@ -221,6 +336,7 @@ describe('rotaPermitida', () => {
     expect(isRouteAllowed(ROUTES.sell, restrito)).toBe(false);
     expect(isRouteAllowed(ROUTES.sales, restrito)).toBe(false);
     expect(isRouteAllowed(`${ROUTES.sales}/sale_1`, restrito)).toBe(false);
+    expect(isRouteAllowed(ROUTES.todaySales, restrito)).toBe(true);
     expect(isRouteAllowed(ROUTES.products, restrito)).toBe(false);
     expect(isRouteAllowed(ROUTES.costs, restrito)).toBe(true);
     expect(isRouteAllowed(ROUTES.support, restrito)).toBe(true);

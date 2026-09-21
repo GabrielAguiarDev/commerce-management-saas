@@ -15,11 +15,10 @@ export { salesKeys };
 /**
  * As últimas vendas do dia — o card do Início.
  *
- * Dez, e não três: o card mostra a fita do dia, e três linhas num balcão
- * movimentado já estão vencidas antes do café. Além de dez, a resposta é o
- * HISTÓRICO, que tem cabeçalho por dia e paginação — ver `useSalesHistory`.
+ * Cinco mantêm a Home como resumo. O restante do dia vive na tela diária
+ * paginada, construída com `useSalesHistory` e o recorte `today`.
  */
-export function useRecentSales(limit = 10) {
+export function useRecentSales(limit = 5) {
   const tenantId = useSessionStore((s) => s.tenantId);
 
   return useQuery({

@@ -1,6 +1,17 @@
 import { router } from 'expo-router';
 
-import { Box, Card, Divider, Icon, Pill, Screen, Skeleton, Text, Touchable } from '@components';
+import {
+  Box,
+  Card,
+  Divider,
+  Icon,
+  Pill,
+  SaleListRow,
+  Screen,
+  Skeleton,
+  Text,
+  Touchable,
+} from '@components';
 import { lowStockProducts, useCatalog } from '@domain/catalog';
 import { useOpenShift } from '@domain/cash';
 import { ROUTES, saleDetailRoute } from '@domain/navigation/routes';
@@ -11,7 +22,9 @@ import { useSessionStore } from '@store/sessionStore';
 import type { Messages } from '@i18n';
 import { useTranslation } from '@i18n';
 import { formatBRL } from '@utils/money';
-import { paymentLabel } from '@utils/payment';
+
+/** Cinco linhas mantêm o resumo útil sem transformar a Home numa lista. */
+const HOME_RECENT_SALES_LIMIT = 5;
 
 /**
  * Início.
@@ -31,7 +44,8 @@ export default function HomeScreen() {
   const { data: tenant } = useCurrentTenant();
   const { capabilities } = useCapabilities();
   const { data: summary, isPending: summaryPending } = useDailySummary();
-  const { data: sales = [], isPending: salesPending } = useRecentSales();
+  const { data: sales = [], isPending: salesPending } =
+    useRecentSales(HOME_RECENT_SALES_LIMIT);
   const { data: shift } = useOpenShift();
   const { data: products = [] } = useCatalog();
   const pendingCount = usePendingSalesCount();
@@ -248,11 +262,11 @@ export default function HomeScreen() {
         </Touchable>
       ) : null}
 
-      {/* AS ÚLTIMAS VENDAS — dez, não a fita inteira do dia.
+      {/* AS ÚLTIMAS VENDAS — cinco, não a fita inteira do dia.
           Num balcão movimentado esta lista cresce o dia todo, e um card que
           rola sem fim empurra tudo o que vem depois dele para fora da tela.
-          Dez é o que cabe numa olhada; o resto é o HISTÓRICO, que tem
-          cabeçalho por dia e paginação — o botão do rodapé é a porta dele. */}
+          Cinco cabem numa olhada; o resto do DIA fica na tela paginada aberta
+          pelo rodapé. O histórico completo continua protegido por `sales`. */}
       <Card paddingVertical="s6" paddingHorizontal="s16">
         <Text variant="sectionTitle" paddingTop="s12" paddingBottom="s4">
           {t.home.recentSales}
@@ -267,52 +281,22 @@ export default function HomeScreen() {
         {sales.map((sale) => (
           <Box key={sale.id}>
             <Divider />
-            <Touchable
-              accessibilityLabel={`${sale.time}, ${sale.itemsSummary}, ${formatBRL(sale.totalCents)}`}
-              onPress={() => router.push(saleDetailRoute(sale.id) as never)}
-              flexDirection="row"
-              alignItems="center"
-              gap="s12"
-              paddingVertical="s11"
-            >
-              {/* `minWidth` e não largura fixa, com folga nas laterais: em 34px
-                  cravados o "00:27" encostava nas duas bordas da caixinha. O
-                  horário é o único conteúdo dela e o tamanho dele muda com a
-                  fonte do sistema — quem manda no tamanho é o texto. */}
-              <Box
-                minWidth={52}
-                height={34}
-                borderRadius="r11"
-                backgroundColor="surface2"
-                alignItems="center"
-                justifyContent="center"
-                paddingHorizontal="s8"
-              >
-                <Text variant="tinyBold" color="textMuted">
-                  {sale.time}
-                </Text>
-              </Box>
-              <Box flex={1} minWidth={0}>
-                <Text variant="rowText" numberOfLines={1}>
-                  {sale.itemsSummary}
-                </Text>
-                {/* A forma de pagamento vem do banco como CHAVE (`cash`) e
-                    aparecia crua aqui, em inglês, no meio de uma tela em
-                    português. Ver `utils/payment`. */}
-                <Text variant="hint" color="textMuted" marginTop="s2">
-                  {paymentLabel(t, sale.paymentMethod)}
-                </Text>
-              </Box>
-              <Text variant="titleXs">{formatBRL(sale.totalCents)}</Text>
-            </Touchable>
+            <SaleListRow
+              sale={sale}
+              onPress={
+                capabilities.hasSales
+                  ? () => router.push(saleDetailRoute(sale.id) as never)
+                  : undefined
+              }
+            />
           </Box>
         ))}
 
         <Divider />
 
         <Touchable
-          accessibilityLabel={t.home.seeAllSales}
-          onPress={() => router.push(ROUTES.sales as never)}
+          accessibilityLabel={t.home.seeTodaySales}
+          onPress={() => router.push(ROUTES.todaySales as never)}
           flexDirection="row"
           alignItems="center"
           justifyContent="center"
@@ -320,7 +304,7 @@ export default function HomeScreen() {
           paddingVertical="s14"
         >
           <Text variant="sectionLabel" color="primaryText">
-            {t.home.seeAllSales}
+            {t.home.seeTodaySales}
           </Text>
           <Icon name="chevronRight" size={16} color="primary" />
         </Touchable>

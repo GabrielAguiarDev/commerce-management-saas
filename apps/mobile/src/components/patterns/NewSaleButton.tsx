@@ -4,7 +4,8 @@ import { Box } from '@components/ui/Box';
 import { Icon } from '@components/ui/Icon';
 import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
-import { ROUTES } from '@domain/navigation/routes';
+import { ROUTES, isRouteAllowed } from '@domain/navigation/routes';
+import { useCapabilities } from '@domain/tenant';
 import { goToRoot } from '@hooks/navigation';
 
 import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
@@ -12,11 +13,9 @@ import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
 /**
  * O botão CENTRAL da tab bar — "Vender".
  *
- * Ele já foi um FAB no canto inferior direito, com gradiente e sombra, que sumia
- * em duas situações (estando em Vender, e com o carrinho cheio). O design o
- * coloca no MEIO da barra, e isso muda a natureza dele: um FAB pode sumir, um
- * item de barra não — sumir deixaria um buraco de 84px entre Produtos e o
- * atalho. Por isso ele é incondicional.
+ * Ele só existe quando o mesmo guardião das rotas libera `/sell`: Vender é uma
+ * capacidade, não decoração da barra. A `TabBar` consulta a mesma regra para
+ * reservar o vão, portanto o botão e o espaço desaparecem juntos.
  *
  * ELE PARECE UMA ABA MAS NÃO É UMA. Vender é uma tela de PILHA, fora do grupo
  * `(tabs)`: precisa da tela inteira para a grade de produtos, então sobe por
@@ -34,6 +33,9 @@ import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
  */
 export function NewSaleButton() {
   const insets = useSafeAreaInsets();
+  const { capabilities } = useCapabilities();
+
+  if (!isRouteAllowed(ROUTES.sell, capabilities)) return null;
 
   return (
     <Box
@@ -43,7 +45,7 @@ export function NewSaleButton() {
       alignItems="center"
       style={{ bottom: BASE_ROTULO_TAB + insets.bottom }}
       // Sem isto, esta caixa cobriria a largura inteira da barra e engoliria os
-      // toques das quatro abas que passam por baixo dela.
+      // toques das tabs dinâmicas que passam por baixo dela.
       pointerEvents="box-none"
     >
       <Touchable

@@ -349,7 +349,18 @@ export const ptBR: Messages = {
     noSalesYet: 'ainda sem vendas hoje',
     recentSales: 'Últimas vendas',
     noSalesToday: 'Nenhuma venda registrada hoje ainda.',
-    seeAllSales: 'Ver todas as vendas',
+    seeTodaySales: 'Ver vendas de hoje',
+  },
+
+  todaySales: {
+    title: 'Vendas de hoje',
+    subtitle: 'Tudo o que foi registrado desde o início do dia',
+    totalLabel: 'Total de hoje',
+    end: 'Todas as vendas de hoje foram exibidas.',
+    empty: {
+      title: 'Nenhuma venda hoje ainda',
+      text: 'As vendas registradas hoje aparecerão aqui em ordem de horário.',
+    },
   },
 
   sales: {

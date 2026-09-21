@@ -10,12 +10,10 @@ import {
   EmptyState,
   Field,
   Gutter,
-  Icon,
-  Pill,
+  SaleListRow,
   Screen,
   Skeleton,
   Text,
-  Touchable,
   type ChipOption,
 } from '@components';
 import { saleDetailRoute } from '@domain/navigation/routes';
@@ -25,7 +23,6 @@ import {
   useSalesHistory,
   useSalesTotals,
   type CustomRange,
-  type Sale,
   type SaleDay,
   type SalesFilter,
 } from '@domain/sales';
@@ -34,7 +31,6 @@ import type { Messages } from '@i18n';
 import { usePreferencesStore } from '@store/preferencesStore';
 import { maskDayInput, parseDayInput } from '@utils/dates';
 import { formatBRL } from '@utils/money';
-import { paymentLabel } from '@utils/payment';
 
 /**
  * O HISTÓRICO DE VENDAS.
@@ -228,7 +224,10 @@ export default function SalesHistoryScreen() {
               {day.sales.map((sale, index) => (
                 <Box key={sale.id}>
                   {index > 0 ? <Divider /> : null}
-                  <SaleRow sale={sale} t={t} />
+                  <SaleListRow
+                    sale={sale}
+                    onPress={() => router.push(saleDetailRoute(sale.id) as never)}
+                  />
                 </Box>
               ))}
             </Card>
@@ -264,71 +263,6 @@ export default function SalesHistoryScreen() {
         ) : null}
       </Gutter>
     </Screen>
-  );
-}
-
-function SaleRow({ sale, t }: { sale: Sale; t: Messages }) {
-  return (
-    <Touchable
-      accessibilityLabel={`${sale.time}, ${sale.itemsSummary}, ${formatBRL(sale.totalCents)}`}
-      onPress={() => router.push(saleDetailRoute(sale.id) as never)}
-      flexDirection="row"
-      alignItems="center"
-      gap="s12"
-      paddingVertical="s12"
-    >
-      <Box
-        minWidth={52}
-        height={34}
-        borderRadius="r11"
-        backgroundColor="surface2"
-        alignItems="center"
-        justifyContent="center"
-        paddingHorizontal="s8"
-      >
-        <Text variant="tinyBold" color="textMuted">
-          {sale.time}
-        </Text>
-      </Box>
-
-      <Box flex={1} minWidth={0}>
-        <Text
-          variant="rowText"
-          numberOfLines={1}
-          color={sale.refunded ? 'textMuted' : 'textPrimary'}
-          // A venda estornada é RISCADA, não escondida. `Text` do restyle não
-          // tem prop para isto — decoração de texto não é token de tema.
-          style={sale.refunded ? { textDecorationLine: 'line-through' } : undefined}
-        >
-          {sale.itemsSummary}
-        </Text>
-        <Box flexDirection="row" alignItems="center" gap="s6" marginTop="s3">
-          <Text variant="hint" color="textMuted">
-            {paymentLabel(t, sale.paymentMethod)}
-          </Text>
-          {sale.refunded ? (
-            <Pill
-              text={t.sales.refundedBadge}
-              backgroundColor="warningSoft"
-              textColor="warning"
-              variant="tag"
-              paddingX={7}
-              paddingY={2}
-            />
-          ) : null}
-        </Box>
-      </Box>
-
-      <Text
-        variant="titleXs"
-        color={sale.refunded ? 'textMuted' : 'textPrimary'}
-        style={sale.refunded ? { textDecorationLine: 'line-through' } : undefined}
-      >
-        {formatBRL(sale.totalCents)}
-      </Text>
-
-      <Icon name="chevronRight" size={16} color="textMuted" />
-    </Touchable>
   );
 }
 

@@ -1,12 +1,11 @@
 import { usePathname } from 'expo-router';
-import { Fragment } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Box } from '@components/ui/Box';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
-import { tabBarItems } from '@domain/navigation/routes';
+import { tabBarItems, tabBarSaleLayout } from '@domain/navigation/routes';
 import { useCapabilities } from '@domain/tenant';
 import { goToRoot } from '@hooks/navigation';
 
@@ -47,6 +46,42 @@ export function TabBar() {
   const { capabilities } = useCapabilities();
 
   const items = tabBarItems(capabilities);
+  const saleLayout = tabBarSaleLayout(items, capabilities);
+
+  const renderItem = (item: (typeof items)[number]) => {
+    const active = path === item.route;
+    return (
+      <Touchable
+        key={item.key}
+        accessibilityLabel={item.label}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: active }}
+        onPress={() => {
+          if (active) return;
+          // As tabs visíveis ZERAM a pilha, como o `go()` do protótipo.
+          goToRoot(item.route);
+        }}
+        flex={1}
+        alignItems="center"
+        justifyContent="flex-end"
+      >
+        {/* O bloco ícone+rótulo, apoiado a `BASE_ROTULO_TAB` da base da área
+            útil. Medido daqui de baixo, e não centralizado por conta própria,
+            porque é esta mesma medida que o "Vender" usa para alinhar o
+            rótulo dele com os rótulos das tabs. */}
+        <Box alignItems="center" style={{ gap: GAP_ITEM_TAB, paddingBottom: BASE_ROTULO_TAB }}>
+          <Icon
+            name={item.icon as IconName}
+            size={TAMANHO_ICONE_TAB}
+            color={active ? 'primary' : 'textMuted'}
+          />
+          <Text variant="tabLabel" color={active ? 'primary' : 'textMuted'}>
+            {item.label}
+          </Text>
+        </Box>
+      </Touchable>
+    );
+  };
 
   return (
     <Box
@@ -68,47 +103,21 @@ export function TabBar() {
       style={{ height: ALTURA_TAB_BAR + insets.bottom, paddingBottom: insets.bottom }}
       accessibilityRole="tablist"
     >
-      {items.map((item, index) => {
-        const active = path === item.route;
-        return (
-          <Fragment key={item.key}>
-            {/* O VÃO DO BOTÃO CENTRAL, entre o 2º e o 3º item — o espaço onde o
-                `NewSaleButton` pousa. Ver `VAO_BOTAO_VENDER`. */}
-            {index === 2 && <Box width={VAO_BOTAO_VENDER} />}
-            <Touchable
-              accessibilityLabel={item.label}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-              onPress={() => {
-                if (active) return;
-                // As quatro abas ZERAM a pilha, como o `go()` do protótipo.
-                goToRoot(item.route);
-              }}
-              flex={1}
-              alignItems="center"
-              justifyContent="flex-end"
-            >
-              {/* O bloco ícone+rótulo, apoiado a `BASE_ROTULO_TAB` da base da
-                  área útil. Medido daqui de baixo, e não centralizado por conta
-                  própria, porque é esta mesma medida que o "Vender" usa para
-                  alinhar o rótulo dele com estes quatro. */}
-              <Box
-                alignItems="center"
-                style={{ gap: GAP_ITEM_TAB, paddingBottom: BASE_ROTULO_TAB }}
-              >
-                <Icon
-                  name={item.icon as IconName}
-                  size={TAMANHO_ICONE_TAB}
-                  color={active ? 'primary' : 'textMuted'}
-                />
-                <Text variant="tabLabel" color={active ? 'primary' : 'textMuted'}>
-                  {item.label}
-                </Text>
-              </Box>
-            </Touchable>
-          </Fragment>
-        );
-      })}
+      {saleLayout ? (
+        <>
+          {/* As laterais têm a mesma largura flexível; é isso que mantém o vão
+              fixo no centro mesmo quando uma delas contém uma tab a mais. */}
+          <Box flex={1} flexDirection="row" alignItems="stretch">
+            {saleLayout.leading.map(renderItem)}
+          </Box>
+          <Box width={VAO_BOTAO_VENDER} />
+          <Box flex={1} flexDirection="row" alignItems="stretch">
+            {saleLayout.trailing.map(renderItem)}
+          </Box>
+        </>
+      ) : (
+        items.map(renderItem)
+      )}
     </Box>
   );
 }

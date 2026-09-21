@@ -4,8 +4,8 @@ Contexto vivo do projeto. **Leia este arquivo por inteiro antes de mexer no cód
 Ele vale mais que intuição: registra o que foi decidido, por quê, e as armadilhas
 já descobertas.
 
-Última atualização: **2026-08-13** (as quatro telas de ENTRADA agora são
-**claras**, e só o login tem a marca d'água no topo — ver §7.1)
+Última atualização: **2026-09-19** (a navegação inferior agora mostra apenas os
+destinos liberados pelo plano e pelo papel — ver §10.3)
 
 ---
 
@@ -29,15 +29,15 @@ são o que o tenant contratou. Eles mudam, na mesma carga:
 
 | onde | efeito |
 |---|---|
-| tab bar | o 3º item vira **Caixa** (com `cash`) ou **Custos** (sem) |
+| tab bar | mostra 2–4 destinos: Início/Mais fixos, Produtos e Caixa/Custos conforme a capacidade; Vender é condicional |
 | tela "Mais" | a grade só mostra os módulos do plano |
 | Início | o atalho de caixa e o alerta de estoque só existem com o módulo |
 | Cadastro rápido / Editar produto | campos de estoque e de custo só aparecem se houver o módulo |
 | acesso ao app | sem o módulo `app` (`is_access`), cai na tela de **bloqueio** |
 
-Tudo isso sai de **uma função pura**, `derivarCapacidades()`, e de duas que a
-consomem — `itensDaTabBar()` e `itensDoMais()`. Nenhuma tela pergunta pela chave
-do módulo; todas perguntam pela capacidade (`capacidades.temCaixa`).
+Tudo isso sai de **uma função pura**, `deriveCapabilities()`, e de duas que a
+consomem — `tabBarItems()` e `moreItems()`. Nenhuma tela pergunta pela chave do
+módulo; todas perguntam pela capacidade (`capabilities.hasCash`).
 
 As chaves são **exatamente** as de `modules.key` no Supabase do monorepo
 (ver `supabase/migrations/` e `apps/portal-client/lib/modulos.ts`). Isso é
@@ -267,8 +267,9 @@ montadas não custam cinco telas trabalhando.
 A barra do navegador de abas é `tabBar={() => null}`: o navegador é puramente
 estrutural (guarda o estado das abas), e quem desenha e escuta o toque é a
 `TabBar` do design system, irmã dele. Caixa **e** Custos moram nas abas,
-embora só um dos dois seja o 3º item da barra em cada plano — os dois são destino
-de raiz, e o que não está na barra continua acessível pela grade do "Mais".
+embora no máximo um dos dois apareça como atalho em cada acesso — os dois são
+destino de raiz, e o que não está na barra continua acessível pela grade do
+"Mais".
 
 **`/sell` é a exceção que vale explicar.** Ela é acionada pelo botão central da
 tab bar, o que a faz *parecer* uma aba — mas é tela de pilha, e abre em tela
@@ -916,7 +917,7 @@ regenerá-las é seguro. Se `pod update` não bastar, o próximo passo é
       *Portão: typecheck ✅ lint ✅ test ✅ (231) export ios ✅*
 - [x] **Fase 5.2 — Aba × tela interna.** A tab bar e o botão Vender desceram do
       layout de `(app)` para o de `(tabs)`, e com isso passaram a existir só nas
-      quatro abas principais. Configurações, Suporte, Estoque, Relatórios e
+      telas do grupo de abas. Configurações, Suporte, Estoque, Relatórios e
       Vender abrem em tela cheia, com header e voltar, e desempilham de volta
       para a aba de origem. As rotas já estavam nos grupos certos — o que mudou
       foi o nível em que a chrome é montada. Ver §4.
@@ -1023,6 +1024,45 @@ versão velha demais.
 8. **Validação com `zod` dentro dos adapters**, quando o backend real entrar:
    um campo que sumiu no servidor vira erro nomeado na fronteira, e não
    `undefined` explodindo três telas adiante.
+
+### 10.3 Layout por quantidade de módulos — decidido em 19/09/2026
+
+A chrome inferior é **dinâmica**, mas o navegador não. As cinco rotas de
+`(tabs)` continuam registradas estruturalmente; `tabBarItems()` decide apenas
+quais destinos a pessoa enxerga, a partir das `Capabilities` já resolvidas pelo
+guardião.
+
+As regras são:
+
+- **Início** e **Mais** aparecem sempre e permanecem nas extremidades;
+- **Produtos** só aparece com `hasProducts`;
+- o atalho de módulo é **Caixa** com `hasCash`; sem Caixa, é **Custos** com
+  `hasCosts`; sem os dois, não há atalho nem slot vazio;
+- **Vender** é uma ação separada e só existe com `hasSales`;
+- nenhuma tab visível pode apontar para uma rota que `isRouteAllowed()`
+  bloquearia. O guard continua necessário para deep link e navegação externa.
+
+Isso produz de duas a quatro tabs, mais Vender quando permitido:
+
+| acesso efetivo (plano ∩ papel) | tabs visíveis | Vender |
+|---|---|---|
+| nenhum módulo operacional | Início, Mais (**2**) | não |
+| somente Vendas | Início, Mais (**2**) | sim |
+| somente Produtos ou somente Custos | Início, módulo, Mais (**3**) | não |
+| Vendas + Custos | Início, Custos, Mais (**3**) | sim |
+| Produtos + Caixa, sem Vendas | Início, Produtos, Caixa, Mais (**4**) | não |
+| acesso completo | Início, Produtos, Caixa, Mais (**4**) | sim |
+
+Quando Vender existe, `tabBarSaleLayout()` divide os items em `leading` e
+`trailing`: a primeira parte termina em `Math.ceil(items.length / 2)` e a
+segunda recebe o restante. A `TabBar` põe cada parte dentro de uma metade
+`flex: 1`, com `VAO_BOTAO_VENDER` fixo entre elas; os itens também usam
+`flex: 1` dentro da própria metade. Assim o centro do vão coincide sempre com o
+centro da tela, inclusive no caso assimétrico de três tabs: 1+1 com duas, 2+1
+com três e 2+2 com quatro. Sem Vender não se criam metades nem espaçador: todas
+as tabs dividem diretamente a largura inteira. Não se usa item apagado para
+comunicar falta de permissão: o destino ausente continua protegido pelo
+guardião e, quando aplicável, acessível pela grade do "Mais".
 
 ---
 
@@ -1270,18 +1310,20 @@ fazer no balcão. Ver o detalhe, corrigir o que foi digitado errado e estornar �
 sem abrir o computador, que é exatamente onde o dono do negócio **não** está no
 momento em que percebe o erro.
 
-### Três telas, e o que cada uma responde
+### Quatro telas, e o que cada uma responde
 
 | tela | pergunta |
 |---|---|
-| card do Início | "o que vendi agora há pouco?" — as **10** últimas de hoje |
+| card do Início | "o que vendi agora há pouco?" — as **5** últimas de hoje |
+| `app/(app)/today-sales.tsx` | "o que vendeu hoje?" — somente o dia atual, paginado |
 | `app/(app)/sales/index.tsx` | "o que eu já vendi?" — tudo, por dia, paginado |
 | `app/(app)/sales/[id].tsx` | "o que tinha nessa venda, e o que faço com ela?" |
 
-O card do Início mostrava **3** e crescia sem limite conforme o dia andava,
-empurrando o resto da tela para fora. Agora ele mostra dez e termina com a porta
-do histórico ("Ver todas as vendas") — que é a única forma de chegar lá, como a
-fila offline é alcançada pelo card dela.
+O card do Início mostrava **3** e já chegou a exibir dez, ocupando espaço demais
+num dia movimentado. Agora ele mostra cinco e termina com "Ver vendas de hoje".
+Essa porta abre um recorte diário próprio, acessível a quem já enxerga o resumo
+da Home, sem liberar o histórico completo para um papel sem `sales`. Nesse
+papel, as linhas são informativas; com `sales`, também abrem o detalhe.
 
 ### A rolagem infinita, e a porta que ela abriu no `Screen`
 
