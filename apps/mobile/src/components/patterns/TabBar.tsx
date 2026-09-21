@@ -5,7 +5,12 @@ import { Box } from '@components/ui/Box';
 import { Icon, type IconName } from '@components/ui/Icon';
 import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
-import { tabBarItems, tabBarSaleLayout } from '@domain/navigation/routes';
+import type { TabBarItem } from '@domain/navigation/navigationTypes';
+import {
+  tabBarInlineSaleItems,
+  tabBarItems,
+  tabBarSaleLayout,
+} from '@domain/navigation/routes';
 import { useCapabilities } from '@domain/tenant';
 import { goToRoot } from '@hooks/navigation';
 
@@ -46,9 +51,10 @@ export function TabBar() {
   const { capabilities } = useCapabilities();
 
   const items = tabBarItems(capabilities);
+  const inlineItems = tabBarInlineSaleItems(items, capabilities);
   const saleLayout = tabBarSaleLayout(items, capabilities);
 
-  const renderItem = (item: (typeof items)[number]) => {
+  const renderItem = (item: TabBarItem) => {
     const active = path === item.route;
     return (
       <Touchable
@@ -103,10 +109,12 @@ export function TabBar() {
       style={{ height: ALTURA_TAB_BAR + insets.bottom, paddingBottom: insets.bottom }}
       accessibilityRole="tablist"
     >
-      {saleLayout ? (
+      {inlineItems ? (
+        inlineItems.map(renderItem)
+      ) : saleLayout ? (
         <>
-          {/* As laterais têm a mesma largura flexível; é isso que mantém o vão
-              fixo no centro mesmo quando uma delas contém uma tab a mais. */}
+          {/* As laterais têm a mesma largura flexível; nos casos elevados elas
+              também recebem a mesma quantidade de tabs. */}
           <Box flex={1} flexDirection="row" alignItems="stretch">
             {saleLayout.leading.map(renderItem)}
           </Box>

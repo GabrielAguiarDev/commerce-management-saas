@@ -4,7 +4,7 @@ import { Box } from '@components/ui/Box';
 import { Icon } from '@components/ui/Icon';
 import { Text } from '@components/ui/Text';
 import { Touchable } from '@components/ui/Touchable';
-import { ROUTES, isRouteAllowed } from '@domain/navigation/routes';
+import { ROUTES, tabBarItems, tabBarSalePlacement } from '@domain/navigation/routes';
 import { useCapabilities } from '@domain/tenant';
 import { goToRoot } from '@hooks/navigation';
 
@@ -13,9 +13,9 @@ import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
 /**
  * O botão CENTRAL da tab bar — "Vender".
  *
- * Ele só existe quando o mesmo guardião das rotas libera `/sell`: Vender é uma
- * capacidade, não decoração da barra. A `TabBar` consulta a mesma regra para
- * reservar o vão, portanto o botão e o espaço desaparecem juntos.
+ * Ele existe quando o guardião libera `/sell` E a quantidade de tabs permite
+ * uma composição simétrica. Com três tabs, Vender vira o quarto item regular
+ * dentro da `TabBar`; aqui e o vão central desaparecem juntos.
  *
  * ELE PARECE UMA ABA MAS NÃO É UMA. Vender é uma tela de PILHA, fora do grupo
  * `(tabs)`: precisa da tela inteira para a grade de produtos, então sobe por
@@ -34,8 +34,9 @@ import { BASE_ROTULO_TAB, TAMANHO_BOTAO_VENDER } from './tabBarGeometry';
 export function NewSaleButton() {
   const insets = useSafeAreaInsets();
   const { capabilities } = useCapabilities();
+  const items = tabBarItems(capabilities);
 
-  if (!isRouteAllowed(ROUTES.sell, capabilities)) return null;
+  if (tabBarSalePlacement(items, capabilities) !== 'raised') return null;
 
   return (
     <Box

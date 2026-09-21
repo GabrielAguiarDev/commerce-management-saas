@@ -8,7 +8,9 @@ import type { Capabilities } from '@domain/tenant/tenantTypes';
 
 import {
   ROUTES,
+  tabBarInlineSaleItems,
   tabBarSaleLayout,
+  tabBarSalePlacement,
   tabBarShortcut,
   tabBarItems,
   moreItems,
@@ -198,7 +200,6 @@ describe('layoutDaTabBarComVender', () => {
 
   it.each([
     [2, 1, 1],
-    [3, 2, 1],
     [4, 2, 2],
   ] as const)(
     'com %i tabs e Vender cria metades %i+%i ao redor do vão central',
@@ -213,6 +214,19 @@ describe('layoutDaTabBarComVender', () => {
     },
   );
 
+  it('com 3 tabs põe Vender como quarto item regular antes de Mais', () => {
+    const { caps, items } = itensPorQuantidade[3];
+
+    expect(tabBarSalePlacement(items, caps)).toBe('inline');
+    expect(tabBarSaleLayout(items, caps)).toBeNull();
+    expect(tabBarInlineSaleItems(items, caps)?.map((item) => item.key)).toEqual([
+      'home',
+      'costs',
+      'sell',
+      'more',
+    ]);
+  });
+
   const semVendasPorQuantidade = {
     2: deriveCapabilities(modulos, [], false),
     3: deriveCapabilities(modulos, ['costs'], false),
@@ -224,6 +238,8 @@ describe('layoutDaTabBarComVender', () => {
     (quantidade) => {
       const caps = semVendasPorQuantidade[quantidade];
       expect(tabBarItems(caps)).toHaveLength(quantidade);
+      expect(tabBarSalePlacement(tabBarItems(caps), caps)).toBe('hidden');
+      expect(tabBarInlineSaleItems(tabBarItems(caps), caps)).toBeNull();
       expect(tabBarSaleLayout(tabBarItems(caps), caps)).toBeNull();
     },
   );

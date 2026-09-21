@@ -36,10 +36,10 @@ export const unstable_settings = { anchor: 'home' };
  * não" espalhada por tela — a estrutura da navegação é que responde.
  *
  * Ela continua sendo um overlay ABSOLUTO (irmã do `<Tabs>` dentro deste `Box`),
- * e não a `tabBar` do navegador, por dois motivos: o desenho pede a barra
- * flutuando sobre o conteúdo rolável, e o botão Vender precisa transbordar para
- * fora dela. `tabBar={() => null}` segue sendo o certo — este navegador não
- * desenha barra nenhuma.
+ * e não a `tabBar` do navegador: o desenho precisa flutuar sobre o conteúdo e,
+ * nos layouts simétricos, Vender transborda para fora dela. Com três destinos
+ * ele entra como quarto item regular. `tabBar={() => null}` segue sendo o
+ * certo — este navegador não desenha barra nenhuma.
  *
  * E ela não pisca ao trocar de aba: este layout monta uma vez, quando o
  * guardião libera, e trocar de aba não o remonta.
@@ -85,9 +85,9 @@ export default function TabsLayout() {
         <Tabs.Screen name="more" />
       </Tabs>
 
-      {/* A barra e o botão Vender, sobrepostos às abas e SÓ a elas. O botão vem
-          depois para ficar por cima do vão que a barra reserva. A altura dos
-          dois sai de `tabBarGeometry.ts`. */}
+      {/* A barra e, quando o layout é simétrico, o botão Vender elevado. Ele
+          vem depois para ficar por cima do vão reservado. Com três destinos,
+          Vender já é desenhado dentro da própria TabBar como quarto item. */}
       <TabBar />
       <NewSaleButton />
     </Box>

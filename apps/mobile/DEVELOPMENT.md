@@ -1053,15 +1053,13 @@ Isso produz de duas a quatro tabs, mais Vender quando permitido:
 | Produtos + Caixa, sem Vendas | Início, Produtos, Caixa, Mais (**4**) | não |
 | acesso completo | Início, Produtos, Caixa, Mais (**4**) | sim |
 
-Quando Vender existe, `tabBarSaleLayout()` divide os items em `leading` e
-`trailing`: a primeira parte termina em `Math.ceil(items.length / 2)` e a
-segunda recebe o restante. A `TabBar` põe cada parte dentro de uma metade
-`flex: 1`, com `VAO_BOTAO_VENDER` fixo entre elas; os itens também usam
-`flex: 1` dentro da própria metade. Assim o centro do vão coincide sempre com o
-centro da tela, inclusive no caso assimétrico de três tabs: 1+1 com duas, 2+1
-com três e 2+2 com quatro. Sem Vender não se criam metades nem espaçador: todas
-as tabs dividem diretamente a largura inteira. Não se usa item apagado para
-comunicar falta de permissão: o destino ausente continua protegido pelo
+Com **duas ou quatro tabs**, Vender permanece elevado no centro:
+`tabBarSaleLayout()` cria metades iguais de 1+1 ou 2+2, separadas pelo
+`VAO_BOTAO_VENDER`. Com **três tabs**, a divisão 2+1 ficava visualmente torta;
+nesse caso `tabBarInlineSaleItems()` insere Vender antes de Mais e os quatro
+ícones dividem a largura lado a lado, sem círculo elevado nem vão. Sem Vender,
+as tabs também dividem diretamente a largura inteira. Não se usa item apagado
+para comunicar falta de permissão: o destino ausente continua protegido pelo
 guardião e, quando aplicável, acessível pela grade do "Mais".
 
 ---

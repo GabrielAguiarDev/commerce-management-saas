@@ -253,19 +253,53 @@ export interface TabBarSaleLayout {
   trailing: TabBarItem[];
 }
 
+export type TabBarSalePlacement = 'hidden' | 'inline' | 'raised';
+
 /**
- * Divide as tabs ao redor do Vender sem deslocar o botão do centro da tela.
+ * Forma visual de Vender conforme a quantidade de destinos da barra.
  *
- * O equilíbrio vem das duas metades de mesma largura na `TabBar`, não da mesma
- * quantidade de itens: com três tabs, a metade inicial recebe duas e a final
- * recebe uma. Sem Vender não há partição — os itens ocupam diretamente a
- * largura inteira, sem metades nem vão reservados.
+ * Três destinos + um botão elevado produz a assimetria 2+1. Nesse caso Vender
+ * vira o quarto item regular, antes de Mais. Com duas ou quatro tabs o vão é
+ * simétrico e o botão elevado continua sendo a composição mais clara.
+ */
+export function tabBarSalePlacement(
+  items: readonly TabBarItem[],
+  caps: Capabilities,
+): TabBarSalePlacement {
+  if (!isRouteAllowed(ROUTES.sell, caps)) return 'hidden';
+  return items.length === 3 ? 'inline' : 'raised';
+}
+
+/** Quatro itens lado a lado no caso intermediário: módulo, Vender e Mais. */
+export function tabBarInlineSaleItems(
+  items: readonly TabBarItem[],
+  caps: Capabilities,
+): TabBarItem[] | null {
+  if (tabBarSalePlacement(items, caps) !== 'inline') return null;
+
+  const moreIndex = items.findIndex((item) => item.route === ROUTES.more);
+  const insertAt = moreIndex >= 0 ? moreIndex : items.length;
+  const saleItem: TabBarItem = {
+    key: 'sell',
+    label: 'Vender',
+    route: ROUTES.sell,
+    icon: 'cart',
+  };
+
+  return [...items.slice(0, insertAt), saleItem, ...items.slice(insertAt)];
+}
+
+/**
+ * Divide as tabs ao redor do Vender ELEVADO sem deslocá-lo do centro da tela.
+ *
+ * Só os casos simétricos chegam aqui. Com três tabs, Vender vira item regular
+ * em `tabBarInlineSaleItems`; sem Vender não há partição nem vão reservado.
  */
 export function tabBarSaleLayout(
   items: readonly TabBarItem[],
   caps: Capabilities,
 ): TabBarSaleLayout | null {
-  if (!isRouteAllowed(ROUTES.sell, caps)) return null;
+  if (tabBarSalePlacement(items, caps) !== 'raised') return null;
 
   const splitIndex = Math.ceil(items.length / 2);
   return {
