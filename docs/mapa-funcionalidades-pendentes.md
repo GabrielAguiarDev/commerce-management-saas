@@ -78,6 +78,11 @@ Pendências que sobraram desta fase:
    e o RLS já rodam em Postgres real (`scripts/db-test.sh`); faltam testes das
    actions do portal e de corridas (dois caixas, retries simultâneos).
 
+7. **Suporte em tempo real.** Hoje a resposta só aparece recarregando a tela.
+   Fase 1: Supabase Realtime no app e nos dois portais. Fase 2: push
+   notification no app. Plano completo em
+   [`architecture/suporte-tempo-real.md`](architecture/suporte-tempo-real.md).
+
 ### Dependências externas
 
 7. Configurar `CONTACT_EMAIL`, o WhatsApp real e os dados jurídicos da empresa,
