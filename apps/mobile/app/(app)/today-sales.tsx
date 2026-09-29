@@ -3,11 +3,11 @@ import { router } from 'expo-router';
 import {
   Box,
   Card,
-  Divider,
+  CardSlice,
   EmptyState,
-  Gutter,
+  InfiniteListFooter,
+  ListScreen,
   SaleListRow,
-  Screen,
   Skeleton,
   Text,
 } from '@components';
@@ -40,91 +40,79 @@ export default function TodaySalesScreen() {
     if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
   }
 
+  /**
+   * VIRTUALIZADA (`ListScreen`): só as vendas visíveis existem, cada uma como
+   * fatia do cartão (`CardSlice`). O total do dia e os estados vêm antes.
+   */
   return (
-    <Screen
+    <ListScreen
       title={t.todaySales.title}
       subtitle={t.todaySales.subtitle}
-      onEndReached={loadMore}
-    >
-      <Gutter gap="s12">
-        <Card gap="s3" paddingVertical="s14">
-          <Text variant="label" color="textMuted">
-            {t.todaySales.totalLabel}
-          </Text>
-          {totals ? (
-            <>
-              <Text variant="cardValue">{formatBRL(totals.totalCents)}</Text>
-              <Text variant="hint" color="textMuted">
-                {t.sales.saleCount(totals.saleCount)}
-              </Text>
-              {totals.refundedCount > 0 ? (
-                <Text variant="hint" color="warning">
-                  {t.sales.refundedInDay(totals.refundedCount)}
-                </Text>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <Skeleton height={24} width="52%" marginTop="s4" />
-              <Skeleton height={12} width="34%" marginTop="s6" borderRadius="r6" />
-            </>
-          )}
-        </Card>
-
-        {isPending ? <TodaySalesSkeleton /> : null}
-
-        {!isPending && sales.length === 0 ? (
-          <EmptyState title={t.todaySales.empty.title} text={t.todaySales.empty.text} />
-        ) : null}
-
-        {sales.length > 0 ? (
-          <Card paddingVertical="s2" paddingHorizontal="s14">
-            {sales.map((sale, index) => (
-              <Box key={sale.id}>
-                {index > 0 ? <Divider /> : null}
-                <SaleListRow
-                  sale={sale}
-                  onPress={
-                    capabilities.hasSales
-                      ? () => router.push(saleDetailRoute(sale.id) as never)
-                      : undefined
-                  }
-                />
-              </Box>
-            ))}
-          </Card>
-        ) : null}
-
-        {isFetchingNextPage ? (
-          <Box gap="s10" marginTop="s2">
-            {[0, 1].map((item) => (
-              <Box
-                key={item}
-                flexDirection="row"
-                alignItems="center"
-                gap="s12"
-                paddingHorizontal="s14"
-              >
-                <Skeleton height={34} width={52} borderRadius="r11" />
-                <Box flex={1}>
-                  <Skeleton height={13} width="70%" borderRadius="r6" />
-                </Box>
-                <Skeleton height={14} width={64} borderRadius="r6" />
-              </Box>
-            ))}
-            <Text variant="hint" color="textMuted" textAlign="center">
-              {t.sales.loadingMore}
+      padded
+      header={
+        <>
+          <Card gap="s3" paddingVertical="s14">
+            <Text variant="label" color="textMuted">
+              {t.todaySales.totalLabel}
             </Text>
-          </Box>
-        ) : null}
+            {totals ? (
+              <>
+                <Text variant="cardValue">{formatBRL(totals.totalCents)}</Text>
+                <Text variant="hint" color="textMuted">
+                  {t.sales.saleCount(totals.saleCount)}
+                </Text>
+                {totals.refundedCount > 0 ? (
+                  <Text variant="hint" color="warning">
+                    {t.sales.refundedInDay(totals.refundedCount)}
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <Skeleton height={24} width="52%" marginTop="s4" />
+                <Skeleton height={12} width="34%" marginTop="s6" borderRadius="r6" />
+              </>
+            )}
+          </Card>
 
-        {!isPending && !hasNextPage && sales.length > 0 ? (
-          <Text variant="hint" color="textMuted" textAlign="center" marginTop="s4">
-            {t.todaySales.end}
-          </Text>
-        ) : null}
-      </Gutter>
-    </Screen>
+          {isPending ? <TodaySalesSkeleton /> : null}
+
+          {!isPending && sales.length === 0 ? (
+            <EmptyState title={t.todaySales.empty.title} text={t.todaySales.empty.text} />
+          ) : null}
+        </>
+      }
+      data={sales}
+      keyExtractor={(sale) => sale.id}
+      rowGap={0}
+      onEndReached={loadMore}
+      renderItem={({ item: sale, index }) => (
+        <CardSlice
+          first={index === 0}
+          last={index === sales.length - 1}
+          paddingHorizontal="s14"
+          paddingVertical="s2"
+        >
+          <SaleListRow
+            sale={sale}
+            onPress={
+              capabilities.hasSales
+                ? () => router.push(saleDetailRoute(sale.id) as never)
+                : undefined
+            }
+          />
+        </CardSlice>
+      )}
+      footer={
+        <Box marginTop="s12">
+          <InfiniteListFooter
+            loadingMore={isFetchingNextPage}
+            done={!isPending && !hasNextPage && sales.length > 0}
+            doneText={t.todaySales.end}
+          />
+        </Box>
+      }
+    />
   );
 }
 

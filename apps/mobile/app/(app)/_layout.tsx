@@ -236,6 +236,7 @@ function AppShell() {
               então empilha como as outras em vez de virar aba. */}
           <Stack.Screen name="sell" />
           <Stack.Screen name="stock" />
+          <Stack.Screen name="stock-history" />
           <Stack.Screen name="pending-sales" />
           <Stack.Screen name="today-sales" />
           {/* O histórico e o detalhe de uma venda. Como `support`, são uma

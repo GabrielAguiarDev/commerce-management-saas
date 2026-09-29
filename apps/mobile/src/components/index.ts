@@ -54,9 +54,11 @@ export { SaleListRow } from './patterns/SaleListRow';
 export { BottomSheet } from './patterns/BottomSheet';
 export { CodeInput } from './patterns/CodeInput';
 export { ConfirmHost } from './patterns/ConfirmHost';
-export { Screen, ESPACO_INFERIOR, ESPACO_INFERIOR_INTERNO } from './patterns/Screen';
+export { ListScreen, Screen, ESPACO_INFERIOR, ESPACO_INFERIOR_INTERNO } from './patterns/Screen';
 export { TabPane } from './patterns/TabPane';
+export { CardSlice } from './patterns/CardSlice';
 export { CrashScreen } from './patterns/CrashScreen';
+export { InfiniteListFooter } from './patterns/InfiniteListFooter';
 export { StartupError } from './patterns/StartupError';
 export { StartupLoading } from './patterns/StartupLoading';
 

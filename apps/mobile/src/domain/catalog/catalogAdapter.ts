@@ -1,5 +1,20 @@
-import type { ProductAPI, ProductCreateAPI, ProductUpdateAPI } from './catalogApiTypes';
-import type { NewProduct, Product, ProductUpdate, StockStatus } from './catalogTypes';
+import type {
+  CatalogFacetsAPI,
+  ProductAPI,
+  ProductCreateAPI,
+  ProductPageQueryAPI,
+  ProductUpdateAPI,
+} from './catalogApiTypes';
+import { specialCategoryFrom } from './catalogSelectors';
+import type {
+  CatalogFacets,
+  NewProduct,
+  Product,
+  ProductPageQuery,
+  ProductUpdate,
+  StockStatus,
+} from './catalogTypes';
+import { currentMessages } from '@i18n/active';
 
 /**
  * Regra de saúde do estoque, isolada porque três telas dependem dela:
@@ -84,5 +99,38 @@ export function toProductUpdatePayload(mudanca: ProductUpdate): ProductUpdateAPI
     price_cents: mudanca.priceCents,
     cost_cents: mudanca.costCents,
     stock_min: mudanca.minimumStock,
+  };
+}
+
+/**
+ * A consulta da tela → o filtro do banco.
+ *
+ * O chip "special" é o único que precisa de tradução: com o rótulo
+ * "Serviços" ele é `is_service`; com qualquer outro ("Bebidas"), é a categoria
+ * de mesmo nome — o mesmo critério que `filterCatalog` aplica no aparelho.
+ */
+export function toPageQueryAPI(
+  query: ProductPageQuery,
+  offset: number,
+  limit: number,
+): ProductPageQueryAPI {
+  const base = { search: query.search.trim(), offset, limit, category: null };
+  if (query.filter === 'special') {
+    const label = query.specialCategory;
+    if (!label) return { ...base, filter: 'all' };
+    if (label === currentMessages().catalog.services) return { ...base, filter: 'services' };
+    return { ...base, filter: 'category', category: label };
+  }
+  return { ...base, filter: query.filter };
+}
+
+export function toFacets(raw: CatalogFacetsAPI): CatalogFacets {
+  return {
+    total: raw.total,
+    specialCategory: specialCategoryFrom({
+      hasServices: raw.has_services,
+      categories: raw.categories,
+    }),
+    stock: { emDia: raw.stock.ok, low: raw.stock.low, out: raw.stock.out },
   };
 }

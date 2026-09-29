@@ -1020,8 +1020,8 @@ versão velha demais.
    aparece em mais de uma tela. Rótulo estático segue junto do JSX, onde é
    conferível linha a linha contra o protótipo. Extrair 100% é o passo natural
    quando entrar um segundo idioma.
-7. **`FlashList`** se algum catálogo passar de ~100 itens. Hoje as listas são
-   curtas e o `.map()` dentro do `ScrollView` do `Screen` é adequado.
+7. ~~**`FlashList`**~~ — feito em 29/09/2026, antes do primeiro cliente com
+   catálogo acima de 100 produtos. Ver § 18.
 8. **Validação com `zod` dentro dos adapters**, quando o backend real entrar:
    um campo que sumiu no servidor vira erro nomeado na fronteira, e não
    `undefined` explodindo três telas adiante.
@@ -1588,6 +1588,53 @@ porque o botão do diálogo repete o rótulo do botão que o abriu.
 **Anotado, não corrigido:** a sangria aceita valor maior que o saldo da
 gaveta (R$ 2.000,00 de uma gaveta com R$ 150,00 deixou "R$ -1.850,00"); e a
 diferença zero aparece como "+R$ 0,00".
+
+## 18. Listas infinitas — feitas em 29/09/2026
+
+Carregam 20 por vez e mais ao chegar perto do fim (`onEndReached` do
+`Screen` + `useInfiniteQuery`, pedindo um item a mais para saber se há
+próxima página):
+
+| Tela | Fonte |
+|---|---|
+| Vendas / Vendas de hoje | `sales` com `range` |
+| Produtos | `list_products_page` (busca sem acento, chips no banco) |
+| Estoque | `list_products_page` com filtro `stock`; contadores em `catalog_facets` |
+| Movimentações (`/stock-history`) | `stock_movements` com `range` |
+| Caixa — turnos anteriores | `cash_registers` com `range` |
+| Vender (grade) | catálogo inteiro no aparelho — virtualizada, não paginada |
+
+**A regra: nada abaixo de uma lista infinita.** O fim dela anda a cada página;
+um botão ou uma seção depois do último item só é alcançado percorrendo tudo.
+Ações vão para o topo (o "+ Cadastro rápido" de Produtos, o "+ Registrar
+movimentação" de Estoque) e conteúdo à parte vira tela própria (as
+movimentações saíram do fim de Estoque para `/stock-history`). O único filho
+permitido depois da lista é o `InfiniteListFooter` — "carregando mais" e
+"todos foram exibidos".
+
+Os totais de uma lista paginada vêm do banco, nunca da soma do que está na
+tela (`catalog_facets`, `useSalesTotals`): a tela só tem a primeira página.
+
+A tela Vender continua com o catálogo inteiro — ela vende offline.
+
+**Virtualização (`ListScreen`).** Toda lista longa usa `ListScreen`
+(`components/patterns/Screen.tsx`): a mesma casca do `Screen`, com uma
+`FlashList` (`@shopify/flash-list` 2.0.2, a versão do Expo 57 — JS puro, sem
+build nativo) como a rolagem da tela. Só os itens visíveis são desenhados e os
+que saem da tela são reciclados: o custo é o mesmo com 50 ou 5.000 itens. Com
+o `ScrollView` de antes, cada página carregada ficava montada.
+
+- O que vem antes da lista entra como `header` (busca, chips, contadores,
+  ações); depois dela, só `footer` (`InfiniteListFooter` ou estado vazio).
+- Uma lista virtualizada não vai dentro de outro `ScrollView` — por isso ela
+  É a rolagem da tela.
+- Grade: `numColumns` (Vender usa 2); o espaço entre colunas é da célula.
+- Cartão com várias linhas (histórico de vendas, vendas de hoje,
+  movimentações) vira fatias: `CardSlice`, uma por linha, com os cantos na
+  primeira e na última. Com cabeçalho de grupo (os dias do histórico), os
+  itens têm dois tipos (`flattenSaleDays` + `getItemType`).
+- Vender é virtualizada mas NÃO paginada: o catálogo inteiro fica no aparelho
+  para a venda offline e o leitor de código.
 
 ## 12. Referência de design
 

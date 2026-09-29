@@ -1,7 +1,7 @@
 import { logActivity } from '@domain/shared/activityLog';
 import { stockMovementFromDb } from '@domain/shared/dbEnums';
 import { supabase } from '@services/supabase';
-import { daysAgoISO, relativeLabel, todayDateOnly } from '@utils/dates';
+import { relativeLabel, todayDateOnly } from '@utils/dates';
 import { centsToReal } from '@utils/money';
 
 import type { StockMovementAPI, StockMovementCreateAPI } from './stockApiTypes';
@@ -13,10 +13,18 @@ import { currentMessages } from '@i18n/active';
  * ⚠️ ÚNICO ARQUIVO DESTE DOMÍNIO QUE FALA COM O SUPABASE.
  */
 
-/** 90 dias. A tela de Estoque é operacional, não é o livro do contador. */
-const HISTORY_DAYS = 90;
-
-export async function listStockMovements(tenantId: string): Promise<StockMovementAPI[]> {
+/**
+ * O histórico de movimentações — UMA PÁGINA, da mais recente para trás.
+ *
+ * Paginado, e não cortado em 90 dias como era: a tela do histórico carrega
+ * mais ao rolar, então quem precisa do passado chega nele sem a tela buscar
+ * tudo de uma vez.
+ */
+export async function listStockMovementsPage(
+  tenantId: string,
+  offset: number,
+  limit: number,
+): Promise<StockMovementAPI[]> {
   void tenantId; // O RLS já isola pelo tenant do usuário logado.
 
   const { data, error } = await supabase
@@ -24,8 +32,11 @@ export async function listStockMovements(tenantId: string): Promise<StockMovemen
     .select(
       'id, tenant_id, product_id, type, quantity, reason, created_at, products(name), profiles(full_name)',
     )
-    .gte('created_at', daysAgoISO(HISTORY_DAYS))
-    .order('created_at', { ascending: false });
+    // `id` desempata: duas movimentações no mesmo instante (a baixa de uma
+    // venda com vários itens) não podem trocar de página entre rolagens.
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) throw error;
 

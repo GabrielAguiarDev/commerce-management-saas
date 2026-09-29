@@ -70,6 +70,12 @@ export const ROUTES = {
   more: '/more',
   cash: '/cash',
   stock: '/stock',
+  /**
+   * O histórico de movimentações de estoque. Tela própria, e não o fim da tela
+   * Estoque: a lista de produtos lá carrega mais ao rolar, e o que ficasse
+   * abaixo dela só seria alcançado percorrendo o catálogo inteiro.
+   */
+  stockHistory: '/stock-history',
   costs: '/costs',
   reports: '/reports',
   settings: '/settings',
@@ -422,6 +428,7 @@ export function isRouteAllowed(route: string, caps: Capabilities): boolean {
     case ROUTES.cash:
       return caps.hasCash;
     case ROUTES.stock:
+    case ROUTES.stockHistory:
       return caps.hasStock;
     case ROUTES.costs:
       return caps.hasCosts;

@@ -183,3 +183,36 @@ export function groupSalesByDay(sales: readonly Sale[], today: Date = new Date()
 
   return [...days.values()];
 }
+
+/**
+ * Uma linha da lista VIRTUALIZADA do histórico: o cabeçalho de um dia, ou uma
+ * venda desse dia com a posição dela no cartão do dia (a primeira e a última
+ * desenham os cantos — ver `CardSlice`).
+ */
+export type SalesListItem =
+  | { kind: 'day'; key: string; day: SaleDay }
+  | { kind: 'sale'; key: string; sale: Sale; first: boolean; last: boolean };
+
+/**
+ * Os dias agrupados → a sequência plana que a `FlashList` desenha.
+ *
+ * O agrupamento continua sendo `groupSalesByDay`; isto só achata o resultado,
+ * porque uma lista reciclada não aceita "um cartão com N vendas dentro" como
+ * um item só.
+ */
+export function flattenSaleDays(days: readonly SaleDay[]): SalesListItem[] {
+  const items: SalesListItem[] = [];
+  for (const day of days) {
+    items.push({ kind: 'day', key: `day:${day.key}`, day });
+    day.sales.forEach((sale, index) => {
+      items.push({
+        kind: 'sale',
+        key: `sale:${sale.id}`,
+        sale,
+        first: index === 0,
+        last: index === day.sales.length - 1,
+      });
+    });
+  }
+  return items;
+}

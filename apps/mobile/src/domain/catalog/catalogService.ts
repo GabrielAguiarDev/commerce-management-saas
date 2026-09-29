@@ -1,8 +1,17 @@
-import { toProduct, toProductCreatePayload, toProductUpdatePayload } from './catalogAdapter';
+import {
+  toFacets,
+  toPageQueryAPI,
+  toProduct,
+  toProductCreatePayload,
+  toProductUpdatePayload,
+} from './catalogAdapter';
 import * as api from './catalogApi';
 import {
   CatalogError,
+  type CatalogFacets,
   type NewProduct,
+  type ProductPageQuery,
+  type ProductsPage,
   type Product,
   type ProductUpdate,
 } from './catalogTypes';
@@ -32,6 +41,37 @@ function isUniqueViolation(error: unknown): boolean {
 export async function listProducts(tenantId: string): Promise<Product[]> {
   try {
     return (await api.listProducts(tenantId)).map(toProduct);
+  } catch (e) {
+    return normalize(e);
+  }
+}
+
+/** Quantos produtos a lista pede por vez — o mesmo tamanho do histórico de vendas. */
+export const CATALOG_PAGE_SIZE = 20;
+
+/**
+ * Uma página da lista. Pede UM a mais que o tamanho da página só para saber se
+ * há mais — sem uma segunda consulta de contagem — e descarta o extra.
+ */
+export async function listProductsPage(
+  query: ProductPageQuery,
+  offset: number,
+  pageSize: number = CATALOG_PAGE_SIZE,
+): Promise<ProductsPage> {
+  try {
+    const raw = await api.listProductsPage(toPageQueryAPI(query, offset, pageSize + 1));
+    return {
+      products: raw.slice(0, pageSize).map(toProduct),
+      nextOffset: raw.length > pageSize ? offset + pageSize : null,
+    };
+  } catch (e) {
+    return normalize(e);
+  }
+}
+
+export async function getFacets(): Promise<CatalogFacets> {
+  try {
+    return toFacets(await api.fetchCatalogFacets());
   } catch (e) {
     return normalize(e);
   }

@@ -78,3 +78,42 @@ export class CatalogError extends Error {
     this.name = 'CatalogoError';
   }
 }
+
+/** Uma página da lista de Produtos ou de Estoque. `nextOffset: null` = acabou. */
+export interface ProductsPage {
+  products: Product[];
+  nextOffset: number | null;
+}
+
+/**
+ * O que a tela pede ao banco: a busca e o chip. `stock` é a lista da tela
+ * Estoque (só quem controla estoque).
+ */
+export interface ProductPageQuery {
+  search: string;
+  filter: CatalogFilter | 'stock';
+  /** O rótulo do 3º chip, quando `filter` é `special`. */
+  specialCategory: string | null;
+}
+
+/** Contadores da tela Estoque — sobre o catálogo inteiro. */
+export interface StockCounts {
+  emDia: number;
+  low: number;
+  out: number;
+}
+
+/** O catálogo inteiro em números — o que não cabe numa página. */
+export interface CatalogFacets {
+  total: number;
+  /** O rótulo do 3º chip ("Serviços", "Bebidas"…), ou `null`. */
+  specialCategory: string | null;
+  stock: StockCounts;
+}
+
+/** O que decide o rótulo do 3º chip. Ver `specialCategoryFrom`. */
+export interface CategoryFacets {
+  hasServices: boolean;
+  /** Mais comum primeiro. */
+  categories: { name: string; count: number }[];
+}

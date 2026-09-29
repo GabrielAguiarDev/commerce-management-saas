@@ -63,8 +63,27 @@ jobs:
 
       # A imagem tem ~1,7 GB; puxar num passo separado deixa claro no log
       # quanto do tempo foi download e quanto foi teste.
+      #
+      # O ECR Public tem cota de dados por IP para pulls anônimos, e os runners
+      # do GitHub dividem IPs com o mundo todo — às vezes a cota já chega
+      # estourada (`toomanyrequests: Data limit exceeded`). A Supabase publica
+      # a mesma tag no Docker Hub; se o ECR recusar, puxamos de lá e damos a
+      # ela o nome do ECR, que é o que o scripts/db-test.sh espera achar.
       - name: Baixar a imagem do Postgres
-        run: docker pull public.ecr.aws/supabase/postgres:17.6.1.155
+        env:
+          ECR_IMAGE: public.ecr.aws/supabase/postgres:17.6.1.155
+          HUB_IMAGE: supabase/postgres:17.6.1.155
+        run: |
+          if docker pull "$ECR_IMAGE"; then exit 0; fi
+          echo "::warning::ECR Public recusou o pull; usando o Docker Hub"
+          for attempt in 1 2 3; do
+            if docker pull "$HUB_IMAGE"; then
+              docker tag "$HUB_IMAGE" "$ECR_IMAGE"
+              exit 0
+            fi
+            sleep $((attempt * 15))
+          done
+          exit 1
 
       - name: Testes de banco
         run: scripts/db-test.sh

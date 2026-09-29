@@ -38,6 +38,13 @@ CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
 
 
 
+CREATE EXTENSION IF NOT EXISTS "unaccent" WITH SCHEMA "extensions";
+
+
+
+
+
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
@@ -275,6 +282,49 @@ $$;
 
 
 ALTER FUNCTION "public"."apply_stock_movement"("p_product_id" "uuid", "p_type" "text", "p_quantity" numeric, "p_reason" "text", "p_unit_cost" numeric, "p_sale_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."catalog_facets"() RETURNS "jsonb"
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  with active as (
+    select p.is_service, btrim(p.category) as category,
+           coalesce(p.tracks_stock, false) and not p.is_service as tracks,
+           coalesce(p.stock_quantity, 0) as qty,
+           coalesce(p.stock_min, 0) as min_qty
+      from public.products p
+     where p.is_active
+  )
+  select jsonb_build_object(
+    'total', (select count(*) from active),
+    'has_services', exists (select 1 from active where is_service),
+    'categories', coalesce(
+      (select jsonb_agg(jsonb_build_object('name', c.category, 'count', c.n) order by c.n desc, c.category)
+         from (select category, count(*) as n
+                 from active
+                where coalesce(category, '') <> ''
+                group by category) c),
+      '[]'::jsonb
+    ),
+    'stock', (
+      select jsonb_build_object(
+        'ok',  count(*) filter (where qty > 0 and not (min_qty > 0 and qty <= min_qty)),
+        'low', count(*) filter (where qty > 0 and min_qty > 0 and qty <= min_qty),
+        'out', count(*) filter (where qty <= 0)
+      )
+        from active
+       where tracks
+    )
+  );
+$$;
+
+
+ALTER FUNCTION "public"."catalog_facets"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."catalog_facets"() IS 'Números do catálogo ativo inteiro: total, serviços, categorias e contadores de saúde do estoque.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."close_cash_register"("p_register_id" "uuid", "p_counted_cash" numeric, "p_note" "text" DEFAULT NULL::"text") RETURNS "void"
@@ -1670,6 +1720,45 @@ $$;
 ALTER FUNCTION "public"."is_platform_admin"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."list_products_page"("p_search" "text" DEFAULT NULL::"text", "p_filter" "text" DEFAULT 'all'::"text", "p_category" "text" DEFAULT NULL::"text", "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20) RETURNS TABLE("id" "uuid", "tenant_id" "uuid", "name" "text", "barcode" "text", "price" numeric, "is_service" boolean, "is_favorite" boolean, "is_active" boolean, "stock_quantity" numeric, "stock_min" numeric, "tracks_stock" boolean, "category" "text", "created_at" timestamp with time zone)
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  with q as (
+    select public.search_key(nullif(btrim(p_search), '')) as key
+  )
+  select p.id, p.tenant_id, p.name, p.barcode, p.price, p.is_service, p.is_favorite,
+         p.is_active, p.stock_quantity, p.stock_min, p.tracks_stock, p.category, p.created_at
+    from public.products p, q
+   where p.is_active
+     -- `strpos` e não LIKE: um "%" ou "_" digitado na busca é texto, não curinga.
+     and (
+       q.key = ''
+       or strpos(public.search_key(p.name), q.key) > 0
+       or strpos(public.search_key(p.barcode), q.key) > 0
+     )
+     and case coalesce(p_filter, 'all')
+           when 'favorites' then p.is_favorite
+           when 'services'  then p.is_service
+           when 'category'  then btrim(p.category) = btrim(p_category)
+           when 'stock'     then coalesce(p.tracks_stock, false) and not p.is_service
+           else true
+         end
+   -- `id` desempata: com nomes iguais, a mesma linha não pode aparecer em duas
+   -- páginas nem sumir entre elas.
+   order by p.name, p.id
+  offset greatest(coalesce(p_offset, 0), 0)
+   limit least(greatest(coalesce(p_limit, 20), 1), 100);
+$$;
+
+
+ALTER FUNCTION "public"."list_products_page"("p_search" "text", "p_filter" "text", "p_category" "text", "p_offset" integer, "p_limit" integer) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."list_products_page"("p_search" "text", "p_filter" "text", "p_category" "text", "p_offset" integer, "p_limit" integer) IS 'Uma página do catálogo ativo, com busca sem acento (nome ou código) e o filtro do chip: all, favorites, services, category, stock.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."lock_tenant_cost_series"("p_tenant" "uuid") RETURNS "void"
     LANGUAGE "sql"
     SET "search_path" TO 'public', 'pg_temp'
@@ -2295,6 +2384,17 @@ ALTER FUNCTION "public"."save_manual_cost"("p_id" "uuid", "p_description" "text"
 
 COMMENT ON FUNCTION "public"."save_manual_cost"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date", "p_is_recurring" boolean) IS 'Cria/edita custo manual e sua serie mensal; edicao recorrente vale da competencia escolhida em diante.';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."search_key"("p_text" "text") RETURNS "text"
+    LANGUAGE "sql" IMMUTABLE PARALLEL SAFE
+    SET "search_path" TO ''
+    AS $$
+  select lower(extensions.unaccent('extensions.unaccent'::regdictionary, coalesce(p_text, '')));
+$$;
+
+
+ALTER FUNCTION "public"."search_key"("p_text" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."set_fiscal_credentials"("p_csc_id" "text" DEFAULT NULL::"text", "p_csc_token" "text" DEFAULT NULL::"text") RETURNS "void"
@@ -4481,6 +4581,18 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 REVOKE ALL ON FUNCTION "public"."admin_create_tenant"("p_user_id" "uuid", "p_name" "text", "p_segment" "text", "p_owner_name" "text", "p_plan" "text", "p_monthly_fee" numeric, "p_module_keys" "text"[], "p_city" "text", "p_phone" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."admin_create_tenant"("p_user_id" "uuid", "p_name" "text", "p_segment" "text", "p_owner_name" "text", "p_plan" "text", "p_monthly_fee" numeric, "p_module_keys" "text"[], "p_city" "text", "p_phone" "text") TO "service_role";
 
@@ -4501,6 +4613,12 @@ GRANT ALL ON FUNCTION "public"."admin_update_tenant"("p_tenant_id" "uuid", "p_pl
 REVOKE ALL ON FUNCTION "public"."apply_stock_movement"("p_product_id" "uuid", "p_type" "text", "p_quantity" numeric, "p_reason" "text", "p_unit_cost" numeric, "p_sale_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."apply_stock_movement"("p_product_id" "uuid", "p_type" "text", "p_quantity" numeric, "p_reason" "text", "p_unit_cost" numeric, "p_sale_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."apply_stock_movement"("p_product_id" "uuid", "p_type" "text", "p_quantity" numeric, "p_reason" "text", "p_unit_cost" numeric, "p_sale_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."catalog_facets"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."catalog_facets"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."catalog_facets"() TO "service_role";
 
 
 
@@ -4668,6 +4786,12 @@ GRANT ALL ON FUNCTION "public"."is_platform_admin"() TO "service_role";
 
 
 
+REVOKE ALL ON FUNCTION "public"."list_products_page"("p_search" "text", "p_filter" "text", "p_category" "text", "p_offset" integer, "p_limit" integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."list_products_page"("p_search" "text", "p_filter" "text", "p_category" "text", "p_offset" integer, "p_limit" integer) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."list_products_page"("p_search" "text", "p_filter" "text", "p_category" "text", "p_offset" integer, "p_limit" integer) TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."lock_tenant_cost_series"("p_tenant" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."lock_tenant_cost_series"("p_tenant" "uuid") TO "service_role";
 
@@ -4750,6 +4874,12 @@ GRANT ALL ON FUNCTION "public"."sale_stock_context_active"() TO "service_role";
 REVOKE ALL ON FUNCTION "public"."save_manual_cost"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date", "p_is_recurring" boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."save_manual_cost"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date", "p_is_recurring" boolean) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."save_manual_cost"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date", "p_is_recurring" boolean) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."search_key"("p_text" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."search_key"("p_text" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."search_key"("p_text" "text") TO "service_role";
 
 
 

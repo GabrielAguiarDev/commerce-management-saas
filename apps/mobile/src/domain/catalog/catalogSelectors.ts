@@ -1,6 +1,6 @@
 import { contains } from '@utils/text';
 
-import type { CatalogSortKey, Product } from './catalogTypes';
+import type { CatalogSortKey, CategoryFacets, Product } from './catalogTypes';
 import { currentMessages } from '@i18n/active';
 
 /**
@@ -55,8 +55,6 @@ export function filterCatalog(products: Product[], criterion: CatalogSortKey): P
  *  3. senão, `null` — e a tela simplesmente não mostra o terceiro chip.
  */
 export function specialCategoryOf(products: Product[]): string | null {
-  if (products.some((p) => p.ehServico)) return currentMessages().catalog.services;
-
   const count = new Map<string, number>();
   for (const p of products) {
     const category = p.category?.trim();
@@ -64,18 +62,26 @@ export function specialCategoryOf(products: Product[]): string | null {
     count.set(category, (count.get(category) ?? 0) + 1);
   }
 
-  if (count.size < 2) return null;
+  return specialCategoryFrom({
+    hasServices: products.some((p) => p.ehServico),
+    categories: [...count].map(([name, n]) => ({ name, count: n })),
+  });
+}
 
-  let best: string | null = null;
-  let bestCount = 1;
-  for (const [category, n] of count) {
-    if (n > bestCount) {
-      best = category;
-      bestCount = n;
-    }
-  }
+/**
+ * A MESMA regra de `specialCategoryOf`, a partir dos números que o banco
+ * devolve (`catalog_facets`) — é assim que a tela Produtos, que agora pagina,
+ * decide o chip sem ter o catálogo inteiro na mão. Empate entre categorias
+ * vai para a primeira em ordem alfabética, nos dois caminhos.
+ */
+export function specialCategoryFrom(facets: CategoryFacets): string | null {
+  if (facets.hasServices) return currentMessages().catalog.services;
+  if (facets.categories.length < 2) return null;
 
-  return best;
+  const [best] = [...facets.categories].sort(
+    (a, b) => b.count - a.count || a.name.localeCompare(b.name),
+  );
+  return best && best.count >= 2 ? best.name : null;
 }
 
 /**

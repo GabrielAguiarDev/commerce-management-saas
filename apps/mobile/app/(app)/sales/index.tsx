@@ -5,19 +5,21 @@ import {
   Box,
   Button,
   Card,
+  CardSlice,
   Chips,
-  Divider,
   EmptyState,
   Field,
   Gutter,
+  InfiniteListFooter,
+  ListScreen,
   SaleListRow,
-  Screen,
   Skeleton,
   Text,
   type ChipOption,
 } from '@components';
 import { saleDetailRoute } from '@domain/navigation/routes';
 import {
+  flattenSaleDays,
   groupSalesByDay,
   rangeForFilter,
   useSalesHistory,
@@ -121,148 +123,151 @@ export default function SalesHistoryScreen() {
     if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
   }
 
+  const items = flattenSaleDays(days);
+
+  /**
+   * VIRTUALIZADA (`ListScreen`): o histórico só cresce ao rolar, e com o
+   * `ScrollView` de antes cada página carregada ficava montada. Agora só as
+   * linhas visíveis existem — cabeçalhos de dia e vendas, estas como fatias do
+   * cartão do dia (`CardSlice`). Filtros e o resumo vêm antes, no cabeçalho.
+   */
   return (
-    <Screen title={t.sales.title} subtitle={t.sales.subtitle} onEndReached={loadMore}>
-      {/* FORA do `Gutter`: rola na horizontal e dá o próprio gutter por dentro. */}
-      <Chips options={options} selecionada={filter} onSelect={pickFilter} />
+    <ListScreen
+      title={t.sales.title}
+      subtitle={t.sales.subtitle}
+      header={
+        <>
+          {/* FORA do `Gutter`: rola na horizontal e dá o próprio gutter por dentro. */}
+          <Chips options={options} selecionada={filter} onSelect={pickFilter} />
 
-      <Gutter gap="s12">
-        {filter === 'custom' ? (
-          <Card gap="s10" paddingVertical="s14">
-            <Text variant="label" color="textMuted">
-              {t.sales.period.title}
-            </Text>
-
-            <Box flexDirection="row" gap="s10">
-              <Box flex={1}>
-                <Field
-                  value={fromText}
-                  onChangeText={(v) => setFromText(maskDayInput(v))}
-                  label={t.sales.period.from}
-                  placeholder={t.sales.datePlaceholder}
-                  keyboardType="number-pad"
-                  accessibilityLabel={t.sales.period.from}
-                  height={46}
-                />
-              </Box>
-              <Box flex={1}>
-                <Field
-                  value={toText}
-                  onChangeText={(v) => setToText(maskDayInput(v))}
-                  label={t.sales.period.to}
-                  placeholder={t.sales.datePlaceholder}
-                  keyboardType="number-pad"
-                  accessibilityLabel={t.sales.period.to}
-                  height={46}
-                />
-              </Box>
-            </Box>
-
-            <Button
-              title={t.sales.period.apply}
-              onPress={() => applyCustom()}
-              variant="secundario"
-              height={44}
-              radius={14}
-              textVariant="buttonXs"
-            />
-
-            {/* Uma data só preenchida NÃO é erro: é filtro aberto de um lado
-                ("de 01/08 em diante"). A linha diz o que está valendo em vez de
-                reclamar de um campo vazio. */}
-            <Text variant="hint" color="textMuted">
-              {customEmpty ? t.sales.period.hint : describeCustom(custom, t, language)}
-            </Text>
-          </Card>
-        ) : null}
-
-        {/* O RESUMO DO RECORTE — a resposta da pergunta que o filtro faz. */}
-        <Card gap="s3" paddingVertical="s14">
-          <Text variant="label" color="textMuted">
-            {filterLabel(filter, custom, t, language)}
-          </Text>
-
-          {totals ? (
-            <>
-              <Text variant="cardValue">{formatBRL(totals.totalCents)}</Text>
-              <Text variant="hint" color="textMuted">
-                {t.sales.saleCount(totals.saleCount)}
-              </Text>
-              {totals.refundedCount > 0 ? (
-                <Text variant="hint" color="warning">
-                  {t.sales.refundedInDay(totals.refundedCount)}
+          <Gutter gap="s12">
+            {filter === 'custom' ? (
+              <Card gap="s10" paddingVertical="s14">
+                <Text variant="label" color="textMuted">
+                  {t.sales.period.title}
                 </Text>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <Skeleton height={24} width="52%" marginTop="s4" />
-              <Skeleton height={12} width="34%" marginTop="s6" borderRadius="r6" />
-            </>
-          )}
-        </Card>
 
-        {isPending ? <HistorySkeleton /> : null}
+                <Box flexDirection="row" gap="s10">
+                  <Box flex={1}>
+                    <Field
+                      value={fromText}
+                      onChangeText={(v) => setFromText(maskDayInput(v))}
+                      label={t.sales.period.from}
+                      placeholder={t.sales.datePlaceholder}
+                      keyboardType="number-pad"
+                      accessibilityLabel={t.sales.period.from}
+                      height={46}
+                    />
+                  </Box>
+                  <Box flex={1}>
+                    <Field
+                      value={toText}
+                      onChangeText={(v) => setToText(maskDayInput(v))}
+                      label={t.sales.period.to}
+                      placeholder={t.sales.datePlaceholder}
+                      keyboardType="number-pad"
+                      accessibilityLabel={t.sales.period.to}
+                      height={46}
+                    />
+                  </Box>
+                </Box>
 
-        {!isPending && days.length === 0 ? (
-          <EmptyState
-            title={filter === 'all' ? t.sales.empty.title : t.sales.empty.filteredTitle}
-            text={filter === 'all' ? t.sales.empty.text : t.sales.empty.filteredText}
-          />
-        ) : null}
+                <Button
+                  title={t.sales.period.apply}
+                  onPress={() => applyCustom()}
+                  variant="secundario"
+                  height={44}
+                  radius={14}
+                  textVariant="buttonXs"
+                />
 
-        {days.map((day) => (
-          <Box key={day.key} gap="s8">
-            <Box flexDirection="row" alignItems="baseline" justifyContent="space-between" gap="s10">
-              <Text variant="sectionLabel">{dayTitle(day, t, language)}</Text>
+                {/* Uma data só preenchida NÃO é erro: é filtro aberto de um lado
+                    ("de 01/08 em diante"). A linha diz o que está valendo em vez de
+                    reclamar de um campo vazio. */}
+                <Text variant="hint" color="textMuted">
+                  {customEmpty ? t.sales.period.hint : describeCustom(custom, t, language)}
+                </Text>
+              </Card>
+            ) : null}
+
+            {/* O RESUMO DO RECORTE — a resposta da pergunta que o filtro faz. */}
+            <Card gap="s3" paddingVertical="s14">
+              <Text variant="label" color="textMuted">
+                {filterLabel(filter, custom, t, language)}
+              </Text>
+
+              {totals ? (
+                <>
+                  <Text variant="cardValue">{formatBRL(totals.totalCents)}</Text>
+                  <Text variant="hint" color="textMuted">
+                    {t.sales.saleCount(totals.saleCount)}
+                  </Text>
+                  {totals.refundedCount > 0 ? (
+                    <Text variant="hint" color="warning">
+                      {t.sales.refundedInDay(totals.refundedCount)}
+                    </Text>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <Skeleton height={24} width="52%" marginTop="s4" />
+                  <Skeleton height={12} width="34%" marginTop="s6" borderRadius="r6" />
+                </>
+              )}
+            </Card>
+
+            {isPending ? <HistorySkeleton /> : null}
+
+            {!isPending && days.length === 0 ? (
+              <EmptyState
+                title={filter === 'all' ? t.sales.empty.title : t.sales.empty.filteredTitle}
+                text={filter === 'all' ? t.sales.empty.text : t.sales.empty.filteredText}
+              />
+            ) : null}
+          </Gutter>
+        </>
+      }
+      data={items}
+      keyExtractor={(item) => item.key}
+      getItemType={(item) => item.kind}
+      rowGap={0}
+      onEndReached={loadMore}
+      renderItem={({ item, index }) => (
+        <Gutter>
+          {item.kind === 'day' ? (
+            <Box
+              flexDirection="row"
+              alignItems="baseline"
+              justifyContent="space-between"
+              gap="s10"
+              marginTop={index === 0 ? undefined : 's12'}
+              marginBottom="s8"
+            >
+              <Text variant="sectionLabel">{dayTitle(item.day, t, language)}</Text>
               <Text variant="hint" color="textMuted">
-                {t.sales.dayTotal(day.saleCount, formatBRL(day.totalCents))}
+                {t.sales.dayTotal(item.day.saleCount, formatBRL(item.day.totalCents))}
               </Text>
             </Box>
-
-            <Card paddingVertical="s2" paddingHorizontal="s14">
-              {day.sales.map((sale, index) => (
-                <Box key={sale.id}>
-                  {index > 0 ? <Divider /> : null}
-                  <SaleListRow
-                    sale={sale}
-                    onPress={() => router.push(saleDetailRoute(sale.id) as never)}
-                  />
-                </Box>
-              ))}
-            </Card>
-          </Box>
-        ))}
-
-        {/* O rodapé da rolagem infinita: esqueleto no lugar exato das vendas
-            que estão chegando. Um spinner solto diria "espere" sem dizer o
-            quê; estas duas linhas cinzas dizem "vêm mais vendas aqui". */}
-        {isFetchingNextPage ? (
-          <Box gap="s10" marginTop="s2">
-            {[0, 1].map((i) => (
-              <Box key={i} flexDirection="row" alignItems="center" gap="s12" paddingHorizontal="s14">
-                <Skeleton height={34} width={52} borderRadius="r11" />
-                <Box flex={1}>
-                  <Skeleton height={13} width="70%" borderRadius="r6" />
-                </Box>
-                <Skeleton height={14} width={64} borderRadius="r6" />
-              </Box>
-            ))}
-            <Text variant="hint" color="textMuted" textAlign="center">
-              {t.sales.loadingMore}
-            </Text>
-          </Box>
-        ) : null}
-
-        {/* O fim da lista é dito em voz alta. Sem isto, quem rolou até embaixo
-            não sabe se acabou ou se o app parou de carregar. */}
-        {!isPending && !hasNextPage && days.length > 0 ? (
-          <Text variant="hint" color="textMuted" textAlign="center" marginTop="s4">
-            {t.sales.end}
-          </Text>
-        ) : null}
-      </Gutter>
-    </Screen>
+          ) : (
+            <CardSlice first={item.first} last={item.last} paddingHorizontal="s14" paddingVertical="s2">
+              <SaleListRow
+                sale={item.sale}
+                onPress={() => router.push(saleDetailRoute(item.sale.id) as never)}
+              />
+            </CardSlice>
+          )}
+        </Gutter>
+      )}
+      footer={
+        <Gutter marginTop="s12">
+          <InfiniteListFooter
+            loadingMore={isFetchingNextPage}
+            done={!isPending && !hasNextPage && days.length > 0}
+            doneText={t.sales.end}
+          />
+        </Gutter>
+      }
+    />
   );
 }
 

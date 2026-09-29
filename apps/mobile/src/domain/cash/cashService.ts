@@ -38,9 +38,30 @@ export async function getOpenShift(tenantId: string): Promise<OpenShift | null> 
   }
 }
 
-export async function getHistory(tenantId: string): Promise<ClosedShift[]> {
+/** Quantos turnos o histórico pede por vez. */
+export const CASH_HISTORY_PAGE_SIZE = 20;
+
+export interface ClosedShiftsPage {
+  shifts: ClosedShift[];
+  /** `null` = acabou. */
+  nextOffset: number | null;
+}
+
+/**
+ * Uma página do histórico. Pede um a mais só para saber se há mais — sem
+ * consulta de contagem — e descarta o extra.
+ */
+export async function getHistoryPage(
+  tenantId: string,
+  offset: number,
+  pageSize: number = CASH_HISTORY_PAGE_SIZE,
+): Promise<ClosedShiftsPage> {
   try {
-    return (await api.listHistory(tenantId)).map(toClosedShift);
+    const raw = await api.listHistoryPage(tenantId, offset, pageSize + 1);
+    return {
+      shifts: raw.slice(0, pageSize).map(toClosedShift),
+      nextOffset: raw.length > pageSize ? offset + pageSize : null,
+    };
   } catch (e) {
     return normalize(e);
   }

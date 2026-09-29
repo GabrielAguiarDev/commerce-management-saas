@@ -7,21 +7,18 @@ import {
   Chips,
   Gutter,
   Icon,
+  InfiniteListFooter,
+  ListScreen,
   Pill,
-  Screen,
   Skeleton,
   Text,
   Touchable,
 } from '@components';
 import type { ChipOption } from '@components';
-import {
-  specialCategoryOf,
-  filterCatalog,
-  useToggleFavorite,
-  useCatalog,
-} from '@domain/catalog';
+import { useCatalogFacets, useProductsPage, useToggleFavorite } from '@domain/catalog';
 import type { CatalogFilter, Product, StockStatus } from '@domain/catalog';
 import { useCapabilities } from '@domain/tenant';
+import { useDebouncedValue } from '@hooks/useDebouncedValue';
 import type { Messages } from '@i18n';
 import { useTranslation } from '@i18n';
 import { useUIStore } from '@store/uiStore';
@@ -51,7 +48,6 @@ function badgeLabel(product: Product, t: Messages): string {
 export default function ProductsScreen() {
   const t = useTranslation();
   const { capabilities } = useCapabilities();
-  const { data: products = [], isPending } = useCatalog();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const openSheet = useUIStore((s) => s.openSheet);
 
@@ -59,9 +55,10 @@ export default function ProductsScreen() {
   const [filter, setFilter] = useState<CatalogFilter>('all');
 
   // O rótulo do 3º chip muda com o ramo: "Serviços" no petshop, "Bebidas" na
-  // barraca. Sai do PRÓPRIO CATÁLOGO (função pura, testada), não de um `if` de
-  // perfil na tela nem de uma tabela de tenant → rótulo no backend.
-  const specialCategory = specialCategoryOf(products);
+  // barraca. Sai dos NÚMEROS DO CATÁLOGO INTEIRO (`catalog_facets`), já que a
+  // lista agora chega em páginas e nenhuma página sozinha sabe responder.
+  const { data: facets } = useCatalogFacets();
+  const specialCategory = facets?.specialCategory ?? null;
 
   const options: ChipOption<CatalogFilter>[] = [
     { key: 'all', label: t.products.filters.all },
@@ -69,10 +66,25 @@ export default function ProductsScreen() {
     ...(specialCategory ? [{ key: 'special' as const, label: specialCategory }] : []),
   ];
 
-  const list = filterCatalog(products, { search, filter, specialCategory });
+  // A busca vai ao banco: espera a pessoa parar de digitar.
+  const debouncedSearch = useDebouncedValue(search);
+  const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } = useProductsPage({
+    search: debouncedSearch,
+    filter,
+    specialCategory,
+  });
+  const list = data?.pages.flatMap((page) => page.products) ?? [];
 
-  return (
-    <Screen title={t.products.title} subtitle={t.products.count(products.length)}>
+  /**
+   * `onEndReached` do `Screen` chega várias vezes enquanto o dedo está na
+   * faixa final; sem as duas guardas, a mesma página seria pedida em dobro.
+   */
+  const loadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  };
+
+  const header = (
+    <>
       <Gutter>
         <Field
           value={search}
@@ -84,6 +96,19 @@ export default function ProductsScreen() {
           returnKeyType="search"
           prefix={<Icon name="search" size={17} color="textMuted" />}
         />
+        {/* NO TOPO, e não no fim: a lista carrega mais ao rolar, então o fim
+            dela vai embora a cada página — um botão lá embaixo exigiria
+            percorrer o catálogo inteiro para cadastrar um produto. */}
+        <Box marginTop="s10">
+          <Button
+            title={t.products.quickAdd}
+            onPress={() => openSheet({ type: 'product' })}
+            variant="tracejado"
+            height={48}
+            radius={15}
+            textVariant="buttonSm"
+          />
+        </Box>
       </Gutter>
 
       {/* FORA do `Gutter`: a fileira de filtros rola na horizontal e dá o
@@ -91,17 +116,35 @@ export default function ProductsScreen() {
           aparelho em vez de sumir 16px antes. */}
       <Chips options={options} selecionada={filter} onSelect={setFilter} />
 
-      <Gutter gap="s12">
-        {/* Busca e filtros ficam de pé e utilizáveis enquanto o catálogo vem: o
-            que carrega é a LISTA, não a tela. Três linhas fantasmas dão à página
-            a altura que ela terá, para o conteúdo não pular quando chegar. */}
-        {isPending
-          ? [0, 1, 2].map((i) => <Skeleton key={i} height={96} borderRadius="r18" />)
-          : null}
+      {/* Busca e filtros ficam de pé e utilizáveis enquanto a lista vem: o que
+          carrega é a LISTA, não a tela. Três linhas fantasmas dão à página a
+          altura que ela terá, para o conteúdo não pular quando chegar. */}
+      {isPending ? (
+        <Gutter gap="s12">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} height={96} borderRadius="r18" />
+          ))}
+        </Gutter>
+      ) : null}
+    </>
+  );
 
-        {list.map((product) => (
+  /**
+   * A lista é VIRTUALIZADA (`ListScreen`): só os cartões visíveis existem. Sem
+   * `padded` porque os chips precisam alcançar a borda do aparelho — os
+   * cartões levam o gutter por dentro.
+   */
+  return (
+    <ListScreen
+      title={t.products.title}
+      subtitle={facets ? t.products.count(facets.total) : ' '}
+      header={header}
+      data={list}
+      keyExtractor={(product) => product.id}
+      onEndReached={loadMore}
+      renderItem={({ item: product }) => (
+        <Gutter>
           <Box
-            key={product.id}
             backgroundColor="surface"
             borderColor="line"
             borderWidth={1}
@@ -164,20 +207,24 @@ export default function ProductsScreen() {
               </Text>
             </Touchable>
           </Box>
-        ))}
-
-        <Box marginTop="s2">
-          <Button
-            title={t.products.quickAdd}
-            onPress={() => openSheet({ type: 'product' })}
-            variant="tracejado"
-            height={52}
-            radius={18}
-            textVariant="buttonSm"
+        </Gutter>
+      )}
+      footer={
+        <Gutter>
+          {!isPending && list.length === 0 ? (
+            <Text variant="captionSm" color="textMuted" textAlign="center" marginTop="s6">
+              {t.products.noResults}
+            </Text>
+          ) : null}
+          <InfiniteListFooter
+            loadingMore={isFetchingNextPage}
+            done={!isPending && !hasNextPage && list.length > 0}
+            doneText={t.products.allShown}
+            rowHeight={96}
           />
-        </Box>
-      </Gutter>
-    </Screen>
+        </Gutter>
+      }
+    />
   );
 }
 

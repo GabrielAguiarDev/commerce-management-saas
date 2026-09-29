@@ -1,5 +1,6 @@
+import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -113,69 +114,12 @@ export function Screen({
 }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
-  const t = useTranslation();
-  const user = useSessionStore((s) => s.user);
-  const onTab = useOnTabScreen();
   const refreshControl = useRefreshControl();
-
-  // `router.canGoBack()` é a fonte da verdade da pilha: replicar isso num
-  // estado próprio (como a `pilha` do protótipo) desincroniza na primeira vez
-  // que alguém navega por deep link.
-  //
-  // Nas abas ele é `false` (o `backBehavior="none"` do navegador de abas
-  // garante isso), nas telas internas é `true` — então o botão voltar aparece
-  // exatamente onde a tab bar não está, sem nenhuma lista de rotas.
-  const canGoBack = showBack ?? router.canGoBack();
-
-  const bottomSpace = onTab ? ESPACO_INFERIOR : ESPACO_INFERIOR_INTERNO + insets.bottom;
+  const bottomSpace = useBottomSpace();
 
   return (
     <Box flex={1} backgroundColor="bg" style={{ paddingTop: insets.top }}>
-      <Box
-        flexDirection="row"
-        alignItems="center"
-        gap="s12"
-        // O header é conteúdo estático e usa o MESMO gutter do resto. Era
-        // `s18` — 2px a mais que o conteúdo abaixo dele, o que colocava o
-        // título fora do prumo do primeiro cartão.
-        //
-        // ⚠️ Estes dois paddings verticais (e os `lineHeight` do título e do
-        // subtítulo) estão espelhados em `headerGeometry.ALTURA_HEADER`, que é
-        // por onde o toast sabe onde o header acaba. Mexeu aqui, mexe lá.
-        paddingHorizontal="screen"
-        paddingTop="s2"
-        paddingBottom="s12"
-      >
-        {canGoBack ? (
-          <Touchable
-            accessibilityLabel={t.common.back}
-            onPress={() => router.back()}
-            width={38}
-            height={38}
-            borderRadius="r12"
-            borderWidth={1}
-            borderColor="line"
-            backgroundColor="surface"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Icon name="back" size={17} />
-          </Touchable>
-        ) : null}
-
-        <Box flex={1} minWidth={0}>
-          <Text variant="screenTitle" accessibilityRole="header">
-            {title}
-          </Text>
-          <Text variant="caption" color="textMuted" marginTop="s3">
-            {subtitle}
-          </Text>
-        </Box>
-
-        <Avatar initials={user?.initials ?? '?'} />
-      </Box>
-
-      <ConnectionBanner />
+      <ScreenHeader title={title} subtitle={subtitle} showBack={showBack} />
 
       {noScroll ? (
         // SEM rolagem, o padding fica no próprio Box: não há
@@ -221,6 +165,209 @@ export function Screen({
           <Box gap="s12">{children}</Box>
         </ScrollView>
       )}
+    </Box>
+  );
+}
+
+/**
+ * O cabeçalho de toda tela — título, subtítulo, voltar e avatar — mais o aviso
+ * de conexão. Compartilhado por `Screen` e `ListScreen`.
+ */
+function ScreenHeader({
+  title,
+  subtitle,
+  showBack,
+}: {
+  title: string;
+  subtitle: string;
+  showBack?: boolean;
+}) {
+  const t = useTranslation();
+  const user = useSessionStore((s) => s.user);
+
+  // `router.canGoBack()` é a fonte da verdade da pilha: replicar isso num
+  // estado próprio (como a `pilha` do protótipo) desincroniza na primeira vez
+  // que alguém navega por deep link.
+  //
+  // Nas abas ele é `false` (o `backBehavior="none"` do navegador de abas
+  // garante isso), nas telas internas é `true` — então o botão voltar aparece
+  // exatamente onde a tab bar não está, sem nenhuma lista de rotas.
+  const canGoBack = showBack ?? router.canGoBack();
+
+  return (
+    <>
+      <Box
+        flexDirection="row"
+        alignItems="center"
+        gap="s12"
+        // O header é conteúdo estático e usa o MESMO gutter do resto. Era
+        // `s18` — 2px a mais que o conteúdo abaixo dele, o que colocava o
+        // título fora do prumo do primeiro cartão.
+        //
+        // ⚠️ Estes dois paddings verticais (e os `lineHeight` do título e do
+        // subtítulo) estão espelhados em `headerGeometry.ALTURA_HEADER`, que é
+        // por onde o toast sabe onde o header acaba. Mexeu aqui, mexe lá.
+        paddingHorizontal="screen"
+        paddingTop="s2"
+        paddingBottom="s12"
+      >
+        {canGoBack ? (
+          <Touchable
+            accessibilityLabel={t.common.back}
+            onPress={() => router.back()}
+            width={38}
+            height={38}
+            borderRadius="r12"
+            borderWidth={1}
+            borderColor="line"
+            backgroundColor="surface"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Icon name="back" size={17} />
+          </Touchable>
+        ) : null}
+
+        <Box flex={1} minWidth={0}>
+          <Text variant="screenTitle" accessibilityRole="header">
+            {title}
+          </Text>
+          <Text variant="caption" color="textMuted" marginTop="s3">
+            {subtitle}
+          </Text>
+        </Box>
+
+        <Avatar initials={user?.initials ?? '?'} />
+      </Box>
+
+      <ConnectionBanner />
+    </>
+  );
+}
+
+/** O espaço reservado no fim da rolagem — muda conforme haja tab bar embaixo. */
+function useBottomSpace(): number {
+  const insets = useSafeAreaInsets();
+  const onTab = useOnTabScreen();
+  return onTab ? ESPACO_INFERIOR : ESPACO_INFERIOR_INTERNO + insets.bottom;
+}
+
+interface ListScreenProps<T> {
+  title: string;
+  subtitle: string;
+  showBack?: boolean;
+  /** Gutter lateral no conteúdo inteiro (cabeçalho e itens). */
+  padded?: boolean;
+  /**
+   * O que vem ANTES dos itens: busca, chips, contadores, ações. Rola junto com
+   * a lista. Nada vai DEPOIS dos itens além de `footer` — ver a regra em
+   * DEVELOPMENT.md § 18.
+   */
+  header?: ReactElement | null;
+  data: readonly T[];
+  renderItem: ListRenderItem<T>;
+  keyExtractor: (item: T, index: number) => string;
+  /** Grade: quantas colunas. O espaço entre elas é `columnGap`. */
+  numColumns?: number;
+  getItemType?: (item: T, index: number) => string | number | undefined;
+  /** Só o `InfiniteListFooter` (carregando / fim) ou um estado vazio. */
+  footer?: ReactElement | null;
+  onEndReached?: () => void;
+  refreshable?: boolean;
+  /** Espaço vertical entre itens (px). Padrão: o `s12` do `Screen`. */
+  rowGap?: number;
+  /** Espaço entre colunas, em grade (px). */
+  columnGap?: number;
+}
+
+/**
+ * A TELA DE LISTA — a mesma casca do `Screen` (cabeçalho, voltar, aviso de
+ * conexão, puxar para atualizar, folga da tab bar), com uma lista VIRTUALIZADA
+ * (`FlashList`) como a própria rolagem.
+ *
+ * Por que não um `.map()` dentro do `Screen`: o `ScrollView` monta TODOS os
+ * itens, e com a rolagem infinita eles só aumentam — um catálogo de 500
+ * produtos eram 500 cartões vivos. A `FlashList` desenha só o que está na tela
+ * (e um pouco além) e RECICLA os cartões que saem: o custo fica constante,
+ * seja o catálogo de 50 ou de 5.000.
+ *
+ * Uma lista virtualizada não funciona dentro de outro `ScrollView` (perde a
+ * virtualização e o React Native avisa). Por isso ela É a rolagem da tela, e o
+ * que vinha antes dela entra como `header`.
+ */
+export function ListScreen<T>({
+  title,
+  subtitle,
+  showBack,
+  padded = false,
+  header,
+  data,
+  renderItem,
+  keyExtractor,
+  numColumns = 1,
+  getItemType,
+  footer,
+  onEndReached,
+  refreshable = true,
+  rowGap,
+  columnGap,
+}: ListScreenProps<T>) {
+  const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
+  const refreshControl = useRefreshControl();
+  const bottomSpace = useBottomSpace();
+  const gapY = rowGap ?? theme.spacing.s12;
+  const gapX = columnGap ?? theme.spacing.s10;
+
+  /**
+   * Na grade, o espaço entre colunas é metade de cada lado da borda comum: a
+   * célula da esquerda leva a metade à direita, a da direita à esquerda. Assim
+   * as duas colunas ficam com a mesma largura, sem margem sobrando na borda.
+   */
+  const renderCell: ListRenderItem<T> = (info) => {
+    if (numColumns === 1) return renderItem(info);
+    const column = info.index % numColumns;
+    return (
+      <Box
+        style={{
+          paddingLeft: column === 0 ? 0 : gapX / 2,
+          paddingRight: column === numColumns - 1 ? 0 : gapX / 2,
+          paddingBottom: gapY,
+        }}
+      >
+        {renderItem(info)}
+      </Box>
+    );
+  };
+
+  return (
+    <Box flex={1} backgroundColor="bg" style={{ paddingTop: insets.top }}>
+      <ScreenHeader title={title} subtitle={subtitle} showBack={showBack} />
+
+      <FlashList
+        data={data}
+        renderItem={renderCell}
+        keyExtractor={keyExtractor}
+        numColumns={numColumns}
+        getItemType={getItemType}
+        ListHeaderComponent={header ? <Box gap="s12" marginBottom="s12">{header}</Box> : null}
+        ListFooterComponent={footer ?? null}
+        // Em coluna única o espaço entre itens é o separador; na grade ele já
+        // está na célula (`renderCell`).
+        ItemSeparatorComponent={numColumns === 1 ? () => <Box style={{ height: gapY }} /> : null}
+        contentContainerStyle={{
+          paddingTop: theme.spacing.s2,
+          paddingBottom: bottomSpace,
+          paddingHorizontal: padded ? theme.spacing.screen : 0,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        refreshControl={refreshable ? refreshControl : undefined}
+        onEndReached={onEndReached}
+        // Pede a próxima página quando falta uma tela inteira para o fim: ela
+        // chega antes de o dedo alcançar o último item.
+        onEndReachedThreshold={1}
+      />
     </Box>
   );
 }

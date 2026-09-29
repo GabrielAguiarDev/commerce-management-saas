@@ -351,6 +351,11 @@ describe('rotaPermitida', () => {
     expect(isRouteAllowed(ROUTES.stock, COMPLETO)).toBe(true);
   });
 
+  it('o histórico de movimentações segue o módulo de estoque', () => {
+    expect(isRouteAllowed(ROUTES.stockHistory, ESSENTIAL)).toBe(false);
+    expect(isRouteAllowed(ROUTES.stockHistory, COMPLETO)).toBe(true);
+  });
+
   it('rotas base passam sempre', () => {
     expect(isRouteAllowed(ROUTES.home, ESSENTIAL)).toBe(true);
     expect(isRouteAllowed(ROUTES.todaySales, ESSENTIAL)).toBe(true);

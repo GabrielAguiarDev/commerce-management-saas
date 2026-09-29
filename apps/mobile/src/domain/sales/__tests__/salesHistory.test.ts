@@ -1,5 +1,5 @@
-import { groupSalesByDay, rangeForFilter, rangeKey, saleDayKey } from '../salesHistory';
-import type { Sale } from '../salesTypes';
+import { flattenSaleDays, groupSalesByDay, rangeForFilter, rangeKey, saleDayKey } from '../salesHistory';
+import type { Sale, SaleDay } from '../salesTypes';
 
 /** Meio-dia local: longe das duas bordas do dia em qualquer fuso do Brasil. */
 function local(year: number, month: number, day: number, hour = 12, minute = 0): string {
@@ -168,5 +168,24 @@ describe('rangeKey', () => {
     const a = rangeForFilter('all');
     const b = rangeForFilter('all');
     expect(rangeKey(a)).toBe(rangeKey(b));
+  });
+});
+
+describe('flattenSaleDays', () => {
+  it('cabeçalho de cada dia seguido das vendas, marcando a primeira e a última do cartão', () => {
+    const sale = (id: string) => ({ id }) as unknown as Sale;
+    const day = (key: string, ids: string[]) =>
+      ({ key, iso: '', relative: null, sales: ids.map(sale), totalCents: 0, saleCount: 0, refundedCount: 0 }) as SaleDay;
+
+    const items = flattenSaleDays([day('2026-09-28', ['a', 'b', 'c']), day('2026-09-27', ['d'])]);
+
+    expect(items.map((i) => (i.kind === 'day' ? i.key : `${i.key}:${i.first ? 'F' : ''}${i.last ? 'L' : ''}`))).toEqual([
+      'day:2026-09-28',
+      'sale:a:F',
+      'sale:b:',
+      'sale:c:L',
+      'day:2026-09-27',
+      'sale:d:FL',
+    ]);
   });
 });

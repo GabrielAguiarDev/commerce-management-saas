@@ -11,9 +11,27 @@ function normalize(error: unknown): never {
   throw new StockError('network', error instanceof Error ? error.message : undefined);
 }
 
-export async function listStockMovements(tenantId: string): Promise<StockMovement[]> {
+/** Quantas movimentações o histórico pede por vez. */
+export const MOVEMENTS_PAGE_SIZE = 20;
+
+export interface StockMovementsPage {
+  movements: StockMovement[];
+  /** `null` = acabou. */
+  nextOffset: number | null;
+}
+
+/** Uma página do histórico. Pede um a mais só para saber se há próxima. */
+export async function listStockMovementsPage(
+  tenantId: string,
+  offset: number,
+  pageSize: number = MOVEMENTS_PAGE_SIZE,
+): Promise<StockMovementsPage> {
   try {
-    return (await api.listStockMovements(tenantId)).map(toStockMovement);
+    const raw = await api.listStockMovementsPage(tenantId, offset, pageSize + 1);
+    return {
+      movements: raw.slice(0, pageSize).map(toStockMovement),
+      nextOffset: raw.length > pageSize ? offset + pageSize : null,
+    };
   } catch (e) {
     return normalize(e);
   }

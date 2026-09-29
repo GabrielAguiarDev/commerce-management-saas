@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useSessionStore } from '@store/sessionStore';
 
@@ -24,12 +24,18 @@ export function useOpenShift() {
   });
 }
 
+/**
+ * O histórico de turnos, uma página de cada vez — mais ao rolar. O cursor é o
+ * offset que o service devolve: quem sabe se acabou é quem leu o banco.
+ */
 export function useCashHistory() {
   const tenantId = useSessionStore((s) => s.tenantId);
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: caixaKeys.history(tenantId ?? 'sem-tenant'),
-    queryFn: () => service.getHistory(tenantId as string),
+    queryFn: ({ pageParam }) => service.getHistoryPage(tenantId as string, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last) => last.nextOffset,
     enabled: Boolean(tenantId),
     staleTime: 5 * 60 * 1000,
   });

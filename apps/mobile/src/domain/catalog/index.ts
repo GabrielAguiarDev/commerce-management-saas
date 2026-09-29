@@ -1,5 +1,8 @@
 export type {
+  CatalogFacets,
   CatalogSortKey,
+  ProductPageQuery,
+  ProductsPage,
   ProductStock,
   CatalogFilter,
   NewProduct,
@@ -17,14 +20,17 @@ export {
   productsInStock,
   lowStockProducts,
   specialCategoryOf,
+  specialCategoryFrom,
   stockSummary,
   type StockSummary,
 } from './catalogSelectors';
-export { validateNewProduct, validateProductUpdate } from './catalogService';
+export { CATALOG_PAGE_SIZE, validateNewProduct, validateProductUpdate } from './catalogService';
 export {
   catalogoKeys,
   useToggleFavorite,
   useCreateProduct,
   useUpdateProduct,
   useCatalog,
+  useCatalogFacets,
+  useProductsPage,
 } from './useCases/useCatalog';

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { catalogoKeys } from '@domain/catalog/useCases/useCatalog';
 import { costsKeys } from '@domain/costs/useCases/useCosts';
@@ -11,12 +11,19 @@ export const stockKeys = {
   stockMovements: (tenantId: string) => [...stockKeys.all, 'movimentacoes', tenantId] as const,
 };
 
+/**
+ * O histórico de movimentações, uma página de cada vez — mais ao rolar. Mora
+ * na própria tela (`/stock-history`): no fim da lista infinita de Estoque
+ * ninguém chegaria nele.
+ */
 export function useStockMovements() {
   const tenantId = useSessionStore((s) => s.tenantId);
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: stockKeys.stockMovements(tenantId ?? 'sem-tenant'),
-    queryFn: () => service.listStockMovements(tenantId as string),
+    queryFn: ({ pageParam }) => service.listStockMovementsPage(tenantId as string, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (last) => last.nextOffset,
     enabled: Boolean(tenantId),
     staleTime: 60 * 1000,
   });

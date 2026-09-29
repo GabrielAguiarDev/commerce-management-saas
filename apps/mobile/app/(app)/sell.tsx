@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { BarcodeScanner, Box, Field, EmptyState, Icon, Screen, Text, Touchable } from '@components';
+import { BarcodeScanner, Box, Field, EmptyState, Icon, ListScreen, Text, Touchable } from '@components';
 import { searchHasNoResults, saleGrid, useCatalog } from '@domain/catalog';
 import type { Product } from '@domain/catalog';
 import { useTranslation } from '@i18n';
@@ -53,8 +53,10 @@ export default function SellScreen() {
     showToast(t.toasts.scanned(achado.name), { tone: 'sucesso' });
   }
 
-  return (
-    <Screen title={t.sell.title} subtitle={t.sell.subtitle} padded>
+  // O cabeçalho da lista: busca, leitor e o rótulo. Rola junto com a grade.
+  // O `BarcodeScanner` é um modal — o lugar dele na árvore não ocupa espaço.
+  const header = (
+    <>
       <Box flexDirection="row" gap="s9">
         <Box flex={1}>
           <Field
@@ -93,32 +95,47 @@ export default function SellScreen() {
       <Text variant="gridLabel" color="textMuted" marginTop="s2">
         {search.trim() ? t.sell.searchResults : t.sell.products}
       </Text>
+    </>
+  );
 
-      <Box flexDirection="row" flexWrap="wrap" gap="s10">
-        {grid.map((product) => (
-          <SaleCard
-            key={product.id}
-            product={product}
-            onPress={() =>
-              add({
-                id: product.id,
-                name: product.name,
-                priceCents: product.priceCents,
-              })
-            }
-          />
-        ))}
-      </Box>
-
-      {isEmpty ? (
-        <EmptyState
-          title={t.sell.emptyTitle}
-          text={t.sell.emptyText}
-          actionLabel={t.sell.createProduct}
-          onActionPress={() => openSheet({ type: 'product' })}
+  /**
+   * A grade é VIRTUALIZADA (`ListScreen`): o catálogo inteiro continua no
+   * aparelho — a venda offline e o leitor precisam dele —, mas só os cartões
+   * visíveis são desenhados. Um catálogo de centenas de produtos abre na mesma
+   * velocidade que um de vinte.
+   */
+  return (
+    <ListScreen
+      title={t.sell.title}
+      subtitle={t.sell.subtitle}
+      padded
+      header={header}
+      data={grid}
+      numColumns={2}
+      keyExtractor={(product) => product.id}
+      renderItem={({ item: product }) => (
+        <SaleCard
+          product={product}
+          onPress={() =>
+            add({
+              id: product.id,
+              name: product.name,
+              priceCents: product.priceCents,
+            })
+          }
         />
-      ) : null}
-    </Screen>
+      )}
+      footer={
+        isEmpty ? (
+          <EmptyState
+            title={t.sell.emptyTitle}
+            text={t.sell.emptyText}
+            actionLabel={t.sell.createProduct}
+            onActionPress={() => openSheet({ type: 'product' })}
+          />
+        ) : null
+      }
+    />
   );
 }
 
@@ -128,10 +145,8 @@ function SaleCard({ product, onPress }: { product: Product; onPress: () => void 
     <Touchable
       accessibilityLabel={t.sell.addItem(product.name, formatBRL(product.priceCents))}
       onPress={onPress}
-      // Dois por linha com 10 de gap: 48% aproxima sem precisar medir a tela.
-      // `flexBasis` em vez de largura fixa mantém o desenho em tela pequena.
-      flexBasis="48%"
-      flexGrow={1}
+      // A largura é a da célula da grade (duas colunas, ver `ListScreen`); a
+      // altura mínima iguala as linhas quando um nome quebra e o outro não.
       minHeight={104}
       borderRadius="r18"
       borderWidth={1}

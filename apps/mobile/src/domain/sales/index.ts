@@ -18,7 +18,9 @@ export { SaleError } from './salesTypes';
 export {
   HISTORY_PAGE_SIZE,
   SALES_FILTERS,
+  flattenSaleDays,
   groupSalesByDay,
+  type SalesListItem,
   rangeForFilter,
   rangeKey,
   saleDayKey,

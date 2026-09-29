@@ -7,7 +7,7 @@ import {
 } from '@domain/shared/dbEnums';
 import { supabase } from '@services/supabase';
 import { logActivity } from '@domain/shared/activityLog';
-import { daysAgoISO, daysSince } from '@utils/dates';
+import { daysSince } from '@utils/dates';
 import { centsToReal, realToCents } from '@utils/money';
 
 import type { CashAdjustmentAPI, CashHistoryAPI, CashShiftAPI } from './cashApiTypes';
@@ -23,9 +23,6 @@ import { currentMessages } from '@i18n/active';
  * fechamento. É a mesma regra da função `expected_cash_for_register` do banco,
  * e é por isso que `drawer_cents` soma apenas as vendas em `cash`.
  */
-
-/** Quantos dias de turnos fechados a tela de histórico mostra. */
-const HISTORY_DAYS = 60;
 
 const REGISTER_COLUMNS =
   'id, tenant_id, opening_amount, status, expected_cash, counted_cash, difference, opened_at, closed_at, cash_movements(id, type, amount, reason, created_at)';
@@ -116,14 +113,19 @@ export async function fetchOpenShift(tenantId: string): Promise<CashShiftAPI | n
 }
 
 /**
- * O histórico de turnos fechados.
+ * O histórico de turnos fechados — UMA PÁGINA, do mais recente para trás.
  *
  * O `total_cents` é o que ENTROU no turno somando todas as formas — é o número
- * que a linha do histórico mostra. Vem de uma consulta por turno; são poucos
- * (60 dias de um comércio pequeno) e cada um precisa da própria janela de
- * tempo, que o PostgREST não sabe agrupar numa ida só.
+ * que a linha do histórico mostra. Vem de uma consulta por turno: cada um
+ * precisa da própria janela de tempo, que o PostgREST não sabe agrupar numa
+ * ida só. Com páginas de 20, são no máximo 20 por rolagem — antes, sem
+ * paginação, a tela cortava em 60 dias para caber.
  */
-export async function listHistory(tenantId: string): Promise<CashHistoryAPI[]> {
+export async function listHistoryPage(
+  tenantId: string,
+  offset: number,
+  limit: number,
+): Promise<CashHistoryAPI[]> {
   void tenantId;
 
   const { data, error } = await supabase
@@ -131,31 +133,44 @@ export async function listHistory(tenantId: string): Promise<CashHistoryAPI[]> {
     .select(REGISTER_COLUMNS)
     .neq('status', REGISTER_STATUS.open)
     .not('closed_at', 'is', null)
-    .gte('opened_at', daysAgoISO(HISTORY_DAYS))
-    .order('opened_at', { ascending: false });
+    // `id` desempata: dois turnos abertos no mesmo instante não podem trocar
+    // de página entre uma rolagem e outra.
+    .order('opened_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) throw error;
+  return Promise.all(((data ?? []) as RegisterRow[]).map(toHistoryAPI));
+}
 
-  const rows = (data ?? []) as RegisterRow[];
+/** Um turno fechado — o que `closeShift` devolve para a tela. */
+async function fetchClosedShift(shiftId: string): Promise<CashHistoryAPI | null> {
+  const { data, error } = await supabase
+    .from('cash_registers')
+    .select(REGISTER_COLUMNS)
+    .eq('id', shiftId)
+    .not('closed_at', 'is', null)
+    .maybeSingle();
 
-  return Promise.all(
-    rows.map(async (row) => {
-      const totals = await salesByMethodCents(row.opened_at, row.closed_at);
-      let total = 0;
-      for (const value of totals.values()) total += value;
+  if (error) throw error;
+  return data ? toHistoryAPI(data as RegisterRow) : null;
+}
 
-      return {
-        id: row.id,
-        date_label: dateLabel(row.opened_at),
-        period_label: `${clock(row.opened_at)} → ${clock(row.closed_at)}`,
-        total_cents: total,
-        // A diferença vem CARIMBADA por `close_cash_register`. Recalcular aqui
-        // criaria uma segunda conta que pode discordar da que ficou gravada —
-        // e a gravada é a que o dono viu no momento de fechar.
-        difference_cents: row.difference == null ? null : realToCents(row.difference),
-      };
-    }),
-  );
+async function toHistoryAPI(row: RegisterRow): Promise<CashHistoryAPI> {
+  const totals = await salesByMethodCents(row.opened_at, row.closed_at);
+  let total = 0;
+  for (const value of totals.values()) total += value;
+
+  return {
+    id: row.id,
+    date_label: dateLabel(row.opened_at),
+    period_label: `${clock(row.opened_at)} → ${clock(row.closed_at)}`,
+    total_cents: total,
+    // A diferença vem CARIMBADA por `close_cash_register`. Recalcular aqui
+    // criaria uma segunda conta que pode discordar da que ficou gravada —
+    // e a gravada é a que o dono viu no momento de fechar.
+    difference_cents: row.difference == null ? null : realToCents(row.difference),
+  };
 }
 
 function clock(iso: string | null): string {
@@ -266,6 +281,8 @@ export async function closeShift(
   contadoEmDinheiroCentavos: number,
   observacao: string | null,
 ): Promise<CashHistoryAPI | null> {
+  void tenantId; // O RLS já isola pelo tenant do usuário logado.
+
   const { error } = await supabase.rpc('close_cash_register', {
     p_register_id: shiftId,
     p_counted_cash: centsToReal(contadoEmDinheiroCentavos),
@@ -279,8 +296,7 @@ export async function closeShift(
     summary: `Contado em dinheiro: ${moeda(contadoEmDinheiroCentavos)}`,
   });
 
-  const history = await listHistory(tenantId);
-  return history.find((h) => h.id === shiftId) ?? null;
+  return fetchClosedShift(shiftId);
 }
 
 /** Centavos → `R$ 12,34`, gravado pronto no histórico — ver `logActivity`. */

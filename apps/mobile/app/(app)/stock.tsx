@@ -1,7 +1,8 @@
-import { Button, Box, Card, Divider, Screen, Text, Touchable } from '@components';
-import { productsInStock, stockSummary, useCatalog } from '@domain/catalog';
+import { Button, Box, Card, Icon, InfiniteListFooter, ListScreen, Text, Touchable } from '@components';
+import { useCatalogFacets, useProductsPage } from '@domain/catalog';
 import type { Product, StockStatus } from '@domain/catalog';
-import { useStockMovements } from '@domain/stock';
+import { ROUTES } from '@domain/navigation/routes';
+import { goTo } from '@hooks/navigation';
 import { useUIStore } from '@store/uiStore';
 import type { ThemeColor } from '@theme';
 import { useTranslation } from '@i18n';
@@ -15,65 +16,39 @@ const STATUS_COLOR: Record<StockStatus, ThemeColor> = {
 /**
  * Estoque.
  *
- * Os três contadores do topo são DERIVADOS do catálogo (`resumoDeEstoque`), não
- * lidos de um endpoint separado. O protótipo trazia 4/1/1 fixos; derivando, o
- * número continua sendo o mesmo e passa a acompanhar cada movimentação.
+ * Os três contadores do topo são do catálogo INTEIRO (`catalog_facets`), e a
+ * lista chega em páginas de 20, mais ao rolar. Os dois são lidos do banco
+ * separadamente de propósito: somar o que está na tela daria só a primeira
+ * página. Movimentar estoque invalida os dois (prefixo `catalogoKeys.all`).
  */
+const STOCK_QUERY = { search: '', filter: 'stock', specialCategory: null } as const;
+
 export default function StockScreen() {
-  const { data: products = [] } = useCatalog();
-  const { data: movements = [] } = useStockMovements();
+  const { data: facets } = useCatalogFacets();
+  const { data, isPending, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useProductsPage(STOCK_QUERY);
   const openSheet = useUIStore((s) => s.openSheet);
   const t = useTranslation();
 
-  const inStock = productsInStock(products);
-  const summary = stockSummary(products);
+  const inStock = data?.pages.flatMap((page) => page.products) ?? [];
+  const summary = facets?.stock ?? { emDia: 0, low: 0, out: 0 };
 
-  return (
-    <Screen title={t.stock.title} subtitle={t.stock.subtitle} padded>
+  const loadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  };
+
+  const header = (
+    <>
       <Box flexDirection="row" gap="s10">
         <Contador label={t.stock.counters.ok} amount={summary.emDia} color="success" />
         <Contador label={t.stock.counters.low} amount={summary.low} color="warning" />
         <Contador label={t.stock.counters.out} amount={summary.out} color="danger" />
       </Box>
 
-      {inStock.map((product) => (
-        <StockLine
-          key={product.id}
-          product={product}
-          onMove={() =>
-            openSheet({ type: 'movement', productId: product.id, productName: product.name })
-          }
-        />
-      ))}
-
-      <Text variant="sectionLabel" color="textMuted" marginTop="s6">
-        {t.stock.recentMovements}
-      </Text>
-
-      <Card paddingVertical="s4" paddingHorizontal="s16">
-        {movements.map((m) => (
-          <Box key={m.id}>
-            <Box flexDirection="row" gap="s10" alignItems="center" paddingVertical="s12">
-              <Box minWidth={44}>
-                <Text variant="tinyBold" color={m.delta < 0 ? 'danger' : 'success'}>
-                  {m.sinal}
-                </Text>
-              </Box>
-              <Box flex={1} minWidth={0}>
-                <Text variant="rowText">{m.productName}</Text>
-                <Text variant="hint" color="textMuted" marginTop="s2">
-                  {m.origem}
-                </Text>
-              </Box>
-              <Text variant="hint" color="textMuted">
-                {m.quando}
-              </Text>
-            </Box>
-            <Divider />
-          </Box>
-        ))}
-      </Card>
-
+      {/* As AÇÕES ficam acima da lista, e nada fica abaixo dela: a lista
+          carrega mais ao rolar, e o que morasse depois do último produto só
+          seria alcançado percorrendo o catálogo inteiro. O histórico de
+          movimentações virou tela própria pelo mesmo motivo. */}
       <Button
         title={t.stock.addMovement}
         onPress={() => openSheet({ type: 'movement' })}
@@ -82,7 +57,63 @@ export default function StockScreen() {
         radius={18}
         textVariant="buttonSm"
       />
-    </Screen>
+
+      <Touchable
+        accessibilityLabel={t.stock.viewHistory}
+        onPress={() => goTo(ROUTES.stockHistory)}
+        backgroundColor="surface"
+        borderColor="line"
+        borderWidth={1}
+        borderRadius="r18"
+        padding="s14"
+        flexDirection="row"
+        alignItems="center"
+        gap="s12"
+      >
+        <Box
+          width={38}
+          height={38}
+          borderRadius="r12"
+          backgroundColor="surface2"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Icon name="stock" size={18} color="primary" />
+        </Box>
+        <Text variant="titleXs" flex={1}>
+          {t.stock.viewHistory}
+        </Text>
+        <Icon name="chevronRight" size={18} color="textMuted" />
+      </Touchable>
+    </>
+  );
+
+  // A lista é VIRTUALIZADA (`ListScreen`): só as linhas visíveis existem.
+  return (
+    <ListScreen
+      title={t.stock.title}
+      subtitle={t.stock.subtitle}
+      padded
+      header={header}
+      data={inStock}
+      keyExtractor={(product) => product.id}
+      onEndReached={loadMore}
+      renderItem={({ item: product }) => (
+        <StockLine
+          product={product}
+          onMove={() =>
+            openSheet({ type: 'movement', productId: product.id, productName: product.name })
+          }
+        />
+      )}
+      footer={
+        <InfiniteListFooter
+          loadingMore={isFetchingNextPage}
+          done={!isPending && !hasNextPage && inStock.length > 0}
+          doneText={t.stock.allShown}
+        />
+      }
+    />
   );
 }
 

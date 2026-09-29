@@ -438,7 +438,6 @@ export const ptBR: Messages = {
       until: (to: string) => `Até ${to}`,
     },
     refundedBadge: 'Estornada',
-    loadingMore: 'Carregando…',
     end: 'Você chegou ao começo do histórico.',
     empty: {
       title: 'Nenhuma venda por aqui ainda',
@@ -488,6 +487,8 @@ export const ptBR: Messages = {
   },
 
   products: {
+    noResults: 'Nenhum produto encontrado.',
+    allShown: 'Todos os produtos foram exibidos.',
     title: 'Produtos',
     count: (count: number) => `${count} ${count === 1 ? 'cadastrado' : 'cadastrados'}`,
     searchPlaceholder: 'Buscar por nome ou código',
@@ -688,6 +689,7 @@ export const ptBR: Messages = {
     },
   },
   stock: {
+    allShown: 'Todos os produtos com estoque foram exibidos.',
     origin: {
       sale: 'saída automática por venda',
       purchase: 'entrada · virou custo variável',
@@ -706,6 +708,14 @@ export const ptBR: Messages = {
     move: 'Movimentar',
     moveProduct: (name: string) => `Movimentar ${name}`,
     recentMovements: 'Últimas movimentações',
+    viewHistory: 'Histórico de movimentações',
+    history: {
+      title: 'Movimentações',
+      subtitle: 'Tudo o que entrou e saiu do estoque',
+      emptyTitle: 'Nenhuma movimentação ainda',
+      emptyText: 'Entradas, perdas, ajustes e as baixas das vendas aparecem aqui.',
+      allShown: 'Todas as movimentações foram exibidas.',
+    },
     addMovement: '+ Registrar movimentação',
   },
   sell: {
@@ -721,6 +731,7 @@ export const ptBR: Messages = {
     addItem: (name: string, price: string) => `Adicionar ${name}, ${price}`,
   },
   cash: {
+    allShown: 'Todos os turnos foram exibidos.',
     card: 'Cartão',
     yesterday: 'Ontem',
     difference: {
@@ -852,6 +863,7 @@ export const ptBR: Messages = {
     services: 'Serviços',
   },
   common: {
+    loadingMore: 'Carregando mais…',
     close: 'Fechar',
     back: 'Voltar',
     notNow: 'Agora não',

@@ -49,3 +49,24 @@ export interface ProductUpdateAPI {
   cost_cents?: number | null;
   stock_min: number | null;
 }
+
+/** O filtro que `list_products_page` entende. `stock` é a lista da tela Estoque. */
+export type ProductPageFilterAPI = 'all' | 'favorites' | 'services' | 'category' | 'stock';
+
+export interface ProductPageQueryAPI {
+  search: string;
+  filter: ProductPageFilterAPI;
+  /** Só com `filter: 'category'`. */
+  category: string | null;
+  offset: number;
+  limit: number;
+}
+
+/** `catalog_facets()` — números do catálogo ativo INTEIRO, não de uma página. */
+export interface CatalogFacetsAPI {
+  total: number;
+  has_services: boolean;
+  /** Mais comum primeiro; empate em ordem alfabética. */
+  categories: { name: string; count: number }[];
+  stock: { ok: number; low: number; out: number };
+}

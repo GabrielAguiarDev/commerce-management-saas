@@ -2,7 +2,13 @@ import { supabase } from '@services/supabase';
 import { logActivity } from '@domain/shared/activityLog';
 import { centsToReal, realToCents } from '@utils/money';
 
-import type { ProductAPI, ProductCreateAPI, ProductUpdateAPI } from './catalogApiTypes';
+import type {
+  CatalogFacetsAPI,
+  ProductAPI,
+  ProductCreateAPI,
+  ProductPageQueryAPI,
+  ProductUpdateAPI,
+} from './catalogApiTypes';
 
 /**
  * FRONTEIRA DE REDE do catálogo.
@@ -55,9 +61,10 @@ interface ProductRow {
  * Falha aqui NÃO derruba o catálogo: o PDV precisa da lista mesmo sem custo, e
  * a ausência no mapa já significa "custo desconhecido" (`null`).
  */
-async function readCosts(productId?: string): Promise<CostMap> {
+async function readCosts(productIds?: string | string[]): Promise<CostMap> {
   let query = supabase.from('v_product_costs').select('product_id, cost');
-  if (productId) query = query.eq('product_id', productId);
+  if (typeof productIds === 'string') query = query.eq('product_id', productIds);
+  else if (productIds) query = query.in('product_id', productIds);
 
   const { data, error } = await query;
   if (error) return new Map();
@@ -113,6 +120,49 @@ export async function listProducts(tenantId: string): Promise<ProductAPI[]> {
 
   if (error) throw error;
   return ((data ?? []) as ProductRow[]).map((row) => toProductAPI(row, costs));
+}
+
+/**
+ * UMA PÁGINA do catálogo — a lista das telas Produtos e Estoque.
+ *
+ * A busca (sem acento, nome ou código) e o chip são aplicados no banco, por
+ * `list_products_page`: filtrar no aparelho só funcionaria com o catálogo
+ * inteiro em mãos, que é o que a paginação existe para evitar. O custo vem de
+ * `v_product_costs` só para os produtos da página.
+ */
+export async function listProductsPage(query: ProductPageQueryAPI): Promise<ProductAPI[]> {
+  const { data, error } = await supabase.rpc('list_products_page', {
+    p_search: query.search || null,
+    p_filter: query.filter,
+    p_category: query.category,
+    p_offset: query.offset,
+    p_limit: query.limit,
+  });
+
+  if (error) throw error;
+  const rows = (data ?? []) as ProductRow[];
+  if (rows.length === 0) return [];
+
+  const costs = await readCosts(rows.map((row) => row.id));
+  return rows.map((row) => toProductAPI(row, costs));
+}
+
+/** Os números do catálogo ativo inteiro (`catalog_facets`). */
+export async function fetchCatalogFacets(): Promise<CatalogFacetsAPI> {
+  const { data, error } = await supabase.rpc('catalog_facets');
+  if (error) throw error;
+
+  const raw = (data ?? {}) as Partial<CatalogFacetsAPI>;
+  return {
+    total: Number(raw.total ?? 0),
+    has_services: raw.has_services === true,
+    categories: (raw.categories ?? []).map((c) => ({ name: String(c.name), count: Number(c.count) })),
+    stock: {
+      ok: Number(raw.stock?.ok ?? 0),
+      low: Number(raw.stock?.low ?? 0),
+      out: Number(raw.stock?.out ?? 0),
+    },
+  };
 }
 
 /**

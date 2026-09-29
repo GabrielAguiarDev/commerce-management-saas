@@ -461,7 +461,6 @@ export const en = {
       until: (to: string) => `Up to ${to}`,
     },
     refundedBadge: 'Refunded',
-    loadingMore: 'Loading…',
     end: 'You have reached the beginning of the history.',
     empty: {
       title: 'No sales here yet',
@@ -506,6 +505,8 @@ export const en = {
   },
 
   products: {
+    noResults: 'No products found.',
+    allShown: 'All products are shown.',
     title: 'Products',
     count: (count: number) => `${count} ${count === 1 ? 'product' : 'products'}`,
     searchPlaceholder: 'Search by name or code',
@@ -732,6 +733,7 @@ export const en = {
     },
   },
   stock: {
+    allShown: 'All stocked products are shown.',
     origin: {
       sale: 'automatic exit from a sale',
       purchase: 'entry · became a variable cost',
@@ -751,6 +753,14 @@ export const en = {
     move: 'Move',
     moveProduct: (name: string) => `Move ${name}`,
     recentMovements: 'Latest movements',
+    viewHistory: 'Movement history',
+    history: {
+      title: 'Movements',
+      subtitle: 'Everything that came in and went out of stock',
+      emptyTitle: 'No movements yet',
+      emptyText: 'Entries, losses, adjustments and sale deductions show up here.',
+      allShown: 'All movements are shown.',
+    },
     addMovement: '+ Record movement',
   },
   sell: {
@@ -766,6 +776,7 @@ export const en = {
     addItem: (name: string, price: string) => `Add ${name}, ${price}`,
   },
   cash: {
+    allShown: 'All shifts are shown.',
     /** The close-out groups: cards are counted together. */
     card: 'Card',
     yesterday: 'Yesterday',
@@ -904,6 +915,7 @@ export const en = {
     services: 'Services',
   },
   common: {
+    loadingMore: 'Loading more…',
     close: 'Close',
     back: 'Back',
     notNow: 'Not now',
