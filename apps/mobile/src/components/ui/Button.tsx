@@ -47,6 +47,8 @@ interface ButtonProps {
   disabled?: boolean;
   larguraTotal?: boolean;
   radius?: Raio;
+  /** Âncora para o E2E (Maestro) onde o rótulo se repete na mesma tela. */
+  testID?: string;
 }
 
 export function Button({
@@ -60,6 +62,7 @@ export function Button({
   disabled = false,
   larguraTotal = true,
   radius = 16,
+  testID,
 }: ButtonProps) {
   const theme = useAppTheme();
   const inactive = disabled || loading;
@@ -94,6 +97,7 @@ export function Button({
 
   return (
     <Touchable
+      testID={testID}
       accessibilityLabel={title}
       accessibilityState={{ disabled: inactive, busy: loading }}
       disabled={inactive}

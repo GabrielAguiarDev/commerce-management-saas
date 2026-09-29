@@ -213,6 +213,13 @@ export const ptBR: Messages = {
     whatsappMessage: 'Olá! O aplicativo do Aguiar One não está abrindo para mim: aparece que não conseguiu carregar o meu plano.',
   },
 
+  crash: {
+    title: 'Algo deu errado nesta tela',
+    text: 'O que você já salvou continua salvo. Tente de novo; se continuar, avise a gente.',
+    retry: 'Tentar de novo',
+    goHome: 'Voltar para o início',
+  },
+
   auth: {
     tagline: 'Gestão simples do seu negócio',
 

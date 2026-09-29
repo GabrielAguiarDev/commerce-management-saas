@@ -302,37 +302,6 @@ $$;
 ALTER FUNCTION "public"."close_cash_register"("p_register_id" "uuid", "p_counted_cash" numeric, "p_note" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."cost_from_stock_entry"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-declare
-  v_product_name text;
-begin
-  -- só entradas (type='entry') com custo informado geram custo
-  if new.type = 'entry' and new.unit_cost is not null and new.quantity > 0 then
-    select name into v_product_name from public.products where id = new.product_id;
-
-    insert into public.costs
-      (tenant_id, description, type, category, amount, origin, stock_movement_id, cost_date)
-    values
-      (new.tenant_id,
-       coalesce(v_product_name, 'Mercadoria') || ' · ' || new.quantity || ' un',
-       'variable',
-       'Mercadoria',
-       new.unit_cost * new.quantity,   -- custo total da entrada
-       'stock',
-       new.id,
-       current_date);
-  end if;
-  return new;
-end;
-$$;
-
-
-ALTER FUNCTION "public"."cost_from_stock_entry"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."cost_series_context_active"() RETURNS boolean
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'public', 'pg_temp'
@@ -342,6 +311,91 @@ $$;
 
 
 ALTER FUNCTION "public"."cost_series_context_active"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."create_manual_cost_idempotent"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_tenant  uuid;
+  v_existing public.costs%rowtype;
+  v_created uuid;
+begin
+  v_tenant := public.current_tenant_id();
+  if v_tenant is null then
+    raise exception using errcode = '42501', message = 'sem empresa na sessão';
+  end if;
+  if not public.current_actor_can_use_module('costs') then
+    raise exception using errcode = '42501', message = 'sem permissão para custos';
+  end if;
+
+  if p_id is null then
+    raise exception using errcode = '22023', message = 'identificador do custo é obrigatório';
+  end if;
+  p_description := nullif(btrim(p_description), '');
+  p_category := nullif(btrim(p_category), '');
+  if p_description is null then
+    raise exception using errcode = '22023', message = 'escreva o que foi o gasto';
+  end if;
+  if p_type is null or p_type not in ('fixed', 'variable') then
+    raise exception using errcode = '22023', message = 'tipo de custo inválido';
+  end if;
+  if p_amount is null or p_amount <= 0 or p_amount::text in ('NaN', 'Infinity', '-Infinity') then
+    raise exception using errcode = '22023', message = 'informe um valor maior que zero';
+  end if;
+  if p_cost_date is null then
+    raise exception using errcode = '22023', message = 'informe a data do custo';
+  end if;
+
+  insert into public.costs (
+    id, tenant_id, user_id, description, type, category, amount,
+    is_recurring, origin, cost_date, recurrence_id, competence
+  ) values (
+    p_id, v_tenant, auth.uid(), p_description, p_type, p_category, p_amount,
+    false, 'manual', p_cost_date, null, null
+  )
+  on conflict (id) do nothing
+  returning id into v_created;
+
+  if v_created is not null then
+    return jsonb_build_object('id', v_created, 'created', true);
+  end if;
+
+  -- A concurrent retry waits on the primary-key index above. At READ COMMITTED
+  -- this following statement sees the committed winner. Only an exact replay
+  -- is success: an accidental/cross-tenant UUID collision must remain visible.
+  select c.* into v_existing
+    from public.costs c
+   where c.id = p_id;
+
+  if found
+     and v_existing.tenant_id = v_tenant
+     and v_existing.user_id is not distinct from auth.uid()
+     and v_existing.description = p_description
+     and v_existing.type = p_type
+     and v_existing.category is not distinct from p_category
+     and v_existing.amount = p_amount
+     and v_existing.cost_date = p_cost_date
+     and v_existing.origin = 'manual'
+     and not v_existing.is_recurring
+     and v_existing.recurrence_id is null
+     and v_existing.competence is null then
+    return jsonb_build_object('id', p_id, 'created', false);
+  end if;
+
+  raise exception using
+    errcode = '23505',
+    message = 'identificador já usado por outro custo';
+end;
+$$;
+
+
+ALTER FUNCTION "public"."create_manual_cost_idempotent"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."create_manual_cost_idempotent"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date") IS 'Creates one manual non-recurring cost. Exact retries with the same client UUID are idempotent; mismatched UUID reuse is rejected.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."create_sale"("p_payment_method" "text", "p_items" "jsonb", "p_customer_document" "text" DEFAULT NULL::"text", "p_customer_name" "text" DEFAULT NULL::"text", "p_sold_at" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
@@ -1770,6 +1824,110 @@ COMMENT ON FUNCTION "public"."platform_whatsapp_contact"() IS 'Telefone de Whats
 
 
 
+CREATE OR REPLACE FUNCTION "public"."record_stock_purchase"("p_product_id" "uuid", "p_quantity" numeric, "p_unit_cost" numeric, "p_reason" "text" DEFAULT NULL::"text", "p_cost_date" "date" DEFAULT NULL::"date", "p_id" "uuid" DEFAULT NULL::"uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_tenant   uuid;
+  v_product  record;
+  v_existing public.costs%rowtype;
+  v_movement uuid;
+  v_cost     uuid;
+  v_amount   numeric;
+begin
+  v_tenant := public.current_tenant_id();
+  if v_tenant is null then
+    raise exception using errcode = '42501', message = 'sem empresa na sessão';
+  end if;
+  if not public.current_actor_can_use_module('stock') then
+    raise exception using errcode = '42501', message = 'sem permissão para movimentar estoque';
+  end if;
+
+  if p_quantity is null or p_quantity <= 0 or p_quantity::text in ('NaN', 'Infinity') then
+    raise exception using errcode = '22023', message = 'informe a quantidade comprada';
+  end if;
+  if p_unit_cost is null or p_unit_cost <= 0 or p_unit_cost::text in ('NaN', 'Infinity') then
+    raise exception using errcode = '22023', message = 'informe o custo unitário';
+  end if;
+  p_reason := nullif(btrim(p_reason), '');
+
+  -- A trava na linha do produto serializa compras concorrentes do mesmo item
+  -- e, com ela, dois reenvios simultâneos do mesmo `p_id`: o segundo só lê
+  -- `costs` depois que o primeiro fez commit.
+  select p.id, p.name, p.tracks_stock
+    into v_product
+    from public.products p
+   where p.id = p_product_id
+     and p.tenant_id = v_tenant
+     for update;
+
+  if not found then
+    raise exception using errcode = '22023', message = 'produto não encontrado';
+  end if;
+  if not v_product.tracks_stock then
+    raise exception using errcode = '22023', message = 'este produto não controla estoque';
+  end if;
+
+  v_amount := round(p_quantity * p_unit_cost, 2);
+
+  if p_id is not null then
+    select c.* into v_existing from public.costs c where c.id = p_id;
+    if found then
+      if v_existing.tenant_id = v_tenant
+         and v_existing.origin = 'stock'
+         and v_existing.amount = v_amount
+         and v_existing.stock_movement_id is not null
+         and exists (
+           select 1
+             from public.stock_movements m
+            where m.id = v_existing.stock_movement_id
+              and m.product_id = p_product_id
+              and m.quantity = p_quantity
+              and m.unit_cost = p_unit_cost
+         ) then
+        return jsonb_build_object(
+          'cost_id', p_id,
+          'movement_id', v_existing.stock_movement_id,
+          'created', false
+        );
+      end if;
+      raise exception using errcode = '23505', message = 'identificador já usado por outro lançamento';
+    end if;
+  end if;
+
+  insert into public.stock_movements
+    (tenant_id, product_id, user_id, type, quantity, unit_cost, reason, sale_id)
+  values
+    (v_tenant, p_product_id, auth.uid(), 'in', p_quantity, p_unit_cost, p_reason, null)
+  returning id into v_movement;
+
+  update public.products
+     set stock_quantity = coalesce(stock_quantity, 0) + p_quantity,
+         cost = p_unit_cost
+   where id = p_product_id;
+
+  insert into public.costs
+    (id, tenant_id, user_id, description, type, category, amount,
+     is_recurring, origin, cost_date, stock_movement_id)
+  values
+    (coalesce(p_id, gen_random_uuid()), v_tenant, auth.uid(),
+     'Compra — ' || v_product.name, 'variable', 'Materiais', v_amount,
+     false, 'stock', coalesce(p_cost_date, current_date), v_movement)
+  returning id into v_cost;
+
+  return jsonb_build_object('cost_id', v_cost, 'movement_id', v_movement, 'created', true);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."record_stock_purchase"("p_product_id" "uuid", "p_quantity" numeric, "p_unit_cost" numeric, "p_reason" "text", "p_cost_date" "date", "p_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."record_stock_purchase"("p_product_id" "uuid", "p_quantity" numeric, "p_unit_cost" numeric, "p_reason" "text", "p_cost_date" "date", "p_id" "uuid") IS 'Entrada de mercadoria com custo: movimento, saldo, custo do produto e despesa numa transação. Reenvio com o mesmo p_id é idempotente.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."recurring_cost_date"("p_competence" "date", "p_anchor_day" integer) RETURNS "date"
     LANGUAGE "sql" IMMUTABLE STRICT
     SET "search_path" TO 'public', 'pg_temp'
@@ -2516,6 +2674,10 @@ CREATE TABLE IF NOT EXISTS "public"."costs" (
 ALTER TABLE "public"."costs" OWNER TO "postgres";
 
 
+COMMENT ON COLUMN "public"."costs"."stock_movement_id" IS 'Vinculo legado/opcional com estoque. Entradas nao geram custo por trigger: portal e mobile registram a compra explicitamente para nao confundir outras entradas positivas com despesa.';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."fiscal_credentials" (
     "tenant_id" "uuid" NOT NULL,
     "csc_id" "text",
@@ -3006,7 +3168,7 @@ CREATE OR REPLACE VIEW "public"."v_daily_sales" WITH ("security_invoker"='true')
     "debit_total",
     "credit_total"
    FROM ( SELECT "sales"."tenant_id",
-            "date"("sales"."sold_at") AS "day",
+            (("sales"."sold_at" AT TIME ZONE 'America/Sao_Paulo'::"text"))::"date" AS "day",
             "count"(*) AS "sales_count",
             "sum"("sales"."total") AS "revenue",
             "sum"(
@@ -3031,7 +3193,7 @@ CREATE OR REPLACE VIEW "public"."v_daily_sales" WITH ("security_invoker"='true')
                 END) AS "credit_total"
            FROM "public"."sales"
           WHERE ("sales"."status" = 'completed'::"text")
-          GROUP BY "sales"."tenant_id", ("date"("sales"."sold_at"))) "gated"
+          GROUP BY "sales"."tenant_id", ((("sales"."sold_at" AT TIME ZONE 'America/Sao_Paulo'::"text"))::"date")) "gated"
   WHERE ( SELECT "public"."current_actor_can_access_modules"('{sales,reports,cash}'::"text"[]) AS "current_actor_can_access_modules");
 
 
@@ -3062,11 +3224,11 @@ CREATE OR REPLACE VIEW "public"."v_monthly_result" WITH ("security_invoker"='tru
     "profit"
    FROM ( WITH "sales_m" AS (
                  SELECT "sales"."tenant_id",
-                    ("date_trunc"('month'::"text", "sales"."sold_at"))::"date" AS "month",
+                    ("date_trunc"('month'::"text", ("sales"."sold_at" AT TIME ZONE 'America/Sao_Paulo'::"text")))::"date" AS "month",
                     "sum"("sales"."total") AS "revenue"
                    FROM "public"."sales"
                   WHERE ("sales"."status" = 'completed'::"text")
-                  GROUP BY "sales"."tenant_id", (("date_trunc"('month'::"text", "sales"."sold_at"))::"date")
+                  GROUP BY "sales"."tenant_id", (("date_trunc"('month'::"text", ("sales"."sold_at" AT TIME ZONE 'America/Sao_Paulo'::"text")))::"date")
                 ), "costs_m" AS (
                  SELECT "costs"."tenant_id",
                     ("date_trunc"('month'::"text", ("costs"."cost_date")::timestamp with time zone))::"date" AS "month",
@@ -3470,10 +3632,6 @@ CREATE OR REPLACE TRIGGER "tenant_settings_touch" BEFORE UPDATE ON "public"."ten
 
 
 CREATE OR REPLACE TRIGGER "tenants_guard_commercial_columns" BEFORE UPDATE ON "public"."tenants" FOR EACH ROW EXECUTE FUNCTION "public"."tenants_guard_commercial_columns"();
-
-
-
-CREATE OR REPLACE TRIGGER "trg_cost_from_stock" AFTER INSERT ON "public"."stock_movements" FOR EACH ROW EXECUTE FUNCTION "public"."cost_from_stock_entry"();
 
 
 
@@ -4109,6 +4267,18 @@ CREATE POLICY "tmodules_select" ON "public"."tenant_modules" FOR SELECT USING ((
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
+
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."support_messages";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."support_tickets";
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
@@ -4292,15 +4462,15 @@ GRANT ALL ON FUNCTION "public"."close_cash_register"("p_register_id" "uuid", "p_
 
 
 
-GRANT ALL ON FUNCTION "public"."cost_from_stock_entry"() TO "anon";
-GRANT ALL ON FUNCTION "public"."cost_from_stock_entry"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."cost_from_stock_entry"() TO "service_role";
-
-
-
 REVOKE ALL ON FUNCTION "public"."cost_series_context_active"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."cost_series_context_active"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."cost_series_context_active"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."create_manual_cost_idempotent"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_manual_cost_idempotent"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_manual_cost_idempotent"("p_id" "uuid", "p_description" "text", "p_type" "text", "p_category" "text", "p_amount" numeric, "p_cost_date" "date") TO "service_role";
 
 
 
@@ -4490,6 +4660,12 @@ REVOKE ALL ON FUNCTION "public"."platform_whatsapp_contact"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."platform_whatsapp_contact"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."platform_whatsapp_contact"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."platform_whatsapp_contact"() TO "anon";
+
+
+
+REVOKE ALL ON FUNCTION "public"."record_stock_purchase"("p_product_id" "uuid", "p_quantity" numeric, "p_unit_cost" numeric, "p_reason" "text", "p_cost_date" "date", "p_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."record_stock_purchase"("p_product_id" "uuid", "p_quantity" numeric, "p_unit_cost" numeric, "p_reason" "text", "p_cost_date" "date", "p_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."record_stock_purchase"("p_product_id" "uuid", "p_quantity" numeric, "p_unit_cost" numeric, "p_reason" "text", "p_cost_date" "date", "p_id" "uuid") TO "service_role";
 
 
 

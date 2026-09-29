@@ -1002,11 +1002,15 @@ versão velha demais.
 
 **Melhorias propostas, não implementadas** (fora do escopo pedido):
 
-1. **Sentry + ErrorBoundary** no `app/_layout.tsx`. App em produção sem crash
-   reporting é depuração às cegas. É a primeira coisa a fazer.
+1. **Sentry.** A metade do app ficou pronta em 28/09/2026: `ErrorBoundary` em
+   `app/(app)/_layout.tsx` (tela `CrashScreen`, "tentar de novo" / "voltar para
+   o início") e `src/services/crashReporter.ts`, o ponto único de saída do erro.
+   Falta a conta/DSN e o `@sentry/react-native` (módulo nativo → build novo);
+   aí a ligação é `setCrashSink(Sentry.captureException)` na inicialização.
+   `login`/`blocked` estão fora de `(app)` e ainda não têm boundary.
 2. ~~**Segundo projeto de jest (`jest-expo` + RNTL)**~~ — feito em 28/09/2026.
    Ver § 16.
-3. **E2E com Maestro** nos fluxos que dão dinheiro: login → montar carrinho →
+3. ~~**E2E com Maestro**~~ — feito em 28/09/2026. Ver § 17. Proposta original: login → montar carrinho →
    finalizar; abrir caixa → sangria → fechar com diferença.
 4. **CI (GitHub Actions)**: `typecheck + lint + test` em cada PR.
 5. **`app.config.ts` tipado** no lugar do `app.json`, quando existir mais de um
@@ -1199,10 +1203,12 @@ LUCROS diferentes conforme onde a mercadoria fosse dada entrada — e o texto do
 próprio sheet já prometia "entradas viram custo variável automaticamente".
 
 O campo agora existe, aparece só quando a quantidade é positiva (perda e ajuste
-não compram nada) e é opcional (nem toda entrada é compra). As duas escritas
-ficam em `stockApi.registerPurchase` e **não derrubam a movimentação** se
-falharem: o saldo já subiu quando elas rodam, e estourar ali faria a tela dizer
-que a entrada falhou sobre um estoque que já mudou.
+não compram nada) e é opcional (nem toda entrada é compra).
+
+Desde 28/09/2026 a compra (entrada com custo) vai inteira para
+`record_stock_purchase` (`20260928030000`): movimento, saldo, `products.cost` e
+despesa numa transação só, a mesma função do portal. Antes eram três chamadas
+e as duas últimas engoliam o erro — o estoque subia e a despesa podia faltar.
 
 **6. O custo praticado na venda não é guardado.** `sale_items` tem `unit_price`
 (o preço no momento, correto) mas não o custo. O lucro do dia é calculado com o
@@ -1535,6 +1541,53 @@ os adapters puros que o componente chama continuam sendo os de verdade — dubl�
 transformaria "a diferença que a tela mostra" numa tautologia.
 
 ---
+
+## 17. E2E com Maestro — feito em 28/09/2026
+
+Dois fluxos em `.maestro/`, os que mexem com dinheiro:
+
+- `cash-register.yaml` — abre o caixa (R$ 150,00), faz sangria de R$ 10,00,
+  fecha contando R$ 140,00 e confere "sem diferença";
+- `sale.yaml` — dois itens no carrinho, finaliza em dinheiro, confere a venda
+  no Início e **estorna** no fim, para a conta de testes não acumular
+  faturamento a cada execução.
+
+Os dois começam de qualquer estado: `subflows/close-register-if-open.yaml`
+fecha um turno esquecido e `subflows/login-if-needed.yaml` só entra se o app
+abrir no login.
+
+```sh
+brew install mobile-dev-inc/tap/maestro   # uma vez
+pnpm ios                                   # app + Metro no simulador
+pnpm e2e                                   # já logado
+pnpm e2e -e E2E_EMAIL=... -e E2E_PASSWORD=...   # começando deslogado
+```
+
+⚠️ **Eles escrevem no banco para onde o app aponta.** Hoje o `.env` aponta
+para o projeto de produção, e a conta usada é "Cliente de testes". Cada
+execução deixa um turno de caixa fechado e uma venda estornada no histórico.
+
+**Seletores.** Por rótulo de acessibilidade, que é o texto que o VoiceOver lê
+— então um E2E que acha o elemento é também um leitor de tela que acha. A
+única âncora técnica é `testID="confirm-dialog-accept"` no `ConfirmHost`,
+porque o botão do diálogo repete o rótulo do botão que o abriu.
+
+**O que escrever os fluxos revelou (e foi corrigido):**
+
+- O `BottomSheetModal` do gorhom é `accessible` por padrão: no iOS o sheet
+  inteiro virava UM elemento "Bottom Sheet" e os campos e botões de dentro
+  sumiam para o VoiceOver. Desligado em `patterns/BottomSheet.tsx`.
+- `Field` não dava nome ao input: o VoiceOver lia "campo de texto". Agora o
+  rótulo visível é o `accessibilityLabel` do input (e o texto do rótulo sai da
+  árvore para não ser lido duas vezes).
+- Com o diálogo de confirmação aberto, os botões da tela de trás continuavam
+  alcançáveis. `accessibilityViewIsModal` no `ConfirmHost`.
+- `v_daily_sales` agrupava pelo dia UTC: das 21h à meia-noite o Início zerava
+  o faturamento. Migration `20260928040000_business_timezone_views.sql`.
+
+**Anotado, não corrigido:** a sangria aceita valor maior que o saldo da
+gaveta (R$ 2.000,00 de uma gaveta com R$ 150,00 deixou "R$ -1.850,00"); e a
+diferença zero aparece como "+R$ 0,00".
 
 ## 12. Referência de design
 

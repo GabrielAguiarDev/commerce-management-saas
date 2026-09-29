@@ -111,6 +111,10 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
           variant={onAuth ? 'label' : 'fieldLabel'}
           color={aceso ? (onAuth ? 'authLink' : 'primary') : onAuth ? 'authInk' : 'textMuted'}
           marginBottom={onAuth ? 's7' : 's6'}
+          // Quem anuncia o rótulo é o próprio input (`accessibilityLabel`
+          // abaixo); lido aqui também, o leitor de tela diria "Valor" duas vezes.
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
         >
           {label}
         </Text>
@@ -149,6 +153,9 @@ export const Field = forwardRef<TextInput, FieldProps>(function Field(
             paddingHorizontal: 0,
             textAlignVertical: multiline ? 'top' : 'center',
           }}
+          // O rótulo visível é o nome do campo para o leitor de tela; quem
+          // precisar de outro (campo sem rótulo, como a busca) passa o seu.
+          accessibilityLabel={label}
           {...resto}
           onFocus={handleFocus}
           onBlur={handleBlur}

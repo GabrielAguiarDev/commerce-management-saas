@@ -82,6 +82,10 @@ export default function TicketScreen() {
           ref={listRef}
           style={{ flex: 1 }}
           contentContainerStyle={{
+            // O conteúdo ocupa a altura toda mesmo com poucas mensagens: sem
+            // isto ele terminava na última bolha, e arrastar no vazio abaixo
+            // dela (para puxar e atualizar) não pegava.
+            flexGrow: 1,
             gap: 12,
             paddingHorizontal: theme.spacing.screen,
             paddingBottom: theme.spacing.s14,

@@ -73,10 +73,11 @@ Pendências que sobraram desta fase:
 ### Prioridade média
 
 5. **Fila offline para outras escritas do portal web.** Vendas novas do PDV e
-   custos avulsos novos já são enfileirados (28/09/2026). Estoque ficou de fora
-   de propósito: movimento, custo do produto e despesa são chamadas separadas, e
-   um reenvio parcial deixaria o banco inconsistente — precisa de uma RPC única
-   antes. Custo recorrente e edições continuam exigindo conexão.
+   custos avulsos novos já são enfileirados (28/09/2026). A compra de
+   mercadoria já é atômica e idempotente no banco (`record_stock_purchase`,
+   `20260928030000`, usada pelo portal e pelo mobile, com `p_id` para reenvio);
+   falta só a fila no navegador para ela. Saída/ajuste de estoque, custo
+   recorrente e edições continuam exigindo conexão.
 
 6. ~~**Testes das Server Actions do portal e de concorrência no banco.**~~ Feito em
    28/09/2026: Vitest nos dois portais (`pnpm --filter portal-* test`) e
@@ -98,8 +99,7 @@ Pendências que sobraram desta fase:
    nativo), por isso não entrou junto.
 
    A fase 1 ainda precisa de uma **validação em ambiente** que nenhum teste
-   local cobre: aplicar a migration no projeto real, conferir o Realtime
-   habilitado no painel, os dois tenants não se enxergando, o refetch depois de
+   local cobre (a migration já está aplicada na produção desde 28/09/2026): os dois tenants não se enxergando, o refetch depois de
    1 min sem rede e nenhum canal sobrando no Realtime Inspector após o logout. A
    lista está em
    [`architecture/suporte-tempo-real.md`](architecture/suporte-tempo-real.md)

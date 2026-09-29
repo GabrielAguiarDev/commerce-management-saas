@@ -240,6 +240,14 @@ export const en = {
     whatsappMessage: "Hi! The Aguiar One app won't open for me: it says it couldn't load my plan.",
   },
 
+  /** Shown by the route ErrorBoundary when a screen throws while rendering. */
+  crash: {
+    title: 'Something went wrong on this screen',
+    text: 'Everything you already saved is still saved. Try again; if it keeps happening, let us know.',
+    retry: 'Try again',
+    goHome: 'Back to home',
+  },
+
   /**
    * The ENTRY screens: sign in and the (still simulated) password recovery.
    *

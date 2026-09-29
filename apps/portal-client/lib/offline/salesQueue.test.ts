@@ -1,12 +1,7 @@
-// Testes da lógica pura da fila offline de vendas.
-//
-// O portal não tem framework de testes; este arquivo usa só o `node:test` e a
-// remoção de tipos nativa do Node (>= 23.6). Rodar a partir de apps/portal-client:
-//
-//   node --test lib/offline/salesQueue.test.mjs
+// Testes da lógica pura da fila offline de vendas (`pnpm --filter portal-client test`).
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 
 import {
   applyAttempt,
@@ -22,12 +17,13 @@ import {
   resetForRetry,
   retryDelayMs,
   summarize,
-} from "./salesQueue.ts";
+  type QueuedSale,
+} from "./salesQueue";
 
 const scope = { tenantId: "t1", userId: "u1" };
 const t0 = new Date("2026-09-17T12:00:00.000Z");
 
-function sale(overrides = {}) {
+function sale(overrides: Partial<QueuedSale> = {}): QueuedSale {
   return {
     ...createQueuedSale({
       clientId: newClientId(),
@@ -46,7 +42,7 @@ function sale(overrides = {}) {
 
 test("newClientId gera uuid v4, com e sem randomUUID", () => {
   assert.ok(isUuid(newClientId()));
-  const fallback = newClientId({ getRandomValues: (a) => globalThis.crypto.getRandomValues(a) });
+  const fallback = newClientId({ getRandomValues: globalThis.crypto.getRandomValues.bind(globalThis.crypto) });
   assert.ok(isUuid(fallback));
   assert.match(fallback, /^[0-9a-f]{8}-[0-9a-f]{4}-4/);
   assert.equal(isUuid("nao-e-uuid"), false);
@@ -87,14 +83,14 @@ test("applyAttempt: done remove; retry mantém pendente; failed para", () => {
   assert.equal(applyAttempt(s, null, t0), null);
 
   const later = new Date(t0.getTime() + 1000);
-  const retry = applyAttempt(s, { code: "network", message: "sem rede" }, later);
+  const retry = applyAttempt(s, { code: "network", message: "sem rede" }, later)!;
   assert.equal(retry.status, "pending");
   assert.equal(retry.attempts, 1);
   assert.equal(retry.updatedAt, later.toISOString());
   assert.equal(retry.soldAt, s.soldAt, "a hora da venda nunca muda");
   assert.equal(retry.clientId, s.clientId, "o id da venda nunca muda");
 
-  const failed = applyAttempt(s, { code: "23503", message: "produto não encontrado" }, later);
+  const failed = applyAttempt(s, { code: "23503", message: "produto não encontrado" }, later)!;
   assert.equal(failed.status, "failed");
 });
 

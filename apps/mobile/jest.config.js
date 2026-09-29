@@ -50,6 +50,7 @@ module.exports = {
         '<rootDir>/src/utils/__tests__/**/*.test.ts',
         '<rootDir>/src/data/__tests__/**/*.test.ts',
         '<rootDir>/src/store/__tests__/**/*.test.ts',
+        '<rootDir>/src/services/__tests__/**/*.test.ts',
       ],
     },
     {

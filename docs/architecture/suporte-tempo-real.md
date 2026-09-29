@@ -183,8 +183,10 @@ Verificado com testes automáticos:
 Falta verificar **em ambiente** (precisa de Supabase com Realtime ligado, dois
 tenants e dois aparelhos — nenhum destes itens é verificável por teste local):
 
-- [ ] A migration aplicada no projeto real (`supabase db push`) e o Realtime
-      habilitado no painel.
+- [x] A migration aplicada no projeto real (28/09/2026) — `support_messages`
+      e `support_tickets` conferidas em `supabase_realtime`. O histórico de
+      migrations do projeto está vazio (nunca se usou `db push` nele), então a
+      aplicação foi arquivo a arquivo; ver `docs/testes/banco.md`.
 - [ ] Resposta do admin aparece na conversa do app e do portal do cliente sem
       tocar em nada, em menos de 2 s.
 - [ ] Resposta do cliente aparece no portal admin do mesmo jeito, e o chamado

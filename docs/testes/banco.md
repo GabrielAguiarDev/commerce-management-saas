@@ -44,6 +44,23 @@ Com `DB_TEST_KEEP=1`, o nome do container aparece no fim; derrube com
 No CI, o job **`banco · migrations e RLS`** (`.github/workflows/ci.yml`) roda
 o mesmo script em todo push na `main` e em todo PR.
 
+## ⚠️ O histórico de migrations da produção está vazio
+
+`supabase migration list --linked` mostra todas as migrations como só
+locais: as da produção foram aplicadas por fora do `db push`. **Não rode
+`supabase db push` sem antes resolver isso** — ele tentaria reaplicar tudo
+desde `20260801000000`. Até lá, a baseline (`schema_producao.version`) é a
+fonte de verdade do que está aplicado, e cada migration nova vai arquivo a
+arquivo, em transação:
+
+```bash
+{ echo begin; cat supabase/migrations/<arquivo>.sql; echo commit; } > /tmp/m.sql
+pnpm dlx supabase@latest db query --linked -f /tmp/m.sql
+```
+
+Para voltar a usar o `db push`, marque o que já está aplicado com
+`supabase migration repair --status applied <versão>…` até a versão da baseline.
+
 ## Atualizar a baseline depois de aplicar migrations
 
 A baseline é um retrato do schema da produção. Sempre que migrations forem

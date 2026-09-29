@@ -68,6 +68,7 @@
     "lint": "eslint .",
     "test": "jest",
     "test:watch": "jest --watch",
+    "e2e": "maestro test .maestro",
     "export:ios": "expo export --platform ios",
     "build:android": "pnpm dlx eas-cli@latest build --platform android --profile production",
     "build:android:apk": "pnpm dlx eas-cli@latest build --platform android --profile preview",

@@ -24,7 +24,19 @@ export function ConfirmHost() {
   if (!confirm) return null;
 
   return (
-    <Box position="absolute" top={0} left={0} right={0} bottom={0} justifyContent="center" padding="s26">
+    <Box
+      position="absolute"
+      top={0}
+      left={0}
+      right={0}
+      bottom={0}
+      justifyContent="center"
+      padding="s26"
+      // Com o diálogo aberto, o leitor de tela só enxerga o diálogo. Sem isto o
+      // VoiceOver seguia alcançando os botões da tela de trás — inclusive o de
+      // mesmo rótulo ("Fechar caixa", "Estornar venda"), que o véu cobre.
+      accessibilityViewIsModal
+    >
       <Animated.View
         entering={FadeIn.duration(180)}
         exiting={FadeOut.duration(AO_FADE.duration)}
@@ -52,6 +64,7 @@ export function ConfirmHost() {
           </Text>
 
           <Button
+            testID="confirm-dialog-accept"
             title={confirm.buttonLabel}
             onPress={() => {
               const action = confirm.onConfirm;

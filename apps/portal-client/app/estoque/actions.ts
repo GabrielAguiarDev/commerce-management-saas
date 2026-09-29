@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { STOCK_ORIGIN, COST_TYPE_DB } from "@/lib/dados/custos";
 import { MOVEMENT_DB } from "@/lib/dados/estoque";
 import { logActivity } from "@/lib/historico";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
@@ -28,7 +27,7 @@ export async function recordStockMovement(data: {
   const session = await requireCustomer("movimentar o estoque", "stock");
   if (!session.ok) return session;
 
-  const { supabase, tenantId, userId } = session;
+  const { supabase } = session;
   const { productId, type, quantidade, custoUnitario, reason } = data;
 
   if (!productId) return { ok: false, message: "Escolha o produto." };
@@ -50,35 +49,28 @@ export async function recordStockMovement(data: {
 
   if (delta === 0) return { ok: true };
 
-  const { error } = await supabase.rpc("apply_stock_movement", {
-    p_product_id: productId,
-    p_type: MOVEMENT_DB[type],
-    p_quantity: delta,
-    p_reason: reason.trim() || null,
-    p_sale_id: null,
-    p_unit_cost: custoUnitario || null,
-  });
+  // Compra de mercadoria (entrada com custo) é dinheiro que saiu: movimento,
+  // saldo, custo do produto e despesa entram JUNTOS em `record_stock_purchase`
+  // — ou nenhum. Antes eram três chamadas, e a despesa podia faltar em silêncio.
+  const purchase = type === "in" && custoUnitario > 0;
+  const { error } = purchase
+    ? await supabase.rpc("record_stock_purchase", {
+        p_product_id: productId,
+        p_quantity: delta,
+        p_unit_cost: custoUnitario,
+        p_reason: reason.trim() || null,
+        p_cost_date: todayIso(),
+      })
+    : await supabase.rpc("apply_stock_movement", {
+        p_product_id: productId,
+        p_type: MOVEMENT_DB[type],
+        p_quantity: delta,
+        p_reason: reason.trim() || null,
+        p_sale_id: null,
+        p_unit_cost: custoUnitario || null,
+      });
 
   if (error) return { ok: false, message: error.message };
-
-  // A função grava o movimento e ajusta o saldo, mas NÃO mexe no custo do
-  // produto nem lança a despesa. Compra de mercadoria é dinheiro que saiu:
-  // as duas coisas são feitas aqui.
-  if (type === "in" && custoUnitario > 0) {
-    await supabase.from("products").update({ cost: custoUnitario }).eq("id", productId);
-
-    await supabase.from("costs").insert({
-      tenant_id: tenantId,
-      user_id: userId,
-      description: `Compra — ${product.name}`,
-      type: COST_TYPE_DB.variable,
-      category: "Materiais",
-      amount: Math.round(custoUnitario * quantidade * 100) / 100,
-      is_recurring: false,
-      origin: STOCK_ORIGIN,
-      cost_date: todayIso(),
-    });
-  }
 
   // O saldo DE DEPOIS vai no resumo porque é a pergunta que se faz ao olhar o
   // histórico: "quanto ficou". Recalcular na tela daria o saldo de hoje.

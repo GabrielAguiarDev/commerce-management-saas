@@ -1,11 +1,12 @@
-import { Redirect, Stack, usePathname } from 'expo-router';
-import { useState } from 'react';
+import { Redirect, Stack, router, usePathname, type ErrorBoundaryProps } from 'expo-router';
+import { useEffect, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import {
   AO_FADE,
   CartBar,
   Box,
+  CrashScreen,
   SheetHost,
   StartupError,
   StartupLoading,
@@ -16,12 +17,42 @@ import { useSupportLive, useSupportWhatsApp } from '@domain/support';
 import { useCapabilities, useCurrentTenant, usePaymentPreferencesSync } from '@domain/tenant';
 import { useAppHydrated } from '@hooks/useAppHydrated';
 import { useAppTheme } from '@hooks/useAppTheme';
+import { reportCrash } from '@services/crashReporter';
 import { useTranslation } from '@i18n';
 import { selectIsAuthenticated, useSessionStore } from '@store/sessionStore';
 import { useUIStore } from '@store/uiStore';
 
 /** O grupo `(tabs)` é o piso da pilha: um deep link em `/stock` cai sobre ele. */
 export const unstable_settings = { anchor: '(tabs)' };
+
+/**
+ * A REDE DE PROTEÇÃO do shell: o Expo Router monta isto no lugar do layout
+ * quando qualquer tela de `(app)` lança ao renderizar. Fica AQUI, e não no
+ * layout raiz, porque aqui dentro o `AppProviders` (tema, i18n) já existe — a
+ * tela de queda usa o design system como qualquer outra.
+ *
+ * "Voltar para o início" troca a rota ANTES de `retry`: tentar de novo na
+ * mesma tela que acabou de quebrar tende a quebrar igual.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    reportCrash(error, { where: 'route:(app)', extra: { pathname } });
+    // Reporta uma vez por erro; a rota vai junto só como contexto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
+
+  return (
+    <CrashScreen
+      onRetry={() => void retry()}
+      onGoHome={() => {
+        router.replace(ROUTES.home);
+        void retry();
+      }}
+    />
+  );
+}
 
 /**
  * O GUARDIÃO do app — e o SHELL que ele destranca.

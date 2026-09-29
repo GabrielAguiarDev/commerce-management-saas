@@ -56,6 +56,7 @@ export { CodeInput } from './patterns/CodeInput';
 export { ConfirmHost } from './patterns/ConfirmHost';
 export { Screen, ESPACO_INFERIOR, ESPACO_INFERIOR_INTERNO } from './patterns/Screen';
 export { TabPane } from './patterns/TabPane';
+export { CrashScreen } from './patterns/CrashScreen';
 export { StartupError } from './patterns/StartupError';
 export { StartupLoading } from './patterns/StartupLoading';
 

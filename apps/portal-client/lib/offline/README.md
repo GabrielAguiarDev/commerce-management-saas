@@ -67,18 +67,16 @@ Os totais da tela não contam os custos guardados.
 - `salesQueue.ts` — regras puras (classificação, espera, escopo, resumo).
 - `salesQueueDb.ts` — IndexedDB (`aguiar-portal-offline` / `pending_sales`).
 - `salesQueueStore.ts` — store do navegador + hooks React.
-- `salesQueue.test.mjs` — testes da lógica pura.
+- `salesQueue.test.ts` — testes da lógica pura.
 - `offlineDb.ts` — conexão IndexedDB compartilhada pelas duas filas.
 - `costQueue.ts`, `costQueueDb.ts`, `costQueueStore.ts`, `costQueue.test.ts` — fila de custos.
 
 ## Testes
 
-A fila de custos roda no Vitest do portal (`pnpm --filter portal-client test`).
-A de vendas, mais antiga, ainda usa o `node:test` (Node ≥ 23.6):
+As duas filas rodam no Vitest do portal:
 
 ```sh
-cd apps/portal-client
-node --test lib/offline/salesQueue.test.mjs
+pnpm --filter portal-client test
 ```
 
 ## Limitações conhecidas

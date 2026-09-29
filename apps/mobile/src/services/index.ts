@@ -10,3 +10,4 @@ export {
 // momento em que o módulo carrega. Quem precisa do cliente importa
 // `@services/supabase` direto — é o que todos os `*Api.ts` fazem.
 export { LargeSecureStore } from './secureSessionStorage';
+export { reportCrash, setCrashSink, type CrashContext, type CrashSink } from './crashReporter';

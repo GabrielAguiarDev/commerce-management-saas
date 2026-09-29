@@ -161,6 +161,11 @@ export function BottomSheet({ title, onClose, children }: BottomSheetProps) {
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
+      // A biblioteca marca o container como UM elemento acessível ("Bottom
+      // Sheet"), e no iOS isso esconde os filhos: o VoiceOver não chegava aos
+      // campos nem aos botões do sheet (e o Maestro também não). Desligado, cada
+      // controle volta a ser alcançável pelo próprio rótulo.
+      accessible={false}
     >
       <InsideSheetProvider value>
         <BottomSheetScrollView
