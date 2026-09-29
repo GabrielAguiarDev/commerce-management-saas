@@ -21,6 +21,7 @@ import { goTo } from '@hooks/navigation';
 import { useSessionStore } from '@store/sessionStore';
 import type { Messages } from '@i18n';
 import { currentLocale, useTranslation } from '@i18n';
+import { dayPeriod } from '@utils/dates';
 import { formatBRL } from '@utils/money';
 
 /** Cinco linhas mantêm o resumo útil sem transformar a Home numa lista. */
@@ -317,12 +318,9 @@ function firstName(name: string | undefined, t: Messages): string {
   return (name ?? t.home.you).trim().split(/\s+/)[0] ?? t.home.you;
 }
 
-/** Pelo relógio do aparelho: "Bom dia" era fixo, também às 22h. */
+/** Pelo relógio do aparelho — a regra dos períodos está em `dayPeriod`. */
 function greeting(t: Messages): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return t.home.greeting.morning;
-  if (hour < 18) return t.home.greeting.afternoon;
-  return t.home.greeting.evening;
+  return t.home.greeting[dayPeriod(new Date().getHours())];
 }
 
 /**

@@ -1,0 +1,16 @@
+# Entra só se o app abriu na tela de login. Credenciais por variável de
+# ambiente (nunca no repositório): maestro test -e E2E_EMAIL=... -e E2E_PASSWORD=...
+appId: br.com.aguiarone.app
+---
+- runFlow:
+    when:
+      visible: "Bem-vindo de volta!"
+    commands:
+      - tapOn: "E-mail"
+      - inputText: ${E2E_EMAIL}
+      - tapOn: "Senha"
+      - inputText: ${E2E_PASSWORD}
+      - tapOn: "Entrar"
+- extendedWaitUntil:
+    visible: "Início"
+    timeout: 30000

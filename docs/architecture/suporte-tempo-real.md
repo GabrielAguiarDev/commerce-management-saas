@@ -31,11 +31,61 @@ estão na publicação. Nenhuma tela faz polling.
 
 ### A regra que vale para as duas fases
 
-**O evento não carrega dado para a tela — ele só avisa que algo mudou.** Quem
-recebe o evento invalida a consulta que já existe (react-query no app,
-`router.refresh()` nos portais), e a leitura continua sendo a de sempre, com
-RLS, adapters e i18n. Isso evita uma segunda forma de montar a mensagem que
-um dia diverge da primeira.
+**Uma tradução só da linha do banco.** A mensagem pode chegar por dois
+caminhos: pelo SELECT de sempre ou pelo payload do evento. Os dois passam pela
+mesma função (`toMessageAPI` no app) e pelo mesmo adapter. Ninguém monta a
+mensagem "do seu jeito" a partir do evento.
+
+> Até 29/09/2026 a regra era mais estrita — "o evento só avisa, quem recebe
+> relê" — porque o `postgres_changes` já cobrava uma checagem de RLS por
+> inscrito e o GET extra não pesava. Com o Broadcast (abaixo) o payload já vem
+> autorizado, e reler seria jogar fora o que chegou.
+
+### Escala: Broadcast do banco, não `postgres_changes` (29/09/2026)
+
+`postgres_changes` confere o RLS da linha **para cada inscrito, em série**, a
+cada mudança. Com N clientes conectados, uma mensagem custa N checagens — é o
+limite que a própria Supabase aponta para esse modo.
+
+Desde `20260929000000_support_broadcast.sql`:
+
+- um **trigger** em `support_messages` (INSERT) e `support_tickets` (INSERT e
+  UPDATE de `status`/`last_message_at`) chama `realtime.send` uma vez por
+  tópico, com a linha no payload;
+- **tópicos privados**: `support:tenant:<tenant_id>` (app e portal do
+  cliente) e `support:admin` (console);
+- a **autorização acontece uma vez, na entrada do canal**: a policy
+  `support_broadcast_receive` em `realtime.messages` deixa entrar o membro
+  ativo daquele negócio, ou `is_platform_admin()` no tópico da plataforma —
+  a mesma regra de leitura das tabelas. Não há policy de INSERT: cliente
+  nenhum publica nesses tópicos;
+- `realtime.send` nunca derruba a escrita: falhar em avisar não desfaz a
+  mensagem.
+
+**App:** um canal só por sessão (`supportRealtime.subscribeToSupport`),
+compartilhado por contagem de ouvintes — o `supabase.channel(topic)` devolve o
+canal existente com o mesmo tópico, então dois canais "separados" seriam o
+mesmo, e fechar a conversa derrubaria o do shell. A conversa aberta põe a
+mensagem do payload direto no cache (`appendMessage`, sem repetir pelo `id`;
+a resposta do próprio cliente volta pela mutação e pelo canal). A lista de
+chamados ainda é relida por evento: ordem, resumo e "não lida" dependem de
+várias mensagens.
+
+**Portais:** mesmos tópicos, mas continuam em `router.refresh()` — a página é
+renderizada no servidor e não há cache no navegador onde pôr a mensagem.
+
+**Testes:** `supabase/tests/14_support_broadcast.test.sql` (tópicos, payload,
+quem entra e quem não entra, cliente não publica). O container de teste não
+tem o serviço Realtime; `tests/bootstrap/05_realtime.sql` é o dublê de
+`realtime.messages`/`topic()`/`send()`. A migration começa com
+`-- db-test: reaplicar` porque o `db dump` da baseline não retrata o schema
+`realtime`.
+
+**A publicação da fase 1 saiu** em `20260929010000_support_drop_postgres_changes.sql`
+(29/09/2026 — o sistema ainda não tinha usuários, então não havia app antigo
+escutando `postgres_changes`). `08_support_messages.test.sql` garante que as
+duas tabelas continuam FORA da publicação: se voltarem, cada escrita volta a
+pagar uma checagem de RLS por inscrito.
 
 ### O Realtime não reenvia o que se perdeu
 

@@ -73,6 +73,32 @@ function toAppStatus(status: string | null): string {
   return 'in_progress';
 }
 
+/** As colunas de `support_messages` que a conversa lê — no SELECT e no broadcast. */
+export interface SupportMessageRow {
+  id: string;
+  ticket_id: string;
+  body: string;
+  attachment_url: string | null;
+  sender_side: string;
+  created_at: string;
+}
+
+/**
+ * Linha do banco → contrato do app. UMA função para os dois caminhos por onde
+ * a mensagem chega: o SELECT de `listMessages` e o payload do broadcast
+ * (`supportRealtime`). Duas traduções da mesma linha divergiriam um dia.
+ */
+export function toMessageAPI(m: SupportMessageRow): TicketMessageAPI {
+  return {
+    id: m.id,
+    ticket_id: m.ticket_id,
+    body: m.body,
+    from_support: isFromSupportTeam(m.sender_side),
+    attachment_path: m.attachment_url ?? null,
+    created_label: relativeLabel(m.created_at),
+  };
+}
+
 export async function listMessages(ticketId: string): Promise<TicketMessageAPI[]> {
   const { data, error } = await supabase
     .from('support_messages')
@@ -82,14 +108,7 @@ export async function listMessages(ticketId: string): Promise<TicketMessageAPI[]
 
   if (error) throw error;
 
-  return (data ?? []).map((m) => ({
-    id: m.id,
-    ticket_id: m.ticket_id,
-    body: m.body,
-    from_support: isFromSupportTeam(m.sender_side),
-    attachment_path: m.attachment_url ?? null,
-    created_label: relativeLabel(m.created_at),
-  }));
+  return (data ?? []).map(toMessageAPI);
 }
 
 /**
@@ -209,14 +228,7 @@ export async function reply(payload: TicketReplyAPI): Promise<TicketMessageAPI> 
     .update({ last_message_at: now })
     .eq('id', payload.ticket_id);
 
-  return {
-    id: data.id,
-    ticket_id: data.ticket_id,
-    body: data.body,
-    from_support: false,
-    attachment_path: data.attachment_url ?? null,
-    created_label: relativeLabel(data.created_at),
-  };
+  return toMessageAPI(data);
 }
 
 /* -------------------------------------------------------------------------- */

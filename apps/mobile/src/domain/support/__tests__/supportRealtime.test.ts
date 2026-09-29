@@ -1,30 +1,33 @@
 import {
   closeSupportChannels,
-  subscribeToTenantSupport,
-  subscribeToTicket,
+  subscribeToSupport,
+  supportTopic,
 } from '../supportRealtime';
 
 /**
- * O canal de suporte é um COMBINADO com o Realtime, e a inscrição errada não dá
- * erro: ela simplesmente não recebe o evento. O sintoma é "a resposta não
- * aparece sozinha", que é indistinguível de não ter implementado nada — por
- * isso o que este teste cobra é o contrato inteiro: tabela, evento, filtro, a
- * reconexão que refaz a consulta e o canal que vai embora no fim.
+ * O canal de suporte é um COMBINADO com o banco (o trigger de
+ * `20260929000000_support_broadcast.sql` publica; a policy autoriza), e a
+ * inscrição errada não dá erro: ela simplesmente não recebe nada. O sintoma é
+ * "a resposta não aparece sozinha", indistinguível de não ter implementado —
+ * por isso este teste cobra o contrato inteiro: tópico privado, eventos, a
+ * mensagem traduzida do payload, o canal único compartilhado e o fim dele.
  */
 
 interface Registered {
-  /** Sempre `'postgres_changes'`. */
   type: string;
-  filter: { event?: string; schema?: string; table?: string; filter?: string };
-  callback: (payload: { new: unknown }) => void;
+  filter: { event?: string };
+  callback: (message: { payload: unknown }) => void;
 }
 
-/** O mínimo do `RealtimeChannel` que este arquivo usa. */
+/** O mínimo do `RealtimeChannel` que o módulo usa. */
 class MockChannel {
   readonly registered: Registered[] = [];
   onStatus: ((status: string) => void) | null = null;
 
-  constructor(readonly topic: string) {}
+  constructor(
+    readonly topic: string,
+    readonly params: unknown,
+  ) {}
 
   on(type: string, filter: Registered['filter'], callback: Registered['callback']) {
     this.registered.push({ type, filter, callback });
@@ -36,10 +39,10 @@ class MockChannel {
     return this;
   }
 
-  /** O Realtime entregando um evento de uma tabela aos `on` daquela tabela. */
-  emit(table: string, row: unknown) {
+  /** O Realtime entregando um broadcast aos `on` daquele evento. */
+  emit(event: string, payload: unknown) {
     for (const r of this.registered) {
-      if (r.filter.table === table) r.callback({ new: row });
+      if (r.type === 'broadcast' && r.filter.event === event) r.callback({ payload });
     }
   }
 }
@@ -49,8 +52,8 @@ const mockRemoved: MockChannel[] = [];
 
 jest.mock('@services/supabase', () => ({
   supabase: {
-    channel: (topic: string) => {
-      const channel = new MockChannel(topic);
+    channel: (topic: string, params: unknown) => {
+      const channel = new MockChannel(topic, params);
       mockOpened.push(channel);
       return channel;
     },
@@ -61,144 +64,136 @@ jest.mock('@services/supabase', () => ({
   },
 }));
 
-/** O último canal aberto — só existe um por inscrição. */
-function last(): MockChannel {
-  const channel = mockOpened[mockOpened.length - 1];
-  if (!channel) throw new Error('nenhum canal foi aberto');
-  return channel;
+function only(): MockChannel {
+  expect(mockOpened).toHaveLength(1);
+  return mockOpened[0] as MockChannel;
 }
 
+const row = {
+  id: 'msg_1',
+  ticket_id: 'tkt_1',
+  tenant_id: 'ten_1',
+  sender_side: 'admin',
+  body: 'Já verificamos.',
+  attachment_url: null,
+  created_at: new Date().toISOString(),
+};
+
 beforeEach(() => {
-  // `supportRealtime` guarda os canais abertos em estado de MÓDULO (é o que
-  // permite ao logout fechá-los). Sem zerar isso, o que um teste deixou aberto
-  // aparece na conta do seguinte.
+  // O canal compartilhado é estado de MÓDULO (é o que permite ao logout
+  // fechá-lo). Sem zerar, o que um teste deixou aberto vaza para o seguinte.
   closeSupportChannels();
   mockOpened.length = 0;
   mockRemoved.length = 0;
 });
 
-describe('subscribeToTicket', () => {
-  it('ouve só INSERT de mensagem daquele chamado', () => {
-    subscribeToTicket('tkt_1', { onEvent: jest.fn() });
+describe('subscribeToSupport', () => {
+  it('entra no tópico PRIVADO do negócio, ouvindo os três eventos do banco', () => {
+    subscribeToSupport('ten_1', {});
 
-    const [registered] = last().registered;
-    expect(last().registered).toHaveLength(1);
-    expect(registered?.type).toBe('postgres_changes');
-    expect(registered?.filter).toEqual({
-      event: 'INSERT',
-      schema: 'public',
-      table: 'support_messages',
-      filter: 'ticket_id=eq.tkt_1',
-    });
-  });
-
-  it('entrega o lado de quem escreveu — é o que decide marcar como lida', () => {
-    const onEvent = jest.fn();
-    subscribeToTicket('tkt_1', { onEvent });
-
-    last().emit('support_messages', { sender_side: 'admin', body: 'Já verificamos.' });
-
-    expect(onEvent).toHaveBeenCalledWith({ senderSide: 'admin' });
-  });
-
-  it('não inventa lado quando o payload vem sem ele', () => {
-    const onEvent = jest.fn();
-    subscribeToTicket('tkt_1', { onEvent });
-
-    last().emit('support_messages', {});
-
-    expect(onEvent).toHaveBeenCalledWith({ senderSide: null });
-  });
-
-  it('cancelar remove o canal', () => {
-    const cancel = subscribeToTicket('tkt_1', { onEvent: jest.fn() });
-    const channel = last();
-
-    cancel();
-
-    expect(mockRemoved).toHaveLength(1);
-    expect(mockRemoved[0]).toBe(channel);
-  });
-
-  it('dois canais nunca dividem o mesmo tópico', () => {
-    subscribeToTicket('tkt_1', { onEvent: jest.fn() });
-    const first = last().topic;
-    subscribeToTicket('tkt_1', { onEvent: jest.fn() });
-
-    expect(last().topic).not.toBe(first);
-  });
-});
-
-describe('subscribeToTenantSupport', () => {
-  it('ouve mensagem nova e mudança de chamado, sem filtrar tenant (é o RLS)', () => {
-    subscribeToTenantSupport({ onEvent: jest.fn() });
-
-    expect(last().registered.map((r) => r.filter)).toEqual([
-      { event: 'INSERT', schema: 'public', table: 'support_messages' },
-      { event: 'UPDATE', schema: 'public', table: 'support_tickets' },
+    const channel = only();
+    expect(channel.topic).toBe('support:tenant:ten_1');
+    expect(channel.topic).toBe(supportTopic('ten_1'));
+    expect(channel.params).toEqual({ config: { private: true } });
+    expect(channel.registered.map((r) => [r.type, r.filter.event])).toEqual([
+      ['broadcast', 'message_created'],
+      ['broadcast', 'ticket_created'],
+      ['broadcast', 'ticket_updated'],
     ]);
   });
 
-  it('um único canal para as duas inscrições — a cota é por conexão', () => {
-    subscribeToTenantSupport({ onEvent: jest.fn() });
+  it('entrega a mensagem do payload já no contrato do app', () => {
+    const onMessage = jest.fn();
+    subscribeToSupport('ten_1', { onMessage });
 
-    expect(mockOpened).toHaveLength(1);
+    only().emit('message_created', row);
+
+    expect(onMessage).toHaveBeenCalledWith({
+      ticketId: 'tkt_1',
+      senderSide: 'admin',
+      message: expect.objectContaining({
+        id: 'msg_1',
+        ticket_id: 'tkt_1',
+        body: 'Já verificamos.',
+        from_support: true,
+        attachment_path: null,
+      }),
+    });
   });
 
-  it('o UPDATE do chamado não tem lado', () => {
-    const onEvent = jest.fn();
-    subscribeToTenantSupport({ onEvent });
+  it('descarta payload malformado em vez de montar mensagem pela metade', () => {
+    const onMessage = jest.fn();
+    subscribeToSupport('ten_1', { onMessage });
 
-    last().emit('support_tickets', { status: 'waiting_client' });
+    only().emit('message_created', { id: 'msg_1' });
+    only().emit('message_created', null);
 
-    expect(onEvent).toHaveBeenCalledWith({ senderSide: null });
+    expect(onMessage).not.toHaveBeenCalled();
   });
-});
 
-describe('reconexão', () => {
-  it('a PRIMEIRA inscrição não refaz a consulta — ela acabou de rodar', () => {
+  it('avisa mudança de chamado nos dois eventos de chamado', () => {
+    const onTicketChange = jest.fn();
+    subscribeToSupport('ten_1', { onTicketChange });
+
+    only().emit('ticket_created', { id: 'tkt_2' });
+    only().emit('ticket_updated', { id: 'tkt_1', status: 'resolved' });
+
+    expect(onTicketChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('um canal só para o shell e a conversa — e ele fica enquanto houver ouvinte', () => {
+    const shell = jest.fn();
+    const conversation = jest.fn();
+    const stopShell = subscribeToSupport('ten_1', { onMessage: shell });
+    const stopConversation = subscribeToSupport('ten_1', { onMessage: conversation });
+
+    only().emit('message_created', row);
+    expect(shell).toHaveBeenCalledTimes(1);
+    expect(conversation).toHaveBeenCalledTimes(1);
+
+    // Fechar a conversa NÃO derruba o canal do shell.
+    stopConversation();
+    expect(mockRemoved).toHaveLength(0);
+    only().emit('message_created', row);
+    expect(shell).toHaveBeenCalledTimes(2);
+    expect(conversation).toHaveBeenCalledTimes(1);
+
+    stopShell();
+    expect(mockRemoved).toEqual([only()]);
+  });
+
+  it('reconexão relê; a primeira inscrição não', () => {
     const onReconnect = jest.fn();
-    subscribeToTenantSupport({ onEvent: jest.fn(), onReconnect });
+    subscribeToSupport('ten_1', { onReconnect });
 
-    last().onStatus?.('SUBSCRIBED');
-
+    only().onStatus?.('SUBSCRIBED');
     expect(onReconnect).not.toHaveBeenCalled();
+
+    only().onStatus?.('CHANNEL_ERROR');
+    only().onStatus?.('SUBSCRIBED');
+    expect(onReconnect).toHaveBeenCalledTimes(1);
   });
 
-  it('voltar a SUBSCRIBED refaz a consulta — o Realtime não reenvia o perdido', () => {
-    const onReconnect = jest.fn();
-    subscribeToTenantSupport({ onEvent: jest.fn(), onReconnect });
-    const channel = last();
+  it('outro negócio na mesma sessão fecha o canal anterior', () => {
+    subscribeToSupport('ten_1', {});
+    subscribeToSupport('ten_2', {});
 
-    channel.onStatus?.('SUBSCRIBED');
-    channel.onStatus?.('CLOSED');
-    channel.onStatus?.('SUBSCRIBED');
-
-    expect(onReconnect).toHaveBeenCalledTimes(1);
+    expect(mockOpened.map((c) => c.topic)).toEqual(['support:tenant:ten_1', 'support:tenant:ten_2']);
+    expect(mockRemoved.map((c) => c.topic)).toEqual(['support:tenant:ten_1']);
   });
 });
 
 describe('closeSupportChannels', () => {
-  it('fecha o que ficou aberto — o logout não deixa canal de pé', () => {
-    subscribeToTenantSupport({ onEvent: jest.fn() });
-    subscribeToTicket('tkt_1', { onEvent: jest.fn() });
-    const abertos = [...mockOpened];
+  it('fecha o canal no logout, e fechar de novo não faz nada', () => {
+    const onMessage = jest.fn();
+    subscribeToSupport('ten_1', { onMessage });
+    const channel = only();
 
     closeSupportChannels();
-
-    expect(mockRemoved).toHaveLength(2);
-    expect(mockRemoved[0]).toBe(abertos[0]);
-    expect(mockRemoved[1]).toBe(abertos[1]);
-  });
-
-  it('não tenta fechar de novo o que já foi cancelado', () => {
-    const cancel = subscribeToTenantSupport({ onEvent: jest.fn() });
-    const channel = last();
-
-    cancel();
     closeSupportChannels();
 
-    expect(mockRemoved).toHaveLength(1);
-    expect(mockRemoved[0]).toBe(channel);
+    expect(mockRemoved).toEqual([channel]);
+    channel.emit('message_created', row);
+    expect(onMessage).not.toHaveBeenCalled();
   });
 });

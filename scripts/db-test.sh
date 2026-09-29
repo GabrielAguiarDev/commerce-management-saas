@@ -57,10 +57,14 @@ ls "$MIGRATIONS_DIR/${BASELINE_VERSION}_"*.sql >/dev/null 2>&1 \
   || fail "a versão da baseline ($BASELINE_VERSION) não corresponde a nenhuma migration"
 
 # Migrations pendentes: versão (prefixo numérico) maior que a da baseline.
+# Mais as marcadas com `-- db-test: reaplicar` na primeira linha, em qualquer
+# versão: elas mexem em schema gerenciado pela plataforma (ex.: policies em
+# `realtime.messages`), que o `supabase db dump` não retrata na baseline.
+# Precisam ser idempotentes — rodam sempre, duas vezes.
 PENDING=()
 while IFS= read -r file; do
   version="$(basename "$file" | cut -d_ -f1)"
-  if [[ "$version" > "$BASELINE_VERSION" ]]; then
+  if [[ "$version" > "$BASELINE_VERSION" ]] || head -1 "$file" | grep -q '^-- db-test: reaplicar'; then
     PENDING+=("$file")
   fi
 done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -name '[0-9]*_*.sql' | LC_ALL=C sort)
@@ -95,6 +99,7 @@ done
 
 log "preparando o ambiente de teste (auth, pgTAP)"
 psql_as supabase_admin < "$TESTS_DIR/bootstrap/00_auth.sql" >/dev/null
+psql_as supabase_admin < "$TESTS_DIR/bootstrap/05_realtime.sql" >/dev/null
 
 log "carregando a baseline de produção (até $BASELINE_VERSION)"
 psql_in < "$BASELINE" >/dev/null

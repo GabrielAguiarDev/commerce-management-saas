@@ -1,0 +1,38 @@
+# Montar carrinho → finalizar em dinheiro → a venda aparece no Início →
+# estorno (a conta de testes não acumula faturamento a cada execução).
+appId: br.com.aguiarone.app
+name: Venda — carrinho, finalizar e estornar
+tags: [money, sale]
+---
+- launchApp
+- runFlow: subflows/login-if-needed.yaml
+
+- tapOn: "Nova venda"
+- tapOn: "Adicionar Brinquedo Bolinha Borracha.*"
+- tapOn: "Adicionar Brinquedo Bolinha Borracha.*"
+- assertVisible: "Abrir carrinho: 2 itens no carrinho, total R\\$ 19,80"
+
+- tapOn: "Abrir carrinho.*"
+- assertVisible: "Forma de pagamento: Dinheiro"
+- tapOn: "Finalizar venda · R\\$ 19,80"
+- extendedWaitUntil:
+    notVisible: "Abrir carrinho.*"
+    timeout: 15000
+
+- tapOn: "Voltar"
+- tapOn: "Início"
+- extendedWaitUntil:
+    visible: ".*2× Brinquedo Bolinha Borracha, R\\$ 19,80"
+    timeout: 15000
+
+# Estorno da venda que acabou de entrar (a primeira da lista é a mais nova).
+- tapOn: "Ver vendas de hoje"
+- tapOn:
+    text: ".*2× Brinquedo Bolinha Borracha, R\\$ 19,80"
+    index: 0
+- tapOn: "Estornar venda"
+- tapOn:
+    id: "confirm-dialog-accept"
+- extendedWaitUntil:
+    visible: "Desfazer estorno"
+    timeout: 15000

@@ -15,17 +15,16 @@ import { createClient } from "@/lib/supabase/client";
  * por navegação, no layout raiz (`loadPortal` → `PortalProvider` → `d.tickets`),
  * e nada mandava ler de novo.
  *
- * A REGRA: o evento não traz a mensagem, ele só avisa que algo mudou. Quem
- * recebe chama `router.refresh()`, e o layout relê pelo caminho de sempre — com
- * RLS, os adapters de `lib/dados` e uma única definição de "não lida". Montar a
- * mensagem a partir do payload criaria uma segunda forma de exibi-la, que um dia
- * divergiria da primeira.
+ * BROADCAST DO BANCO (desde 29/09/2026): um trigger publica cada mensagem e
+ * cada mudança de chamado no tópico PRIVADO `support:tenant:<tenant_id>`, e a
+ * policy de `realtime.messages` só deixa entrar membro ativo daquele negócio
+ * (ver `20260929000000_support_broadcast.sql`). A autorização é feita uma vez,
+ * na entrada do canal — não a cada evento, como no `postgres_changes`.
  *
- * SEM FILTRO DE TENANT, de propósito: o Realtime entrega o evento apenas a quem
- * conseguiria dar SELECT naquela linha, e as policies de `support_messages` e
- * `support_tickets` já recortam pelo tenant do usuário logado (ver
- * `20260928000000_support_realtime.sql`). É o mesmo motivo por que nenhuma
- * consulta deste portal passa `tenant_id` à mão.
+ * O portal usa do payload só o que DECIDE (de qual chamado é, quem escreveu) e
+ * chama `router.refresh()`: a página é renderizada no servidor e não há cache
+ * no navegador onde pôr a mensagem. O layout relê pelo caminho de sempre, com
+ * RLS e os adapters de `lib/dados`.
  *
  * O TOKEN vem do cliente do navegador (`lib/supabase/client.ts`), que carrega a
  * sessão do cookie próprio do portal (`sb-aguiar-client-auth`) — o mesmo cliente
@@ -76,6 +75,8 @@ export function SupportLive() {
    */
   const signedIn = Boolean(d.business.id);
 
+  const tenantId = d.business.id;
+
   useEffect(() => {
     if (!signedIn) return;
 
@@ -111,19 +112,14 @@ export function SupportLive() {
     };
 
     const channel = supabase
-      .channel("support-live")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "support_messages" },
-        (payload) => onMessage(payload.new as Record<string, unknown>),
+      .channel(`support:tenant:${tenantId}`, { config: { private: true } })
+      .on("broadcast", { event: "message_created" }, ({ payload }) =>
+        onMessage((payload ?? {}) as Record<string, unknown>),
       )
-      // O chamado mudando é status e `last_message_at` — o que reordena a lista
-      // e troca o rótulo de "Aguardando você".
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "support_tickets" },
-        reread,
-      )
+      // Chamado novo, ou mudando de status e `last_message_at` — o que reordena
+      // a lista e troca o rótulo de "Aguardando você".
+      .on("broadcast", { event: "ticket_created" }, reread)
+      .on("broadcast", { event: "ticket_updated" }, reread)
       // A RECONEXÃO refaz a leitura: o Realtime não reenvia o evento que
       // aconteceu enquanto a aba estava sem rede ou dormindo. A PRIMEIRA
       // inscrição não conta — o layout acabou de carregar os chamados, e
@@ -138,7 +134,7 @@ export function SupportLive() {
       if (timer) clearTimeout(timer);
       void supabase.removeChannel(channel);
     };
-  }, [signedIn, router]);
+  }, [signedIn, tenantId, router]);
 
   return null;
 }

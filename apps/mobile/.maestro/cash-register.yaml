@@ -1,0 +1,42 @@
+# Abrir caixa → sangria → fechar conferindo, sem diferença.
+appId: br.com.aguiarone.app
+name: Caixa — abrir, sangria e fechar
+tags: [money, cash]
+---
+- launchApp
+- runFlow: subflows/login-if-needed.yaml
+- runFlow: subflows/close-register-if-open.yaml
+
+- tapOn: "Abrir caixa"
+- extendedWaitUntil:
+    visible: "Na gaveta agora"
+    timeout: 15000
+- assertVisible: "Abertura R\\$ 150,00.*"
+
+# Sangria de R$ 10,00 (o campo lê reais).
+- tapOn: "Sangria"
+- tapOn: "Valor"
+- inputText: "10"
+- tapOn: "Motivo"
+- inputText: "E2E Maestro"
+- tapOn: "Registrar retirada"
+- extendedWaitUntil:
+    visible: "R\\$ 140,00"
+    timeout: 15000
+
+# Fecha contando exatamente o esperado.
+- tapOn: "Fechar caixa"
+- tapOn: "Valor conferido em Dinheiro"
+- inputText: "140"
+# `hideKeyboard` não funciona no input do bottom sheet: um toque fora fecha.
+- tapOn: "Diferença"
+- assertVisible:
+    text: "[+]?R\\$ 0,00"
+    below: "Valor conferido em Pix"
+- tapOn: "Conferir e fechar"
+- tapOn:
+    id: "confirm-dialog-accept"
+- extendedWaitUntil:
+    visible: "O caixa está fechado"
+    timeout: 15000
+- assertVisible: "sem diferença"

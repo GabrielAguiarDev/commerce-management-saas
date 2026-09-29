@@ -6,9 +6,9 @@ import { useSessionStore } from '@store/sessionStore';
 
 import { isFromSupportTeam } from '../senderSide';
 import * as service from '../supportService';
-import { subscribeToTenantSupport, subscribeToTicket } from '../supportRealtime';
+import { subscribeToSupport } from '../supportRealtime';
 import { whatsappLink } from '../whatsapp';
-import type { NewTicket } from '../supportTypes';
+import type { NewTicket, TicketMessage } from '../supportTypes';
 
 export const suporteKeys = {
   all: ['support'] as const,
@@ -54,10 +54,13 @@ export function useMarkAsRead() {
 /**
  * A CONVERSA ABERTA acompanha o chamado ao vivo.
  *
- * O evento só invalida — `suporteKeys.all` cobre a conversa E a lista de uma
- * vez (a chave dos chamados é prefixada por ela), e o `last_message_at` que a
- * resposta mexeu reordena a lista de qualquer jeito. A leitura continua sendo a
- * do `supportApi`, com RLS e adapter.
+ * A mensagem nova vem INTEIRA no evento (broadcast do banco) e entra direto no
+ * cache da conversa, sem ida ao banco — passando pelo mesmo adapter do SELECT
+ * (`service.messageFromEvent`). O canal é o do negócio, compartilhado com o
+ * shell; aqui só entra o que é deste chamado.
+ *
+ * Se a conversa ainda não está em cache (primeira carga em andamento), o
+ * evento é ignorado: a consulta que está rodando já vai trazê-la.
  *
  * MARCAR COMO LIDA: se a resposta chega com a conversa na frente da pessoa, o
  * badge do "Mais" não pode acender por uma mensagem que ela está lendo. Só as
@@ -65,49 +68,58 @@ export function useMarkAsRead() {
  * mesmo canal, e marcá-la seria uma escrita que o trigger
  * `guard_support_message_write` recusa.
  *
- * Montado na tela do chamado (`app/(app)/support/[id].tsx`), que é a única que
- * tem um chamado aberto — e desmonta com ela, fechando o canal.
+ * RECONEXÃO relê a conversa: o que chegou com o aparelho sem rede não é
+ * reenviado.
  */
 export function useTicketLive(ticketId: string | undefined) {
+  const tenantId = useSessionStore((s) => s.tenantId);
   const client = useQueryClient();
   const { mutate: markAsRead } = useMarkAsRead();
 
   useEffect(() => {
-    if (!ticketId) return;
+    if (!ticketId || !tenantId) return;
+    const key = suporteKeys.mensagens(ticketId);
 
-    const reread = () => {
-      void client.invalidateQueries({ queryKey: suporteKeys.all });
-    };
-
-    return subscribeToTicket(ticketId, {
-      onEvent: ({ senderSide }) => {
-        reread();
-        if (isFromSupportTeam(senderSide)) markAsRead(ticketId);
+    return subscribeToSupport(tenantId, {
+      onMessage: (event) => {
+        if (event.ticketId !== ticketId) return;
+        client.setQueryData<TicketMessage[]>(key, (conversation) =>
+          service.appendMessage(conversation, service.messageFromEvent(event.message)),
+        );
+        if (isFromSupportTeam(event.senderSide)) markAsRead(ticketId);
       },
-      onReconnect: reread,
+      onReconnect: () => void client.invalidateQueries({ queryKey: key }),
     });
-  }, [ticketId, client, markAsRead]);
+  }, [ticketId, tenantId, client, markAsRead]);
 }
 
 /**
  * O ATENDIMENTO do negócio, ao vivo — a lista de chamados e o badge do "Mais".
  *
- * ⚠️ MONTE ISTO UMA VEZ SÓ, no shell autenticado (`app/(app)/_layout.tsx`).
- * Cada montagem abre um canal, e a cota do Realtime é por conexão simultânea:
- * um hook por tela multiplicaria as conexões pelo número de telas que a pessoa
- * visita. O badge precisa atualizar em QUALQUER tela, e é justamente por isso
- * que ele mora no shell e não na tela de Suporte.
+ * A lista é relida (e não montada do evento): a ordem, o resumo e o "não lida"
+ * dependem de várias mensagens, e quem define isso é a consulta da lista. É
+ * uma leitura só por evento, e só nos aparelhos daquele negócio.
+ *
+ * Monte UMA vez, no shell autenticado (`app/(app)/_layout.tsx`). O canal é
+ * compartilhado de qualquer forma (ver `supportRealtime`), mas cada montagem é
+ * um ouvinte a mais relendo a lista.
  */
 export function useSupportLive() {
+  const tenantId = useSessionStore((s) => s.tenantId);
   const client = useQueryClient();
 
   useEffect(() => {
-    const reread = () => {
-      void client.invalidateQueries({ queryKey: suporteKeys.all });
+    if (!tenantId) return;
+    const rereadList = () => {
+      void client.invalidateQueries({ queryKey: suporteKeys.tickets(tenantId) });
     };
 
-    return subscribeToTenantSupport({ onEvent: reread, onReconnect: reread });
-  }, [client]);
+    return subscribeToSupport(tenantId, {
+      onMessage: rereadList,
+      onTicketChange: rereadList,
+      onReconnect: () => void client.invalidateQueries({ queryKey: suporteKeys.all }),
+    });
+  }, [tenantId, client]);
 }
 
 export function useOpenTicket() {
@@ -125,8 +137,12 @@ export function useReplyToTicket(ticketId: string | undefined) {
 
   return useMutation({
     mutationFn: (text: string) => service.reply(ticketId as string, text),
-    onSuccess: () =>
-      client.invalidateQueries({ queryKey: suporteKeys.mensagens(ticketId ?? '') }),
+    // A mensagem gravada volta na resposta do insert: entra direto na conversa.
+    // O eco dela pelo canal é ignorado pelo `id` (`appendMessage`).
+    onSuccess: (message) =>
+      client.setQueryData<TicketMessage[]>(suporteKeys.mensagens(ticketId ?? ''), (conversation) =>
+        service.appendMessage(conversation, message),
+      ),
   });
 }
 

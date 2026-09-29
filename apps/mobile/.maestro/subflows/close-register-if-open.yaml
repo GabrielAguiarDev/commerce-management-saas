@@ -1,0 +1,15 @@
+# Deixa o caixa fechado antes do fluxo, conferindo o que o sistema espera.
+appId: br.com.aguiarone.app
+---
+- tapOn: "Caixa"
+- runFlow:
+    when:
+      visible: "Fechar caixa"
+    commands:
+      - tapOn: "Fechar caixa"
+      - tapOn: "Conferir e fechar"
+      - tapOn:
+          id: "confirm-dialog-accept"
+      - extendedWaitUntil:
+          visible: "O caixa está fechado"
+          timeout: 15000

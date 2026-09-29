@@ -1,0 +1,9 @@
+# E2E do app com Maestro — os fluxos que mexem com dinheiro.
+# Como rodar: ver DEVELOPMENT.md § 17.
+flows:
+  - "*.yaml"
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - cash-register
+    - sale

@@ -119,26 +119,27 @@ select lives_ok(
   'backend marca a mensagem do cliente como lida'
 );
 
--- Realtime: sem as tabelas na publicação, nenhum cliente recebe evento de
--- mensagem nova — e a fase 1 do suporte em tempo real não existe. Ver
--- `20260928000000_support_realtime.sql`.
+-- Realtime: o suporte chega por Broadcast do banco (20260929000000), e as
+-- tabelas saíram da publicação do `postgres_changes` (20260929010000). Se
+-- voltarem, cada escrita paga uma checagem de RLS por inscrito — o caminho que
+-- não escala. Ver docs/architecture/suporte-tempo-real.md.
 select ok(
-  exists (
+  not exists (
     select 1 from pg_publication_tables
      where pubname = 'supabase_realtime'
        and schemaname = 'public'
        and tablename = 'support_messages'
   ),
-  'support_messages está na publicação supabase_realtime'
+  'support_messages fora da publicação supabase_realtime'
 );
 select ok(
-  exists (
+  not exists (
     select 1 from pg_publication_tables
      where pubname = 'supabase_realtime'
        and schemaname = 'public'
        and tablename = 'support_tickets'
   ),
-  'support_tickets está na publicação supabase_realtime'
+  'support_tickets fora da publicação supabase_realtime'
 );
 
 select * from finish();

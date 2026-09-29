@@ -172,3 +172,20 @@ export function relativeLabel(iso: string): string {
 
   return t.monthsAgo(Math.floor(days / 30));
 }
+
+export type DayPeriod = 'morning' | 'afternoon' | 'evening';
+
+/**
+ * O período do dia para a saudação, pela hora do aparelho (0–23).
+ *
+ *   05h–11h → manhã      12h–17h → tarde      18h–04h → noite
+ *
+ * A madrugada é "noite": quem abre o app às 00h35 fechando o caixa não está
+ * começando o dia. Antes a regra era "antes do meio-dia é manhã", e a
+ * meia-noite dava "Bom dia".
+ */
+export function dayPeriod(hour: number): DayPeriod {
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 18) return 'afternoon';
+  return 'evening';
+}

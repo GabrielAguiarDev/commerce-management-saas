@@ -1,4 +1,5 @@
 import {
+  dayPeriod,
   daysAgoDateOnly,
   daysSince,
   formatDayInput,
@@ -123,5 +124,20 @@ describe('formatDayInput', () => {
   it('é o caminho de volta do parse', () => {
     expect(formatDayInput(new Date(2026, 7, 3))).toBe('03/08/2026');
     expect(parseDayInput(formatDayInput(new Date(2026, 0, 1)))?.getMonth()).toBe(0);
+  });
+});
+
+describe('dayPeriod', () => {
+  it.each([
+    [0, 'evening'],
+    [4, 'evening'],
+    [5, 'morning'],
+    [11, 'morning'],
+    [12, 'afternoon'],
+    [17, 'afternoon'],
+    [18, 'evening'],
+    [23, 'evening'],
+  ] as const)('%ih → %s', (hour, period) => {
+    expect(dayPeriod(hour)).toBe(period);
   });
 });

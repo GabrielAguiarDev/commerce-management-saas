@@ -2450,6 +2450,54 @@ COMMENT ON FUNCTION "public"."set_sale_refunded"("p_sale_id" "uuid", "p_refunded
 
 
 
+CREATE OR REPLACE FUNCTION "public"."support_broadcast"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_event   text;
+  v_payload jsonb;
+begin
+  if tg_table_name = 'support_messages' then
+    v_event := 'message_created';
+    -- As colunas que a conversa exibe — as mesmas que o SELECT do app e dos
+    -- portais lê. `sender_id` e `read_by_recipient` ficam de fora: nenhuma
+    -- tela os usa ao receber.
+    v_payload := jsonb_build_object(
+      'id', new.id,
+      'ticket_id', new.ticket_id,
+      'tenant_id', new.tenant_id,
+      'sender_side', new.sender_side,
+      'body', new.body,
+      'attachment_url', new.attachment_url,
+      'created_at', new.created_at
+    );
+  else
+    v_event := case tg_op when 'INSERT' then 'ticket_created' else 'ticket_updated' end;
+    v_payload := jsonb_build_object(
+      'id', new.id,
+      'tenant_id', new.tenant_id,
+      'status', new.status,
+      'last_message_at', new.last_message_at
+    );
+  end if;
+
+  -- `realtime.send` nunca derruba a escrita: falhar em avisar não pode desfazer
+  -- a mensagem que o cliente mandou (na plataforma, o erro vira WARNING).
+  perform realtime.send(v_payload, v_event, 'support:tenant:' || new.tenant_id::text, true);
+  perform realtime.send(v_payload, v_event, 'support:admin', true);
+  return null;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."support_broadcast"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."support_broadcast"() IS 'Publica mensagem nova e mudança de chamado nos tópicos privados support:tenant:<id> e support:admin (Realtime Broadcast).';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."sync_product_column_grants"() RETURNS "void"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public', 'pg_temp'
@@ -3623,6 +3671,14 @@ CREATE OR REPLACE TRIGGER "sales_normalize_payment_method" BEFORE INSERT OR UPDA
 
 
 
+CREATE OR REPLACE TRIGGER "support_messages_broadcast" AFTER INSERT ON "public"."support_messages" FOR EACH ROW EXECUTE FUNCTION "public"."support_broadcast"();
+
+
+
+CREATE OR REPLACE TRIGGER "support_tickets_broadcast" AFTER INSERT OR UPDATE OF "status", "last_message_at" ON "public"."support_tickets" FOR EACH ROW EXECUTE FUNCTION "public"."support_broadcast"();
+
+
+
 CREATE OR REPLACE TRIGGER "tenant_fiscal_settings_touch" BEFORE UPDATE ON "public"."tenant_fiscal_settings" FOR EACH ROW EXECUTE FUNCTION "public"."touch_updated_at"();
 
 
@@ -4271,14 +4327,6 @@ ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
 
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."support_messages";
-
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."support_tickets";
-
-
-
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
@@ -4714,6 +4762,11 @@ GRANT ALL ON FUNCTION "public"."set_fiscal_credentials"("p_csc_id" "text", "p_cs
 REVOKE ALL ON FUNCTION "public"."set_sale_refunded"("p_sale_id" "uuid", "p_refunded" boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."set_sale_refunded"("p_sale_id" "uuid", "p_refunded" boolean) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."set_sale_refunded"("p_sale_id" "uuid", "p_refunded" boolean) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."support_broadcast"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."support_broadcast"() TO "service_role";
 
 
 

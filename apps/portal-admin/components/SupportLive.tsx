@@ -15,18 +15,16 @@ import { createClient } from "@/lib/supabase/client";
  * nada mandava ler de novo. Quem atende ficava recarregando a tela para saber se
  * alguém respondeu.
  *
- * A REGRA: o evento não traz a mensagem, ele só avisa que algo mudou. Quem
- * recebe chama `router.refresh()`, o layout relê por `lib/chamados.ts` e o
- * `AdminProvider` ressincroniza pela assinatura que ele já mantém (a lista de
- * chamados entra nela por `id:status:messages.length`). Montar a mensagem a
- * partir do payload criaria uma segunda forma de exibi-la — e o vocabulário do
- * banco é traduzido num lugar só, que é `lib/chamados.ts`.
+ * BROADCAST DO BANCO (desde 29/09/2026): um trigger publica cada mensagem e
+ * cada mudança de chamado de TODOS os negócios no tópico privado
+ * `support:admin`, e a policy de `realtime.messages` só deixa entrar
+ * `is_platform_admin()` (ver `20260929000000_support_broadcast.sql`). A
+ * autorização é feita uma vez, na entrada do canal.
  *
- * SEM FILTRO, de propósito e por um motivo diferente do portal do cliente: quem
- * abre o console é `is_platform_admin()`, e as policies de `support_tickets` e
- * `support_messages` deixam esse papel ler TODOS os tenants. Então o canal
- * recebe o movimento da plataforma inteira, que é exatamente a fila que este
- * console existe para mostrar. Ver `20260928000000_support_realtime.sql`.
+ * Do payload o console só usa o `tenant_id` do chamado novo, para o aviso. O
+ * resto é `router.refresh()`: o layout relê por `lib/chamados.ts`, que é onde o
+ * vocabulário do banco é traduzido, e o `AdminProvider` ressincroniza pela
+ * assinatura que ele já mantém (`id:status:messages.length`).
  *
  * Ver `docs/architecture/suporte-tempo-real.md`.
  */
@@ -99,26 +97,19 @@ export function SupportLive() {
       reread();
     };
 
+    // Tópico PRIVADO da plataforma: o trigger de `support_messages` e
+    // `support_tickets` publica tudo aqui, e só `is_platform_admin()` entra
+    // (ver `20260929000000_support_broadcast.sql`).
     const channel = supabase
-      .channel("support-live")
+      .channel("support:admin", { config: { private: true } })
       // A resposta do cliente na conversa.
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "support_messages" },
-        reread,
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "support_tickets" },
-        (payload) => onNewTicket(payload.new as Record<string, unknown>),
+      .on("broadcast", { event: "message_created" }, reread)
+      .on("broadcast", { event: "ticket_created" }, ({ payload }) =>
+        onNewTicket((payload ?? {}) as Record<string, unknown>),
       )
       // O chamado mudando de status ou de `last_message_at` — o que reordena a
       // fila e move o contador de "abertos" da barra lateral.
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "support_tickets" },
-        reread,
-      )
+      .on("broadcast", { event: "ticket_updated" }, reread)
       // A RECONEXÃO refaz a leitura: o Realtime não reenvia o que aconteceu
       // enquanto a aba estava sem rede ou dormindo. A PRIMEIRA inscrição não
       // conta — o layout acabou de carregar a fila.

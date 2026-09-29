@@ -1,4 +1,5 @@
 import * as api from './supportApi';
+import type { TicketMessageAPI } from './supportApiTypes';
 import { sanitizePhone } from './whatsapp';
 import { toTicket, toTicketPayload, toMessage } from './supportAdapter';
 import {
@@ -29,6 +30,29 @@ export async function listMessages(ticketId: string): Promise<TicketMessage[]> {
   } catch (e) {
     return normalize(e);
   }
+}
+
+/**
+ * A mensagem que chegou pelo canal, no mesmo formato da que veio do SELECT —
+ * o mesmo adapter, para as duas terem a mesma cara na conversa.
+ */
+export function messageFromEvent(raw: TicketMessageAPI): TicketMessage {
+  return toMessage(raw);
+}
+
+/**
+ * Acrescenta uma mensagem à conversa em cache, sem repetir a que já está lá.
+ *
+ * A mesma mensagem pode chegar duas vezes: a resposta do próprio cliente volta
+ * pela mutação E pelo canal. Pelo `id`, a segunda é ignorada.
+ */
+export function appendMessage(
+  conversation: readonly TicketMessage[] | undefined,
+  message: TicketMessage,
+): TicketMessage[] | undefined {
+  if (!conversation) return conversation;
+  if (conversation.some((m) => m.id === message.id)) return conversation as TicketMessage[];
+  return [...conversation, message];
 }
 
 export async function markAsRead(tenantId: string, ticketId: string): Promise<void> {

@@ -1,177 +1,148 @@
 import { supabase } from '@services/supabase';
-
 import type { RealtimeChannel } from '@supabase/supabase-js';
+
+import { toMessageAPI, type SupportMessageRow } from './supportApi';
+import type { TicketMessageAPI } from './supportApiTypes';
 
 /**
  * FRONTEIRA DE TEMPO REAL do suporte.
  *
  * ⚠️ ÚNICO ARQUIVO DESTE DOMÍNIO QUE ABRE CANAL — a mesma regra do
- * `supportApi.ts` para as consultas. Um canal aberto de dentro de uma tela é
- * uma conexão que ninguém consegue contar depois, e a cota do Realtime é por
- * conexão simultânea (200 no plano gratuito).
+ * `supportApi.ts` para as consultas.
  *
- * A REGRA QUE VALE AQUI: **o evento não carrega dado para a tela.** Ele só
- * avisa que algo mudou; quem recebe invalida a consulta que já existe e relê
- * pelo caminho de sempre (`supportApi` → `supportService` → adapter). O que o
- * evento diz sobre a linha (`senderSide`) serve para DECIDIR — marcar como
- * lida, e nada mais —, nunca para montar a mensagem. Duas formas de montar a
- * mesma mensagem divergem um dia, e a segunda é a que ninguém testa.
+ * BROADCAST DO BANCO, não `postgres_changes` (desde 29/09/2026). Um trigger
+ * publica cada mensagem e cada mudança de chamado no tópico privado
+ * `support:tenant:<tenant_id>`, com a linha no payload (ver
+ * `20260929000000_support_broadcast.sql`). A autorização acontece UMA vez, na
+ * entrada do canal — a policy de `realtime.messages` confere se a sessão é
+ * membro ativo daquele negócio —, e não a cada evento para cada inscrito, que é
+ * o que fazia o `postgres_changes` escalar mal.
  *
- * NENHUM FILTRO DE TENANT, de propósito: o RLS entrega o evento só a quem
- * conseguiria dar SELECT naquela linha (ver
- * `20260928000000_support_realtime.sql`). É a mesma razão por que nenhuma
- * consulta deste app passa `tenant_id`.
+ * UM CANAL POR SESSÃO, compartilhado. O `supabase.channel(topic)` devolve o
+ * canal que já existe com aquele tópico — e o tópico agora é fixo por negócio.
+ * Se a conversa aberta e o shell tivessem cada um o "seu" canal, fechar a
+ * conversa derrubaria o do shell. Aqui o canal é aberto pelo primeiro ouvinte e
+ * fechado quando o último sai; a conversa filtra pelo `ticket_id` do payload.
+ *
+ * A MENSAGEM DO PAYLOAD passa pelo mesmo `toMessageAPI` do SELECT, e dali pelo
+ * mesmo adapter: uma tradução só da linha, qualquer que seja o caminho por onde
+ * ela chegou.
  *
  * Ver `docs/architecture/suporte-tempo-real.md`.
  */
 
-/** O que o evento diz da linha que mudou — e é só isso que ele diz. */
-export interface SupportEvent {
-  /**
-   * `support_messages.sender_side` quando o evento é de mensagem; `null` quando
-   * é do chamado (status, `last_message_at`), que não tem lado.
-   */
-  senderSide: string | null;
+/** Mensagem nova, já no contrato do app. */
+export interface SupportMessageEvent {
+  ticketId: string;
+  /** `support_messages.sender_side` — decide se marca como lida. */
+  senderSide: string;
+  message: TicketMessageAPI;
 }
 
-export interface SupportSubscription {
-  /** Algo mudou: releia. */
-  onEvent: (event: SupportEvent) => void;
+export interface SupportListener {
+  onMessage?: (event: SupportMessageEvent) => void;
+  /** Chamado aberto, mudou de status ou de `last_message_at`. */
+  onTicketChange?: () => void;
   /**
    * O canal VOLTOU a `SUBSCRIBED` depois de uma queda.
    *
-   * O Realtime não reenvia o que se perdeu: o evento que aconteceu enquanto o
-   * aparelho estava sem rede não chega depois. Por isso toda reconexão refaz a
-   * consulta — é a rede de segurança da fase 1.
-   *
-   * Não é chamado na PRIMEIRA inscrição: ali a consulta acabou de rodar, e
-   * invalidá-la de novo seria uma ida ao banco por montagem de tela.
+   * O Realtime não reenvia o que se perdeu enquanto o aparelho estava sem
+   * rede: quem ouve relê pelo caminho de sempre. Não é chamado na PRIMEIRA
+   * inscrição — ali a consulta acabou de rodar.
    */
   onReconnect?: () => void;
 }
 
-/**
- * Sequência do tópico, só para garantir nome único.
- *
- * Dois canais com o mesmo tópico na mesma conexão brigam pelo mesmo `join`, e a
- * mesma tela de chamado pode ser empilhada duas vezes (um deep link sobre a
- * conversa já aberta).
- */
-let sequence = 0;
+export function supportTopic(tenantId: string): string {
+  return `support:tenant:${tenantId}`;
+}
 
-/**
- * Os canais que ESTE arquivo abriu.
- *
- * Existe para o logout conseguir fechá-los. É uma lista nossa, e não
- * `supabase.removeAllChannels()`: hoje o suporte é o único a abrir canal, mas a
- * função que apaga tudo continuaria chamando "encerrar os canais do suporte"
- * quando a fase 2 (ou o próximo domínio) trouxer o segundo canal.
- */
-const openChannels = new Set<RealtimeChannel>();
+interface SharedChannel {
+  tenantId: string;
+  channel: RealtimeChannel;
+  listeners: Set<SupportListener>;
+}
 
-/**
- * O esqueleto das duas inscrições: abre o canal, deixa o chamador pendurar os
- * `on(...)` nele e devolve a função de cancelar.
- */
-function subscribe(
-  topic: string,
-  attach: (channel: RealtimeChannel) => RealtimeChannel,
-  onReconnect?: () => void,
-): () => void {
-  sequence += 1;
-  const channel = attach(supabase.channel(`${topic}:${sequence}`));
-  openChannels.add(channel);
+let shared: SharedChannel | null = null;
 
+/** O payload vem do banco, mas passa por rede: nada de confiar na forma. */
+function parseMessage(payload: unknown): SupportMessageEvent | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const row = payload as Partial<Record<keyof SupportMessageRow, unknown>>;
+  const strings = ['id', 'ticket_id', 'body', 'sender_side', 'created_at'] as const;
+  if (!strings.every((key) => typeof row[key] === 'string')) return null;
+  const attachment = typeof row.attachment_url === 'string' ? row.attachment_url : null;
+
+  const message = toMessageAPI({
+    id: row.id as string,
+    ticket_id: row.ticket_id as string,
+    body: row.body as string,
+    sender_side: row.sender_side as string,
+    created_at: row.created_at as string,
+    attachment_url: attachment,
+  });
+  return { ticketId: message.ticket_id, senderSide: row.sender_side as string, message };
+}
+
+function open(tenantId: string): SharedChannel {
+  const listeners = new Set<SupportListener>();
   let subscribedBefore = false;
+  const each = (fn: (listener: SupportListener) => void) => {
+    for (const listener of [...listeners]) fn(listener);
+  };
+  const ticketChanged = () => each((l) => l.onTicketChange?.());
+
+  const channel = supabase
+    .channel(supportTopic(tenantId), { config: { private: true } })
+    .on('broadcast', { event: 'message_created' }, ({ payload }) => {
+      const event = parseMessage(payload);
+      if (event) each((l) => l.onMessage?.(event));
+    })
+    .on('broadcast', { event: 'ticket_created' }, ticketChanged)
+    .on('broadcast', { event: 'ticket_updated' }, ticketChanged);
 
   channel.subscribe((status) => {
     if (status !== 'SUBSCRIBED') return;
-    if (subscribedBefore) onReconnect?.();
+    if (subscribedBefore) each((l) => l.onReconnect?.());
     subscribedBefore = true;
   });
 
+  return { tenantId, channel, listeners };
+}
+
+/**
+ * Ouve o suporte do negócio. Devolve a função de parar de ouvir.
+ *
+ * Trocar de negócio (outro login no mesmo processo) fecha o canal anterior: a
+ * sessão nova não tem permissão nele, e ele só ocuparia a cota.
+ */
+export function subscribeToSupport(tenantId: string, listener: SupportListener): () => void {
+  if (shared && shared.tenantId !== tenantId) closeSupportChannels();
+  shared ??= open(tenantId);
+
+  const current = shared;
+  current.listeners.add(listener);
+
   return () => {
-    openChannels.delete(channel);
-    void supabase.removeChannel(channel);
+    current.listeners.delete(listener);
+    if (current.listeners.size === 0 && shared === current) {
+      shared = null;
+      void supabase.removeChannel(current.channel);
+    }
   };
 }
 
-/** `payload.new.sender_side`, sem confiar na forma do payload. */
-function senderSideOf(record: unknown): string | null {
-  if (typeof record !== 'object' || record === null) return null;
-  const side = (record as { sender_side?: unknown }).sender_side;
-  return typeof side === 'string' ? side : null;
-}
-
 /**
- * A CONVERSA de um chamado: mensagem nova naquele chamado.
- *
- * `filter` no `ticket_id` porque esta inscrição existe enquanto UMA tela está
- * aberta: sem ele, cada resposta de qualquer outro chamado acordaria esta tela
- * para reler a conversa errada.
- */
-export function subscribeToTicket(
-  ticketId: string,
-  handlers: SupportSubscription,
-): () => void {
-  return subscribe(
-    `support:ticket:${ticketId}`,
-    (channel) =>
-      channel.on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'support_messages',
-          filter: `ticket_id=eq.${ticketId}`,
-        },
-        (payload) => handlers.onEvent({ senderSide: senderSideOf(payload.new) }),
-      ),
-    handlers.onReconnect,
-  );
-}
-
-/**
- * O ATENDIMENTO do negócio inteiro: a lista de chamados e o badge do "Mais".
- *
- * Duas inscrições no mesmo canal — um canal é uma conexão, e a cota é por
- * conexão:
- *
- *  - INSERT em `support_messages`, que é a resposta chegando;
- *  - UPDATE em `support_tickets`, que é o status e o `last_message_at` mudando
- *    (o que reordena a lista).
- *
- * INSERT em `support_tickets` fica de fora: quem abre chamado pelo lado do
- * cliente é este app ou o portal, e a escrita já invalida a lista.
- */
-export function subscribeToTenantSupport(handlers: SupportSubscription): () => void {
-  return subscribe(
-    'support:tenant',
-    (channel) =>
-      channel
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'support_messages' },
-          (payload) => handlers.onEvent({ senderSide: senderSideOf(payload.new) }),
-        )
-        .on(
-          'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'support_tickets' },
-          () => handlers.onEvent({ senderSide: null }),
-        ),
-    handlers.onReconnect,
-  );
-}
-
-/**
- * FECHA os canais do suporte — chamado no logout.
+ * FECHA o canal do suporte — chamado no logout.
  *
  * Sem isto o websocket da conta anterior continua de pé até o processo morrer:
  * uma conexão a mais na cota, e um canal que o Realtime Inspector do painel
- * mostra como sessão ativa de quem já saiu. O token dela morre com o
- * `signOut`, então ela não recebe mais nada — ela só não vai embora.
+ * mostra como sessão ativa de quem já saiu.
  */
 export function closeSupportChannels(): void {
-  for (const channel of openChannels) void supabase.removeChannel(channel);
-  openChannels.clear();
+  if (!shared) return;
+  const current = shared;
+  shared = null;
+  current.listeners.clear();
+  void supabase.removeChannel(current.channel);
 }
