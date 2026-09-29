@@ -5,6 +5,7 @@ import { COST_TYPE_DB } from "@/lib/dados/custos";
 import { logActivity } from "@/lib/historico";
 import { requireCustomer, type ActionResult } from "@/lib/sessao";
 import type { CostType } from "@/types/types";
+import { isUuid } from "@/lib/offline/salesQueue";
 
 export interface CostToSave {
   id: string | null;
@@ -15,6 +16,75 @@ export interface CostToSave {
   /** 'YYYY-MM-DD'. */
   data: string;
   recurring: boolean;
+}
+
+export interface OfflineCostToCreate {
+  clientId: string;
+  type: CostType;
+  description: string;
+  category: string;
+  amount: number;
+  /** 'YYYY-MM-DD'. */
+  data: string;
+}
+
+export type OfflineCostActionResult =
+  | { ok: true; created: boolean }
+  | { ok: false; message: string; code: string | null };
+
+/**
+ * Creates the only cost shape safe for offline replay: a new, one-off manual
+ * cost. The browser UUID is the database primary key; the RPC accepts an exact
+ * replay but rejects the same UUID with a different payload.
+ */
+export async function createOfflineCost(
+  c: OfflineCostToCreate,
+): Promise<OfflineCostActionResult> {
+  const session = await requireCustomer("lançar um custo", "costs");
+  if (!session.ok) {
+    return {
+      ok: false,
+      message: session.message,
+      code: session.message.startsWith("Sessão expirada") ? "session" : "42501",
+    };
+  }
+
+  const description = c.description.trim();
+  if (!isUuid(c.clientId)) {
+    return { ok: false, message: "Identificador do custo inválido.", code: "22023" };
+  }
+  if (!description) {
+    return { ok: false, message: "Escreva o que foi o gasto.", code: "22023" };
+  }
+  if (!(c.amount > 0)) {
+    return { ok: false, message: "Informe um valor maior que zero.", code: "22023" };
+  }
+
+  const { supabase } = session;
+  const { data, error } = await supabase.rpc("create_manual_cost_idempotent", {
+    p_id: c.clientId,
+    p_description: description,
+    p_type: COST_TYPE_DB[c.type],
+    p_category: c.category.trim() || null,
+    p_amount: c.amount,
+    p_cost_date: c.data,
+  });
+
+  if (error) {
+    return { ok: false, message: error.message, code: error.code ?? null };
+  }
+
+  const result = data as { id?: unknown; created?: unknown } | null;
+  const created = result?.created === true;
+  if (created) {
+    await logActivity(supabase, "cost.created", {
+      entityId: c.clientId,
+      summary: `${description} · ${c.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+    });
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true, created };
 }
 
 export async function saveCost(c: CostToSave): Promise<ActionResult> {

@@ -10,6 +10,7 @@ import {
   openAttachment,
   useTicketMessages,
   useReplyToTicket,
+  useTicketLive,
 } from '@domain/support';
 import { useAppTheme } from '@hooks/useAppTheme';
 import { useRefreshControl } from '@hooks/usePullToRefresh';
@@ -40,6 +41,9 @@ export default function TicketScreen() {
   const refreshControl = useRefreshControl();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: mensagens = [] } = useTicketMessages(id);
+  // A resposta do suporte entra na conversa sozinha, sem puxar para atualizar —
+  // e, como a conversa está aberta, já conta como lida. Ver `useTicketLive`.
+  useTicketLive(id);
   const { mutate: reply, isPending } = useReplyToTicket(id);
   const showToast = useUIStore((s) => s.showToast);
 

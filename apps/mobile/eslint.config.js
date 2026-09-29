@@ -41,4 +41,14 @@ module.exports = defineConfig([
     files: ['src/theme/**'],
     rules: { 'no-restricted-syntax': 'off' },
   },
+  {
+    /**
+     * Os arquivos de setup da suíte `ui` RODAM DENTRO DO JEST, e por isso
+     * chamam `jest.mock`. O preset do Expo só reconhece os globais do Jest nos
+     * arquivos de teste (`*.test.*`, `__tests__/`), e estes não são testes —
+     * são a configuração que o Jest carrega antes deles.
+     */
+    files: ['jest.*.js'],
+    languageOptions: { globals: { jest: 'readonly' } },
+  },
 ]);

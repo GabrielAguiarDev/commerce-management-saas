@@ -13,6 +13,8 @@
  * de camada — se um teste de adapter passa a precisar do preset, a camada
  * vazou. Ver DEVELOPMENT.md › Notas.
  */
+const jestExpoPreset = require('jest-expo/jest-preset');
+
 const aliases = {
   '^@components$': '<rootDir>/src/components/index.ts',
   '^@components/(.*)$': '<rootDir>/src/components/$1',
@@ -49,6 +51,27 @@ module.exports = {
         '<rootDir>/src/data/__tests__/**/*.test.ts',
         '<rootDir>/src/store/__tests__/**/*.test.ts',
       ],
+    },
+    {
+      displayName: 'ui',
+      preset: 'jest-expo',
+      /**
+       * `.tsx` no `testMatch`, e só dentro de `src/components`: é a fronteira
+       * entre as duas suítes. Um teste de domínio que precisasse do preset RN
+       * teria de virar `.tsx` e mudar de pasta — o que torna o vazamento de
+       * camada visível na revisão, em vez de silencioso.
+       */
+      testMatch: ['<rootDir>/src/components/**/__tests__/**/*.test.tsx'],
+      /**
+       * O `moduleNameMapper` do jest-expo é PRESERVADO (ele redireciona
+       * `react-native` e os ícones); os aliases entram por cima. Substituí-lo
+       * quebraria a resolução do próprio preset.
+       */
+      moduleNameMapper: { ...jestExpoPreset.moduleNameMapper, ...aliases },
+      setupFiles: [...jestExpoPreset.setupFiles, '<rootDir>/jest.setup.ui.js'],
+      /** O do RN mais a regra do `react-native-worklets`. Ver o arquivo. */
+      resolver: '<rootDir>/jest.resolver.ui.js',
+      setupFilesAfterEnv: ['<rootDir>/jest.after-env.ui.js'],
     },
   ],
 };

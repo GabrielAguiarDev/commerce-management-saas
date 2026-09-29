@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Manrope, Public_Sans } from "next/font/google";
 import { AdminProvider } from "@/components/AdminProvider";
 import { AdminShell } from "@/components/AdminShell";
+import { SupportLive } from "@/components/SupportLive";
 import { listTickets } from "@/lib/chamados";
 import { listCustomers } from "@/lib/clientes";
 import { listSettings } from "@/lib/configuracoes";
@@ -146,6 +147,11 @@ export default async function RootLayout({
           adminName={perfil?.name ?? perfil?.email ?? null}
         >
           <AdminShell>{children}</AdminShell>
+          {/* A fila de chamados se movendo sozinha. Fica aqui, e não na tela de
+              Suporte, porque o aviso de chamado novo e o contador de "abertos" da
+              barra lateral valem em qualquer tela — e porque uma inscrição por
+              tela seria um websocket por navegação. */}
+          <SupportLive />
         </AdminProvider>
       </body>
     </html>

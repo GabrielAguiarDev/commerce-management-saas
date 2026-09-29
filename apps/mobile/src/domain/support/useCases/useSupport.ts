@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Linking } from 'react-native';
 
 import { useSessionStore } from '@store/sessionStore';
 
+import { isFromSupportTeam } from '../senderSide';
 import * as service from '../supportService';
+import { subscribeToTenantSupport, subscribeToTicket } from '../supportRealtime';
 import { whatsappLink } from '../whatsapp';
 import type { NewTicket } from '../supportTypes';
 
@@ -43,6 +45,69 @@ export function useMarkAsRead() {
     mutationFn: (ticketId: string) => service.markAsRead(tenantId as string, ticketId),
     onSuccess: () => client.invalidateQueries({ queryKey: suporteKeys.all }),
   });
+}
+
+/* -------------------------------------------------------------------------- */
+/* TEMPO REAL                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A CONVERSA ABERTA acompanha o chamado ao vivo.
+ *
+ * O evento só invalida — `suporteKeys.all` cobre a conversa E a lista de uma
+ * vez (a chave dos chamados é prefixada por ela), e o `last_message_at` que a
+ * resposta mexeu reordena a lista de qualquer jeito. A leitura continua sendo a
+ * do `supportApi`, com RLS e adapter.
+ *
+ * MARCAR COMO LIDA: se a resposta chega com a conversa na frente da pessoa, o
+ * badge do "Mais" não pode acender por uma mensagem que ela está lendo. Só as
+ * da equipe (`'support'`/`'admin'`) — a própria resposta do cliente volta pelo
+ * mesmo canal, e marcá-la seria uma escrita que o trigger
+ * `guard_support_message_write` recusa.
+ *
+ * Montado na tela do chamado (`app/(app)/support/[id].tsx`), que é a única que
+ * tem um chamado aberto — e desmonta com ela, fechando o canal.
+ */
+export function useTicketLive(ticketId: string | undefined) {
+  const client = useQueryClient();
+  const { mutate: markAsRead } = useMarkAsRead();
+
+  useEffect(() => {
+    if (!ticketId) return;
+
+    const reread = () => {
+      void client.invalidateQueries({ queryKey: suporteKeys.all });
+    };
+
+    return subscribeToTicket(ticketId, {
+      onEvent: ({ senderSide }) => {
+        reread();
+        if (isFromSupportTeam(senderSide)) markAsRead(ticketId);
+      },
+      onReconnect: reread,
+    });
+  }, [ticketId, client, markAsRead]);
+}
+
+/**
+ * O ATENDIMENTO do negócio, ao vivo — a lista de chamados e o badge do "Mais".
+ *
+ * ⚠️ MONTE ISTO UMA VEZ SÓ, no shell autenticado (`app/(app)/_layout.tsx`).
+ * Cada montagem abre um canal, e a cota do Realtime é por conexão simultânea:
+ * um hook por tela multiplicaria as conexões pelo número de telas que a pessoa
+ * visita. O badge precisa atualizar em QUALQUER tela, e é justamente por isso
+ * que ele mora no shell e não na tela de Suporte.
+ */
+export function useSupportLive() {
+  const client = useQueryClient();
+
+  useEffect(() => {
+    const reread = () => {
+      void client.invalidateQueries({ queryKey: suporteKeys.all });
+    };
+
+    return subscribeToTenantSupport({ onEvent: reread, onReconnect: reread });
+  }, [client]);
 }
 
 export function useOpenTicket() {

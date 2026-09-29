@@ -1,10 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { usePortal } from "@/components/PortalProvider";
 import { RowMenu } from "@/components/ui";
 import { NewButton, Button, TABLE_HEADER, ScreenHeader, css, KpiStrip, ClearFilters, LIST, MONO, NUM, columnLabel, SANS, SimpleSelect, Empty } from "@aguiar/ui";
 import { competenceLabel, costCategories, COST_TYPE_STYLE } from "@/lib/dados/custos";
 import { brl, dateLabel } from "@/lib/formato";
+import { describeCostQueueError, type QueuedCost } from "@/lib/offline/costQueue";
+import { discardQueuedCost, retryQueuedCost, useQueuedCosts } from "@/lib/offline/costQueueStore";
 import { ROUTES } from "@/lib/rotas";
 import { totalRevenue } from "@/lib/selectors";
 import type { Cost } from "@/types/types";
@@ -24,6 +27,7 @@ const DAYS: Record<string, number> = { "Este mês": 30, "Últimos 7 dias": 7, Tu
 export function CustosView() {
   const { s, a, has, isDesktop, isMobile, d } = usePortal();
   const f = s.fCustos;
+  const queue = useQueuedCosts(d.business.id, d.business.user.id);
   const set = (p: Partial<typeof f>) => a.set({ fCustos: { ...f, ...p } });
 
   const days = DAYS[f.period] ?? 30;
@@ -68,6 +72,8 @@ export function CustosView() {
         subtitle="Anote o que você gasta e o portal mostra o lucro de verdade do seu mês."
         action={<NewButton text="Registrar custo" onClick={() => a.openCost(null)} wide={isMobile} />}
       />
+
+      {queue.costs.length > 0 && <FilaCustos costs={queue.costs} syncing={queue.syncing} />}
 
       <KpiStrip kpis={kpis} columns={isMobile ? "1fr 1fr" : "repeat(4,minmax(0,1fr))"} />
 
@@ -284,5 +290,125 @@ function CostRow({ cost: c, cols, categoryCol }: { cost: Cost; cols: string; cat
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Os custos lançados sem conexão que o servidor ainda não viu.
+ *
+ * Ficam acima dos números porque NÃO entram neles: o total do período, o peso
+ * na receita e o lucro são os do servidor. Pendente é enviado sozinho; recusado
+ * fica parado até alguém tentar de novo ou descartar.
+ */
+function FilaCustos({ costs, syncing }: { costs: QueuedCost[]; syncing: boolean }) {
+  const { a, d } = usePortal();
+  const router = useRouter();
+  const scope = { tenantId: d.business.id, userId: d.business.user.id };
+  const failed = costs.filter((c) => c.status === "failed").length;
+  const total = costs.reduce((sum, c) => sum + c.amount, 0);
+
+  const tentar = async (clientId: string) => {
+    const r = await retryQueuedCost(clientId, scope);
+    if (r.sent) {
+      a.notify("Custo guardado enviado");
+      router.refresh();
+    } else if (!r.failed) {
+      a.notify("Ainda sem conexão com o servidor — o custo continua guardado", "warn");
+    }
+  };
+
+  return (
+    <section
+      aria-label="Custos guardados neste computador"
+      style={css(
+        `margin-bottom:12px;padding:13px 14px;border:1px solid ${failed ? "var(--danger)" : "var(--warn-line)"};` +
+          `border-radius:14px;background:var(--warn-soft)`,
+      )}
+    >
+      <div style={css("display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap")}>
+        <h2 style={css(`margin:0;font:700 13.5px/1.3 ${SANS};color:var(--warn)`)}>
+          {costs.length} {costs.length === 1 ? "custo guardado" : "custos guardados"} neste computador · {brl(total)}
+        </h2>
+        <span style={css(`font:500 11.5px ${SANS};color:var(--text2)`)}>
+          {syncing ? "Enviando…" : "Ainda não entraram nos totais abaixo."}
+        </span>
+      </div>
+
+      <div style={css("display:flex;flex-direction:column;gap:7px;margin-top:10px")}>
+        {costs.map((c) => {
+          const isFailed = c.status === "failed";
+          const resumo = `${c.description}${c.category ? ` · ${c.category}` : ""}`;
+          return (
+            <div
+              key={c.clientId}
+              style={css(
+                "display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 11px;border-radius:11px;" +
+                  `border:1px solid ${isFailed ? "var(--danger)" : "var(--border)"};background:var(--surface)`,
+              )}
+            >
+              <span style={css("flex:1;min-width:200px")}>
+                <span style={css(`display:block;font:600 12.5px/1.35 ${SANS}`)}>
+                  <span style={css(`font:600 11.5px ${MONO};color:var(--muted)`)}>
+                    {c.costDate.slice(8, 10)}/{c.costDate.slice(5, 7)}
+                  </span>{" "}
+                  · {resumo}
+                </span>
+                <span
+                  style={css(
+                    `display:block;margin-top:2px;font:500 11.5px/1.4 ${SANS};` +
+                      `color:${isFailed ? "var(--danger)" : "var(--muted)"}`,
+                  )}
+                >
+                  {isFailed ? "Recusado: " : "Pendente: "}
+                  {describeCostQueueError(c.lastError, c.status)}
+                </span>
+              </span>
+              <span style={css(`font:700 13px ${SANS};${NUM}`)}>{brl(c.amount)}</span>
+              <span style={css("display:flex;gap:6px")}>
+                <Button
+                  onClick={() => tentar(c.clientId)}
+                  disabled={syncing}
+                  style={css(
+                    "padding:7px 10px;border-radius:9px;border:1px solid var(--border2);" +
+                      `background:var(--surface2);color:var(--text2);font:600 12px ${SANS}`,
+                  )}
+                >
+                  {isFailed ? "Tentar de novo" : "Enviar agora"}
+                </Button>
+                <Button
+                  onClick={() =>
+                    a.confirm({
+                      title: "Descartar este custo guardado?",
+                      text: "Ele nunca chegou ao sistema. Descartar apaga o custo deste computador — os totais não mudam.",
+                      summary: `${resumo} · ${brl(c.amount)}`,
+                      detail: isFailed
+                        ? describeCostQueueError(c.lastError, c.status)
+                        : "O custo ainda seria enviado automaticamente.",
+                      reversal: "Não dá para desfazer. Se o gasto aconteceu, lance-o de novo.",
+                      button: "Descartar custo",
+                      buttonBg: "var(--danger)",
+                      buttonInk: "#fff",
+                      color: "var(--danger)",
+                      action: async () => {
+                        await discardQueuedCost(c.clientId);
+                        a.closeConfirm();
+                        a.notify("Custo guardado descartado", "warn");
+                      },
+                    })
+                  }
+                  disabled={syncing}
+                  style={css(
+                    "padding:7px 10px;border-radius:9px;border:1px solid var(--danger);" +
+                      `background:var(--surface);color:var(--danger);font:600 12px ${SANS}`,
+                  )}
+                >
+                  Descartar
+                </Button>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

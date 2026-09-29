@@ -61,7 +61,7 @@ deliberado: quando o backend entrar, o adapter já fala a língua do banco.
 | Backend | `@supabase/supabase-js` + RLS | mesmo projeto do portal web; nenhuma consulta passa `tenant_id` | brief |
 | Credenciais | `LargeSecureStore` (AES-256 no SecureStore + cifrado no AsyncStorage) | sessão em AsyncStorage é texto puro em disco, e não cabe no SecureStore | doc Supabase |
 | Conexão | `@react-native-community/netinfo` | o chip de demo do protótipo saiu de escopo; o comportamento ficou | brief |
-| Testes | `jest` puro (node) para lógica | suíte de 196 testes em ~0,4s | blueprint |
+| Testes | `jest` em dois projetos: `logica` (node, puro) e `ui` (`jest-expo` + RNTL) | 478 testes em ~4s; a suíte pura sozinha roda em menos de 1s | blueprint |
 
 ### Decisões que valem registro
 
@@ -160,7 +160,9 @@ Declarados em **três** lugares que precisam andar juntos: `tsconfig.json`
 ```bash
 pnpm typecheck     # tsc --noEmit
 pnpm lint          # eslint .
-pnpm test          # jest (suíte 'logica', node)
+pnpm test          # jest (as duas suítes: 'logica' e 'ui')
+pnpm test -- --selectProjects logica   # só a pura (node) — a do dia a dia
+pnpm test -- --selectProjects ui       # só a de componentes (jest-expo + RNTL)
 pnpm export:ios    # expo export --platform ios
 pnpm start         # dev server
 ```
@@ -1002,13 +1004,8 @@ versão velha demais.
 
 1. **Sentry + ErrorBoundary** no `app/_layout.tsx`. App em produção sem crash
    reporting é depuração às cegas. É a primeira coisa a fazer.
-2. **Segundo projeto de jest (`jest-expo` + RNTL)** para componentes críticos:
-   `CartSheet`, `CloseOutSheet`, `TabBar` por entitlement. A infra já está
-   pronta (`jest.config.js` usa `projects`, e `jest-expo` +
-   `@testing-library/react-native` já estão instalados) — falta o segundo bloco.
-   Ficou mais urgente depois da fase 5: o `CloseOutSheet` agora manda o
-   **contado em dinheiro** para o banco, e um erro ali carimba diferença errada
-   no fechamento do caixa.
+2. ~~**Segundo projeto de jest (`jest-expo` + RNTL)**~~ — feito em 28/09/2026.
+   Ver § 16.
 3. **E2E com Maestro** nos fluxos que dão dinheiro: login → montar carrinho →
    finalizar; abrir caixa → sangria → fechar com diferença.
 4. **CI (GitHub Actions)**: `typecheck + lint + test` em cada PR.
@@ -1459,6 +1456,83 @@ aqui — e `stock_min` só entra no `update` quando veio número, porque `null` 
 
 Editar **não é otimista**, ao contrário de favoritar: preço que aparece alterado
 e volta atrás é pior que meio segundo de espera — pode haver venda no meio.
+
+---
+
+## 16. A suíte de componentes (`ui`) — feita em 28/09/2026
+
+Eram duas suítes no `jest.config.js` desde a fase 1, mas só uma existia. Agora
+existem as duas:
+
+| Projeto | Ambiente | O que cobre | Custo |
+| --- | --- | --- | --- |
+| `logica` | `node`, sem preset de RN | adapters, services, seletores, gates, formatadores | a suíte inteira em menos de 1s |
+| `ui` | `jest-expo` + `@testing-library/react-native` | os componentes em que o COMPORTAMENTO vale um teste | ~3s (o preset de RN é o que custa) |
+
+**A fronteira entre as duas é a extensão do arquivo:** `ui` só casa
+`src/components/**/__tests__/**/*.test.tsx`. Um teste de domínio que passasse a
+precisar do preset teria de virar `.tsx` e mudar de pasta — o que torna o
+vazamento de camada visível na revisão, em vez de silencioso. É a mesma regra do
+"domínio não importa barrel de UI".
+
+### O que foi testado, e por quê esses três
+
+Nada de snapshot: um snapshot passa a aprovar o bug junto com o resto no dia em
+que alguém o atualiza sem ler. Os 44 testes são interação e contrato.
+
+- **`CloseOutSheet`** (14) — é o sheet que carimba dinheiro. O que ele envia vai
+  para `close_cash_register`, e o banco calcula a diferença a partir do
+  **contado em dinheiro**. O teste cobra: a diferença recalculada a cada tecla
+  (e a linha em branco que NÃO conta), a confirmação antes de enviar, o valor em
+  centavos que viaja (só o dinheiro — Pix e cartão ficam), o branco valendo zero
+  no envio, e o sheet que FICA de pé quando o banco recusa.
+- **`CartSheet`** (17) — a forma de pagamento que vai para `sales`. Ela vem das
+  Preferências, e o carrinho pode estar guardando uma que o negócio desligou
+  depois; o teste prova que a enviada é a aceita. Mais os dois desfechos do
+  checkout (subiu / ficou na fila do aparelho, que são avisos diferentes), o
+  carrinho que NÃO é esvaziado quando a venda falha, e o modo edição terminando
+  no histórico em vez de em Vender.
+- **`TabBar`** (9) — entitlement virando tela. As funções puras já têm teste em
+  `domain/navigation`; aqui se verifica que o plano ∩ papel virou rótulo, que a
+  rota atual se anuncia selecionada e que o toque leva ao destino certo (e a aba
+  ativa não navega). O risco coberto: a barra oferecer um destino que o guardião
+  bloqueia — o que aparece como "o app voltou sozinho para o Início".
+
+### Os quatro arquivos de infra, e o porquê de cada um
+
+- **`jest.setup.ui.js`** (`setupFiles`) — planta `EXPO_PUBLIC_SUPABASE_*` no
+  ambiente. `src/config/env.ts` LANÇA no import quando eles faltam (de
+  propósito), e um teste de componente chega lá pela cadeia de um domínio.
+- **`jest.after-env.ui.js`** — os dublês do que não existe fora de um aparelho:
+  Reanimated, `@gorhom/bottom-sheet` (o mock da própria lib, que renderiza o
+  conteúdo sem esperar o `present()` e os 260ms de animação), safe area,
+  AsyncStorage e a raiz de gesto.
+- **`jest.resolver.ui.js`** — o resolvedor do RN mais a regra que o
+  `react-native-worklets` publica: dentro daquele pacote, as extensões
+  `.native.*` saem da lista. Sem ela o Reanimated 4 estoura na IMPORTAÇÃO com
+  `Cannot read properties of undefined (reading 'loadUnpackers')`, e é por isso
+  que `react-native-reanimated/mock` não resolve sozinho — ele importa o índice
+  de verdade.
+- **`src/components/__tests__/renderUI.tsx`** — a árvore mínima
+  (`ThemeProvider` + `QueryClientProvider`), o `renderSheet` que monta um sheet
+  como o `SheetHost` o monta (sem ele `useSheetVisibility` lança) e o
+  `capabilities(...)` que passa pela MESMA `deriveCapabilities` da produção, em
+  vez de escrever as oito flags à mão.
+
+### ⚠️ O RNTL 14 é ASSÍNCRONO
+
+`render`, `fireEvent` e `userEvent.press` devolvem promessa — todos precisam de
+`await`. Sem ele o sintoma engana duas vezes: a primeira busca falha com
+"`render` function has not been called" (parece erro de configuração) e um
+`changeText` sem espera deixa o `value` antigo na árvore, com um
+`overlapping act()` no console. Um callback entregue de fora do render (o
+`onSuccess` da mutação, o `onConfirm` do diálogo) mexe em store e por isso vai
+dentro de `act` — ver o `deliver()` do `CartSheet.test.tsx`.
+
+O que continua de fora: nenhum teste toca em `app/` (as rotas do Expo Router) e
+nenhum vai à rede. Os `useCases/` de react-query são dublados no ponto de uso, e
+os adapters puros que o componente chama continuam sendo os de verdade — dublá-los
+transformaria "a diferença que a tela mostra" numa tautologia.
 
 ---
 

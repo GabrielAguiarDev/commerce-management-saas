@@ -57,14 +57,14 @@ deliberadamente excluído desta análise e das alterações.
 | `products.cost` | `authenticated` perde o SELECT da coluna (grants por coluna) e o custo é lido por `v_product_costs`, com gate por módulo (`20260917040000_authorization_leftovers.sql`). Depois de adicionar uma coluna em `products`, rodar `select public.sync_product_column_grants();` |
 | Suporte | Um trigger impede sessão comum de trocar autor, lado, conteúdo ou chamado de uma mensagem |
 | Painel do portal | Cards de vendas e lucro ficam ocultos para quem não tem o módulo correspondente |
-| PDV web offline | Vendas novas vão para uma fila no IndexedDB, separada por negócio e usuário, e são reenviadas sem duplicar (`client_id`). Recusas definitivas pedem ação do usuário. Detalhes em `apps/portal-client/lib/offline/README.md` |
+| Portal web offline | Vendas novas do PDV e custos avulsos novos vão para filas no IndexedDB, separadas por negócio e usuário, e são reenviadas sem duplicar (`client_id`; custos pela RPC `create_manual_cost_idempotent`, `20260928020000`). Recusas definitivas pedem ação do usuário. Detalhes em `apps/portal-client/lib/offline/README.md` |
 
 Pendências que sobraram desta fase:
 
 - ~~Testes de migrations em Postgres real~~: feito — `scripts/db-test.sh`, suítes em `supabase/tests`, job `db` no CI (ver `docs/testes/banco.md`).
 - ~~`markRead` ignorava mensagens `admin`~~: corrigido no portal e no mobile; a trava de `support_messages` foi ajustada em `20260917050000`.
 - `20260917050000` também corrige o UPDATE de `profiles` (tema, suspender, trocar papel afetavam 0 linhas) e os reforços (`deposit`) ignorados no fechamento de caixa.
-- Trigger `cost_from_stock_entry` testa `type = 'entry'`, que não existe no vocabulário (código morto).
+- ~~Trigger `cost_from_stock_entry` testa `type = 'entry'`~~: removido em `20260928010000_non_fiscal_integrity.sql` (portal e mobile já criam o custo da compra; ligar o trigger para `in` duplicaria a despesa).
 - No PDV offline, estoque e caixa não são recalculados localmente, e o horário da venda vem do relógio do computador.
 - O advisor do Supabase vai apontar `v_product_costs` como view security definer (é intencional: o filtro de tenant e de módulo está dentro dela).
 
@@ -72,16 +72,38 @@ Pendências que sobraram desta fase:
 
 ### Prioridade média
 
-5. **Fila offline para outras escritas do portal web** (hoje só vendas do PDV).
+5. **Fila offline para outras escritas do portal web.** Vendas novas do PDV e
+   custos avulsos novos já são enfileirados (28/09/2026). Estoque ficou de fora
+   de propósito: movimento, custo do produto e despesa são chamadas separadas, e
+   um reenvio parcial deixaria o banco inconsistente — precisa de uma RPC única
+   antes. Custo recorrente e edições continuam exigindo conexão.
 
-6. **Testes das Server Actions do portal e de concorrência no banco.** As migrations
-   e o RLS já rodam em Postgres real (`scripts/db-test.sh`); faltam testes das
-   actions do portal e de corridas (dois caixas, retries simultâneos).
+6. ~~**Testes das Server Actions do portal e de concorrência no banco.**~~ Feito em
+   28/09/2026: Vitest nos dois portais (`pnpm --filter portal-* test`) e
+   `supabase/tests/10_non_fiscal_integrity_concurrency.test.sql` com sessões
+   simultâneas reais (dois caixas abrindo, retry de venda concorrente). Os testes
+   acharam dois sucessos falsos (reabrir caixa e estornar pagamento com 0 linhas
+   afetadas pelo RLS), já corrigidos. Próximo passo é ampliar a cobertura às
+   demais actions.
 
-7. **Suporte em tempo real.** Hoje a resposta só aparece recarregando a tela.
-   Fase 1: Supabase Realtime no app e nos dois portais. Fase 2: push
-   notification no app. Plano completo em
-   [`architecture/suporte-tempo-real.md`](architecture/suporte-tempo-real.md).
+7. **Suporte em tempo real — fase 2 (push notification).** A **fase 1
+   (Realtime) foi implementada em 28/09/2026**: `support_messages` e
+   `support_tickets` entraram na publicação `supabase_realtime`
+   (`20260928000000_support_realtime.sql`), o app abre um canal por sessão no
+   shell autenticado e os dois portais refrescam o layout com debounce. Com a
+   tela aberta, a resposta aparece sozinha — sem recarregar e sem polling.
+
+   Falta a **fase 2**: aviso no celular com o app fechado. Ela depende de
+   credenciais Apple/Google e de um build novo (`expo-notifications` é módulo
+   nativo), por isso não entrou junto.
+
+   A fase 1 ainda precisa de uma **validação em ambiente** que nenhum teste
+   local cobre: aplicar a migration no projeto real, conferir o Realtime
+   habilitado no painel, os dois tenants não se enxergando, o refetch depois de
+   1 min sem rede e nenhum canal sobrando no Realtime Inspector após o logout. A
+   lista está em
+   [`architecture/suporte-tempo-real.md`](architecture/suporte-tempo-real.md)
+   § 1.5, junto do plano completo das duas fases.
 
 ### Dependências externas
 

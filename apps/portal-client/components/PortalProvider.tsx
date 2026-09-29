@@ -72,6 +72,8 @@ import {
 import { parseBrNumber } from "@/lib/formato";
 import { createQueuedSale, newClientId } from "@/lib/offline/salesQueue";
 import { submitSale, useSalesQueueSync } from "@/lib/offline/salesQueueStore";
+import { createQueuedCost } from "@/lib/offline/costQueue";
+import { submitCost, useCostQueueSync } from "@/lib/offline/costQueueStore";
 import { limparTelasGuardadas } from "@/lib/pwa";
 import { POS_ROUTE, ROUTES } from "@/lib/rotas";
 import type {
@@ -504,6 +506,20 @@ export function PortalProvider({
     }));
   });
 
+  /** A mesma coisa para os custos avulsos lançados sem conexão (ver `saveCost`). */
+  useCostQueueSync(d.business.id, d.business.user.id, (r) => {
+    if (r.sent) iniciarTransicao(() => router.refresh());
+    setS((x) => ({
+      ...x,
+      toast: r.failed
+        ? toast(
+            `${r.failed} ${r.failed === 1 ? "custo guardado foi recusado" : "custos guardados foram recusados"} pelo servidor — veja em Custos`,
+            "error",
+          )
+        : toast(`${r.sent} ${r.sent === 1 ? "custo guardado enviado" : "custos guardados enviados"}`),
+    }));
+  });
+
   const editSale = useCallback(
     (id: string) => {
       const v = d.sales.find((y) => y.id === id);
@@ -746,6 +762,54 @@ export function PortalProvider({
       return;
     }
 
+    /**
+     * Custo NOVO e avulso: passa pela fila offline (`lib/offline/costQueue`).
+     * É o único formato que dá para reenviar sem risco — série recorrente cria
+     * meses futuros e edição tem conflito que o navegador não sabe resolver.
+     * O `clientId` nasce aqui e vira a chave primária no banco.
+     */
+    if (!f.id && !f.recurring) {
+      const cost = createQueuedCost({
+        clientId: newClientId(),
+        scope: { tenantId: d.business.id, userId: d.business.user.id },
+        type: f.type,
+        description: f.description,
+        category: f.category,
+        amount,
+        costDate: dateDaysAgo(f.d),
+        now: new Date(),
+      });
+
+      setS((x) => ({ ...x, saving: true }));
+      const outcome = await submitCost(cost);
+      switch (outcome.kind) {
+        case "recorded":
+          setS((x) => ({
+            ...x,
+            saving: false,
+            modal: null,
+            costForm: { ...EMPTY_COST_FORM },
+            toast: toast("Custo registrado"),
+          }));
+          iniciarTransicao(() => router.refresh());
+          return;
+        case "queued":
+          setS((x) => ({
+            ...x,
+            saving: false,
+            modal: null,
+            costForm: { ...EMPTY_COST_FORM },
+            toast: toast(`Custo guardado neste computador. ${outcome.reason}`, "warn"),
+          }));
+          return;
+        case "rejected":
+        case "lost":
+          // O formulário fica aberto: nada foi lançado nem guardado.
+          setS((x) => ({ ...x, saving: false, toast: toast(outcome.message, "error") }));
+          return;
+      }
+    }
+
     await run(
       () =>
         acaoSalvarCusto({
@@ -773,7 +837,7 @@ export function PortalProvider({
             : "Custo registrado",
       (ok) => ok && set({ modal: null, costForm: { ...EMPTY_COST_FORM } }),
     );
-  }, [s.costForm, d.costs, run, set]);
+  }, [s.costForm, d.costs, d.business.id, d.business.user.id, run, set, router]);
 
   const deleteCost = useCallback(
     async (id: string) => {

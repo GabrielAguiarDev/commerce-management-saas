@@ -57,6 +57,14 @@ grant execute on function auth.uid(), auth.role(), auth.jwt() to anon, authentic
 
 create extension if not exists pgtap with schema extensions;
 
+-- Os testes de concorrencia abrem duas transacoes reais no mesmo Postgres.
+-- A imagem confia no loopback e o papel `postgres` da producao nao e
+-- superusuario; por isso dblink_connect (a variante restrita) recusa ate uma
+-- connection string com senha. Esta variante SECURITY DEFINER fica liberada
+-- somente no container efemero de testes, criado por `supabase_admin`.
+create extension if not exists dblink with schema extensions;
+grant execute on function extensions.dblink_connect_u(text, text) to postgres;
+
 -- A imagem vem com ALTER DEFAULT PRIVILEGES concedendo tudo a anon,
 -- authenticated e service_role no schema public. O dump da produção já traz
 -- os GRANTs explícitos de cada objeto (e reaplica os defaults no fim); com os

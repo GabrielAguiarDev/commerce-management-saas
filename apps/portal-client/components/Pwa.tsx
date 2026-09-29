@@ -91,7 +91,7 @@ function assinarRede(onChange: () => void) {
  * ler o aviso antes de tentar salvar.
  *
  * O texto explica o que funciona sem rede: as telas continuam com o último
- * retrato, e SÓ a venda nova do PDV é guardada para envio posterior (ver
+ * retrato, e SÓ a venda nova do PDV e o custo avulso novo são guardados para envio posterior (ver
  * `lib/offline`). Todo o resto continua exigindo internet.
  */
 export function AvisoOffline() {
@@ -124,9 +124,10 @@ export function AvisoOffline() {
         style={css("flex:none;width:8px;height:8px;border-radius:50%;background:var(--warn)")}
       />
       <span>
-        Você está sem conexão. As telas mostram o que já foi carregado. Vendas novas do PDV ficam
-        guardadas neste computador e são enviadas quando a conexão voltar; o resto — editar ou
-        estornar venda, caixa, estoque, custos — só funciona com internet.
+        Você está sem conexão. As telas mostram o que já foi carregado. Vendas novas do PDV e
+        custos avulsos novos ficam guardados neste computador e são enviados quando a conexão
+        voltar; o resto — editar ou estornar venda, caixa, estoque, custo que se repete — só
+        funciona com internet.
       </span>
     </div>
   );

@@ -313,6 +313,12 @@ const pt = {
   toastPago: "Pagamento registrado",
   toastConfig: "Preferência atualizada",
   toastPlanoSalvo: "Plano salvo",
+  /* Chamado que ENTROU agora, pelo Realtime — o console pode estar em qualquer
+     tela quando ele chega. O nome do negócio é acrescentado quando se sabe de
+     quem é; enquanto o cliente não estiver na lista carregada, vale o texto sem
+     nome (ver `components/SupportLive.tsx`). */
+  toastNovoChamado: "Novo chamado de",
+  toastNovoChamadoSemNome: "Novo chamado recebido",
 
   /* ---- Vitrine do site -------------------------------------------------
      A tela que edita a copy dos cartões de plano da landing page. Ela NÃO
@@ -778,6 +784,8 @@ const en: Dic = {
   toastPago: "Payment registered",
   toastConfig: "Preference updated",
   toastPlanoSalvo: "Plan saved",
+  toastNovoChamado: "New ticket from",
+  toastNovoChamadoSemNome: "New ticket received",
 
   /* ---- Site showcase ---------------------------------------------------- */
   vitrineIntro:

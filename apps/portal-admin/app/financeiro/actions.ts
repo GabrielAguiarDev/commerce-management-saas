@@ -110,14 +110,21 @@ export async function undoPaid(customerId: string): Promise<ActionResult> {
   }
   if (!latest) return { ok: false, message: "Não há pagamento registrado para reverter." };
 
-  const { error } = await auth.supabase
+  const { data: reverted, error } = await auth.supabase
     .from("platform_payments")
     .update({ status: "pending", paid_at: null })
-    .eq("id", latest.id);
+    .eq("id", latest.id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("[reverterPago] falha:", error.message);
     return { ok: false, message: `Não foi possível reverter: ${error.message}` };
+  }
+  if (!reverted) {
+    // PostgREST considera UPDATE de zero linhas um sucesso. Uma policy RLS
+    // mais restritiva ou uma corrida não pode virar confirmação falsa na UI.
+    return { ok: false, message: "Pagamento não encontrado ou sem permissão para reverter." };
   }
 
   revalidatePath("/", "layout");

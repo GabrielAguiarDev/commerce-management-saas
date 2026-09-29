@@ -6,6 +6,7 @@ import { IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import { AccessRevoked } from "@/components/AccessRevoked";
 import { PortalProvider } from "@/components/PortalProvider";
 import { PortalShell } from "@/components/PortalShell";
+import { SupportLive } from "@/components/SupportLive";
 import { loadPortal } from "@/lib/dados/carregar";
 import "./globals.css";
 
@@ -130,6 +131,11 @@ export default async function RootLayout({
               e aparência sobrevivem à troca de tela. */}
           <PortalProvider data={data}>
             <PortalShell>{children}</PortalShell>
+            {/* Resposta nova do suporte aparecendo sozinha. Fica aqui, e não na
+                tela de Suporte, porque o selo de "nova resposta" do menu tem de
+                acender em qualquer tela — e porque uma inscrição por tela seria
+                um websocket por navegação. */}
+            <SupportLive />
             {/* `useSearchParams` pede um limite de Suspense. */}
             <Suspense fallback={null}>
               <AccessRevoked />

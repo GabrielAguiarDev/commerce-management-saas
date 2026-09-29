@@ -10,6 +10,7 @@ import { ConfirmHost } from '@components/patterns/ConfirmHost';
 import { ToastProviderWithViewport } from '@components/ui/toast';
 import { ModuleAccessError } from '@domain/shared/accessDenied';
 import { sessionKeys } from '@domain/session/useCases/useAppAccess';
+import { closeSupportChannels } from '@domain/support';
 import { tenantKeys } from '@domain/tenant/useCases/useTenant';
 import { useSessionSync } from '@hooks/useSessionSync';
 import { getMessages } from '@i18n';
@@ -93,10 +94,19 @@ export function AppProviders({ children }: { children: ReactNode }) {
   // app abria sem nenhum módulo até um reload completo. Vale para os dois
   // jeitos de a sessão acabar: "Sair" e sessão revogada por fora
   // (`useSessionSync` → `clear()`).
+  //
+  // Os CANAIS de tempo real vão no mesmo lugar, e pelo mesmo motivo: o
+  // `AppShell` desmonta no logout e fecha o dele, mas uma sessão revogada por
+  // fora pode derrubar o shell antes disso, e o websocket ficaria de pé até o
+  // processo morrer — uma conexão a mais na cota, aberta por quem já saiu.
+  // Fechar duas vezes não custa nada. Ver `closeSupportChannels`.
   useEffect(
     () =>
       useSessionStore.subscribe((state, previous) => {
-        if (previous.user !== null && state.user === null) client.clear();
+        if (previous.user !== null && state.user === null) {
+          closeSupportChannels();
+          client.clear();
+        }
       }),
     [client],
   );

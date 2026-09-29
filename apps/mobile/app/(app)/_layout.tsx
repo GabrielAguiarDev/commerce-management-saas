@@ -12,7 +12,7 @@ import {
 } from '@components';
 import { ROUTES, isRouteAllowed, resolveAppGate } from '@domain/navigation/routes';
 import { useAppAccess } from '@domain/session';
-import { useSupportWhatsApp } from '@domain/support';
+import { useSupportLive, useSupportWhatsApp } from '@domain/support';
 import { useCapabilities, useCurrentTenant, usePaymentPreferencesSync } from '@domain/tenant';
 import { useAppHydrated } from '@hooks/useAppHydrated';
 import { useAppTheme } from '@hooks/useAppTheme';
@@ -163,6 +163,12 @@ function AppShell() {
   // A configuração é carregada no shell, não só na tela de Preferências: o
   // caixa precisa receber as formas aceitas antes da primeira venda.
   usePaymentPreferencesSync();
+
+  // O ÚNICO canal de suporte da sessão, e por isso ele vive aqui: o badge do
+  // "Mais" precisa acender em qualquer tela, e cada montagem abriria uma
+  // conexão nova na cota do Realtime. Aqui ele monta uma vez, quando o guardião
+  // liberou, e só desmonta com o shell. Ver `useSupportLive`.
+  useSupportLive();
 
   return (
     // A ÚNICA transição do app que é fade — e de propósito.

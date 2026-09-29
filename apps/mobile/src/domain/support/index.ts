@@ -15,8 +15,11 @@ export {
   useMarkAsRead,
   useTicketMessages,
   useReplyToTicket,
+  useSupportLive,
+  useTicketLive,
   useSupportWhatsApp,
 } from './useCases/useSupport';
+export { closeSupportChannels } from './supportRealtime';
 export {
   attachmentName,
   isStoragePath,

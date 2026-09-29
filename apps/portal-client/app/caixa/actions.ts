@@ -150,7 +150,7 @@ export async function reopenRegister(registerId: string): Promise<ActionResult> 
     return { ok: false, message: "Feche o caixa aberto antes de reabrir outro turno." };
   }
 
-  const { error } = await supabase
+  const { data: reopened, error } = await supabase
     .from("cash_registers")
     .update({
       status: REGISTER_OPEN,
@@ -161,13 +161,20 @@ export async function reopenRegister(registerId: string): Promise<ActionResult> 
       difference: null,
     })
     .eq("id", registerId)
-    .eq("status", REGISTER_CLOSED);
+    .eq("status", REGISTER_CLOSED)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     if (isOpenRegisterConflict(error)) {
       return { ok: false, message: "Feche o caixa aberto antes de reabrir outro turno." };
     }
     return { ok: false, message: error.message };
+  }
+  if (!reopened) {
+    // UPDATE sem linhas não é erro no PostgREST. Isso também cobre uma linha
+    // escondida por RLS: nunca confirme uma reabertura que o banco não fez.
+    return { ok: false, message: "Caixa fechado não encontrado." };
   }
 
   await logActivity(supabase, "register.reopened", { entityId: registerId });

@@ -1,7 +1,14 @@
-# Fila offline de vendas (PDV do portal)
+# Filas offline do portal
 
-Só **vendas novas do PDV** (`/vendas/nova`). Editar/estornar venda, caixa,
-estoque, custos e o resto continuam exigindo internet.
+Duas filas, no mesmo banco IndexedDB (`aguiar-portal-offline`, v2):
+
+- **vendas novas do PDV** (`/vendas/nova`) — store `pending_sales`;
+- **custos avulsos novos** (`/custos`, sem "repetir todo mês") — store `pending_costs`.
+
+Editar/estornar venda, caixa, estoque, custo recorrente, edição de custo e o
+resto continuam exigindo internet. Estoque não entra na fila porque movimento,
+custo do produto e despesa são chamadas separadas — um reenvio parcial deixaria
+o banco inconsistente.
 
 ## Fluxo
 
@@ -40,18 +47,34 @@ Na dúvida (erro sem código e sem cara de rede), a venda vai para `failed`:
 - Várias abas: Web Locks evitam rodadas simultâneas; `BroadcastChannel`
   sincroniza a lista. Sem esses recursos, o `23505` continua impedindo duplicatas.
 
+## Fila de custos
+
+Mesmo desenho da de vendas (`costQueue.ts` / `costQueueDb.ts` /
+`costQueueStore.ts`), com duas diferenças:
+
+- A action `createOfflineCost` chama `create_manual_cost_idempotent`
+  (`20260928020000`), que recebe o `clientId` como chave primária. Reenvio
+  **idêntico** devolve `{ created: false }` (sem repetir histórico); o mesmo
+  UUID com dados diferentes, ou de outro negócio, devolve `23505`.
+- Por isso `23505` aqui é **recusa definitiva**, nunca sucesso implícito.
+
+A lista de custos guardados aparece no topo de `/custos` (enviar agora /
+tentar de novo / descartar); `useCostQueueSync` é montado no `PortalProvider`.
+Os totais da tela não contam os custos guardados.
+
 ## Arquivos
 
 - `salesQueue.ts` — regras puras (classificação, espera, escopo, resumo).
 - `salesQueueDb.ts` — IndexedDB (`aguiar-portal-offline` / `pending_sales`).
 - `salesQueueStore.ts` — store do navegador + hooks React.
 - `salesQueue.test.mjs` — testes da lógica pura.
+- `offlineDb.ts` — conexão IndexedDB compartilhada pelas duas filas.
+- `costQueue.ts`, `costQueueDb.ts`, `costQueueStore.ts`, `costQueue.test.ts` — fila de custos.
 
 ## Testes
 
-O portal não tem framework de testes. A lógica pura não importa nada em tempo
-de execução e é testada com o `node:test` (Node ≥ 23.6, remoção de tipos
-nativa):
+A fila de custos roda no Vitest do portal (`pnpm --filter portal-client test`).
+A de vendas, mais antiga, ainda usa o `node:test` (Node ≥ 23.6):
 
 ```sh
 cd apps/portal-client

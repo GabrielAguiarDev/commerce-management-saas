@@ -3,7 +3,7 @@
 begin;
 set local search_path = public, extensions, tests;
 select tests.seed();
-select plan(19);
+select plan(21);
 
 -- Chamados e uma resposta do suporte, gravados pelo backend.
 insert into support_tickets (id, tenant_id, opened_by, subject) values
@@ -117,6 +117,28 @@ select tests.logout();
 select lives_ok(
   $$ update support_messages set read_by_recipient = true where id = '71000000-0000-0000-0000-000000000002' $$,
   'backend marca a mensagem do cliente como lida'
+);
+
+-- Realtime: sem as tabelas na publicação, nenhum cliente recebe evento de
+-- mensagem nova — e a fase 1 do suporte em tempo real não existe. Ver
+-- `20260928000000_support_realtime.sql`.
+select ok(
+  exists (
+    select 1 from pg_publication_tables
+     where pubname = 'supabase_realtime'
+       and schemaname = 'public'
+       and tablename = 'support_messages'
+  ),
+  'support_messages está na publicação supabase_realtime'
+);
+select ok(
+  exists (
+    select 1 from pg_publication_tables
+     where pubname = 'supabase_realtime'
+       and schemaname = 'public'
+       and tablename = 'support_tickets'
+  ),
+  'support_tickets está na publicação supabase_realtime'
 );
 
 select * from finish();
