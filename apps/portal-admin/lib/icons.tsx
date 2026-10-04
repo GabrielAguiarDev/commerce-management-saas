@@ -66,6 +66,17 @@ export function FinanceiroIcone({ size = 17 }: IconProps) {
   );
 }
 
+/** A carteira: o que entrou na conta do Mercado Pago. */
+export function RecebimentosIcone({ size = 17 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none">
+      <rect x="1.8" y="4.2" width="14.4" height="10.6" rx="2.2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M1.8 7.6h14.4" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4.6 11.6h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function SuporteIcone({ size = 17 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 18 18" fill="none">

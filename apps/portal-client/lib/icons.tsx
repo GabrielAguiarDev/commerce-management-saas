@@ -59,6 +59,12 @@ const DASHES: Record<ModuleKey, Dash[]> = {
     ["path", { d: "M9.6 9.2a2.5 2.5 0 1 1 3.5 2.3c-.7.35-1.1.9-1.1 1.6" }],
     ["circle", { cx: 12, cy: 16.4, r: 0.9 }],
   ],
+  // Assinatura: o cartão, com a tarja e a linha do número.
+  billing: [
+    ["rect", { x: 2.8, y: 5, width: 18.4, height: 14, rx: 2.4 }],
+    ["path", { d: "M2.8 9.6h18.4" }],
+    ["path", { d: "M6.5 15h4" }],
+  ],
   settings: [
     ["circle", { cx: 12, cy: 12, r: 3 }],
     [

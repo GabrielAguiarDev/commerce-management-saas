@@ -3,6 +3,7 @@
 import { css, SANS } from "@aguiar/ui";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { BillingNotice } from "@/components/assinatura/BillingNotice";
 import { Modais } from "@/components/modais/Modais";
 import { BottomBar, Confirm, Toast, NavVeil } from "@/components/Overlays";
 import { usePortal } from "@/components/PortalProvider";
@@ -78,6 +79,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
                 explica o erro que a próxima ação vai dar. */}
             <AvisoOffline />
             <AvisoVendasPendentes />
+            <BillingNotice />
 
             {/* Leitura que falhou não vira "lista vazia": a tela diz o que houve,
                 ou a pessoa passaria a tarde procurando vendas que existem. */}

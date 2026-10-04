@@ -32,6 +32,7 @@ const ROUTE_MODULES: Array<[prefix: string, module: ModuleKey]> = [
   ["/custos", "costs"],
   ["/relatorios", "reports"],
   ["/configuracoes", "settings"],
+  ["/assinatura", "billing"],
   ["/suporte", "support"],
 ];
 

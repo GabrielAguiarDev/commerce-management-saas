@@ -37,6 +37,21 @@ const SETTINGS: {
     type: "numero",
   },
   {
+    key: "billing_due_day",
+    label: { pt: "Dia de vencimento da mensalidade", en: "Monthly fee due day" },
+    type: "select",
+    // De 1 a 28 para existir em todo mês; a função `billing_due_day()` do
+    // banco aplica o mesmo limite.
+    options: ["1", "5", "10", "15", "20", "25", "28"].map((day) => [
+      day,
+      { pt: `Dia ${day}`, en: `Day ${day}` },
+    ]),
+    hint: {
+      pt: "Vale para as cobranças geradas a partir de agora; as já emitidas mantêm o vencimento.",
+      en: "Applies to charges generated from now on; existing ones keep their due date.",
+    },
+  },
+  {
     key: "inactivity_notify",
     label: {
       pt: "Notificar quando um cliente ficar inativo",

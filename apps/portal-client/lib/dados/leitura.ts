@@ -1,5 +1,6 @@
 import "server-only";
 
+import { CHARGE_COLUMNS, toCharge, todayBr, type ChargeRow } from "@/lib/dados/assinatura";
 import {
   REGISTER_OPEN,
   expectedInCash,
@@ -16,6 +17,7 @@ import { moduleCatalog, tenantModules, PORTAL_TO_DB } from "@/lib/modulos";
 import type { Session } from "@/lib/sessao";
 import type {
   ActivityEntry,
+  Billing,
   OpenRegister,
   ClosedRegister,
   Ticket,
@@ -731,4 +733,56 @@ export async function readActivity(supabase: Customer): Promise<ActivityEntry[]>
     d: daysAgo(a.created_at),
     time: timeOf(a.created_at),
   }));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Assinatura                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/** Dois anos de mensalidades: o histórico que a tela mostra sem paginar. */
+const CHARGES_LIMIT = 24;
+
+/**
+ * A mensalidade que o negócio paga à plataforma — só para o DONO.
+ *
+ * `ensure_current_charge` vem primeiro, e é uma leitura que escreve: não há
+ * rotina mensal gerando cobranças, então a do mês corrente passa a existir
+ * quando o dono abre o portal. É idempotente, e devolve vazio para o plano sem
+ * mensalidade.
+ *
+ * NUNCA DERRUBA O PORTAL. Uma falha aqui (a migration de cobrança ainda não
+ * aplicada, a função fora do ar) devolve `null`, e a tela de Assinatura diz
+ * que não conseguiu carregar. Vender não pode depender de a mensalidade ter
+ * sido lida.
+ */
+export async function readBilling(
+  supabase: Customer,
+  tenantId: string,
+  isOwner: boolean,
+): Promise<Billing | null> {
+  if (!isOwner) return null;
+
+  try {
+    const { error: ensureError } = await supabase.rpc("ensure_current_charge");
+    if (ensureError) return null;
+
+    const [{ data: tenant }, { data: rows, error }] = await Promise.all([
+      supabase.from("tenants").select("monthly_fee").eq("id", tenantId).single(),
+      supabase
+        .from("platform_payments")
+        .select(CHARGE_COLUMNS)
+        .order("reference_month", { ascending: false })
+        .limit(CHARGES_LIMIT),
+    ]);
+
+    if (error) return null;
+
+    const today = todayBr();
+    return {
+      monthlyFee: num(tenant?.monthly_fee),
+      charges: ((rows as ChargeRow[] | null) ?? []).map((row) => toCharge(row, today)),
+    };
+  } catch {
+    return null;
+  }
 }

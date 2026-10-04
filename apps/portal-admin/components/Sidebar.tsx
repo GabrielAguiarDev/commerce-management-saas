@@ -13,6 +13,7 @@ import {
   FinanceiroIcone,
   ModulosIcone,
   PlanosIcone,
+  RecebimentosIcone,
   SairIcone,
   SuporteIcone,
   VisaoIcone,
@@ -213,6 +214,7 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
           </span>,
         )}
         {item(ROUTES.financeiro, L.financeiro, <FinanceiroIcone />)}
+        {item(ROUTES.payouts, L.recebimentos, <RecebimentosIcone />)}
         {item(
           ROUTES.support,
           L.support + " · " + chamadosAbertos,

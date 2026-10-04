@@ -14,6 +14,8 @@ export const ROUTES: Record<ModuleKey, string> = {
   costs: "/custos",
   reports: "/relatorios",
   settings: "/configuracoes",
+  /** A mensalidade da plataforma — só o dono do negócio chega aqui. */
+  billing: "/assinatura",
   support: "/suporte",
   /**
    * A lista de documentos emitidos. O CADASTRO fiscal continua em
