@@ -11,6 +11,7 @@ export const MODULES: Record<ModuleKey, { initials: string; name: string }> = {
   reports: { initials: "RL", name: "Relatórios" },
   fiscal: { initials: "NF", name: "Nota Fiscal" },
   settings: { initials: "CF", name: "Configurações" },
+  billing: { initials: "AS", name: "Assinatura" },
   support: { initials: "SP", name: "Suporte" },
 };
 
@@ -19,7 +20,7 @@ export const GROUPS: { title: string; items: ModuleKey[] }[] = [
   { title: "Operação", items: ["dashboard", "sales", "register"] },
   { title: "Catálogo", items: ["products", "stock"] },
   { title: "Gestão", items: ["costs", "reports", "fiscal"] },
-  { title: "Sistema", items: ["settings", "support"] },
+  { title: "Sistema", items: ["settings", "billing", "support"] },
 ];
 
 /**

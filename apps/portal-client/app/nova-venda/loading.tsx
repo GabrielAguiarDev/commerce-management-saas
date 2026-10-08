@@ -2,7 +2,7 @@ import { css, PANEL } from "@aguiar/ui";
 import { Bar } from "@/components/Skeletons";
 
 /**
- * O PDV: o catálogo à esquerda, o carrinho à direita.
+ * O PDV independente: o catálogo à esquerda, o carrinho à direita.
  *
  * A tela de vender é a que mais se abre no dia, e é a que mais precisa parecer
  * pronta na hora — daí a grade de produtos já desenhada no lugar certo.

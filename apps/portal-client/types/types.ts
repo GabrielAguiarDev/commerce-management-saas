@@ -24,6 +24,7 @@ export type ModuleKey =
   | "reports"
   | "fiscal"
   | "settings"
+  | "billing"
   | "support";
 
 /**
@@ -462,4 +463,67 @@ export interface ActivityEntry {
   summary: string;
   d: number;
   time: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Assinatura — a mensalidade que o negócio paga à plataforma                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `overdue` é DERIVADO na leitura: cobrança em aberto com vencimento passado.
+ * No banco a linha continua `pending` — ninguém roda rotina para remarcar.
+ */
+export type ChargeStatus = "paid" | "pending" | "overdue";
+
+export type BillingMethod = "pix" | "card";
+
+/** Uma mensalidade. Vem de `platform_payments`. */
+export interface Charge {
+  id: string;
+  /** Primeiro dia do mês de referência, `aaaa-mm-dd`. */
+  month: string;
+  amount: number;
+  status: ChargeStatus;
+  dueDate: string | null;
+  paidAt: string | null;
+  /** `null` numa cobrança em aberto ou quitada à mão pelo console. */
+  method: BillingMethod | null;
+}
+
+export type AttemptStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "cancelled"
+  | "expired"
+  | "refunded";
+
+/** Uma tentativa de pagar uma cobrança. Vem de `platform_payment_attempts`. */
+export interface PaymentAttempt {
+  id: string;
+  chargeId: string;
+  method: BillingMethod;
+  status: AttemptStatus;
+  amount: number;
+  /** O "Pix copia e cola". */
+  pixCode: string | null;
+  /** A imagem do QR, em base64 (PNG), sem o prefixo `data:`. */
+  pixQr: string | null;
+  ticketUrl: string | null;
+  expiresAt: string | null;
+  /** O motivo que o Mercado Pago deu — a tela traduz em `lib/assinatura.ts`. */
+  detail: string | null;
+  cardBrand: string | null;
+  cardLast4: string | null;
+}
+
+/**
+ * O que a tela de Assinatura lê. Só existe para o DONO do negócio: para os
+ * demais vem `null`, e o RLS não devolveria linha nenhuma de qualquer forma.
+ */
+export interface Billing {
+  /** `tenants.monthly_fee`. Zero = plano sem mensalidade. */
+  monthlyFee: number;
+  /** As cobranças, da mais recente para a mais antiga. */
+  charges: Charge[];
 }

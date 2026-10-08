@@ -14,6 +14,8 @@ export const ROUTES: Record<ModuleKey, string> = {
   costs: "/custos",
   reports: "/relatorios",
   settings: "/configuracoes",
+  /** A mensalidade da plataforma — só o dono do negócio chega aqui. */
+  billing: "/assinatura",
   support: "/suporte",
   /**
    * A lista de documentos emitidos. O CADASTRO fiscal continua em
@@ -23,8 +25,8 @@ export const ROUTES: Record<ModuleKey, string> = {
   fiscal: "/notas",
 };
 
-/** O PDV é filho de Vendas: entra por "Nova venda" e volta para a lista. */
-export const POS_ROUTE = "/vendas/nova";
+/** O PDV é uma tela independente, aberta a partir de qualquer módulo. */
+export const POS_ROUTE = "/nova-venda";
 
 export function ticketRoute(id: string): string {
   return `/suporte/${id}`;

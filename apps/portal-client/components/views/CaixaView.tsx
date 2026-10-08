@@ -1,12 +1,14 @@
 "use client";
 
 import { usePortal } from "@/components/PortalProvider";
+import { NavLink } from "@/components/NavLink";
 import { RowMenu } from "@/components/ui";
 import { primaryButton, Button, TABLE_HEADER, ScreenHeader, css, kpiStrip, LIST, MONO, NUM, KPI_LABEL, columnLabel, SANS, Empty } from "@aguiar/ui";
 import { REGISTER_MOVEMENT_STYLE, movementsBalance, sumByMethod } from "@/lib/dados/caixa";
 import { METHODS, METHOD_NOTE, PAYMENT_LABEL } from "@/lib/dados/vendas";
 import { brl, brlDelta, deltaColor, dateLabel } from "@/lib/formato";
 import { cashInDrawer, expectedInShift, salesInShift } from "@/lib/selectors";
+import { POS_ROUTE } from "@/lib/rotas";
 import type { ClosedRegister } from "@/types/types";
 
 /**
@@ -18,7 +20,7 @@ import type { ClosedRegister } from "@/types/types";
  * vendas.
  */
 export function CaixaView() {
-  const { a, isMobile, isDesktop, d } = usePortal();
+  const { a, has, isMobile, isDesktop, d } = usePortal();
   const cx = d.openRegister;
 
   const sales = salesInShift(d);
@@ -33,7 +35,7 @@ export function CaixaView() {
     <div>
       <ScreenHeader
         title="Caixa"
-        subtitle="Abra o turno com o troco, acompanhe o dinheiro do dia e feche conferindo."
+        subtitle="Abra o caixa, registre suas vendas e confira os valores ao terminar o dia."
         action={
           cx ? (
             <div style={css("display:flex;align-items:center;gap:9px")}>
@@ -45,15 +47,6 @@ export function CaixaView() {
                 <span style={css("width:7px;height:7px;border-radius:50%;background:var(--pos)")} />
                 Aberto desde {cx.openedAt}
               </span>
-              {isDesktop && (
-                <Button
-                  onClick={() => a.openModal({ k: "closeRegister" })}
-                  className="hv-brilho"
-                  style={css(`${primaryButton()};background:var(--warn);color:#fff`)}
-                >
-                  Fechar caixa
-                </Button>
-              )}
             </div>
           ) : undefined
         }
@@ -76,8 +69,10 @@ export function CaixaView() {
           </span>
           <div style={css(`margin-top:2px;font:700 18px ${SANS}`)}>Nenhum caixa aberto agora</div>
           <p style={css(`margin:0;max-width:400px;font:400 13.5px/1.55 ${SANS};color:var(--muted)`)}>
-            Para começar o dia, abra o caixa informando o troco que está na gaveta. Depois disso, as
-            vendas em dinheiro entram aqui automaticamente.
+            Para começar o dia, abra o caixa informando o troco que está na gaveta.{" "}
+            {has("sales")
+              ? "Depois, clique em Registrar venda para lançar os produtos e a forma de pagamento."
+              : "As vendas em dinheiro entram aqui automaticamente."}
           </p>
           <Button
             onClick={() => a.openModal({ k: "openRegister" })}
@@ -89,6 +84,29 @@ export function CaixaView() {
         </div>
       ) : (
         <div>
+          {has("sales") && (
+            <div
+              style={css(
+                `display:flex;flex-direction:${isMobile ? "column" : "row"};align-items:${isMobile ? "stretch" : "center"};gap:16px;padding:20px;margin-bottom:16px;border:1px solid var(--border2);border-radius:14px;background:var(--accent-soft)`,
+              )}
+            >
+              <div style={css("flex:1;min-width:0")}>
+                <h2 style={css(`margin:0;font:700 17px ${SANS}`)}>Caixa aberto. Pode começar a vender!</h2>
+                <p style={css(`margin:6px 0 0;font:400 13px/1.5 ${SANS};color:var(--text2)`)}>
+                  Clique em Registrar venda, escolha os produtos e informe como o cliente pagou.
+                  Os valores aparecem neste caixa automaticamente.
+                </p>
+              </div>
+              <NavLink
+                href={POS_ROUTE}
+                className="hv-brilho"
+                style={css(`display:flex;align-items:center;justify-content:center;gap:9px;flex:none;${primaryButton("lg")}`)}
+              >
+                <span aria-hidden="true" style={css(`font:600 18px/1 ${MONO}`)}>+</span>
+                Registrar venda
+              </NavLink>
+            </div>
+          )}
           <div style={css(kpiStrip(indicatorCols) + ";margin-bottom:16px")}>
             {[
               {
@@ -213,7 +231,7 @@ export function CaixaView() {
                     `padding:13px 10px;border-radius:11px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font:600 13px ${SANS}`,
                   )}
                 >
-                  − Sangria
+                  − Retirar dinheiro
                 </Button>
                 <Button
                   onClick={() => {
@@ -225,7 +243,7 @@ export function CaixaView() {
                     `padding:13px 10px;border-radius:11px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font:600 13px ${SANS}`,
                   )}
                 >
-                  + Reforço
+                  + Adicionar troco
                 </Button>
               </div>
 
@@ -233,7 +251,8 @@ export function CaixaView() {
                 <div style={css("padding:26px 18px;text-align:center")}>
                   <div style={css(`font:600 13px ${SANS}`)}>Nenhuma movimentação neste turno</div>
                   <p style={css(`margin:5px 0 0;font:400 12px/1.5 ${SANS};color:var(--muted)`)}>
-                    Use a withdrawal ao levar dinheiro para o cofre e o reforço ao colocar troco extra.
+                    Use Retirar dinheiro para levar dinheiro ao cofre e Adicionar troco para colocar
+                    dinheiro extra na gaveta.
                   </p>
                 </div>
               ) : (
@@ -304,7 +323,7 @@ export function CaixaView() {
                   onClick={() => a.openModal({ k: "closeRegister" })}
                   className="hv-brilho"
                   style={css(
-                    `width:100%;padding:15px;border-radius:12px;background:var(--warn);color:#fff;font:700 14.5px ${SANS}`,
+                    `width:100%;padding:15px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font:600 14.5px ${SANS}`,
                   )}
                 >
                   Fechar caixa e conferir

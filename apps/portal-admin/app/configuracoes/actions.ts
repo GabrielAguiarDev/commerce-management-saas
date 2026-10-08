@@ -17,6 +17,7 @@ import { normalizeWhatsapp } from "@/lib/telefone";
 const ALLOWED_KEYS = new Set([
   "default_modules",
   "trial_days",
+  "billing_due_day",
   "inactivity_notify",
   "default_language",
   "whatsapp_contact",
@@ -37,6 +38,10 @@ export async function saveSetting(
 
   if (key === "trial_days" && (typeof amount !== "number" || amount < 0)) {
     return { ok: false, message: "O período de teste precisa ser um número de dias." };
+  }
+
+  if (key === "billing_due_day" && !/^([1-9]|1[0-9]|2[0-8])$/.test(String(amount))) {
+    return { ok: false, message: "O dia de vencimento precisa estar entre 1 e 28." };
   }
 
   if (key === "default_modules" && !Array.isArray(amount)) {

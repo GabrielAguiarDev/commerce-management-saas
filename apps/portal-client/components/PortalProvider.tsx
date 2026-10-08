@@ -75,7 +75,7 @@ import { submitSale, useSalesQueueSync } from "@/lib/offline/salesQueueStore";
 import { createQueuedCost } from "@/lib/offline/costQueue";
 import { submitCost, useCostQueueSync } from "@/lib/offline/costQueueStore";
 import { limparTelasGuardadas } from "@/lib/pwa";
-import { POS_ROUTE, ROUTES } from "@/lib/rotas";
+import { moduleFromRoute, POS_ROUTE, ROUTES } from "@/lib/rotas";
 import type {
   Confirm,
   PortalData,
@@ -179,8 +179,17 @@ export function PortalProvider({
    */
   const pathname = usePathname();
   const [rotaAnterior, setRotaAnterior] = useState(pathname);
+  // Sem navegação anterior (URL direta ou nova aba), o retorno é o Dashboard.
+  const [saleOrigin, setSaleOrigin] = useState<string>(ROUTES.dashboard);
   if (pathname !== rotaAnterior) {
     setRotaAnterior(pathname);
+    if (pathname === POS_ROUTE) {
+      setSaleOrigin(
+        rotaAnterior !== "/vendas/nova" && moduleFromRoute(rotaAnterior) != null
+          ? rotaAnterior
+          : ROUTES.dashboard,
+      );
+    }
     if (rotaAnterior === POS_ROUTE) {
       setS((x) =>
         x.editingSale == null
@@ -366,14 +375,18 @@ export function PortalProvider({
    * login.
    */
   const toggleTheme = useCallback(() => {
-    setS((x) => {
-      const theme: Theme = x.theme === "light" ? "dark" : "light";
-      void saveTheme(theme).then((r) => {
-        if (!r.ok) setS((y) => ({ ...y, toast: toast(r.message, "error") }));
+    const theme: Theme = s.theme === "light" ? "dark" : "light";
+    set({ theme });
+    // Server Actions podem atualizar o Router: devem rodar no evento, nunca
+    // dentro do updater de estado, que o React pode executar ao renderizar.
+    void saveTheme(theme)
+      .then((r) => {
+        if (!r.ok) notify(r.message, "error");
+      })
+      .catch(() => {
+        notify("Não foi possível salvar o tema. Tente novamente.", "error");
       });
-      return { ...x, theme };
-    });
-  }, []);
+  }, [s.theme, set, notify]);
 
   // Sair apaga também as telas que o service worker guardou: elas continuariam
   // legíveis offline depois de a sessão acabar. Ver `lib/pwa.ts`.
@@ -412,9 +425,14 @@ export function PortalProvider({
   }, []);
 
   const clearCart = useCallback(
-    () => set({ cart: [], editingSale: null, confirmDialog: null }),
+    () => set({ cart: [], editingSale: null, confirmDialog: null, cartOpen: false, customerDocument: "" }),
     [set],
   );
+
+  const returnFromSale = useCallback(() => {
+    clearCart();
+    goTo(saleOrigin);
+  }, [clearCart, goTo, saleOrigin]);
 
   const recordSale = useCallback(async () => {
     if (s.saving || !s.cart.length) return;
@@ -442,7 +460,7 @@ export function PortalProvider({
         (ok) => {
           if (!ok) return;
           limparCarrinho();
-          router.push(ROUTES.sales);
+          goTo(saleOrigin);
         },
       );
       return;
@@ -470,7 +488,7 @@ export function PortalProvider({
         setS((x) => ({ ...x, saving: false, toast: toast("Venda registrada") }));
         limparCarrinho();
         iniciarTransicao(() => router.refresh());
-        router.push(ROUTES.sales);
+        goTo(saleOrigin);
         return;
       case "queued":
         // Fica no PDV: sem conexão, a lista de vendas pode nem abrir, e o balcão
@@ -487,7 +505,7 @@ export function PortalProvider({
         setS((x) => ({ ...x, saving: false, toast: toast(outcome.message, "error") }));
         return;
     }
-  }, [s, d, run, router]);
+  }, [s, d, run, router, goTo, saleOrigin]);
 
   /**
    * O envio automático da fila offline. Ao terminar uma rodada que mudou algo,
@@ -1194,6 +1212,7 @@ export function PortalProvider({
       toggleTheme,
       beforeNavigate,
       goTo,
+      returnFromSale,
       notify,
       closeToast,
       confirm,
@@ -1250,7 +1269,7 @@ export function PortalProvider({
       markRead,
     }),
     [
-      set, toggleTheme, beforeNavigate, goTo, notify, closeToast, confirm, closeConfirm, closeModal, openModal,
+      set, toggleTheme, beforeNavigate, goTo, returnFromSale, notify, closeToast, confirm, closeConfirm, closeModal, openModal,
       openMenu, signOut, addToCart, changeQty, removeItem, clearCart, recordSale,
       editSale, refundSale, undoRefund, openProduct, saveProduct, toggleFav,
       toggleActive, deleteProduct, openMovement, saveMovement, undoMovement, openCost, saveCost,

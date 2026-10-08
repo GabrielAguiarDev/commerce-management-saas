@@ -1,5 +1,6 @@
 import type {
   ActivityEntry,
+  Billing,
   OpenRegister,
   ClosedRegister,
   Ticket,
@@ -298,6 +299,8 @@ export interface PortalData {
    * `log_activity`, chamada de dentro das Server Actions.
    */
   activity: ActivityEntry[];
+  /** A mensalidade da plataforma. `null` para quem não é o dono do negócio. */
+  billing: Billing | null;
   /** Preenchido quando a leitura falhou — a tela avisa em vez de mentir "vazio". */
   error: string | null;
 }
@@ -405,6 +408,8 @@ export interface PortalActions {
    */
   beforeNavigate: (rota: string) => boolean;
   goTo: (rota: string) => void;
+  /** Encerra o rascunho e retorna à tela de onde o PDV foi aberto. */
+  returnFromSale: () => void;
   notify: (text: string, tone?: ToastTone) => void;
   /** Fecha o aviso na mão, com a mesma saída de quando o tempo se esgota. */
   closeToast: () => void;

@@ -1,5 +1,6 @@
-import { PdvView } from "@/components/views/PdvView";
+import { redirect } from "next/navigation";
+import { POS_ROUTE } from "@/lib/rotas";
 
 export default function Page() {
-  return <PdvView />;
+  redirect(POS_ROUTE);
 }

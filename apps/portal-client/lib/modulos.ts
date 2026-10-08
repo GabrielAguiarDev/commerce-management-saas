@@ -30,6 +30,16 @@ export const PORTAL_TO_DB: Partial<Record<ModuleKey, string>> = Object.fromEntri
 export const BASE_MODULES: ModuleKey[] = ["dashboard", "settings", "support"];
 
 /**
+ * O que pertence à CONTA e só o dono enxerga, seja qual for o plano.
+ *
+ * `billing` é a mensalidade que o negócio paga à plataforma. Não é vendável
+ * (todo negócio a tem) nem permissão de papel: `tenantModules` sempre o
+ * inclui, e quem o tira do funcionário é o filtro de papel em `lib/sessao.ts`
+ * e no `proxy.ts` — que só conhece `BASE_MODULES` e o que o papel libera.
+ */
+export const OWNER_MODULES: ModuleKey[] = ["billing"];
+
+/**
  * Módulos construídos mas ainda NÃO liberados — o espelho de
  * `COMING_SOON_MODULES` no portal-admin, que é onde a decisão é tomada.
  *
@@ -65,11 +75,12 @@ const ORDER: ModuleKey[] = [
   "reports",
   "fiscal",
   "settings",
+  "billing",
   "support",
 ];
 
 export function tenantModules(rows: { key: string; is_access: boolean | null }[]): ModuleKey[] {
-  const active = new Set<ModuleKey>(BASE_MODULES);
+  const active = new Set<ModuleKey>([...BASE_MODULES, ...OWNER_MODULES]);
 
   for (const l of rows) {
     if (l.is_access) continue; // 'app' e afins não são tela do portal.
@@ -119,6 +130,7 @@ const FALLBACK_CATALOG: Record<ModuleKey, { name: string; benefit: string }> = {
   reports: { name: "Relatórios", benefit: "Compare períodos e descubra o que mais vende." },
   fiscal: { name: "Notas fiscais", benefit: "Emita a NFC-e da venda sem sair do balcão." },
   settings: { name: "Configurações", benefit: "Os dados e a equipe do seu negócio." },
+  billing: { name: "Assinatura", benefit: "A mensalidade do seu plano, paga por aqui." },
   support: { name: "Suporte", benefit: "Fale com a nossa equipe direto pelo portal." },
 };
 

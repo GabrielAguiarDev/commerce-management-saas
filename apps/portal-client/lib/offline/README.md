@@ -2,7 +2,7 @@
 
 Duas filas, no mesmo banco IndexedDB (`aguiar-portal-offline`, v2):
 
-- **vendas novas do PDV** (`/vendas/nova`) — store `pending_sales`;
+- **vendas novas do PDV** (`/nova-venda`) — store `pending_sales`;
 - **custos avulsos novos** (`/custos`, sem "repetir todo mês") — store `pending_costs`.
 
 Editar/estornar venda, caixa, estoque, custo recorrente, edição de custo e o

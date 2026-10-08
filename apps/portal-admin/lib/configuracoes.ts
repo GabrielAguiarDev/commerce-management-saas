@@ -1,4 +1,5 @@
 import "server-only";
+import { platformPaymentsEnabled } from "@/lib/platformPayments";
 
 import { isSellableModule } from "@/lib/planos";
 import { createClient } from "@/lib/supabase/server";
@@ -35,6 +36,21 @@ const SETTINGS: {
     key: "trial_days",
     label: { pt: "Período de teste do plano Pago", en: "Paid plan trial period" },
     type: "numero",
+  },
+  {
+    key: "billing_due_day",
+    label: { pt: "Dia de vencimento da mensalidade", en: "Monthly fee due day" },
+    type: "select",
+    // De 1 a 28 para existir em todo mês; a função `billing_due_day()` do
+    // banco aplica o mesmo limite.
+    options: ["1", "5", "10", "15", "20", "25", "28"].map((day) => [
+      day,
+      { pt: `Dia ${day}`, en: `Day ${day}` },
+    ]),
+    hint: {
+      pt: "Vale para as cobranças geradas a partir de agora; as já emitidas mantêm o vencimento.",
+      en: "Applies to charges generated from now on; existing ones keep their due date.",
+    },
   },
   {
     key: "inactivity_notify",
@@ -98,7 +114,7 @@ export async function listSettings(): Promise<SettingsResult> {
   const stored = new Map((data ?? []).map((l) => [l.key as string, l.value]));
 
   return {
-    settings: SETTINGS.map(({ key, label, type, options, hint }) => {
+    settings: SETTINGS.filter(({ key }) => key !== "billing_due_day" || platformPaymentsEnabled()).map(({ key, label, type, options, hint }) => {
       const gross = stored.get(key);
       return {
         id: key,

@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   readActivity,
+  readBilling,
   readRegister,
   readTickets,
   readCosts,
@@ -64,6 +65,7 @@ export async function loadPortal(): Promise<PortalData> {
       fiscalDocuments,
       preferences,
       activity,
+      billing,
     ] = await Promise.all([
         businessPromise,
         readProducts(supabase),
@@ -77,6 +79,7 @@ export async function loadPortal(): Promise<PortalData> {
         readFiscalDocuments(supabase, businessPromise),
         readSettings(supabase, tenantId, userId),
         readActivity(supabase),
+        readBilling(supabase, tenantId, isOwner),
       ]);
 
     return {
@@ -96,6 +99,7 @@ export async function loadPortal(): Promise<PortalData> {
       team: team.team,
       tickets,
       activity,
+      billing,
       error: null,
     };
   } catch (e) {

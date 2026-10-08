@@ -45,7 +45,7 @@ O caminho da venda está inteiro e é curto — bom sinal:
 
 | Peça | Onde | O que faz |
 |---|---|---|
-| PDV | `apps/portal-client/app/vendas/nova` | carrinho, forma de pagamento |
+| PDV | `apps/portal-client/app/nova-venda` | carrinho, forma de pagamento |
 | Gravação | `app/vendas/actions.ts` › `recordSale` | insere `sales` + `sale_items` |
 | Leitura | `lib/dados/leitura.ts` | única fronteira banco → portal |
 | Vocabulário | `lib/dados/vendas.ts` | `PAYMENT_DB`, `SALE_STATUS` |
@@ -308,7 +308,7 @@ Outros pontos de contato, em ordem de esforço:
 | Arquivo | Mudança |
 |---|---|
 | `app/vendas/actions.ts` | enfileirar documento; ramificar estorno/edição (acima) |
-| `app/vendas/nova/page.tsx` | campo "CPF na nota", e desconto se entrar no escopo |
+| `app/nova-venda/page.tsx` | campo "CPF na nota", e desconto se entrar no escopo |
 | `lib/dados/leitura.ts` | ler `fiscal_documents` junto com a venda |
 | `types/types.ts` | `FiscalDocument`, `FiscalStatus`; `Product` ganha os campos fiscais |
 | `lib/modulos.ts` | nova `ModuleKey` `"fiscal"` no mapa e na `ORDER` |

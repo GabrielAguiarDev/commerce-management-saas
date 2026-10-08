@@ -59,6 +59,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     [ROUTES.showcase]: [L.tituloVitrine[0], L.tituloVitrine[1]],
     [ROUTES.settings]: [L.tituloConfig[0], L.tituloConfig[1]],
     [ROUTES.financeiro]: [L.tituloFinanceiro[0], L.tituloFinanceiro[1]],
+    [ROUTES.payouts]: [L.tituloRecebimentos[0], L.tituloRecebimentos[1]],
   };
 
   // /clientes/novo tem cabeçalho próprio; o segmento "novo" não é um id.

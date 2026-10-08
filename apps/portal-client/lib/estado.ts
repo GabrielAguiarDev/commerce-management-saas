@@ -179,6 +179,7 @@ export const EMPTY_DATA: PortalData = {
   team: [],
   tickets: [],
   activity: [],
+  billing: null,
   error: null,
 };
 

@@ -7,6 +7,8 @@ export const ROUTES = {
   customers: "/clientes",
   novoCliente: "/clientes/novo",
   financeiro: "/financeiro",
+  /** A conta do Mercado Pago: saldo, tarifas e o que entrou. */
+  payouts: "/recebimentos",
   support: "/suporte",
   plans: "/planos",
   modules: "/modulos",

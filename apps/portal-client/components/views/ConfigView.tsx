@@ -897,6 +897,7 @@ const ACTION_LABEL: Record<string, string> = {
   "employee.restored": "Acesso liberado",
   "employee.role_changed": "Tipo de acesso trocado",
   "employee.invited": "Funcionário convidado",
+  "billing.paid": "Mensalidade paga",
   "employee.removed": "Funcionário removido",
 
   "ticket.opened": "Chamado aberto",

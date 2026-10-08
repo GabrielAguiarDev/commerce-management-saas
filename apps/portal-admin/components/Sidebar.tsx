@@ -13,6 +13,7 @@ import {
   FinanceiroIcone,
   ModulosIcone,
   PlanosIcone,
+  RecebimentosIcone,
   SairIcone,
   SuporteIcone,
   VisaoIcone,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/icons";
 import { ROUTES, isActiveRoute } from "@/lib/rotas";
 import { headerHeight, navStyle } from "@/lib/styleKit";
+import { platformPaymentsEnabled } from "@/lib/platformPayments";
 
 /**
  * O id da barra lateral. O botão da gaveta, lá na barra de topo, aponta para
@@ -213,6 +215,7 @@ export function Sidebar({ customerCount, chamadosAbertos, mrrValor, mrrDelta }: 
           </span>,
         )}
         {item(ROUTES.financeiro, L.financeiro, <FinanceiroIcone />)}
+        {platformPaymentsEnabled() && item(ROUTES.payouts, L.recebimentos, <RecebimentosIcone />)}
         {item(
           ROUTES.support,
           L.support + " · " + chamadosAbertos,
