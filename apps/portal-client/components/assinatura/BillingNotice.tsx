@@ -6,6 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import { usePortal } from "@/components/PortalProvider";
 import { dateBr, todayBr } from "@/lib/dados/assinatura";
 import { ROUTES } from "@/lib/rotas";
+import { platformPaymentsEnabled } from "@/lib/platformPayments";
 
 /** A partir de quantos dias antes do vencimento o aviso aparece. */
 const WARN_DAYS = 5;
@@ -26,7 +27,7 @@ export function BillingNotice() {
   const pathname = usePathname();
 
   const charges = d.billing?.charges ?? [];
-  if (pathname === ROUTES.billing || charges.length === 0) return null;
+  if (!platformPaymentsEnabled() || pathname === ROUTES.billing || charges.length === 0) return null;
 
   const open = charges.filter((c) => c.status !== "paid");
   const overdue = open.filter((c) => c.status === "overdue");

@@ -1,4 +1,5 @@
 import { json, serviceClient, userClient } from "../_shared/db.ts";
+import { platformPaymentsEnabled } from "../_shared/platformPayments.ts";
 import {
   isUuid,
   mpConfigured,
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return json({ error: "sessão obrigatória" }, 401);
 
-  if (!mpConfigured()) {
+  if (!platformPaymentsEnabled() || !mpConfigured()) {
     return json({ error: "pagamento pelo portal ainda não está disponível" }, 503);
   }
 

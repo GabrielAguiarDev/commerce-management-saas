@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   requireOwner: vi.fn(),
@@ -25,9 +25,29 @@ function attemptRow(status: string, method = "pix") {
 
 describe("billing Server Actions", () => {
   beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_PLATFORM_PAYMENTS_ENABLED", "true");
     mocks.requireOwner.mockReset();
     mocks.logActivity.mockReset().mockResolvedValue(undefined);
     mocks.revalidatePath.mockReset();
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each([undefined, "false", "TRUE"])("blocks every checkout action when release is %s", async (release) => {
+    vi.stubEnv("NEXT_PUBLIC_PLATFORM_PAYMENTS_ENABLED", release);
+    vi.stubEnv("NEXT_PUBLIC_MP_PUBLIC_KEY", "configured-public-key");
+    const invoke = vi.fn();
+    mocks.requireOwner.mockResolvedValue(owner(invoke));
+    const blocked = { ok: false, message: "Pagamentos pela plataforma estarão disponíveis em breve." };
+
+    await expect(startPix(CHARGE)).resolves.toEqual(blocked);
+    await expect(syncAttempt(ATTEMPT)).resolves.toEqual(blocked);
+    await expect(payWithCard(CHARGE, {
+      token: "tokenized-card", paymentMethodId: "visa", issuerId: "1",
+      payerEmail: "owner@example.com", docType: "CPF", docNumber: "12345678901",
+    })).resolves.toEqual(blocked);
+    expect(invoke).not.toHaveBeenCalled();
+    expect(mocks.requireOwner).not.toHaveBeenCalled();
   });
 
   it("refuses anyone who is not the owner before calling the function", async () => {

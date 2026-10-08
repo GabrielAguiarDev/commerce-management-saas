@@ -14,7 +14,6 @@ import {
   type QueuedSale,
 } from "@/lib/offline/salesQueue";
 import { discardSale, retrySale, useQueuedSales } from "@/lib/offline/salesQueueStore";
-import { ROUTES } from "@/lib/rotas";
 import type { Product } from "@/types/types";
 
 /**
@@ -80,10 +79,7 @@ export function PdvView() {
       >
         <div style={css("display:flex;align-items:center;gap:12px;min-width:0")}>
           <Button
-            onClick={() => {
-              a.clearCart();
-              a.goTo(ROUTES.sales);
-            }}
+            onClick={a.returnFromSale}
             title="Voltar"
             className="hv-borda"
             style={css(
@@ -438,11 +434,11 @@ export function PdvView() {
                         buttonInk: "#fff",
                         color: "var(--danger)",
                         action: () => {
-                          a.clearCart();
-                          if (editing) a.goTo(ROUTES.sales);
+                          if (editing) a.returnFromSale();
+                          else a.clearCart();
                         },
                       })
-                    : a.goTo(ROUTES.sales)
+                    : a.returnFromSale()
                 }
                 style={css(
                   `width:100%;margin-top:7px;padding:11px;border-radius:11px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font:600 13px ${SANS}`,

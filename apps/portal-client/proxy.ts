@@ -26,6 +26,7 @@ const PUBLIC_ROUTES = [LOGIN, "/esqueci-senha", "/auth/confirmar", "/redefinir-s
 
 const ROUTE_MODULES: Array<[prefix: string, module: ModuleKey]> = [
   ["/vendas", "sales"],
+  ["/nova-venda", "sales"],
   ["/caixa", "register"],
   ["/produtos", "products"],
   ["/estoque", "stock"],

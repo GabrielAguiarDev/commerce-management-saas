@@ -3,6 +3,29 @@
 O que foi construído, e o que **você** precisa fazer fora do código para ligar o
 pagamento e publicar esta versão.
 
+## Publicação atual: pagamentos desativados
+
+Esta versão pode publicar as melhorias de interface sem liberar pagamentos.
+Por padrão (variáveis ausentes ou `false`):
+
+- Assinatura mostra apenas **Em breve**, sem checkout ou histórico de cobranças.
+- O portal não chama `ensure_current_charge`, não gera mensalidades e não mostra avisos de pagamento.
+- As Server Actions de Pix, cartão e consulta recusam chamadas diretas.
+- Recebimentos e a configuração de vencimento ficam ocultos no admin; a URL de Recebimentos retorna 404.
+- `billing-checkout` recusa chamadas diretas e `mp-account` não consulta a conta.
+- O Financeiro manual continua funcionando. O webhook continua apto a reconciliar pagamentos já existentes; ele não cria pagamentos.
+
+Mantenha `NEXT_PUBLIC_PLATFORM_PAYMENTS_ENABLED=false` nos **dois** portais
+(ou deixe a variável ausente). Nas Edge Functions, mantenha
+`PLATFORM_PAYMENTS_ENABLED=false` (ou ausente). Credenciais, por si só, não
+liberam a integração. A migration de pagamentos e as funções não são necessárias
+para publicar o anúncio e as melhorias de interface. Caso as funções já estejam
+publicadas, publique suas novas versões para aplicar também o bloqueio direto.
+
+Para liberar no futuro, faça primeiro a configuração e a validação descritas
+abaixo em um ambiente de teste. Só então defina ambas as variáveis como `true`
+nos respectivos ambientes e faça novo deploy dos portais e funções.
+
 > **Estado desta entrega:** banco testado (pgTAP), Edge Functions com checagem
 > de tipos, portais com typecheck, lint, testes e build passando. **Nada foi
 > testado contra o Mercado Pago de verdade** — isso depende das credenciais, e é

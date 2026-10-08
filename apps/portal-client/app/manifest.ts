@@ -1,4 +1,5 @@
 import { BRAND } from "@aguiar/ui";
+import { POS_ROUTE } from "@/lib/rotas";
 import type { MetadataRoute } from "next";
 
 /**
@@ -91,7 +92,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Nova venda",
         short_name: "Vender",
-        url: "/vendas/nova",
+        url: POS_ROUTE,
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
       },
       {

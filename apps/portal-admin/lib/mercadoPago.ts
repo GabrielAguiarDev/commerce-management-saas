@@ -2,6 +2,7 @@ import "server-only";
 
 import { requireAdmin } from "@/lib/autorizacao";
 import type { MpAccountData, MpAccountResult } from "@/lib/recebimentos";
+import { platformPaymentsEnabled } from "@/lib/platformPayments";
 
 /**
  * A conta do Mercado Pago, lida pela Edge Function `mp-account`.
@@ -12,6 +13,7 @@ import type { MpAccountData, MpAccountResult } from "@/lib/recebimentos";
  * função confere `is_platform_admin` antes de responder.
  */
 export async function loadMercadoPago(days: number): Promise<MpAccountResult> {
+  if (!platformPaymentsEnabled()) return { state: "unconfigured" };
   const auth = await requireAdmin("ver os recebimentos");
   if (!auth.ok) return { state: "error", message: auth.message };
 

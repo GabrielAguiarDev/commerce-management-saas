@@ -408,6 +408,8 @@ export interface PortalActions {
    */
   beforeNavigate: (rota: string) => boolean;
   goTo: (rota: string) => void;
+  /** Encerra o rascunho e retorna à tela de onde o PDV foi aberto. */
+  returnFromSale: () => void;
   notify: (text: string, tone?: ToastTone) => void;
   /** Fecha o aviso na mão, com a mesma saída de quando o tempo se esgota. */
   closeToast: () => void;

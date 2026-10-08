@@ -1,6 +1,8 @@
 import { RecebimentosView } from "@/components/views/RecebimentosView";
 import { loadMercadoPago } from "@/lib/mercadoPago";
 import { parsePeriod } from "@/lib/recebimentos";
+import { notFound } from "next/navigation";
+import { platformPaymentsEnabled } from "@/lib/platformPayments";
 
 /**
  * A conta do Mercado Pago.
@@ -17,6 +19,7 @@ export default async function Page({
 }: {
   searchParams: Promise<{ dias?: string | string[] }>;
 }) {
+  if (!platformPaymentsEnabled()) notFound();
   const days = parsePeriod((await searchParams).dias);
   const result = await loadMercadoPago(days);
   return <RecebimentosView result={result} days={days} />;

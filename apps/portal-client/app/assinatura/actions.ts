@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { toAttempt } from "@/lib/dados/assinatura";
 import { logActivity } from "@/lib/historico";
 import { requireOwner } from "@/lib/sessao";
+import { platformPaymentsEnabled } from "@/lib/platformPayments";
 import type { PaymentAttempt } from "@/types/types";
 
 /**
@@ -58,6 +59,9 @@ async function checkout(
   body: Record<string, unknown>,
   fallback: string,
 ): Promise<AttemptResult> {
+  if (!platformPaymentsEnabled()) {
+    return { ok: false, message: "Pagamentos pela plataforma estarão disponíveis em breve." };
+  }
   const session = await requireOwner(action);
   if (!session.ok) return session;
 

@@ -1,4 +1,5 @@
 import "server-only";
+import { platformPaymentsEnabled } from "@/lib/platformPayments";
 
 import { CHARGE_COLUMNS, toCharge, todayBr, type ChargeRow } from "@/lib/dados/assinatura";
 import {
@@ -760,7 +761,7 @@ export async function readBilling(
   tenantId: string,
   isOwner: boolean,
 ): Promise<Billing | null> {
-  if (!isOwner) return null;
+  if (!isOwner || !platformPaymentsEnabled()) return null;
 
   try {
     const { error: ensureError } = await supabase.rpc("ensure_current_charge");

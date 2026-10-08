@@ -1,4 +1,5 @@
 import { json, serviceClient, userClient } from "../_shared/db.ts";
+import { platformPaymentsEnabled } from "../_shared/platformPayments.ts";
 import {
   feeTotal,
   isUuid,
@@ -60,6 +61,7 @@ function round(n: number): number {
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "método não permitido" }, 405);
+  if (!platformPaymentsEnabled()) return json({ configured: false });
 
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return json({ error: "sessão obrigatória" }, 401);

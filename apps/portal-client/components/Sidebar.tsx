@@ -26,6 +26,10 @@ import type { ModuleKey } from "@/types/types";
 const LARGURA = 250;
 const LARGURA_COLAPSADA = 68;
 
+/** Mantém os rótulos no layout para não deslocar os ícones durante a transição. */
+const labelTransition = (visible: boolean) =>
+  `opacity:${visible ? 1 : 0};transition:opacity .18s ease;`;
+
 /** Distância entre o ícone e o balão que o nomeia, recolhida a barra. */
 const FOLGA_BALAO = 12;
 /** Respiro mínimo entre o balão e as bordas da janela. */
@@ -72,35 +76,39 @@ export function Sidebar() {
         A marca do produto. Fica na altura da `Topbar` (64px) para que as duas
         bordas de baixo formem uma linha só, como no console.
 
-        Recolhida, a barra tem 68px: não cabem a marca e o botão lado a lado, e
-        o botão é o que não pode sumir — é a única volta. A marca sai; o nome do
-        produto continua na aba e no ícone instalado.
+        Recolhida, a barra mantém o símbolo AO. No desktop, o botão fica sobre
+        a divisória, sem disputar espaço com a marca.
       */}
       <div
         style={css(
-          "flex:none;display:flex;align-items:center;gap:10px;height:64px;" +
-            (collapsed ? "justify-content:center;padding:0 12px;" : "padding:0 12px 0 16px;") +
+          "position:relative;flex:none;display:flex;align-items:center;gap:10px;height:64px;" +
+            "padding:0 12px 0 16px;" +
             "border-bottom:1px solid var(--border)",
         )}
       >
-        {showLabels && (
-          <div style={css("min-width:0;flex:1;display:flex;align-items:center;gap:10px")}>
+        <div style={css("min-width:0;flex:1;display:flex;align-items:center;gap:10px;overflow:hidden")}>
+          <div style={css(`flex:none;transform:scale(${collapsed ? 0.8 : 1});transform-origin:left center;transition:transform .18s ease`)}>
             <Logo size={22} priority />
+          </div>
             <span
+              aria-hidden={collapsed}
               style={css(
-                `font:600 15.5px/1 ${SANS};letter-spacing:-.015em;color:var(--text);white-space:nowrap`,
+                `flex:none;font:600 15.5px/1 ${SANS};letter-spacing:-.015em;color:var(--text);white-space:nowrap;${labelTransition(showLabels)}`,
               )}
             >
               Aguiar <span style={css("color:var(--accent)")}>One</span>
             </span>
-          </div>
-        )}
+        </div>
         <Button
           onClick={() => (isMobile ? a.set({ navOpen: false }) : a.set({ collapsed: !s.collapsed }))}
           title={isMobile ? "Fechar menu" : collapsed ? "Expandir menu" : "Recolher menu"}
+          aria-label={isMobile ? "Fechar menu" : collapsed ? "Expandir menu" : "Recolher menu"}
+          aria-expanded={isMobile ? s.navOpen : !collapsed}
+          aria-controls="portal-navigation"
           className="hv-borda-tx"
           style={css(
-            "flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--border);" +
+            (isMobile ? "" : "position:absolute;right:-16px;top:50%;transform:translateY(-50%);z-index:1;") +
+              "flex:none;width:32px;height:32px;padding:0;border-radius:9px;border:1px solid var(--border);" +
               `background:var(--surface2);color:var(--muted);display:flex;align-items:center;justify-content:center;font:600 13px ${MONO}`,
           )}
         >
@@ -111,8 +119,7 @@ export function Sidebar() {
       {/* Identidade do negócio */}
       <div
         style={css(
-          "flex:none;display:flex;align-items:center;gap:10px;padding:12px;" +
-            (collapsed ? "justify-content:center;" : "") +
+          "flex:none;display:flex;align-items:center;gap:10px;padding:12px 17px;overflow:hidden;" +
             "border-bottom:1px solid var(--border)",
         )}
       >
@@ -124,8 +131,7 @@ export function Sidebar() {
         >
           {business.initials}
         </div>
-        {showLabels && (
-          <div style={css("min-width:0;flex:1")}>
+          <div aria-hidden={collapsed} style={css(`min-width:0;flex:none;width:172px;${labelTransition(showLabels)}`)}>
             <div
               style={css(
                 `font:600 14px/1.25 ${SANS};color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis`,
@@ -141,31 +147,29 @@ export function Sidebar() {
               {business.type}
             </div>
           </div>
-        )}
       </div>
 
       {/* Módulos */}
       <nav
+        id="portal-navigation"
         style={css(
-          "flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 10px;" +
+          "flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:12px 10px;" +
             "display:flex;flex-direction:column;gap:3px",
         )}
       >
         {groups.map((g) => (
           <div key={g.title} style={css("display:flex;flex-direction:column;gap:2px;margin-bottom:10px")}>
-            {showLabels ? (
+            <div style={css("position:relative;height:29px;flex:none;overflow:hidden")}>
               <div
+                aria-hidden={collapsed}
                 style={css(
-                  `padding:8px 8px 6px;font:600 9.5px/1 ${MONO};letter-spacing:.14em;text-transform:uppercase;color:var(--muted)`,
+                  `padding:8px 8px 6px;white-space:nowrap;font:600 9.5px/1 ${MONO};letter-spacing:.14em;text-transform:uppercase;color:var(--muted);${labelTransition(showLabels)}`,
                 )}
               >
                 {g.title}
               </div>
-            ) : (
-              // Recolhida não há espaço para o título do grupo; um filete o
-              // substitui para o agrupamento não se perder.
-              <div style={css("height:1px;margin:5px 8px 7px;background:var(--border)")} />
-            )}
+              <div aria-hidden="true" style={css(`position:absolute;left:8px;right:8px;top:14px;height:1px;background:var(--border);${labelTransition(collapsed)}`)} />
+            </div>
 
             {g.items.map((m) => (
               <ItemMenu
@@ -181,7 +185,7 @@ export function Sidebar() {
       </nav>
 
       {/* Sair */}
-      <div style={css("flex:none;border-top:1px solid var(--border);padding:10px;background:var(--surface)")}>
+      <div style={css("flex:none;border-top:1px solid var(--border);padding:10px;background:var(--surface);overflow:hidden")}>
         {s.signOutOpen && (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -223,6 +227,7 @@ export function Sidebar() {
             e.stopPropagation();
             a.set({ signOutOpen: !s.signOutOpen });
           }}
+          aria-label={`${business.user.name}, sair da conta`}
           className="hv-linha"
           style={css("display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:10px;text-align:left")}
         >
@@ -234,8 +239,7 @@ export function Sidebar() {
           >
             {business.user.initials}
           </span>
-          {showLabels && (
-            <span style={css("min-width:0;flex:1")}>
+            <span aria-hidden={collapsed} style={css(`min-width:0;flex:none;width:170px;${labelTransition(showLabels)}`)}>
               <span
                 style={css(
                   `display:block;font:600 12.5px/1.3 ${SANS};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`,
@@ -245,7 +249,6 @@ export function Sidebar() {
               </span>
               <span style={css(`display:block;font:400 11px/1.3 ${SANS};color:var(--muted)`)}>Sair</span>
             </span>
-          )}
         </Button>
       </div>
     </aside>
@@ -325,12 +328,13 @@ function ItemMenu({
         // Recolhida, quem nomeia o ícone é o balão; manter o `title` aqui faria
         // o balão do sistema subir por cima do nosso, dizendo a mesma coisa.
         title={colapsada ? undefined : info.name}
+        aria-label={info.name}
         aria-current={active ? "page" : undefined}
         className={active ? undefined : "hv-linha"}
         {...getReferenceProps()}
         style={css(
           "position:relative;display:flex;align-items:center;gap:11px;width:100%;padding:9px;" +
-            "border-radius:9px;text-align:left;" +
+            "border-radius:9px;text-align:left;overflow:hidden;" +
             (active
               ? `background:var(--accent-soft);color:var(--accent-text);font:600 13.5px ${SANS};box-shadow:inset 0 0 0 1px var(--accent-soft)`
               : `background:transparent;color:var(--text2);font:500 13.5px ${SANS}`),
@@ -351,13 +355,11 @@ function ItemMenu({
         >
           <ModuleIcon module={module} />
         </span>
-        {mostrarRotulo && (
-          <span style={css("white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>{info.name}</span>
-        )}
+        <span aria-hidden={colapsada} style={css(`flex:none;white-space:nowrap;${labelTransition(mostrarRotulo)}`)}>{info.name}</span>
         {badge > 0 && (
           <span
             style={css(
-              "margin-left:auto;flex:none;min-width:19px;height:19px;padding:0 6px;border-radius:10px;" +
+              "position:absolute;right:3px;top:3px;min-width:19px;height:19px;padding:0 6px;border-radius:10px;" +
                 `background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font:700 10.5px/1 ${MONO}`,
             )}
           >

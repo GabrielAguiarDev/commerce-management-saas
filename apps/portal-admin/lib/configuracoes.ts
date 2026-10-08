@@ -1,4 +1,5 @@
 import "server-only";
+import { platformPaymentsEnabled } from "@/lib/platformPayments";
 
 import { isSellableModule } from "@/lib/planos";
 import { createClient } from "@/lib/supabase/server";
@@ -113,7 +114,7 @@ export async function listSettings(): Promise<SettingsResult> {
   const stored = new Map((data ?? []).map((l) => [l.key as string, l.value]));
 
   return {
-    settings: SETTINGS.map(({ key, label, type, options, hint }) => {
+    settings: SETTINGS.filter(({ key }) => key !== "billing_due_day" || platformPaymentsEnabled()).map(({ key, label, type, options, hint }) => {
       const gross = stored.get(key);
       return {
         id: key,
